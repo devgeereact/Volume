@@ -30,7 +30,7 @@ const EnvSchema = z.object({
   AI_PROVIDER: z.preprocess((v) => (typeof v === 'string' ? v.trim().toLowerCase() : v), z.enum(['mock', 'openrouter', 'auto'])).optional(),
   /** volume (the default): real files from @volume/export. mock: placeholder files marked MOCK. */
   EXPORT_PROVIDER: z.preprocess((v) => (typeof v === 'string' ? v.trim().toLowerCase() : v), z.enum(['mock', 'volume'])).optional(),
-  /** true or false: look up search grounding redirect links in research sources (@volume/ai). Unset keeps the default (on). */
+  /** true or false: look up search grounding redirect links in research sources (@volume/ai). Unset keeps the default (off). */
   RESOLVE_SOURCE_REDIRECTS: z.preprocess((v) => (typeof v === 'string' ? v.trim().toLowerCase() : v), z.enum(['true', 'false'])).optional(),
   /** Folder for backups (DATA_DIR/backups). Default: data/ in the repo. Inside the repo only data/ is allowed. */
   DATA_DIR: z.string().min(1).optional(),
@@ -94,7 +94,7 @@ export interface AppConfig {
   aiProvider: 'mock' | 'openrouter' | 'auto';
   /** EXPORT_PROVIDER. 'volume' (default) uses src/adapters/volume-export.ts; 'mock' the placeholder adapter. */
   exportProvider: 'mock' | 'volume';
-  /** RESOLVE_SOURCE_REDIRECTS, passed to createAiService. Undefined when unset or blank (the package default, on). */
+  /** RESOLVE_SOURCE_REDIRECTS, passed to createAiService. Undefined when unset or blank (the package default, off). */
   resolveSourceRedirects: boolean | undefined;
   /** DATA_DIR (absolute). Backups go to DATA_DIR/backups. */
   dataDir: string;
@@ -117,7 +117,7 @@ export interface LoadConfigOptions {
 
 export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
   const root = opts.root ?? findRepoRoot();
-  if (opts.dotenv ?? true) {
+  if (opts.dotenv ?? ((opts.env ?? process.env)['VOLUME_LOAD_ENV'] !== 'false')) {
     // quiet: dotenv must not print anything about the file or its keys.
     loadDotenv({ path: join(root, '.env'), quiet: true });
   }

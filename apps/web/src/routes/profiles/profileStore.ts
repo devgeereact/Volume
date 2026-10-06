@@ -26,6 +26,7 @@ export interface MemoryItem {
 }
 
 export interface ProfileDraft {
+  photoAssetId?: string | null;
   id: string;
   name: string;
   initials: string;

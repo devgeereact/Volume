@@ -227,6 +227,7 @@ export async function exportPaperbackWrap(meta: BookMeta, style: CoverStyle = DE
   const clearance = safe.value.spineTextClearanceIn;
   const backPad = Math.max(0.5, inset); // house padding for the blurb, never inside the safe zone
   const bc = barcode.value;
+  const barcodeInset = Math.max(inset, bc.insetFromTrimIn);
   let imageDpi: number | undefined;
   if (opts.background) {
     const meta2 = await sharp(opts.background).metadata();
@@ -254,7 +255,7 @@ html, body { margin: 0; width: ${size.widthIn}in; height: ${size.heightIn}in; fo
 .back .text { position: absolute; left: ${b + backPad}in; right: ${backPad}in; top: ${b + backPad + 0.2}in; font-family: '${f.subtitle}'; font-size: 10.5pt; line-height: 1.45; color: ${c.subtitle}; }
 .back .text p { margin: 0 0 8pt; }
 .back .bio { margin-top: 18pt; padding-top: 10pt; border-top: 0.8pt solid ${c.accent}; font-size: 9pt; }
-.back .barcode { position: absolute; width: ${bc.widthIn}in; height: ${bc.heightIn}in; left: ${b + trim.widthIn - inset - bc.widthIn}in; top: ${b + trim.heightIn - inset - bc.heightIn}in; background: ${opts.showBarcodeBox === false ? 'transparent' : '#ffffff'}; }
+.back .barcode { position: absolute; width: ${bc.widthIn}in; height: ${bc.heightIn}in; left: ${b + trim.widthIn - barcodeInset - bc.widthIn}in; top: ${b + trim.heightIn - barcodeInset - bc.heightIn}in; background: ${opts.showBarcodeBox === false ? 'transparent' : '#ffffff'}; }
 .spine { position: absolute; left: ${b + trim.widthIn}in; top: 0; width: ${size.spineIn}in; height: ${size.heightIn}in; background: ${c.band}; display: flex; align-items: center; justify-content: center; }
 .spine .st { writing-mode: vertical-rl; white-space: nowrap; font-family: '${f.title}'; font-weight: ${style.weights.title}; font-size: ${spineFont.toFixed(2)}pt; color: ${c.background}; letter-spacing: 0.04em; max-height: ${trim.heightIn - 2 * inset - 0.5}in; overflow: hidden; }
 .spine .st .au { font-family: '${f.author}'; font-weight: ${style.weights.author}; margin-top: 0.3in; opacity: 0.9; }

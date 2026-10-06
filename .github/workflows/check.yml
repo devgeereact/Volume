@@ -1,0 +1,32 @@
+name: Check Volume
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VOLUME_LOAD_ENV: "false"
+      AI_PROVIDER: mock
+      OPENROUTER_API_KEY: ""
+      RESOLVE_SOURCE_REDIRECTS: "false"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run test:coverage
+      - run: npm run build -w apps/web
+      - run: npm run e2e

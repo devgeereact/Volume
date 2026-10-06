@@ -1,6 +1,6 @@
 # 06 Export specification
 
-How a book is structured, how it is written down as Markdown, and exactly what each export must produce. All KDP numbers cite fact IDs from `docs/reference-kdp-facts-2026-10-03.md` (FACTS) and are read at run time from `config/kdp-rules/2026-10-03.json`, never typed into code. Section defaults per template are in `config/book-templates/`.
+How a book is structured, how it is written down as Markdown, and exactly what each export must produce. All KDP numbers cite fact IDs from `docs/reference-kdp-facts-2026-10-03.md` (FACTS) and are read at run time from the latest dated file in `config/kdp-rules/` (currently `2026-10-06.json`, with the targeted 6 October facts supplement), never typed into code. Section defaults per template are in `config/book-templates/`.
 
 ## Canonical book structure
 
@@ -51,7 +51,7 @@ Round-trip rule: parse then write returns byte-identical Markdown for any file t
 
 ## Print PDF (interior)
 
-- **Engine:** HTML and CSS from the book model, paginated by Paged.js inside Playwright Chromium, printed with `preferCSSPageSize`; pdf-lib sets title, author, subject, creator and producer. Fallback engine (ported from `build_pdf.py`: Chromium print plus stamping) if Paged.js is too slow on long books (`KNOWN-ISSUES.md`).
+- **Engine:** HTML and CSS from the book model, paginated by Paged.js inside Playwright Chromium, printed with `preferCSSPageSize`; pdf-lib sets title, author, subject, creator and producer. No separate fallback engine is implemented. The observed long-book benchmark is recorded in `LOCAL-VALIDATION-2026-10-06.md`.
 - **Trims:** 5 x 8, 5.5 x 8.5, 6 x 9 (default; FACTS 3.6), 8.5 x 11 in. Page count limits per trim come from the rules file (FACTS 3.6: minimum 24, maximums 590 to 828).
 - **Margins:** mirrored (`@page :left` and `:right`), inside margin larger. House defaults below; preflight raises the inside margin to the KDP minimum for the page count from the rules file.
 
@@ -83,8 +83,8 @@ Ported from `build_docx.py` using the `docx` package.
 - `mimetype` first and stored uncompressed, `META-INF/container.xml`, `OEBPS/content.opf`, `nav.xhtml` (contents with chapters and subheadings, plus landmarks), one XHTML file per section, one CSS file.
 - Metadata: `dc:title`, `dc:creator` (pen name), `dc:language` (`en-GB`), `dc:identifier` (eBook ISBN if entered, otherwise `urn:uuid:` from the project id), `dc:publisher` (imprint), `dc:date`, `dcterms:modified`.
 - Cover: the eBook cover JPEG with `properties="cover-image"`, plus a cover XHTML page.
-- Reflowable, no fixed font sizes, fonts not embedded by default. Passes EPUBCheck when Java is present (test skips with NOT TESTED otherwise).
-- The zip library is not yet named in the docs; it needs the owner's OK in phase 1 (`KNOWN-ISSUES.md`).
+- Reflowable, no fixed font sizes, fonts not embedded by default. EPUBCheck integration tests require Java and an explicit `EPUBCHECK_JAR`; without that jar they skip. Automated validation is separate from Kindle rendering acceptance.
+- EPUB and upload packs use the installed `jszip` dependency in packages/export. Project-transfer ZIP parsing is a separate bounded server implementation.
 
 ## TXT (owner's format)
 
@@ -235,7 +235,7 @@ height_in = 0.125 + trim_h + 0.125
 
 - Spine text only at 80 pages or more (FACTS 3.10: KDP says both "at least 79" and "more than 79", so Volume uses 80).
 - `pages` is the interior PDF's real page count, read from the file, never estimated.
-- Back cover: blurb, short bio, and an empty area for KDP's barcode (size unverified, `KNOWN-ISSUES.md`).
+- Back cover: blurb, short bio, and an empty area for KDP's barcode (size/clearance recorded, automatic placement still partial, `KNOWN-ISSUES.md`).
 - Phase 4 check: sizes match KDP's cover calculator (FACTS 3.8) for 3 page counts on white and cream.
 
 ## Preflight

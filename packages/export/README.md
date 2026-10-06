@@ -137,7 +137,7 @@ The owner's typography from the cover studio goes on top of the cover style befo
 
 eBook cover: 1600 x 2560 sRGB JPEG with an ICC profile (size from rule `ebook.cover`). Wrap: exact formula size
 (bleed + back + spine + front + bleed), TrimBox and BleedBox set, spine text only from 80 pages, barcode keep-out box
-and safe zone from the (unverified) rules, background DPI checked against `paperback.cover`.
+and safe zone from the dated rules (automatic barcode placement remains partial), background DPI checked against `paperback.cover`.
 
 ### Preflight and pack
 

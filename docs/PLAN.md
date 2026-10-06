@@ -1,5 +1,7 @@
 # Plan: Volume, a book production app (local first, multi-user ready)
 
+This is the approved historical plan. Later recorded amendments, including Kysely replacing Drizzle and moving prototype/ into apps/web, are in DECISIONS.md and the amendments below. Current implementation and acceptance are recorded in .agent/CURRENT-TASK.md and KNOWN-ISSUES.md.
+
 ## Context
 
 The owner liked the P02 demo book ("Windowsill Herbs") and wants his own tool to produce finished books like it, with covers and images. He shared six drafts (nine related notes are saved in docs/source-drafts/) (BOOK.md "Volume" vision, Book Blueprint Architect Pro, Book Architect Pro, New Book Prompting blueprint template, BOOK CREATION title/script prompts, Children's Bedtime Story Writer). They describe one flow: idea or title, research, polished title, blueprint with summary, approval, full book, review, download. Today that flow lives in long prompts tied to one author (Harni Muharami). This plan turns it into a proper app with several author profiles and pen names, a real backend, and a finished export pack (Word, print PDF, EPUB, TXT, covers, KDP listing).

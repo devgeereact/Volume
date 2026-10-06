@@ -10,7 +10,12 @@ export interface ZipEntry {
   data: Uint8Array;
 }
 
-const MAX_ENTRY_BYTES = 512 * 1024 * 1024;
+const MAX_ENTRY_BYTES = 128 * 1024 * 1024;
+export interface ZipReadLimits {
+  maxEntryBytes?: number;
+  maxTotalBytes?: number;
+  maxEntries?: number;
+}
 
 function dosTime(d: Date): { time: number; date: number } {
   return {
@@ -71,7 +76,11 @@ export function writeZip(entries: readonly ZipEntry[], at = new Date()): Buffer 
 }
 
 /** Reads every entry. Throws a plain Error for anything that is not a zip this module can read. */
-export function readZip(buf: Buffer): ZipEntry[] {
+export function readZip(buf: Buffer, limits: ZipReadLimits = {}): ZipEntry[] {
+  const maxEntryBytes = limits.maxEntryBytes ?? MAX_ENTRY_BYTES;
+  const maxTotalBytes = limits.maxTotalBytes ?? 256 * 1024 * 1024;
+  const names = new Set<string>();
+  let total = 0;
   let eocd = -1;
   for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65_557); i -= 1) {
     if (buf.readUInt32LE(i) === 0x06054b50) {
@@ -81,6 +90,7 @@ export function readZip(buf: Buffer): ZipEntry[] {
   }
   if (eocd < 0) throw new Error('This is not a zip file.');
   const count = buf.readUInt16LE(eocd + 10);
+  if (count > (limits.maxEntries ?? 10000)) throw new Error('The zip contains too many files.');
   let p = buf.readUInt32LE(eocd + 16);
   const out: ZipEntry[] = [];
   for (let n = 0; n < count; n += 1) {
@@ -95,13 +105,18 @@ export function readZip(buf: Buffer): ZipEntry[] {
     const local = buf.readUInt32LE(p + 42);
     const name = buf.subarray(p + 46, p + 46 + nameLen).toString('utf8');
     p += 46 + nameLen + extraLen + commentLen;
+    if (p > buf.length || names.has(name) || name.startsWith('/') || name.includes('\\') || name.split('/').some((part) => part === '..' || part === '.'))
+      throw new Error('The zip contains an invalid or duplicate file name.');
+    names.add(name);
+    total += rawSize;
+    if (total > maxTotalBytes) throw new Error('The expanded project is too large.');
     if (local + 30 > buf.length || buf.readUInt32LE(local) !== 0x04034b50) throw new Error('The zip file is damaged.');
     const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
-    if (rawSize > MAX_ENTRY_BYTES || start + size > buf.length) throw new Error('The zip file is damaged or too large.');
+    if (rawSize > maxEntryBytes || start + size > buf.length) throw new Error('The zip file is damaged or too large.');
     const body = buf.subarray(start, start + size);
     let data: Buffer;
     if (method === 0) data = Buffer.from(body);
-    else if (method === 8) data = inflateRawSync(body, { maxOutputLength: MAX_ENTRY_BYTES });
+    else if (method === 8) data = inflateRawSync(body, { maxOutputLength: Math.min(maxEntryBytes, maxTotalBytes - (total - rawSize)) });
     else throw new Error('The zip file uses a compression this app cannot read.');
     if (data.length !== rawSize || crc32(data) >>> 0 !== crc) throw new Error(`The zip entry ${name} is damaged.`);
     out.push({ name, data });

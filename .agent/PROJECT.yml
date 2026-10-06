@@ -4,9 +4,9 @@ owner: Gideon (Gakinz, London)
 created: 2026-10-04
 location: ~/Projects/volume
 mode: build
-phase: 0
-phase_name: Workspace, rules, agents, design guide and demo
-stack: [node-26, typescript, vite, react, tailwind-4, fastify, sqlite-drizzle, playwright, openrouter]
+phase: 5
+phase_name: Local build corrections and publishing acceptance
+stack: [node-26, typescript, vite, react, tailwind-4, fastify, sqlite-mysql-kysely, playwright, openrouter]
 ai_provider: openrouter
 plan: docs/PLAN.md
 rules: AGENTS.md

@@ -21,6 +21,7 @@ import {
   Textarea,
 } from "../../components/ui";
 import { blueprintData } from "../../api/adapters";
+import { planningApi } from "../../api/planning";
 import { isApiError } from "../../api/client";
 import {
   useApproveBlueprint,
@@ -31,7 +32,7 @@ import {
   usePatchBlueprint,
   useRegenerateBlueprintPart,
 } from "../../api/hooks";
-import type { ApiBookDetail, BlueprintChapterData, BlueprintData, BlueprintPartKey } from "../../api/types";
+import type { ApiBookDetail, ApiBlueprintVersion, BlueprintChapterData, BlueprintData, BlueprintPartKey } from "../../api/types";
 import { estimateWords, guardrailsOf, plainError, runMeta, useBookJobsLive, usePromptRunFor, useStageJob, whenMs } from "../../api/wire-b";
 import { GuardrailNote } from "../research/GuardrailNote";
 import type { Book } from "../../data";
@@ -81,6 +82,9 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
   const regen = useRegenerateBlueprintPart();
   const approve = useApproveBlueprint();
 
+  const [history, setHistory] = useState<ApiBlueprintVersion | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [selected, setSelected] = useState<BlueprintPartKey>("summary");
   const [edit, setEdit] = useState<EditTarget | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
@@ -146,6 +150,31 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
         onSuccess: (v) => {
           setSaved(`Version ${v.version} saved. ${edit.part.label} changed.`);
           setEdit(null);
+        },
+      },
+    );
+  }
+
+  async function compareVersion(number: number) {
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      setHistory(await planningApi.blueprintVersion(bookId, number));
+    } catch (error) {
+      setHistoryError(plainError(error));
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function restoreHistory() {
+    if (!history || !version) return;
+    patch.mutate(
+      { bookId, input: { parts: blueprintData(history), baseVersion: version.version, note: `Restored version ${history.version}` } },
+      {
+        onSuccess: (restored) => {
+          setSaved(`Version ${history.version} restored as draft version ${restored.version}.`);
+          setHistory(null);
         },
       },
     );
@@ -587,6 +616,9 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
                     <span className="text-ink-secondary">
                       {v.note ?? (v.source === "human" ? "Edited by you" : "From the planner")}, {whenMs(v.createdAt)}
                     </span>
+                    <Button size="sm" variant="ghost" disabled={historyLoading || active} onClick={() => void compareVersion(v.version)}>
+                      Compare and restore
+                    </Button>
                   </li>
                 ))}
             </ol>
@@ -594,6 +626,51 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
         </InspectorSection>
       </Inspector>
 
+      {historyError && (
+        <Banner tone="error" title="Version could not be opened">
+          {historyError}
+        </Banner>
+      )}
+      <Modal
+        open={history !== null}
+        onClose={() => setHistory(null)}
+        size="lg"
+        title={`Compare version ${history?.version ?? ""}`}
+        description="Compare with the latest blueprint. Restoring creates a new draft and keeps every earlier version."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setHistory(null)}>
+              Close
+            </Button>
+            <Button icon={RotateCcw} loading={patch.isPending} disabled={active || history?.version === version?.version} onClick={restoreHistory}>
+              Restore as a new draft
+            </Button>
+          </>
+        }
+      >
+        {history && version && (
+          <div className="grid gap-6 md:grid-cols-2">
+            {[history, version].map((item, index) => (
+              <div key={index} className="min-w-0">
+                <h3 className="mb-3 font-semibold">
+                  {index === 0 ? "Selected" : "Latest"}: version {item.version}
+                </h3>
+                <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-words font-ui text-small">{blueprintHistoryText(blueprintData(item))}</pre>
+              </div>
+            ))}
+          </div>
+        )}
+        {patch.isError && (
+          <Banner tone="error" title="Version was not restored">
+            {plainError(patch.error)}
+            {isApiError(patch.error) && patch.error.status === 409 && (
+              <Button variant="ghost" onClick={reloadAfterConflict}>
+                Reload the latest blueprint
+              </Button>
+            )}
+          </Banner>
+        )}
+      </Modal>
       {/* Edit a part */}
       <Modal
         open={edit !== null}
@@ -874,4 +951,30 @@ function MatterList({ m }: { m: Record<string, unknown> }) {
       ))}
     </dl>
   );
+}
+
+function blueprintHistoryText(data: BlueprintData): string {
+  return [
+    data.title,
+    data.subtitle,
+    data.summary,
+    `Audience: ${data.audience}`,
+    `Tone: ${data.tone_notes}`,
+    ...data.usps,
+    ...matterRows(data.front).map((row) => `${row.label}: ${row.text}`),
+    ...data.chapters.map((chapter) =>
+      [
+        `Chapter ${chapter.number}: ${chapter.title}`,
+        chapter.summary,
+        ...chapter.subheadings.map((heading) => (typeof heading === "string" ? heading : String(heading))),
+      ].join("\n"),
+    ),
+    ...matterRows(data.back).map((row) => `${row.label}: ${row.text}`),
+    data.back_blurb,
+    data.description_draft,
+    ...data.categories,
+    ...data.keywords,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }

@@ -1228,7 +1228,7 @@ export interface ApiJobDetail extends ApiJob {
 
 /* ---------- Assets ---------- */
 
-export type AssetKind = "import" | "logo" | "interior_image" | "cover_concept" | "other";
+export type AssetKind = "author_photo" | "import" | "logo" | "interior_image" | "cover_concept" | "other";
 
 export interface ApiAssetMeta {
   id: string;

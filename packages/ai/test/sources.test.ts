@@ -144,6 +144,7 @@ describe('resolveSources', () => {
       configDir: CONFIG_DIR,
       mock: { fixturesDirs: [dir], chunkDelayMs: 0 },
       sourceFetch: fetch,
+      resolveSourceRedirects: true,
     });
     const r = await ai.runStage('research.title-research', FULL_INPUT);
     expect(calls).toHaveLength(4);
@@ -210,13 +211,12 @@ describe('RESOLVE_SOURCE_REDIRECTS setting', () => {
     expect(r.notes.join(' ')).toContain('redirect lookups are switched off (RESOLVE_SOURCE_REDIRECTS=false)');
   });
 
-  it('blank counts as unset, so lookups stay on (the default)', async () => {
+  it('blank counts as unset, so lookups stay off until approved', async () => {
     vi.stubEnv('RESOLVE_SOURCE_REDIRECTS', '');
     const { fetch, calls } = stubFetch({ [REDIRECT]: 'https://www.nhs.uk/live-well/sleep/' });
     const r = await researchService(redirectFixtureDir(), fetch).runStage('research.title-research', FULL_INPUT);
-    expect(calls).toHaveLength(1);
-    expect(r.sources[0]).toMatchObject({ url: 'https://www.nhs.uk/live-well/sleep/', domain: 'nhs.uk' });
-    expect(r.sources[0]?.unresolved).toBeUndefined();
+    expect(calls).toHaveLength(0);
+    expect(r.sources[0]).toMatchObject({ url: REDIRECT, unresolved: true });
   });
 
   it('the service option wins over the setting', async () => {

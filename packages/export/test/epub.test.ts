@@ -3,6 +3,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import JSZip from 'jszip';
+import sharp from 'sharp';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { exportEpub } from '../src/index.ts';
 import { loadWindowsill } from './helpers.ts';
@@ -20,7 +21,12 @@ describe('EPUB 3 (Windowsill Herbs)', () => {
   let zip: JSZip;
   const { book } = loadWindowsill();
   beforeAll(async () => {
-    buf = await exportEpub(book, undefined, { modified: new Date('2026-10-04T00:00:00Z'), coverJpeg: Buffer.from([0xff, 0xd8, 0xff, 0xd9]) });
+    buf = await exportEpub(book, undefined, {
+      modified: new Date('2026-10-04T00:00:00Z'),
+      coverJpeg: await sharp({ create: { width: 1600, height: 2560, channels: 3, background: '#eeeeee' } })
+        .jpeg()
+        .toBuffer(),
+    });
     zip = await JSZip.loadAsync(buf);
   });
 

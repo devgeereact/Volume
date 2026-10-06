@@ -20,20 +20,20 @@ Volume runs on the owner's Mac and holds unpublished books, author identities, p
 | Another device on the network reaches the app | Server binds to `127.0.0.1` only; no LAN mode in v1 |
 | A web page in the owner's browser calls the local API (DNS rebinding, CSRF) | Host header must be `127.0.0.1:<port>` or `localhost:<port>`; Origin must match on every non-GET request; CORS disabled; JSON-only bodies; SSE is read-only |
 | Prompt injection from research pages or pasted text | Outside text goes into labelled data blocks; prompts state that data is not instructions; outputs are schema-validated; models have no tools that act on the system; sources come only from `url_citation` annotations |
-| Malicious import file (zip slip, huge files) | Imports accept `.md` only in v1, size limit 10 MB; any later zip import resolves paths inside the target folder and rejects `..` |
-| Path traversal in file downloads | Files are served by asset or export id, never by a path from the request; paths are joined under the project folder and checked |
+| Malicious import file (zip slip, huge files) | Markdown import validates sections and saves atomically. Project ZIP imports validate rows/references before mutation, reject unsafe/duplicate paths and limit expansion to 128 MiB per entry, 256 MiB total and 10,000 entries; upload limits also apply |
+| Path traversal in file downloads | Files are served by asset or export id, never by a path from the request; content comes from workspace-scoped database BLOB chunks, not a caller-supplied filesystem path |
 | HTML injection in descriptions or manuscript | Markdown renders to HTML through an allowlist; Amazon descriptions limited to KDP's allowed tags (FACTS 10.14); TipTap content stored as Markdown, not raw HTML |
 | Runaway spending | Book budget, monthly cap, cost estimate before each call, pause on limit; owner sets a spending limit on the OpenRouter account too |
 | Data loss | Nightly backups with retention (`02-ARCHITECTURE.md`), versions for every section change, archive instead of delete |
-| Supply chain | Only packages named in the docs; anything else needs the owner's OK; lockfile committed; `npm audit` in CI from phase 1 |
+| Supply chain | Only packages named in the docs; anything else needs the owner's OK; lockfile committed; CI runs typecheck, lint, formatting, coverage, web build and mock browser checks; no npm audit step currently runs |
 
 ## Key handling
 
 - Stored in `.env` as `OPENROUTER_API_KEY`. `.env.example` lists the name with no value.
-- `scripts/verify-env` checks that the name is present and the file is readable; it prints "present" or "missing", never the value.
+- No verify-env helper exists. Check key presence/status through Settings without reading or printing secret values.
 - Settings shows key status from a server call: present, valid, credit or limit when OpenRouter returns them. No characters of the key are shown.
 - The key is sent only in the `Authorization` header to `https://openrouter.ai/api/v1`. No other host ever receives it.
-- If the key is suspected leaked: revoke it on openrouter.ai, create a new one, update `.env`, restart. Documented in `README.md` support notes from phase 2.
+- If the key is suspected leaked: revoke it on openrouter.ai, create a new one, update `.env`, restart. Never copy the old key into an issue, log or handoff.
 
 ## Network policy
 
@@ -59,7 +59,7 @@ Volume runs on the owner's Mac and holds unpublished books, author identities, p
 ## Files and permissions
 
 - `data/` is created with mode `0700`; the database and files inside with `0600`.
-- Logs in `data/logs/` hold no keys, no request bodies and no manuscript text; only ids, stages, models, status, timings and costs.
+- Server logging goes to the configured logger output. No data/logs file sink is implemented. Redaction rules cover sensitive fields; do not add keys or manuscript text to logs.
 - Backups inherit the same permissions. Copying backups off the Mac (for example to an external drive) is the owner's choice and is not automated.
 
 ## Multi-user (phase 8)

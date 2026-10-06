@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { inspectPdf } from '@volume/export';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { copyrightLines, toBookDoc, VolumeExportAdapter } from '../src/adapters/volume-export.js';
+import { readZip } from '../src/lib/zip.js';
 import type { ExportBook, ExportFile } from '../src/ports/export.js';
 import { buildCovers, HOST, testApp, type TestApp } from './helpers.js';
 
@@ -149,6 +150,23 @@ describe('mapping the server book to a BookDoc', () => {
 });
 
 describe('VolumeExportAdapter files', () => {
+  it('includes the saved author photo in EPUB and DOCX while preserving the bio', async () => {
+    const photo = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64');
+    const withPhoto = sampleBook({ authorPhoto: { mime: 'image/png', data: photo } });
+    const epub = readZip(Buffer.from((await exporter.buildEpub(withPhoto)).data));
+    expect(epub.some((entry) => entry.name.startsWith('OEBPS/images/') && Buffer.from(entry.data).equals(photo))).toBe(true);
+    const text = epub
+      .filter((entry) => entry.name.endsWith('.xhtml'))
+      .map((entry) => Buffer.from(entry.data).toString())
+      .join(' ');
+    expect(text).toContain(BIO);
+    const docx = readZip(Buffer.from((await exporter.buildDocx(withPhoto)).data));
+    expect(docx.some((entry) => entry.name.startsWith('word/media/') && Buffer.from(entry.data).equals(photo))).toBe(true);
+    const markdown = Buffer.from((await exporter.buildMd(withPhoto)).data).toString();
+    expect(markdown).toContain(BIO);
+    expect(markdown).not.toContain('data:image');
+  });
+
   const files: Record<string, ExportFile> = {};
   let book: ExportBook;
 

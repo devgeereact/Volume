@@ -15,6 +15,7 @@ import {
   spineTextAllowed,
   spineWidthIn,
   trimPageRange,
+  trimClassFor,
   wrapSizeIn,
 } from '../src/index.ts';
 import { loadKdpRules } from '../src/node/index.ts';
@@ -89,16 +90,21 @@ describe('eBook royalties (FACTS 10.1, 2.2 to 2.5)', () => {
 });
 
 describe('trim, margins, covers and listing', () => {
-  it('6 x 9 range is 24 to 828; other trims use the safe maximum with a warning', () => {
+  it('page limits follow the selected trim and paper', () => {
     expect(trimPageRange(rules, sixByNine).value).toEqual({ min: 24, max: 828 });
     const r = trimPageRange(rules, { widthIn: 5, heightIn: 8 });
-    expect(r.value).toEqual({ min: 24, max: 590 });
-    expect(r.warnings).toHaveLength(1);
+    expect(r.value).toEqual({ min: 24, max: 828 });
+    expect(r.warnings).toEqual([]);
+    expect(trimPageRange(rules, sixByNine, 'cream').value.max).toBe(776);
+    expect(trimPageRange(rules, { widthIn: 8.5, heightIn: 11 }, 'cream').value.max).toBe(550);
+    expect(trimClassFor(rules, sixByNine)).toBe('regular');
+    expect(trimClassFor(rules, { widthIn: 7, heightIn: 10 })).toBe('large');
   });
-  it('unverified rules carry warnings', () => {
+  it('verified margins are clear and partial barcode placement carries a warning', () => {
     expect(insideMarginMinIn(rules, 200).value).toBe(0.5);
-    expect(insideMarginMinIn(rules, 200).warnings[0]).toMatch(/unverified/);
-    expect(barcodeArea(rules).warnings[0]).toMatch(/unverified/);
+    expect(insideMarginMinIn(rules, 200).warnings).toEqual([]);
+    expect(barcodeArea(rules).warnings[0]).toMatch(/partial/);
+    expect(barcodeArea(rules).value.insetFromTrimIn).toBe(0.25);
   });
   it('eBook cover spec is 1600 x 2560 JPEG', () => {
     expect(ebookCoverSpec(rules)).toMatchObject({ widthPx: 1600, heightPx: 2560, minRatio: 1.6 });

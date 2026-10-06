@@ -1,6 +1,6 @@
 # Glossary
 
-Terms used across Volume's docs, code and screens. FACTS refers to `docs/reference-kdp-facts-2026-10-03.md`.
+Terms used across Volume's docs, code and screens. FACTS refers to `docs/reference-kdp-facts-2026-10-03.md`, plus the targeted `docs/reference-kdp-facts-2026-10-06.md` supplement.
 
 | Term | Meaning |
 |---|---|

@@ -8,12 +8,13 @@ Owner: Gideon (Gakinz, London). Runs on the owner's Mac. Built so other self-pub
 
 ## Status
 
-**Phase 0: workspace, rules, agents, design guide and demo.** Started 4 October 2026.
+**Phase 5: local v1 corrections and publishing acceptance.** Updated 6 October 2026. Release acceptance is PARTIAL.
 
-- Done: workspace, plan, rules for every AI, source drafts, KDP facts, fonts, specification docs.
-- Waiting on: the owner's pick of one of three design directions in `design/directions/`.
-- Then: the full design guide and the clickable prototype.
-- No production code yet. No OpenRouter key is needed until phase 2.
+- Built: local API and app, profiles, research/title/blueprint workflows, automatic writing, versioned editor, cover tools and export packs.
+- Local automated checks pass, including 499 tests, measured coverage targets, five browser scenarios, EPUBCheck and a 326-page export benchmark. See [local validation](docs/LOCAL-VALIDATION-2026-10-06.md) for scope and limitations.
+- Free live titles and blueprint pass; full writing failed on summary truncation and saved-draft defects. Both requested Gemma routes returned upstream errors. Recorded cost was zero. See [free AI validation](docs/FREE-AI-VALIDATION-2026-10-06.md).
+- Sampled Word layouts pass. Kindle/KDP acceptance remains outstanding; cPanel testing is deferred by the owner. Current open work is in [KNOWN-ISSUES.md](KNOWN-ISSUES.md).
+- The initial private GitHub repository exists. Current corrections are committed locally; remote CI has not run.
 
 See `.agent/CURRENT-TASK.md` for the live status and `docs/12-ROADMAP.md` for every phase.
 
@@ -43,7 +44,8 @@ npm run typecheck     # every workspace (tsc 7)
 npm run lint          # ESLint, type-aware, whole repo
 npm run format:check  # Prettier; npm run format rewrites the files
 npm run test          # Vitest in every workspace
-npm run e2e           # one full book in the browser, mock AI
+npm run test:coverage # measured core, AI, export and server thresholds
+npm run e2e           # five browser scenarios, mock AI
 ```
 
 Settings live in `.env` at the root (template in `.env.example`). With no OpenRouter key the app uses the mock AI and spends nothing. The web app falls back to its built-in demo data when the server is not running.
@@ -57,14 +59,13 @@ Settings live in `.env` at the root (template in `.env.example`). With no OpenRo
 | `docs/` | Specifications (index below), the plan, KDP facts, owner's source drafts |
 | `config/` | KDP rules, model defaults, house style, book templates |
 | `prompts/` | Versioned prompt files, one folder per pipeline stage |
-| `apps/web/` | The app screens (Vite, React, Tailwind v4), phase 1 onwards |
+| `apps/web/` | App screens and demo fallback data (Vite, React, Tailwind v4); moved from prototype/ on 5 October |
 | `apps/server/` | Fastify API, job queue, SSE, SQLite, phase 1 onwards |
 | `packages/core/` | Book model, Markdown parser, house style, checkers, KDP maths |
 | `packages/ai/` | OpenRouter client, mock provider, model registry, prompt loader, guardrails |
 | `packages/export/` | PDF, DOCX, EPUB, TXT, MD, covers, preflight, upload pack |
 | `packages/ui/` | Design tokens and shared components |
-| `apps/web/` | The app screens (moved from `prototype/` on 5 October 2026); demo data in `src/data/` is the fallback when the server is off |
-| `design/directions/` | Three design direction boards for the owner to choose from |
+| `design/directions/` | Original design boards; fused direction lives in design/final/ (D-014 remains proposed) |
 | `assets/fonts/` | OFL fonts with their licence files |
 | `tests/` | Unit, golden and end-to-end tests |
 | `scripts/` | Seed, backup and environment check helpers |
@@ -92,6 +93,10 @@ Settings live in `.env` at the root (template in `.env.example`). With no OpenRo
 | `DECISIONS.md` | Decision log |
 | `CHANGELOG.md` | User-visible changes |
 | `KNOWN-ISSUES.md` | Open questions and things to verify |
+| `docs/BACKUP-RESTORE.md` | Actual backup retention, restore and rollback procedure |
+| `docs/LOCAL-VALIDATION-2026-10-06.md` | Automated checks, coverage and export evidence |
+| `docs/FREE-AI-VALIDATION-2026-10-06.md` | Free live tests and publishing application checks |
+| `docs/DOCUMENTATION-AUDIT-2026-10-06.md` | Documentation scope, corrections and remaining decisions |
 
 ## Owner decisions (4 October 2026)
 
@@ -102,6 +107,6 @@ Settings live in `.env` at the root (template in `.env.example`). With no OpenRo
 - Every book follows the full structure: front matter, body, back matter, publishing package, marketing package.
 - KDP AI disclosure is set automatically when AI wrote the text or made the images.
 - Volume mode (many books at once) comes later, with KDP's weekly title limit built in.
-- The design direction is still to be chosen.
+- The fused Volume direction is implemented; formal D-014 approval remains proposed.
 
 The full log is in `DECISIONS.md`.

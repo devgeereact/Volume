@@ -360,7 +360,10 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
     await stepButton("Open editor").click();
     await page.waitForURL(/\/editor/);
     await expect(h1("Editor")).toBeVisible();
-    const paragraph = page.locator("p[data-block-id]").first();
+    const paragraph = page
+      .locator('[contenteditable="true"][data-block-id]')
+      .filter({ has: page.locator("p") })
+      .first();
     await expect(paragraph).toBeVisible({ timeout: JOB_WAIT });
     const marker = "This sentence was added by the end-to-end test.";
     // Put the caret at the end of the paragraph, then type. (End-of-line keys differ by platform.)

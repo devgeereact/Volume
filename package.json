@@ -23,10 +23,12 @@
     "format:check": "prettier --check .",
     "test": "npm run test --workspaces --if-present",
     "hooks:test": "bash .claude/hooks/test-hooks.sh",
-    "e2e": "node tests/e2e/run.mjs"
+    "e2e": "node tests/e2e/run.mjs",
+    "test:coverage": "npm run test:coverage --workspaces --if-present"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@vitest/coverage-v8": "^5.0.3",
     "eslint": "10.12.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-react-hooks": "7.1.1",
@@ -34,5 +36,10 @@
     "prettier": "3.9.9",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-eslint": "8.71.0"
+  },
+  "allowScripts": {
+    "better-sqlite3": true,
+    "esbuild": true,
+    "sharp": true
   }
 }

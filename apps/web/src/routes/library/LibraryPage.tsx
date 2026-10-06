@@ -1,3 +1,4 @@
+import { ImportManuscriptDialog } from "./ImportManuscriptDialog";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { LayoutGrid, Plus, Rows3 } from "lucide-react";
@@ -58,6 +59,7 @@ export default function LibraryPage() {
   const demo = useDemoState();
   const mode = useWireMode();
   const api = mode === "api";
+  const [importOpen, setImportOpen] = useState(false);
   const pens = usePenNames(mode, penNames);
   const wired = useWiredBooks(mode, demoActive);
   const apiState = pens.state === "error" || wired.state === "error" ? "error" : pens.state === "loading" || wired.state === "loading" ? "loading" : "ready";
@@ -120,9 +122,16 @@ export default function LibraryPage() {
       : `${byPen.length} ${byPen.length === 1 ? "book" : "books"}${liveInView ? (paused ? ", one paused" : ", one writing now") : ""}`;
 
   const newBook = (
-    <Button variant="primary" icon={Plus} onClick={() => void navigate("/books/new")}>
-      New book
-    </Button>
+    <div className="flex flex-wrap gap-2">
+      {mode === "api" && (
+        <Button variant="secondary" onClick={() => setImportOpen(true)}>
+          Import manuscript
+        </Button>
+      )}
+      <Button variant="primary" icon={Plus} onClick={() => void navigate("/books/new")}>
+        New book
+      </Button>
+    </div>
   );
 
   function renderBooks() {
@@ -226,6 +235,7 @@ export default function LibraryPage() {
       )}
 
       {renderBooks()}
+      {importOpen && <ImportManuscriptDialog profiles={pens.list} onClose={() => setImportOpen(false)} />}
 
       {state === "ready" && byPen.length > 0 && <TodayStrip bookIds={new Set(byPen.map((b) => b.id))} items={today} />}
     </div>

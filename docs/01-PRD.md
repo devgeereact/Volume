@@ -1,6 +1,6 @@
 # 01 Product requirements
 
-What Volume does, module by module. Each module has user stories ("As the owner, I want...") and acceptance criteria (AC) a tester can check. Screens are in `09-UX-FLOWS.md`, data in `03-DATA-MODEL.md`, AI stages in `04-AI-PIPELINE.md`, files in `06-EXPORT-SPEC.md`. KDP numbers cite fact IDs from `docs/reference-kdp-facts-2026-10-03.md` (FACTS) and are read at run time from `config/kdp-rules/`.
+What Volume does, module by module. Each module has user stories ("As the owner, I want...") and acceptance criteria (AC) a tester can check. Screens are in `09-UX-FLOWS.md`, data in `03-DATA-MODEL.md`, AI stages in `04-AI-PIPELINE.md`, files in `06-EXPORT-SPEC.md`. KDP numbers cite fact IDs from `docs/reference-kdp-facts-2026-10-03.md` and its 6 October supplement (FACTS) and are read at run time from `config/kdp-rules/`.
 
 ## The book structure every book follows
 

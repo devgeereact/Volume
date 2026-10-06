@@ -1,3 +1,4 @@
+import type { BlobStore } from '../files/blob-store.js';
 import { dirname } from 'node:path';
 import { checkText, type CompiledHouseStyle } from '@volume/core';
 import { loadHouseStyle } from '@volume/core/node';
@@ -12,9 +13,17 @@ import type { Repos } from '../repos/index.js';
 export const CODE_WRITTEN_KINDS: ReadonlySet<string> = CODE_KINDS;
 
 /** Gathers everything the exporter needs. About the author is the profile bio, verbatim. */
-export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: string, configDir: string): Promise<ExportBook> {
+export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: string, configDir: string, blobs?: BlobStore): Promise<ExportBook> {
   const book = await repos.books.require(ctx, projectId);
   const profile = await repos.profiles.require(ctx, book.profileId);
+  let authorPhoto: ExportBook['authorPhoto'];
+  const photoId = profile.brand['photoAssetId'];
+  if (blobs && typeof photoId === 'string') {
+    const photo = await blobs.read(ctx, photoId);
+    if (photo.meta.profileId !== profile.id || !['image/jpeg', 'image/png'].includes(photo.meta.mime))
+      throw new Error('The author photo does not belong to this profile or has an unsupported format.');
+    authorPhoto = { mime: photo.meta.mime, data: photo.data };
+  }
   const allSections = await repos.manuscript.listSections(ctx, projectId);
   const sections = allSections.filter((s) => s.enabled);
   const structure = await loadBookStructure(configDir, book.bookTypeId, book.template);
@@ -51,6 +60,7 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
     status: c.status === 'verified' ? 'verified' : c.status === 'removed' ? 'removed' : 'open',
   }));
   return {
+    ...(authorPhoto ? { authorPhoto } : {}),
     projectId,
     title: book.title ?? book.idea ?? 'Untitled',
     subtitle: book.subtitle,
@@ -68,7 +78,7 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
     aiDisclosure: book.aiDisclosure,
     illustrativeLine: book.illustrativeLine,
     sections: out,
-    manuscriptHash: sha256Hex(out.map((s) => `${s.id}:${s.bodyMd}`).join('\n')),
+    manuscriptHash: sha256Hex(out.map((s) => `${s.id}:${s.bodyMd}`).join('\n') + (authorPhoto ? `\nphoto:${sha256Hex(Buffer.from(authorPhoto.data))}` : '')),
     templateId: structure.templateId,
     sectionsOff: [
       ...new Set([

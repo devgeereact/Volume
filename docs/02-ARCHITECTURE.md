@@ -80,7 +80,7 @@ SQLite-backed, in the same process, so it survives restarts without extra servic
 - **Parent and children:** `write_book` creates one `write_section` child per section. The parent's progress is the share of children done; it succeeds when all children succeed or are marked "needs attention".
 - **Retries:** up to 3 attempts for network errors, 5xx, 408 and 429, with backoff of 2 s, 10 s and 60 s plus up to 20% jitter. A `Retry-After` header wins when present. Validation failures of AI output get one repair attempt inside the same attempt.
 - **Heartbeat and resume:** a running job updates `locked_at` every 15 s. On start-up, jobs in `running` with `locked_at` older than 60 s go back to `queued` with the attempt count kept. A section job always restarts its section from the beginning; partial streamed text is discarded.
-- **Budget:** before each AI call the runner estimates the cost. If `spent + estimate` passes the book budget or monthly cap, the job moves to `paused_budget` and emits `budget.paused`. Raising the budget re-queues it.
+- **Budget:** before each AI call the runner estimates the cost; internal requests, retries and repairs also check remaining allowance, with shared reservations for concurrent jobs. If `spent + estimate` passes the book budget or monthly cap, the job moves to `paused_budget` and emits `budget.paused`. Raising the budget re-queues it.
 - **Cancel:** sets `cancel_requested`; the runner aborts the HTTP request with an `AbortController` and marks the job `cancelled`.
 - **Idempotency:** each job writes its result in one transaction at the end, so a job that dies half way leaves no half-saved version.
 
@@ -101,7 +101,7 @@ All AI goes through OpenRouter with one key, `OPENROUTER_API_KEY`, read from the
 | Text | `POST https://openrouter.ai/api/v1/chat/completions` through the official OpenAI SDK with `baseURL: "https://openrouter.ai/api/v1"`. Streaming for chapters. Structured JSON output (`response_format` with a JSON schema) where the model supports it, otherwise JSON by instruction plus zod validation |
 | Usage and cost | Read `usage` (tokens and cost) from each response and store it in `prompt_runs`. If cost is missing, compute it from the registry prices |
 | Web search | The chosen model with the `:online` suffix or the `web` plugin. Native search for Anthropic, Google and OpenAI models, Exa for others. Sources come only from `url_citation` annotations on the message (url, title, content, start and end index), never from text the model typed |
-| Images | `POST https://openrouter.ai/api/v1/images`, base64 results, aspect ratio and resolution options, no charge on failure. Default `google/gemini-2.5-flash-image`. Cover text is always set by the app |
+| Images | `POST https://openrouter.ai/api/v1/images`, base64 results, aspect ratio and resolution options. Failed-call cost may be unknown if the provider returns no usage. Default `google/gemini-2.5-flash-image`. Cover text is always set by the app |
 | Models | `GET https://openrouter.ai/api/v1/models`: id, name, context length, input and output modalities, supported parameters, prices. Cached for 24 hours; "Refresh" in Settings |
 | Key check | A key-status call that returns validity and limits, shown in Settings without the key |
 | App name | Optional `HTTP-Referer` and `X-OpenRouter-Title` headers name Volume |
@@ -149,17 +149,17 @@ data/
   workspaces/<workspace_id>/
     profiles/<profile_id>/   logo and brand assets
     projects/<project_id>/   imports/ assets/ covers/ exports/ packs/
-  backups/<YYYY-MM-DD>/      volume.sqlite and files.tar.gz
+  backups/                  timestamped SQLite snapshots (including file chunks)
   logs/                      server.log (rotated daily, keys and bodies redacted)
 ```
 
 ## Backups
 
-- Nightly at 02:00 local time while the server runs, and on start-up if the last backup is more than 24 hours old.
-- Database copied with `VACUUM INTO` (a consistent snapshot while the app runs), files archived with tar and gzip.
-- Keep 14 daily and 8 weekly backups; older ones removed by the backup job only.
-- `npm run backup` runs the same job from `scripts/`. Restore is a documented manual step: stop the server, copy the snapshot over `data/volume.sqlite`, extract files, start.
-- Settings shows the last backup time and size. A failed backup shows a notice until the next success.
+- When enabled, the running server checks every 15 minutes and makes one snapshot per local day after the configured backup time (02:00 by default). Settings can also create one immediately.
+- `VACUUM INTO` creates a consistent copy. Asset metadata and file chunks live in SQLite, so the snapshot contains the library and its files.
+- Keep the newest 14 snapshots in `DATA_DIR/backups`. Weekly retention and a root backup CLI are not implemented.
+- MySQL snapshots are managed by cPanel, not Volume.
+- Restore instructions and verification: [BACKUP-RESTORE.md](BACKUP-RESTORE.md).
 
 ## Configuration and secrets
 

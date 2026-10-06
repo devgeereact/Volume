@@ -77,6 +77,7 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
 
   const [viewing, setViewing] = useState<string | null>(null);
   const [follow, setFollow] = useState(true);
+  const [confirmSpend, setConfirmSpend] = useState(false);
   const [confirmStop, setConfirmStop] = useState(false);
   const [retryFor, setRetryFor] = useState<ApiSection | null>(null);
   const [pauseAsked, setPauseAsked] = useState(false);
@@ -147,6 +148,16 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
   const wordTarget = written.reduce((n, r) => n + (r.section.wordTarget ?? 0), 0);
 
   function startWriting() {
+    if (!writeEstimate.data) return;
+    const remaining = Math.max(0, apiBook.budgetUsd - apiBook.costToDateUsd);
+    if (writeEstimate.data && writeEstimate.data.highUsd > remaining / 2) {
+      setConfirmSpend(true);
+      return;
+    }
+    sendWriting();
+  }
+  function sendWriting() {
+    setConfirmSpend(false);
     setFollow(true);
     // Writing the book again queues only the sections that are not done.
     writeBook.mutate({ bookId, onlyEmpty: true }, { onSuccess: () => setAnnounce("Writing started.") });
@@ -213,7 +224,13 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
                           : "Write the rest",
                     onClick: startWriting,
                     estimate: estimateWords(writeEstimate.data),
-                    disabledReason: writeBook.isPending ? "Starting the writer." : undefined,
+                    disabledReason: writeBook.isPending
+                      ? "Starting the writer."
+                      : writeEstimate.isPending
+                        ? "Estimating the cost."
+                        : writeEstimate.isError
+                          ? "The writing cost could not be estimated."
+                          : undefined,
                   },
   );
 
@@ -493,6 +510,23 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
         </Inspector>
       </div>
 
+      <Modal
+        open={confirmSpend}
+        onClose={() => setConfirmSpend(false)}
+        size="sm"
+        title="Confirm writing cost"
+        description={`The high estimate is $${writeEstimate.data?.highUsd.toFixed(2) ?? "0.00"}, more than half the remaining book budget of $${Math.max(0, apiBook.budgetUsd - apiBook.costToDateUsd).toFixed(2)}. Volume pauses before a request would exceed the budget.`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmSpend(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={sendWriting}>
+              Start writing
+            </Button>
+          </>
+        }
+      />
       <Modal
         open={confirmStop}
         onClose={() => setConfirmStop(false)}

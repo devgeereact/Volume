@@ -23,6 +23,8 @@ Every screen uses the app shell from `08-DESIGN-GUIDE.md`: left nav, main canvas
 
 ## Screens
 
+Implemented corrections: Library imports Markdown into a new book or a project ZIP; saved profiles accept JPEG/PNG portraits; API blueprint versions compare and restore as a new draft; writing confirms high estimated costs; Export accepts prices before publication. These flows have targeted browser evidence in LOCAL-VALIDATION-2026-10-06.md. The descriptions below are the wider UX acceptance contract, not an exhaustive runtime audit.
+
 ### Library [M2]
 - **Purpose:** see every book by pen name and status; open or start one.
 - **Regions:** header with search, filters (pen name, status, template) and "New book"; grid of book cards (list view toggle); inspector shows the selected book's summary, spend and last jobs.

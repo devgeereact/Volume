@@ -79,7 +79,7 @@ export interface CreateAiServiceOptions {
   /** Timeout for each redirect lookup in ms (default 5 s). */
   sourceTimeoutMs?: number | undefined;
   /**
-   * Look up search grounding redirect links (default true). When left out, the setting
+   * Look up search grounding redirect links (default false). When left out, the setting
    * RESOLVE_SOURCE_REDIRECTS (true or false; blank counts as unset) is read from the environment. When
    * off, no lookup is sent: redirect links are kept and marked unresolved.
    */
@@ -94,6 +94,8 @@ export interface BudgetLimit {
 }
 
 export interface RunStageOptions {
+  /** Called before every provider request, including repairs and retries. */
+  beforeCall?: ((spentUsd: number, estimateUsd: number | null) => Promise<void>) | undefined;
   signal?: AbortSignal | undefined;
   /** Stream the answer; each text fragment arrives here. */
   onDelta?: ((text: string) => void) | undefined;
@@ -174,6 +176,7 @@ export interface StageResult<T> {
 }
 
 export interface GenerateImageOptions {
+  beforeCall?: ((spentUsd: number, estimateUsd: number | null) => Promise<void>) | undefined;
   model?: string | undefined;
   overrides?: ModelOverrides | undefined;
   allowFallback?: boolean | undefined;
@@ -256,7 +259,7 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
   const prompts = new PromptLoader(options.promptsDir);
   const modelsTtl = options.modelsTtlMs ?? 24 * 60 * 60 * 1000;
   const resolveSourceRedirects =
-    options.resolveSourceRedirects ?? parseBooleanSetting(RESOLVE_SOURCE_REDIRECTS_SETTING, process.env[RESOLVE_SOURCE_REDIRECTS_SETTING]) ?? true;
+    options.resolveSourceRedirects ?? parseBooleanSetting(RESOLVE_SOURCE_REDIRECTS_SETTING, process.env[RESOLVE_SOURCE_REDIRECTS_SETTING]) ?? false;
 
   let provider: AiProvider;
   if (options.provider) {
@@ -483,7 +486,6 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
       // if the provider rejects it, one retry without a parameter a 400 names, and one retry with more room
       // when the answer is cut off at max tokens.
       const runOne = async (req: ChatRequest): Promise<ChatResult> => {
-        checkBudget(opts.budget, spent, prep.estimate.estimateUsd);
         let attemptReq = req;
         let restarted = false;
         let downgraded = false;
@@ -491,6 +493,10 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
         let widened = false;
         let providerSkipped = false;
         for (;;) {
+          const output = attemptReq.maxTokens ?? prep.estimate.expectedOutputTokens;
+          const quote = costEstimate(attemptReq.model, Math.ceil(JSON.stringify(attemptReq.messages).length / 4), output, output, attemptReq.webSearch).highUsd;
+          checkBudget(opts.budget, spent, quote);
+          await opts.beforeCall?.(spent, quote);
           try {
             const r = await provider.chat(attemptReq);
             spent += r.usage.costUsd ?? 0;
@@ -508,7 +514,6 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
               if (retry) {
                 widened = true;
                 notes.push(retry.note);
-                checkBudget(opts.budget, spent, prep.estimate.estimateUsd);
                 attemptReq = retry.req;
                 continue;
               }
@@ -805,7 +810,7 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
         }
         // Every call made for this step was paid for, including cut-off answers and repairs: the error keeps
         // its own type and carries the total so the server can record the spend.
-        if (e instanceof AiError && calls.length > 0) e.usage = calls.reduce((u, c) => addUsage(u, c.usage), emptyUsage());
+        if (e instanceof Error && calls.length > 0) Object.assign(e, { usage: calls.reduce((u, c) => addUsage(u, c.usage), emptyUsage()) });
         throw e;
       }
     }
@@ -824,6 +829,7 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
         const perImage = p?.perRequest ?? null;
         checkBudget(opts.budget, 0, perImage === null ? null : perImage * n);
       }
+      await opts.beforeCall?.(0, p?.perRequest === null || p?.perRequest === undefined ? null : p.perRequest * n);
       try {
         const r = await provider.generateImage({
           model,

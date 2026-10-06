@@ -563,3 +563,23 @@ describe('OpenRouter AI adapter: round 2 fields', () => {
     expect(res.output.suggestions[0]).toMatchObject({ original: 'First paragraph about mornings.', proposed: 'Opening line, tidied.', start: 0, end: 31 });
   });
 });
+
+describe('internal budget checks', () => {
+  it('carries previous task spend into the next task check', async () => {
+    const { ai, seen } = await adapterWith();
+    const input = CASES.find((item) => item.stage === 'titles');
+    if (!input) throw new Error('Missing titles fixture');
+    const checks: number[] = [];
+    await ai.runStage('titles', input.input, {
+      model: MODEL,
+      beforeCall: (spent) => {
+        checks.push(spent);
+        return Promise.resolve();
+      },
+    });
+    expect(seen).toContain('titles.title-options');
+    expect(checks.length).toBeGreaterThanOrEqual(2);
+    expect(checks[0]).toBe(0);
+    expect(checks[1]).toBeGreaterThan(0);
+  });
+});

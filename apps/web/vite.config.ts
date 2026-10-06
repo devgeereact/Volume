@@ -18,7 +18,6 @@ export default defineConfig({
   resolve: { alias: { "@config": fileURLToPath(new URL("../../config", import.meta.url)) } },
   server: { host: "127.0.0.1", port: 5180, strictPort: true, proxy: apiProxy },
   preview: { host: "127.0.0.1", port: 5180, strictPort: true, proxy: apiProxy },
-  // One bundle is fine for a local demo: React, React Router and motion make up most of it, and the
-  // config catalogues (book types, themes, cover styles, profiles) add about 100 kB.
-  build: { target: "es2023", sourcemap: false, chunkSizeWarningLimit: 1300 },
+  // Heavy screens are imported by the router on demand; keep the shell and library available immediately.
+  build: { target: "es2023", sourcemap: false, chunkSizeWarningLimit: 600 },
 });

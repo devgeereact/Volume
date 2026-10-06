@@ -252,6 +252,27 @@ describe('2. cut-off answers', () => {
     expect(r.notes.join(' ')).toMatch(/cut off/);
   });
 
+  it('checks paid usage before a truncation retry and stops before sending it', async () => {
+    const stub = stubFetch([
+      { body: completion('{"directions": [', { finish: 'length', cost: 0.03 }) },
+      { body: completion(sample('titles.topic-directions')) },
+    ]);
+    const s = service(stub, [REASONING_MODEL('~anthropic/claude-sonnet-latest')]);
+    const checks: number[] = [];
+    await expect(
+      s.runStage('titles.topic-directions', FULL_INPUT, {
+        model: '~anthropic/claude-sonnet-latest',
+        beforeCall: (spent) => {
+          checks.push(spent);
+          if (spent > 0) throw new Error('Book budget reached');
+          return Promise.resolve();
+        },
+      }),
+    ).rejects.toThrow('Book budget reached');
+    expect(checks).toEqual([0, 0.03]);
+    expect(stub.bodies).toHaveLength(1);
+  });
+
   it('gives up after the second cut-off with output_truncated and the spend of both calls', async () => {
     const cut = { body: completion('{"dir', { finish: 'length', cost: 0.02 }) };
     const stub = stubFetch([cut, cut, cut]);

@@ -1,3 +1,4 @@
+import { PublishedDetailsDialog } from "../published/PublishedDetailsDialog";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Download, FileArchive, FileImage, FileText, FileType, Package, Sparkles } from "lucide-react";
 import {
@@ -69,6 +70,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   const exportsQ = useExports(bookId);
   const coverQ = useCover(bookId);
   const start = useStartExports();
+  const [pricing, setPricing] = useState(false);
   const [ticked, setTicked] = useState<Record<string, boolean>>({});
   const [confirm, setConfirm] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -162,6 +164,20 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   return (
     <>
       <PageHeader title="Export" summary="Check, build and download the KDP upload pack." />
+      <Button className="mt-3" variant="secondary" onClick={() => setPricing(true)}>
+        Set list prices
+      </Button>
+      {pricing && apiBook && (
+        <PublishedDetailsDialog
+          open
+          onClose={() => setPricing(false)}
+          bookId={bookId}
+          title={book.title}
+          marketplace={apiBook.marketplace ?? "amazon.co.uk"}
+          prices={apiBook.listPrices}
+          onSaved={() => setPricing(false)}
+        />
+      )}
       {disabledReason && !building && (
         <p className="mt-2 text-small text-ink-secondary" role="status">
           {disabledReason}
@@ -346,7 +362,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
           </section>
 
           <Suspense fallback={null}>
-            <ApiRoyalties listPrices={apiBook?.listPrices} pdf={pdf} epub={latest.get("epub")} />
+            <ApiRoyalties trim={apiBook?.trim} listPrices={apiBook?.listPrices} pdf={pdf} epub={latest.get("epub")} />
           </Suspense>
         </div>
 

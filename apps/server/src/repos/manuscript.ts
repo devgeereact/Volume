@@ -412,7 +412,7 @@ export class ManuscriptRepo {
     const t = now();
     let pos = startPosition;
     const ids: string[] = [];
-    await this.db.transaction().execute(async (trx) => {
+    const insert = async (trx: Db): Promise<void> => {
       for (const it of items) {
         const id = newId();
         ids.push(id);
@@ -440,7 +440,9 @@ export class ManuscriptRepo {
           .execute();
         pos += 1000;
       }
-    });
+    };
+    if (this.db.isTransaction) await insert(this.db);
+    else await this.db.transaction().execute(insert);
     const all = await this.listSections(ctx, projectId);
     return all.filter((s) => ids.includes(s.id));
   }
@@ -486,7 +488,7 @@ export class ManuscriptRepo {
       if (owner) guardrails = await this.textChecker(ctx, owner.projectId, input.bodyMd);
       if (guardrails && input.styleRewrite) guardrails = { ...guardrails, styleRewrite: input.styleRewrite };
     }
-    return this.db.transaction().execute(async (trx) => {
+    const save = async (trx: Db): Promise<SectionVersion> => {
       const section = await trx.selectFrom('sections').selectAll().where('id', '=', sectionId).where('workspaceId', '=', ctx.workspaceId).executeTakeFirst();
       if (!section) throw notFound('Section');
       if (input.baseVersionId !== undefined && input.baseVersionId !== section.currentVersionId) {
@@ -537,7 +539,8 @@ export class ManuscriptRepo {
       await trx.updateTable('projects').set({ updatedAt: t }).where('id', '=', section.projectId).where('workspaceId', '=', ctx.workspaceId).execute();
       const row = await trx.selectFrom('sectionVersions').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
       return toVersion(row);
-    });
+    };
+    return this.db.isTransaction ? save(this.db) : this.db.transaction().execute(save);
   }
 
   async listVersions(ctx: RequestCtx, sectionId: string): Promise<Omit<SectionVersion, 'content' | 'bodyMd' | 'plaintext'>[]> {

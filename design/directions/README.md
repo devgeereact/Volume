@@ -1,6 +1,6 @@
 # Design directions
 
-Three direction boards for the app's look (phase 0). The owner picks one; the choice is recorded in DECISIONS.md and expanded in docs/08-DESIGN-GUIDE.md.
+Original phase 0 direction boards. The owner requested a fused direction, now implemented in design/final/ and packages/ui and specified in docs/08-DESIGN-GUIDE.md. Formal D-014 approval remains proposed. These boards are historical references, not the current build task.
 
 Each board is one self-contained HTML file with two 1440 by 900 screens (Library and the Blueprint for The Calm Ward) and a token strip. Screenshots are in `screenshots/`. Fonts load from Google Fonts for these boards only; the real app will self-host OFL fonts. Book covers are drawn in HTML, CSS and SVG and are the same on every board, so only the interface changes.
 

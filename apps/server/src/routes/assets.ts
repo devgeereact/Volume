@@ -10,7 +10,7 @@ import { sendAsset } from './production.js';
 const ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'text/markdown', 'text/plain', 'application/pdf', 'application/octet-stream']);
 
 const UploadQuery = z.object({
-  kind: z.enum(['import', 'logo', 'interior_image', 'cover_concept', 'other']),
+  kind: z.enum(['import', 'logo', 'interior_image', 'author_photo', 'cover_concept', 'other']),
   filename: z.string().trim().min(1).max(255),
   mime: z.string().max(100).optional(),
   projectId: z.string().max(64).optional(),
@@ -41,13 +41,22 @@ export function assetRoutes(app: FastifyInstance, s: AppServices): void {
       const mime = (q.mime ?? req.headers['content-type'] ?? 'application/octet-stream').split(';')[0]?.trim().toLowerCase() ?? '';
       if (!ALLOWED_MIME.has(mime)) throw new AppError('unsupported_media_type', 'This file type cannot be uploaded.');
       if (q.kind === 'import' && !/\.md$/i.test(q.filename)) throw new AppError('unsupported_media_type', 'Imports accept Markdown (.md) files only.');
+      if (q.kind === 'author_photo' && (!q.profileId || !['image/jpeg', 'image/png'].includes(mime)))
+        throw new AppError('validation_failed', 'Author photos need a saved profile and a JPEG or PNG image.');
       if (q.projectId) await s.repos.books.require(req.ctx, q.projectId);
       if (q.profileId) await s.repos.profiles.require(req.ctx, q.profileId);
       const body = req.body as Readable | undefined;
       if (!body) throw new AppError('validation_failed', 'The upload body is empty.');
       const meta = await s.blobs.put(
         req.ctx,
-        { kind: q.kind, filename: q.filename, mime, projectId: q.projectId ?? null, profileId: q.profileId ?? null, maxBytes: s.config.maxUploadBytes },
+        {
+          kind: q.kind,
+          filename: q.filename,
+          mime,
+          projectId: q.projectId ?? null,
+          profileId: q.profileId ?? null,
+          maxBytes: q.kind === 'author_photo' ? Math.min(s.config.maxUploadBytes, 5 * 1024 * 1024) : s.config.maxUploadBytes,
+        },
         body,
       );
       void reply.code(201);

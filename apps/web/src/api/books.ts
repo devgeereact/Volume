@@ -20,6 +20,8 @@ import type {
 type Opts = Pick<RequestOptions, "signal">;
 
 export const booksApi = {
+  importManuscript: (input: { profileId: string; markdown: string }, o?: Opts) =>
+    api.post<{ bookId: string; sections: number }>("/books/import-manuscript", input, o),
   list: (q: BookListQuery = {}, o?: Opts) =>
     api.get<ListResponse<ApiBookRow>>("/books", {
       ...o,

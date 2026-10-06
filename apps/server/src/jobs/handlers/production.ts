@@ -94,7 +94,7 @@ export const coverBuildHandler: JobHandler = async (jc) => {
   if (!projectId) throw new JobFailed('Cover job is missing its book.');
   const cover = await repos.production.getCover(jc.ctx, projectId);
   if (!cover?.chosenAssetId) throw new JobFailed('Choose a cover concept first.', 'invalid_state');
-  const book = await buildExportBook(repos, jc.ctx, projectId, jc.services.configDir);
+  const book = await buildExportBook(repos, jc.ctx, projectId, jc.services.configDir, jc.services.blobs);
   const art = await blobs.read(jc.ctx, cover.chosenAssetId);
   const listing = await repos.planning.latestBlueprint(jc.ctx, projectId);
   const backBlurb = typeof listing?.data['back_blurb'] === 'string' ? listing.data['back_blurb'] : '';
@@ -250,7 +250,7 @@ export const exportPackHandler: JobHandler = async (jc) => {
   const { repos, blobs, exporter } = jc.services;
   const projectId = jc.job.projectId;
   if (!projectId) throw new JobFailed('Export job is missing its book.');
-  const book = await buildExportBook(repos, jc.ctx, projectId, jc.services.configDir);
+  const book = await buildExportBook(repos, jc.ctx, projectId, jc.services.configDir, jc.services.blobs);
   await jc.progress(0.05, 'Preflight');
   const preflight = await withOwnerPlaceholders(repos, jc.ctx, projectId, await exporter.preflight(book, { signal: jc.signal }));
   if (preflight.blocks > 0) {

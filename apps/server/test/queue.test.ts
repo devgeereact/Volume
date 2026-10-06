@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { MockAiAdapter } from '../src/adapters/mock-ai.js';
 import { MockExportAdapter } from '../src/adapters/mock-export.js';
 import { ensureOwner } from '../src/auth/context.js';
@@ -27,7 +27,7 @@ async function setup(handlers: HandlerMap) {
     configDir: testConfig().configDir,
   };
   const runner = new JobRunner(services, handlers);
-  return { handle, ctx, queue, runner, bus };
+  return { handle, ctx, queue, runner, bus, services };
 }
 
 describe('job queue', () => {
@@ -138,6 +138,44 @@ describe('job queue', () => {
     expect(p.progress).toBe(1);
     expect(await queue.list(ctx, { parentId: parent.id })).toHaveLength(3);
     await handle.close();
+  });
+
+  it('reserves the shared monthly allowance before overlapping calls', async () => {
+    const { handle, ctx, queue, runner, services } = await setup({
+      noop: async (jc) => {
+        await jc.runAi('summarise', { variables: {} });
+        return {};
+      },
+    });
+    await services.repos.settings.set(ctx, { 'budget.monthly_cap_usd': 0.002 });
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const original = services.ai.runStage.bind(services.ai);
+    const call = vi.spyOn(services.ai, 'runStage').mockImplementation(async (...args) => {
+      await gate;
+      return original(...args);
+    });
+    const first = await queue.enqueue(ctx, { kind: 'noop' });
+    const second = await queue.enqueue(ctx, { kind: 'noop' });
+    try {
+      await runner.start();
+      await vi.waitFor(async () => {
+        const statuses = await Promise.all([first, second].map(async (job) => (await queue.require(ctx, job.id)).status));
+        expect(statuses.sort()).toEqual(['paused_budget', 'running']);
+      });
+      expect(call).toHaveBeenCalledTimes(1);
+      release();
+      await vi.waitFor(async () => {
+        const statuses = await Promise.all([first, second].map(async (job) => (await queue.require(ctx, job.id)).status));
+        expect(statuses.sort()).toEqual(['paused_budget', 'succeeded']);
+      });
+    } finally {
+      release();
+      await runner.stop();
+      await handle.close();
+    }
   });
 
   it('pauses on budget and records events', async () => {

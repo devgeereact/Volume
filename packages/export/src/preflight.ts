@@ -398,7 +398,7 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
         : `${info.fonts.length} fonts, all embedded: ${info.fonts.map((f) => f.name.replace(/^[A-Z]{6}\+/, '')).join(', ')}.`,
       factIds: ['6.6'],
     });
-    const range = trimPageRange(rules, trim);
+    const range = trimPageRange(rules, trim, input.paper);
     const inRange = info.pageCount >= range.value.min && info.pageCount <= range.value.max;
     add({
       id: 'interior.pages',

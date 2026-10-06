@@ -93,7 +93,7 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
 
   app.get('/books/:id/preflight', async (req) => {
     const id = idOf(req);
-    const book = await buildExportBook(s.repos, req.ctx, id, s.configDir);
+    const book = await buildExportBook(s.repos, req.ctx, id, s.configDir, s.blobs);
     const cover = await s.repos.production.getCover(req.ctx, id);
     const report = withPackCovers(await withOwnerPlaceholders(s.repos, req.ctx, id, await s.exporter.preflight(book)), {
       ebook: !!cover?.ebookAssetId,
@@ -130,7 +130,7 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
   app.get('/books/:id/exports', async (req) => {
     const id = idOf(req);
     await s.repos.books.require(req.ctx, id);
-    const book = await buildExportBook(s.repos, req.ctx, id, s.configDir);
+    const book = await buildExportBook(s.repos, req.ctx, id, s.configDir, s.blobs);
     const items = await p.listExports(req.ctx, id);
     // A pack carries the marketing files too: marketing generated, edited, archived or restored after the pack
     // was built makes it stale, like a manuscript change does for every file.

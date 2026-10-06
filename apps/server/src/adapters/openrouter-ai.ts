@@ -781,6 +781,10 @@ export class OpenRouterAiAdapter implements AiPort {
     if (opts.signal?.aborted) throw abortError();
     const version = o.pinVersion ? run.input.promptVersion : undefined;
     const runOpts: VolumeAiRunOptions = {};
+    if (opts.beforeCall) {
+      runOpts.beforeCall = (spent, estimate) =>
+        opts.beforeCall!(run.results.reduce((sum, result) => sum + (result.usage.costUsd ?? 0), run.failed.costUsd) + spent, estimate);
+    }
     if (opts.signal) runOpts.signal = opts.signal;
     if (opts.model) runOpts.model = opts.model;
     if (o.stream && opts.onDelta) runOpts.onDelta = opts.onDelta;
@@ -1302,6 +1306,7 @@ export class OpenRouterAiAdapter implements AiPort {
     if (opts.signal?.aborted) throw abortError();
     // One image per call: only the first is used, so asking for more would pay for images that are thrown away.
     const o: VolumeAiImageOptions = { n: 1 };
+    if (opts.beforeCall) o.beforeCall = opts.beforeCall;
     if (opts.model) o.model = opts.model;
     if (opts.aspectRatio) o.aspectRatio = opts.aspectRatio;
     if (opts.signal) o.signal = opts.signal;
@@ -1661,7 +1666,7 @@ export interface CreateOpenRouterAiOptions {
   apiKey?: string | undefined;
   promptsDir: string;
   configDir: string;
-  /** RESOLVE_SOURCE_REDIRECTS from the server's config. Undefined (unset or blank) keeps the package default (on). */
+  /** RESOLVE_SOURCE_REDIRECTS from the server's config. Undefined (unset or blank) keeps the package default (off). */
   resolveSourceRedirects?: boolean | undefined;
   /** Tests: a ready-made @volume/ai provider (MockProvider or a fake). */
   provider?: AiProvider | undefined;
@@ -1672,7 +1677,7 @@ export function createOpenRouterAi(opts: CreateOpenRouterAiOptions): Promise<Ope
   const serviceOpts: CreateAiServiceOptions = { promptsDir: opts.promptsDir, configDir: opts.configDir };
   if (opts.apiKey) serviceOpts.apiKey = opts.apiKey;
   // Passed explicitly so the server's config (not a stray process variable) decides; undefined keeps the default.
-  serviceOpts.resolveSourceRedirects = opts.resolveSourceRedirects ?? true;
+  serviceOpts.resolveSourceRedirects = opts.resolveSourceRedirects ?? false;
   if (opts.provider !== undefined) serviceOpts.provider = opts.provider;
   return Promise.resolve(new OpenRouterAiAdapter(createAiService(serviceOpts), opts.adapter));
 }

@@ -6,7 +6,7 @@ import { SectionTitle, type TabProps } from "./IdentityTab";
 import { ListEditor } from "./ListEditor";
 import { PLACEHOLDERS, PREVIEW_YEAR, copyrightHolder, errorFor } from "./profileRules";
 
-/** Trim sizes from config/kdp-rules/2026-10-03.json (paperback.trimSizes.list, marked unverified there). */
+/** Trim sizes from config/kdp-rules/2026-10-06.json (verified paperback.trimSizes.list). */
 export const TRIM_OPTIONS = [
   { value: "5 x 8 in", label: "5 x 8 in" },
   { value: "5.25 x 8 in", label: "5.25 x 8 in" },

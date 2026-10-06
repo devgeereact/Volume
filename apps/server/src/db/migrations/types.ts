@@ -46,11 +46,10 @@ export function columnTypes(dialect: Dialect): ColumnTypes {
 }
 
 /**
- * The database handle a migration gets. Kysely's migration guide types it as Kysely<any> on purpose:
- * a migration must keep working after the schema in db/schema.ts moves on, so it cannot use that type.
+ * The migration handle uses unknown column values, independently of the current application schema.
+ * This keeps old migrations usable after db/schema.ts changes without bypassing strict typing.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Kysely's documented migration type, see above
-export type MigrationDb = Kysely<any>;
+export type MigrationDb = Kysely<Record<string, Record<string, unknown>>>;
 
 export interface MigrationContext {
   db: MigrationDb;

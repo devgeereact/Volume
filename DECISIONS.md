@@ -162,3 +162,46 @@ Status: **Accepted** (owner approved), **Proposed** (in the specs, waiting for t
 - Context: K-P05. The repo had no linter or formatter. typescript-eslint 8.71 (latest) supports TypeScript below 6.1 only and refuses to load TypeScript 7, which ships no compiler API. Microsoft's TypeScript 7.0 announcement ("Running side-by-side with TypeScript 6.0") and the typescript-eslint repo both use the compatibility package `@typescript/typescript6` aliased as `typescript` for tooling.
 - Decision: root dev dependencies, exact versions: eslint 10.12.0, @eslint/js 10.0.1, typescript-eslint 8.71.0, eslint-plugin-react-hooks 7.1.1, eslint-config-prettier 10.1.8, globals 17.13.0, prettier 3.9.9, and `"typescript": "npm:@typescript/typescript6@6.0.2"`. The alias is for ESLint only: every workspace that runs tsc declares `"typescript": "7.0.2"`, so npm nests TypeScript 7 there and `npm run typecheck`, builds and tests still use tsc 7. ESLint (`eslint.config.js`, flat config): `@eslint/js` recommended plus typescript-eslint `recommendedTypeChecked` through `projectService` (each workspace's tsconfig; `tests/e2e/tsconfig.json` added for the end-to-end suite), the React hooks `recommended-latest` rules for apps/web, Node globals for the server, packages, scripts and tests, eslint-config-prettier last. eslint-plugin-react-refresh was tried and left out: the app keeps hooks and providers in the same files. Prettier (`.prettierrc.json`): print width 160, double quotes, with single quotes in packages/, apps/server/ and scripts/, which matches the code as written (the smallest reformat of the widths tried). `.prettierignore` leaves out generated output, config/ (owner-edited data), prompts/, Markdown, test fixtures, design/ and the generated token files.
 - Consequences: `npm run lint`, `npm run format` and `npm run format:check` at the root. To remove the alias once typescript-eslint supports TypeScript 7 (issue 10940): delete the root `typescript` alias, run `npm install`, and check `npm run lint`. Tracked as K-16.
+
+## D-024 Project imports commit atomically
+
+- Date: 6 October 2026. Status: Accepted (owner requested the import rollback fix).
+- Context: a failed project import committed its profile, book and files before child rows were written, leaving a partial book.
+- Decision: use one Kysely transaction for the imported profile, project, asset metadata, file chunks and child rows. Bind BlobStore to that transaction while retaining its configured chunk size.
+- Consequences: any write failure rolls back the entire import; successful imports and existing profile matching keep their behaviour. SQLite regression tests cover new and existing profiles, a later file failure and successful imports. Live MySQL verification remains outstanding.
+
+## D-025, 6 October 2026: AI budgets checked before internal calls
+
+Status: implemented locally under the owner's request to fix the review findings.
+
+The runner reserves estimated allowance for overlapping jobs in the same workspace. The AI service calls back before each provider attempt, including repairs and style rewrites; the server adapter includes earlier task spend. Completed calls are recorded even if a later budget check pauses the stage. Reservations use estimates and provider-reported costs, so this is not a guarantee against incorrect third-party billing. Mock regression tests cover internal retries, task accumulation and concurrent monthly allowance.
+
+## D-026, 6 October 2026: finish the specified local v1 flows
+
+Status: implemented locally. The approved stack is unchanged.
+
+Use the already specified free TipTap packages for editor blocks. Add atomic Markdown import, real blueprint compare/restore, saved-profile portraits, high-cost writing confirmation and pre-publication price entry. Preserve imported text, prior blueprint versions and the profile bio. Heavy routes load on demand. Project imports validate the actual migrated schema and bound expanded ZIP data. No new authentication, batch production or later roadmap features are included.
+
+## D-027, 6 October 2026: dated KDP supplement and redirect default
+
+Status: implemented locally, publishing acceptance remains partial.
+
+Keep the 3 October rules file unchanged and add 2026-10-06.json with official-source verification for trim/page limits, margins and text-safe distances. Barcode position stays partial until the owner compares the generated template. Redirect resolution defaults off while D-020 is proposed; this does not approve enabling external research lookups. Backup documentation follows actual 14-snapshot retention instead of promising weekly archives or a missing CLI.
+
+## D-028, 6 October 2026: measured coverage gates
+
+Status: owner approved the requested coverage dependency with “go ahead”.
+
+Add @vitest/coverage-v8 5.0.3 as a root development dependency, matching Vitest. Include all src/**/*.ts files in core, AI, export and server. Enforce 90% lines for core and 80% for the others, with server covering its whole source rather than services alone. Generate ignored JSON and HTML reports. CI uses test:coverage as its unit/integration test step. Branch and function coverage remain reported without a new target.
+
+## D-029, 6 October 2026: free-only live validation and deferred MySQL
+
+Status: owner authorised free OpenRouter models for testing, granted access to one book’s generated files and explicitly deferred cPanel testing.
+
+Use the existing authenticated server without reading or exposing its key. Select only catalogue-verified zero-priced models, do not use paid fallbacks, search plugins or image generation, and override models only on the labelled synthetic test book. Production defaults stay unchanged. Free-provider errors and generated-text defects are validation findings, not grounds to claim production-model acceptance. Kindle Previewer installation/use awaits the separate legal-agreement approval.
+
+## D-030, 6 October 2026: documentation history and current evidence
+
+- Status: Applied documentation maintenance under the owner's request. No stack or product behaviour change.
+- Decision: keep original approved plans, source drafts and review findings as historical material with clear current pointers. Current operational guides follow implemented scripts and source; current acceptance follows dated validation reports and KNOWN-ISSUES.md.
+- Consequence: documentation refresh does not turn proposed owner decisions into approvals or failed/unperformed checks into passes. No external rules were reverified in this documentation-only pass.

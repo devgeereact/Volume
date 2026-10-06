@@ -120,6 +120,8 @@ export interface RunnerOptions {
 }
 
 export class JobRunner {
+  private budgetChecks: Promise<void> = Promise.resolve();
+  private readonly reservations = new Map<string, { workspaceId: string; projectId: string | null; usd: number }>();
   private timer: NodeJS.Timeout | null = null;
   private lastRecover = 0;
   private readonly running = new Map<string, { abort: AbortController; done: Promise<void>; lane: string }>();
@@ -256,69 +258,86 @@ export class JobRunner {
       runAi: async (stage, input, opts) => {
         await checkpoint();
         const model = await this.resolveModel(ctx, job.projectId, stage);
-        await this.checkBudget(ctx, job.projectId, await this.services.ai.estimate(stage, input, model ? { model } : {}));
-        const callOpts: RunStageOptions = { ...opts, signal: abort.signal };
-        if (model) callOpts.model = model;
-        let result: AiStageResult<typeof stage>;
+        const estimate = await this.services.ai.estimate(stage, input, model ? { model } : {});
+        await this.reserveBudget(job.id, ctx, job.projectId, estimate.highUsd);
         try {
-          result = await this.services.ai.runStage(stage, { ...input, projectId: job.projectId }, callOpts);
-        } catch (err) {
-          // Calls that finished before the failure were paid for: record them so the book's spend is right.
-          const partial = partialUsageOf(err);
-          if (partial && (partial.usage.costUsd > 0 || partial.usage.inputTokens > 0 || partial.usage.outputTokens > 0)) {
-            try {
-              await this.services.repos.production.recordPromptRun(ctx, {
-                projectId: job.projectId,
-                jobId: job.id,
-                stage,
-                prompt: partial.prompt,
-                usage: partial.usage,
-                status: 'failed',
-                error: (err instanceof Error ? err.message : String(err)).slice(0, 1000),
-              });
-              await this.emitCost(ctx, job, partial.usage.costUsd);
-            } catch (recordErr) {
-              // The stage's own error matters more; the missed record is logged.
-              this.opts.log?.warn({ jobId: job.id, stage, err: { message: (recordErr as Error).message } }, 'could not record the cost of a failed stage');
+          const callOpts: RunStageOptions = {
+            ...opts,
+            signal: abort.signal,
+            beforeCall: (spent, quote) => this.reserveBudget(job.id, ctx, job.projectId, spent + (quote ?? estimate.highUsd)),
+          };
+          if (model) callOpts.model = model;
+          let result: AiStageResult<typeof stage>;
+          try {
+            result = await this.services.ai.runStage(stage, { ...input, projectId: job.projectId }, callOpts);
+          } catch (err) {
+            // Calls that finished before the failure were paid for: record them so the book's spend is right.
+            const partial = partialUsageOf(err);
+            if (partial && (partial.usage.costUsd > 0 || partial.usage.inputTokens > 0 || partial.usage.outputTokens > 0)) {
+              try {
+                await this.services.repos.production.recordPromptRun(ctx, {
+                  projectId: job.projectId,
+                  jobId: job.id,
+                  stage,
+                  prompt: partial.prompt,
+                  usage: partial.usage,
+                  status: 'failed',
+                  error: (err instanceof Error ? err.message : String(err)).slice(0, 1000),
+                });
+                await this.emitCost(ctx, job, partial.usage.costUsd);
+              } catch (recordErr) {
+                // The stage's own error matters more; the missed record is logged.
+                this.opts.log?.warn({ jobId: job.id, stage, err: { message: (recordErr as Error).message } }, 'could not record the cost of a failed stage');
+              }
             }
+            throw err;
           }
-          throw err;
+          const schema = AI_OUTPUT_SCHEMAS[stage];
+          const parsed = schema.safeParse(result.output);
+          const promptRunId = await this.services.repos.production.recordPromptRun(ctx, {
+            projectId: job.projectId,
+            jobId: job.id,
+            stage,
+            prompt: result.prompt,
+            usage: result.usage,
+            status: parsed.success ? 'ok' : 'invalid_output',
+            output: result.rawText,
+            guardrails: result.guardrails ?? null,
+          });
+          await this.emitCost(ctx, job, result.usage.costUsd);
+          if (!parsed.success) throw new JobFailed(`The ${stage} step came back incomplete. Try again or pick another model.`, 'invalid_output');
+          return { ...result, output: parsed.data, promptRunId };
+        } finally {
+          this.reservations.delete(job.id);
         }
-        const schema = AI_OUTPUT_SCHEMAS[stage];
-        const parsed = schema.safeParse(result.output);
-        const promptRunId = await this.services.repos.production.recordPromptRun(ctx, {
-          projectId: job.projectId,
-          jobId: job.id,
-          stage,
-          prompt: result.prompt,
-          usage: result.usage,
-          status: parsed.success ? 'ok' : 'invalid_output',
-          output: result.rawText,
-          guardrails: result.guardrails ?? null,
-        });
-        await this.emitCost(ctx, job, result.usage.costUsd);
-        if (!parsed.success) throw new JobFailed(`The ${stage} step came back incomplete. Try again or pick another model.`, 'invalid_output');
-        return { ...result, output: parsed.data, promptRunId };
       },
       runImage: async (prompt, opts) => {
         await checkpoint();
         const model = await this.resolveModel(ctx, job.projectId, 'cover_image');
         // One image, not a text call: the cover_brief text estimate (about $0.48 high) used to pause
         // books over a $0.04 image. IMAGE_HIGH_ESTIMATE_USD covers the dearest fallback image model.
-        await this.checkBudget(ctx, job.projectId, { highUsd: IMAGE_HIGH_ESTIMATE_USD });
-        const callOpts: GenerateImageOptions = { ...opts, signal: abort.signal };
-        if (model) callOpts.model = model;
-        const img = await this.services.ai.generateImage(prompt, callOpts);
-        const promptRunId = await this.services.repos.production.recordPromptRun(ctx, {
-          projectId: job.projectId,
-          jobId: job.id,
-          stage: 'cover_image',
-          prompt: null,
-          usage: img.usage,
-          status: 'ok',
-        });
-        await this.emitCost(ctx, job, img.usage.costUsd);
-        return { ...img, promptRunId };
+        await this.reserveBudget(job.id, ctx, job.projectId, IMAGE_HIGH_ESTIMATE_USD);
+        try {
+          const callOpts: GenerateImageOptions = {
+            ...opts,
+            signal: abort.signal,
+            beforeCall: (spent, quote) => this.reserveBudget(job.id, ctx, job.projectId, spent + (quote ?? IMAGE_HIGH_ESTIMATE_USD)),
+          };
+          if (model) callOpts.model = model;
+          const img = await this.services.ai.generateImage(prompt, callOpts);
+          const promptRunId = await this.services.repos.production.recordPromptRun(ctx, {
+            projectId: job.projectId,
+            jobId: job.id,
+            stage: 'cover_image',
+            prompt: null,
+            usage: img.usage,
+            status: 'ok',
+          });
+          await this.emitCost(ctx, job, img.usage.costUsd);
+          return { ...img, promptRunId };
+        } finally {
+          this.reservations.delete(job.id);
+        }
       },
     };
 
@@ -401,11 +420,32 @@ export class JobRunner {
     });
   }
 
-  private async checkBudget(ctx: RequestCtx, projectId: string | null, est: { highUsd: number }): Promise<void> {
+  private async reserveBudget(jobId: string, ctx: RequestCtx, projectId: string | null, usd: number): Promise<void> {
+    const check = this.budgetChecks.then(async () => {
+      const others = [...this.reservations.entries()].filter(([id, value]) => id !== jobId && value.workspaceId === ctx.workspaceId).map(([, value]) => value);
+      await this.checkBudget(
+        ctx,
+        projectId,
+        { highUsd: usd },
+        {
+          book: others.filter((value) => value.projectId === projectId).reduce((sum, value) => sum + value.usd, 0),
+          month: others.reduce((sum, value) => sum + value.usd, 0),
+        },
+      );
+      this.reservations.set(jobId, { workspaceId: ctx.workspaceId, projectId, usd });
+    });
+    this.budgetChecks = check.then(
+      () => undefined,
+      () => undefined,
+    );
+    await check;
+  }
+
+  private async checkBudget(ctx: RequestCtx, projectId: string | null, est: { highUsd: number }, pending = { book: 0, month: 0 }): Promise<void> {
     const { repos } = this.services;
     if (projectId) {
       const book = await repos.books.get(ctx, projectId);
-      if (book && book.costToDateUsd + est.highUsd > book.budgetUsd) {
+      if (book && book.costToDateUsd + pending.book + est.highUsd > book.budgetUsd) {
         throw new BudgetPaused(`This book needs about $${est.highUsd.toFixed(2)} more than its budget allows. Raise the budget or stop here.`, {
           scope: 'book',
           limitUsd: book.budgetUsd,
@@ -417,7 +457,7 @@ export class JobRunner {
     const cap = await repos.settings.get(ctx, 'budget.monthly_cap_usd');
     if (typeof cap === 'number') {
       const spent = await repos.production.monthSpendUsd(ctx);
-      if (spent + est.highUsd > cap) {
+      if (spent + pending.month + est.highUsd > cap) {
         throw new BudgetPaused('This month’s AI spending cap is reached. Raise the cap in Settings to continue.', {
           scope: 'month',
           limitUsd: cap,

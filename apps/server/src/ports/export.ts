@@ -19,6 +19,7 @@ export interface ExportSection {
 }
 
 export interface ExportBook {
+  authorPhoto?: { mime: string; data: Uint8Array };
   projectId: string;
   title: string;
   subtitle: string | null;

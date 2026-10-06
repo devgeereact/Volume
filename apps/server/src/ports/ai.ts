@@ -218,6 +218,8 @@ export interface AiStageInput {
 }
 
 export interface RunStageOptions {
+  /** Paid cost so far in this stage and the next request estimate. */
+  beforeCall?: (spentUsd: number, estimateUsd: number | null) => Promise<void>;
   /** OpenRouter model slug; the adapter's stage default when omitted. */
   model?: string;
   signal?: AbortSignal;
@@ -302,6 +304,7 @@ export interface AiStageResult<S extends AiStage = AiStage> {
 }
 
 export interface GenerateImageOptions {
+  beforeCall?: (spentUsd: number, estimateUsd: number | null) => Promise<void>;
   model?: string;
   /** For example '5:8' or '2:3'. */
   aspectRatio?: string;

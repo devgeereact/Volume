@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { Readable } from 'node:stream';
+import type { Transaction } from 'kysely';
 import type { RequestCtx } from '../auth/context.js';
 import type { Db } from '../db/connect.js';
-import type { AssetsTable } from '../db/schema.js';
+import type { AssetsTable, Database } from '../db/schema.js';
 import { AppError, notFound } from '../http/errors.js';
 import { bool, newId, now } from '../lib/util.js';
 
@@ -86,6 +87,11 @@ export class BlobStore {
     private readonly db: Db,
     private readonly chunkBytes: number = DEFAULT_CHUNK_BYTES,
   ) {}
+
+  /** Use the caller's transaction so asset metadata and chunks commit with the rest of an import. */
+  withTransaction(transaction: Transaction<Database>): BlobStore {
+    return new BlobStore(transaction, this.chunkBytes);
+  }
 
   async put(ctx: RequestCtx, input: PutAssetInput, source: ByteSource): Promise<AssetMeta> {
     const id = newId();

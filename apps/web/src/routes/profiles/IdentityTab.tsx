@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { assetsApi } from "../../api/assets";
+import { useWireMode } from "../../api/wire-a";
+import { useRef, useState } from "react";
 import { ImagePlus, Plus, X } from "lucide-react";
 import { Banner, Button, IconButton, Input, Switch, Textarea } from "../../components/ui";
 import { fieldBoxClasses } from "../../components/ui/FieldShell";
@@ -26,7 +28,28 @@ export function SectionTitle({ id, title, body }: { id: string; title: string; b
 
 /** Identity: name and photo, real-person switch, bio (third person), short bio, credentials and links. */
 export function IdentityTab({ draft, update, errors }: TabProps) {
-  const [photoNote, setPhotoNote] = useState(false);
+  const [photoProblem, setPhotoProblem] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const mode = useWireMode();
+  const canUpload = mode === "api" && /^[0-9A-HJKMNP-TV-Z]{26}$/.test(draft.id);
+  async function uploadPhoto(file: File) {
+    setPhotoProblem(null);
+    setUploading(true);
+    try {
+      if (!["image/jpeg", "image/png"].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error("Choose a JPEG or PNG image smaller than 5 MB.");
+      const image = await createImageBitmap(file);
+      const valid = image.width === image.height && image.width >= 600;
+      image.close();
+      if (!valid) throw new Error("Choose a square image at least 600 pixels wide.");
+      const asset = await assetsApi.upload(file, { kind: "author_photo", filename: file.name, mime: file.type, profileId: draft.id });
+      update((value) => ({ ...value, photoAssetId: asset.id }));
+    } catch (error) {
+      setPhotoProblem(error instanceof Error ? error.message : "Photo could not be uploaded.");
+    } finally {
+      setUploading(false);
+    }
+  }
   const initials = initialsFor(draft.name) || "?";
 
   return (
@@ -34,21 +57,52 @@ export function IdentityTab({ draft, update, errors }: TabProps) {
       <section className="grid gap-5" aria-labelledby="id-name">
         <SectionTitle id="id-name" title="Name and photo" />
         <div className="flex flex-wrap items-center gap-5">
-          <span
-            aria-hidden
-            className="grid size-[72px] shrink-0 place-items-center rounded-full border border-dashed border-border-strong bg-sunken font-book text-[24px] text-ink-secondary"
-          >
-            {initials}
-          </span>
+          {draft.photoAssetId ? (
+            <img
+              alt={`${draft.name || "Author"} portrait`}
+              src={assetsApi.downloadUrl(draft.photoAssetId, true)}
+              className="size-[72px] rounded-full object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden
+              className="grid size-[72px] shrink-0 place-items-center rounded-full border border-dashed border-border-strong bg-sunken font-book text-[24px] text-ink-secondary"
+            >
+              {initials}
+            </span>
+          )}
           <div className="grid justify-items-start gap-1.5">
-            <Button icon={ImagePlus} onClick={() => setPhotoNote(true)}>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/jpeg,image/png"
+              className="sr-only"
+              tabIndex={-1}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void uploadPhoto(file);
+                event.target.value = "";
+              }}
+            />
+            <Button
+              icon={ImagePlus}
+              loading={uploading}
+              disabledReason={!canUpload ? "Save the profile before adding a photo." : undefined}
+              onClick={() => fileInput.current?.click()}
+            >
               Choose photo
             </Button>
-            <p className="text-small text-ink-tertiary" role={photoNote ? "status" : undefined}>
-              {photoNote
-                ? "Photo upload comes with the full app. Until then the initials stand in."
-                : "Square, at least 600 px. Used on About the Author pages."}
-            </p>
+            {draft.photoAssetId && (
+              <Button variant="ghost" onClick={() => update((value) => ({ ...value, photoAssetId: null }))}>
+                Remove photo
+              </Button>
+            )}
+            <p className="text-small text-ink-tertiary">Square, at least 600 px. Save the profile to use the photo on About the Author pages.</p>
+            {photoProblem && (
+              <p role="alert" className="text-small text-claim">
+                {photoProblem}
+              </p>
+            )}
           </div>
         </div>
         <div className="grid gap-5 sm:grid-cols-2">

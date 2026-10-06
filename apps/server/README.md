@@ -39,7 +39,7 @@ Read from the root `.env` with dotenv (quietly, never printed). A blank line suc
 | `AI_PROVIDER` | `auto` | `mock`, `openrouter` or `auto`. See AI provider below |
 | `OPENROUTER_API_KEY` | | Passed to `@volume/ai` only. Never logged, never returned. A blank value counts as no key |
 | `EXPORT_PROVIDER` | `volume` | `volume` (real files from `@volume/export`) or `mock` (placeholders marked MOCK). See Export provider below |
-| `RESOLVE_SOURCE_REDIRECTS` | unset (on) | `true` or `false`. Passed to `@volume/ai` (`createAiService`): look up search grounding redirect links in research sources. Blank counts as unset; anything else stops the server at start |
+| `RESOLVE_SOURCE_REDIRECTS` | unset (off) | `true` or `false`. Passed to `@volume/ai` (`createAiService`): look up search grounding redirect links in research sources. Blank counts as unset; anything else stops the server at start |
 | `DATA_DIR` | `data` | Backups go to `DATA_DIR/backups`. Inside the repo only `data/` (or a folder in it) is allowed |
 | `MOCK_STREAM_DELAY_MS` | `0` | Mock AI only: milliseconds between streamed chunks, so live text is visible in demos and UI tests. Blank counts as unset |
 | `MOCK_FAIL_NEXT_WRITING` | unset | Mock AI only: the nth writing call (1 is the first) fails once with a model-unavailable error, so tests and demos can show a failed section, a retry and Write the rest. Later calls succeed. Blank counts as unset |
@@ -230,4 +230,4 @@ SSE event types: `job.status` (writing children also carry `sectionId`), `job.pr
 - Checks in the writing job use `@volume/core` `checkText` with `config/house-style.json` (em and en dashes, banned phrases, US spellings, UK phrasing, guardrails such as ISBNs). Errors block the section; claims-report guardrails and warnings do not. The model adds claims and consistency notes.
 - Blueprint approval adds Acknowledgements where the book template has it on by default (front in nonfiction, back in fiction and poetry).
 - `model_choices` from docs/03 is folded into `author_profiles.models`, `projects.settings.models` and the workspace `models.overrides` setting.
-- Docs 02 and 03 still say Drizzle; D-015 replaced it with Kysely.
+- Current architecture uses Kysely (D-015/D-019). The original plan retains its superseded Drizzle proposal for historical context.

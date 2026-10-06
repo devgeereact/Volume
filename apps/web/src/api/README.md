@@ -66,7 +66,7 @@ ideas, subject lines, workspace status); what is left:
 - **Book**: no typographic `cover` (the server stores cover images) and no `attentionSteps`. Stages differ: server `titles`, `editor`, `marketing` against prototype `title`, `editing`; `published` is a status on the server.
 - **Titles**: checks are the server's two (length, em dash); options have no id, so the adapter uses `<titleSetId>:<index>`.
 - **Blueprint**: no margin notes, claim ids per chapter or matter source; audience and tone notes are single strings.
-- **Export**: list prices can only be entered on the Published shelf, so royalties on Export show "Not set" until the book is published and priced.
+- **Export**: list prices can be entered on Export before publication and on the Published shelf. Royalties show "Not set" until prices are supplied.
 - **Marketing**: no on-screen text for TikTok scripts.
 
 ## Checking

@@ -2,6 +2,16 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 6 October 2026
+
+### Added
+- Documentation audit report with current build, validation and remaining acceptance pointers.
+- `npm run test:coverage` measures all core, AI, export and server source and enforces the documented line coverage targets in CI.
+
+### Fixed
+- Project guides now describe the built app, current workspace commands, dated KDP rules, import protections and free-model validation results. Historical plans and original findings are clearly labelled.
+- Project imports now commit the profile, book, file metadata, file chunks and child rows together. A failed import leaves existing books and files unchanged and removes every row created by that import.
+
 ## 5 October 2026
 
 ### Added
@@ -54,3 +64,13 @@ User-visible changes, newest first. Dates in British format.
 - Phase 0 build: specs in docs/, config and 27 prompts, Claude agents, skills and hooks, three design direction boards in design/directions/. Waiting for the owner's design choice.
 - Fused design direction "Volume" accepted (D-014): tokens in packages/ui, full design guide.
 - Clickable prototype of every screen in prototype/ (light and dark, mock data), with screenshot and smoke scripts. Phase 0 ready for owner review.
+
+### Local review corrections, 6 October 2026
+
+- Check AI budgets before internal attempts and reserve allowance across concurrent jobs.
+- Import Markdown into an editable book, compare and restore real blueprint versions, upload saved-profile portraits and include them in exports.
+- Use TipTap for manuscript blocks; confirm higher-cost writing and enter prices before publication.
+- Validate project manifests and file references, bound ZIP expansion and preserve portraits across project transfers.
+- Add dated KDP trim/page/margin/cover checks, correct cream-paper limits and large-trim cost selection, and retain barcode placement warnings.
+- Load heavy screens on demand, prepare mock-only GitHub checks and reconcile backup and project status documents.
+- Add regression/browser checks, verify EPUBCheck and record the synthetic long-book benchmark. Live AI, MySQL and manual publishing acceptance remain outstanding.

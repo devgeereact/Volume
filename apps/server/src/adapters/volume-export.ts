@@ -454,8 +454,16 @@ export class VolumeExportAdapter implements ExportPort {
     if (b) await releaseBrowser();
   }
 
-  private doc(book: ExportBook): BookDoc {
-    return toBookDoc(book, this.template(book));
+  private doc(book: ExportBook, includePhoto = true): BookDoc {
+    const doc = toBookDoc(book, this.template(book));
+    const about = doc.sections.find((section) => section.subtype === 'about_the_author');
+    if (about && includePhoto && book.authorPhoto)
+      about.blocks.unshift({
+        type: 'image',
+        src: `data:${book.authorPhoto.mime};base64,${Buffer.from(book.authorPhoto.data).toString('base64')}`,
+        alt: `${book.author.penName} portrait`,
+      });
+    return doc;
   }
 
   private file(book: ExportBook, role: ExportFileRole, ext: string, mime: string, data: Buffer, pageCount: number | null = null): ExportFile {
@@ -477,12 +485,12 @@ export class VolumeExportAdapter implements ExportPort {
 
   buildTxt(book: ExportBook, opts: ExportOptions = {}): Promise<ExportFile> {
     throwIfAborted(opts.signal);
-    return Promise.resolve(this.file(book, 'txt', 'txt', MIME.txt, exportTxt(this.doc(book))));
+    return Promise.resolve(this.file(book, 'txt', 'txt', MIME.txt, exportTxt(this.doc(book, false))));
   }
 
   buildMd(book: ExportBook, opts: ExportOptions = {}): Promise<ExportFile> {
     throwIfAborted(opts.signal);
-    return Promise.resolve(this.file(book, 'md', 'md', MIME.md, exportMarkdown(this.doc(book))));
+    return Promise.resolve(this.file(book, 'md', 'md', MIME.md, exportMarkdown(this.doc(book, false))));
   }
 
   async buildDocx(book: ExportBook, opts: ExportOptions = {}): Promise<ExportFile> {

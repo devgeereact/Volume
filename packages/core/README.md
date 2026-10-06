@@ -169,7 +169,7 @@ function coverMinDpi(rules: KdpRules): number;
 function barcodeArea(rules: KdpRules): KdpResult<{ widthIn: number; heightIn: number; position: string }>;  // unverified
 function coverSafeZone(rules: KdpRules): KdpResult<{ textInsetFromTrimIn: number; spineTextClearanceIn: number }>;  // unverified
 function trimSizes(rules: KdpRules): KdpResult<TrimSize[]>;          // unverified
-function trimPageRange(rules: KdpRules, trim: TrimSize): KdpResult<{ min: number; max: number }>;
+function trimPageRange(rules: KdpRules, trim: TrimSize, paper?: Paper): KdpResult<{ min: number; max: number }>;
 function insideMarginMinIn(rules: KdpRules, pages: number): KdpResult<number | null>;   // unverified
 function outsideMarginMinIn(rules: KdpRules, bleed: boolean): KdpResult<number>;      // unverified
 function printingCostGBP(rules: KdpRules, args: { pages: number; trimClass?: 'regular' | 'large' }): KdpResult<number>;

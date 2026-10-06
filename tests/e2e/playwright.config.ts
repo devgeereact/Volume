@@ -45,9 +45,9 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 60_000,
       gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
-      // The server loads the repo's .env with dotenv, which never overrides a variable that is already
-      // set, so every setting that matters is pinned here (a blank OPENROUTER_API_KEY included).
+      // The test server never loads .env; every setting that matters is pinned here.
       env: {
+        VOLUME_LOAD_ENV: "false",
         OPENROUTER_API_KEY: "",
         AI_PROVIDER: "mock",
         EXPORT_PROVIDER: "volume",

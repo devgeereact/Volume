@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { RequestCtx } from '../auth/context.js';
 import type { Db } from '../db/connect.js';
 import type { Database } from '../db/schema.js';
@@ -48,6 +49,20 @@ interface ProjectFile {
   assets: Row[];
 }
 
+const RowSchema = z.record(z.string(), z.union([z.string(), z.number().finite(), z.null()]));
+const ProjectFileSchema = z
+  .object({
+    format: z.literal(PROJECT_FORMAT),
+    version: z.number().int().min(1),
+    exportedAt: z.number().finite(),
+    project: RowSchema,
+    profile: RowSchema,
+    tables: z.object(Object.fromEntries(CHILD_TABLES.map((table) => [table, z.array(RowSchema).max(100000).optional()]))).strict(),
+    assets: z.array(RowSchema).max(10000),
+  })
+  .strict();
+const camel = (name: string): string => name.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+
 /** Config ids (book types, themes, cover styles) stay as they are. */
 const KEEP_IDS = new Set(['bookTypeId', 'interiorThemeId', 'coverStyleId', 'defaultBookTypeId']);
 /** JSON columns that may hold row ids (asset ids in cover concepts, ids in job payload-like data). */
@@ -66,6 +81,7 @@ const JSON_KEYS = new Set([
   'plan',
   'settings',
   'extras',
+  'brand',
 ]);
 const ULID = /[0-9A-HJKMNP-TV-Z]{26}/g;
 
@@ -98,6 +114,19 @@ export class ProjectTransfer {
       tables[t] = await this.db.selectFrom(t).selectAll().where('projectId', '=', bookId).where('workspaceId', '=', ctx.workspaceId).execute();
     }
     const assets = await this.db.selectFrom('assets').selectAll().where('projectId', '=', bookId).where('workspaceId', '=', ctx.workspaceId).execute();
+    const brand: unknown = JSON.parse(profile.brand);
+    const photoId =
+      typeof brand === 'object' && brand !== null && 'photoAssetId' in brand && typeof brand.photoAssetId === 'string' ? brand.photoAssetId : null;
+    if (photoId && !assets.some((asset) => asset.id === photoId)) {
+      const photo = await this.db
+        .selectFrom('assets')
+        .selectAll()
+        .where('id', '=', photoId)
+        .where('profileId', '=', profile.id)
+        .where('workspaceId', '=', ctx.workspaceId)
+        .executeTakeFirst();
+      if (photo) assets.push(photo);
+    }
     const entries: ZipEntry[] = [];
     for (const a of assets) {
       const { data } = await this.blobs.read(ctx, a.id);
@@ -151,16 +180,19 @@ export class ProjectTransfer {
       throw new AppError('validation_failed', e instanceof Error ? e.message : 'This is not a Volume project file.');
     }
     const manifest = entries.find((e) => e.name === 'project.json');
-    let file: ProjectFile;
+    let raw: unknown;
     try {
-      file = JSON.parse(Buffer.from(manifest?.data ?? new Uint8Array()).toString('utf8')) as ProjectFile;
+      if (!manifest || manifest.data.byteLength > 8 * 1024 * 1024) throw new Error('Invalid manifest');
+      raw = JSON.parse(Buffer.from(manifest.data).toString('utf8'));
     } catch {
       throw new AppError('validation_failed', 'This is not a Volume project file (project.json is missing or unreadable).');
     }
-    if (file?.format !== PROJECT_FORMAT || typeof file.project !== 'object' || typeof file.profile !== 'object')
-      throw new AppError('validation_failed', 'This is not a Volume project file.');
+    const parsed = ProjectFileSchema.safeParse(raw);
+    if (!parsed.success) throw new AppError('validation_failed', 'This project file has invalid data.');
+    const file = parsed.data as ProjectFile;
     if (file.version > PROJECT_FORMAT_VERSION)
       throw new AppError('validation_failed', 'This project file comes from a newer Volume. Update Volume, then import it.');
+    await this.validateRows(file);
 
     const ids = new Map<string, string>();
     const files = new Map(entries.map((e) => [e.name, e.data]));
@@ -214,29 +246,34 @@ export class ProjectTransfer {
         .insertInto('projects')
         .values(project as never)
         .execute();
-    });
-    // Files first (the blob store gives them their ids), then every row that may point at them.
-    for (const a of file.assets ?? []) {
-      const data = files.get(`assets/${String(a['id'])}`);
-      if (!data) continue;
-      const meta = await this.blobs.put(
-        ctx,
-        {
-          kind: typeof a['kind'] === 'string' ? a['kind'] : 'other',
-          filename: typeof a['filename'] === 'string' ? a['filename'] : 'file',
-          mime: typeof a['mime'] === 'string' ? a['mime'] : 'application/octet-stream',
-          projectId: bookId,
-          aiGenerated: Number(a['aiGenerated']) === 1,
-          width: typeof a['width'] === 'number' ? a['width'] : null,
-          height: typeof a['height'] === 'number' ? a['height'] : null,
-          dpi: typeof a['dpi'] === 'number' ? a['dpi'] : null,
-        },
-        data,
-      );
-      ids.set(String(a['id']), meta.id);
-      assetCount += 1;
-    }
-    await this.db.transaction().execute(async (trx) => {
+      // Use the same connection for every write, including the file metadata and chunks.
+      const blobs = this.blobs.withTransaction(trx);
+      // Files first (the blob store gives them their ids), then every row that may point at them.
+      for (const a of file.assets ?? []) {
+        const data = files.get(`assets/${String(a['id'])}`);
+        if (!data) throw new AppError('validation_failed', 'The project file is missing an attached file.');
+        const meta = await blobs.put(
+          ctx,
+          {
+            kind: typeof a['kind'] === 'string' ? a['kind'] : 'other',
+            filename: typeof a['filename'] === 'string' ? a['filename'] : 'file',
+            mime: typeof a['mime'] === 'string' ? a['mime'] : 'application/octet-stream',
+            projectId: a['projectId'] === null ? null : bookId,
+            profileId: a['profileId'] ? profileId : null,
+            aiGenerated: Number(a['aiGenerated']) === 1,
+            width: typeof a['width'] === 'number' ? a['width'] : null,
+            height: typeof a['height'] === 'number' ? a['height'] : null,
+            dpi: typeof a['dpi'] === 'number' ? a['dpi'] : null,
+          },
+          data,
+        );
+        ids.set(String(a['id']), meta.id);
+        assetCount += 1;
+      }
+      if (profileCreated) {
+        const brand = map(file.profile)['brand'];
+        if (typeof brand === 'string') await trx.updateTable('authorProfiles').set({ brand }).where('id', '=', profileId).execute();
+      }
       for (const table of CHILD_TABLES) {
         for (const r of file.tables[table] ?? []) {
           await trx
@@ -248,6 +285,62 @@ export class ProjectTransfer {
       }
     });
     return { bookId, profileId, profileCreated, rows: rows + 1, assets: assetCount };
+  }
+
+  /** Validate against the actual migrated columns before opening a write transaction. */
+  private async validateRows(file: ProjectFile): Promise<void> {
+    const tables = await this.db.introspection.getTables();
+    const ids = new Set<string>();
+    const groups = [
+      { name: 'authorProfiles', rows: [file.profile] },
+      { name: 'projects', rows: [file.project] },
+      { name: 'assets', rows: file.assets },
+      ...CHILD_TABLES.map((name) => ({ name, rows: file.tables[name] ?? [] })),
+    ];
+    for (const group of groups) {
+      const table = tables.find((entry) => camel(entry.name) === group.name);
+      if (!table) throw new AppError('validation_failed', 'This project uses an unsupported table.');
+      const shape: Record<string, z.ZodType> = {};
+      for (const column of table.columns) {
+        let field: z.ZodType = /int|real|double|float|decimal|numeric/i.test(column.dataType) ? z.number().finite() : z.string();
+        if (column.isNullable) field = field.nullable();
+        if (column.hasDefaultValue || column.isAutoIncrementing || column.isNullable) field = field.optional();
+        shape[camel(column.name)] = field;
+      }
+      const schema = z.object(shape).strict();
+      for (const row of group.rows) {
+        if (!schema.safeParse(row).success || typeof row['id'] !== 'string' || !row['id'] || ids.has(row['id']))
+          throw new AppError('validation_failed', `This project has invalid ${group.name} data.`);
+        ids.add(row['id']);
+        if (
+          group.name !== 'authorProfiles' &&
+          group.name !== 'projects' &&
+          row['projectId'] !== file.project['id'] &&
+          !(group.name === 'assets' && row['projectId'] === null && row['profileId'] === file.profile['id'])
+        )
+          throw new AppError('validation_failed', 'This project contains rows from a different book.');
+      }
+    }
+    if (file.project['profileId'] !== file.profile['id']) throw new AppError('validation_failed', 'This project has an invalid author reference.');
+    for (const group of groups)
+      for (const row of group.rows)
+        for (const [key, value] of Object.entries(row)) {
+          if (
+            key.endsWith('Id') &&
+            !KEEP_IDS.has(key) &&
+            key !== 'workspaceId' &&
+            key !== 'promptRunId' &&
+            key !== 'jobId' &&
+            key !== 'parentJobId' &&
+            key !== 'promptId' &&
+            key !== 'generationId' &&
+            key !== 'userId' &&
+            value !== null &&
+            value !== undefined &&
+            (typeof value !== 'string' || !ids.has(value))
+          )
+            throw new AppError('validation_failed', `This project has an invalid ${key} reference.`);
+        }
   }
 
   /** New ids, this workspace, and links to rows that were not moved cleared. */

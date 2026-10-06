@@ -45,7 +45,12 @@ export function toMemoryItem(m: ProfileMemoryItem): MemoryItem {
 /** Server profile, its samples and memory, as the editor's draft. */
 export function draftFromApi(p: ApiProfile, samples: ProfileSample[] = [], memory: ProfileMemoryItem[] = []): ProfileDraft {
   const d = fromPenName(toPenName(p), samples.map(toVoiceSample), memory.map(toMemoryItem));
-  return { ...d, publishing: { ...d.publishing, illustrative: p.illustrativeLineDefault }, archived: p.status === "archived" };
+  return {
+    ...d,
+    photoAssetId: typeof p.brand["photoAssetId"] === "string" ? p.brand["photoAssetId"] : null,
+    publishing: { ...d.publishing, illustrative: p.illustrativeLineDefault },
+    archived: p.status === "archived",
+  };
 }
 
 function obj(v: unknown): Record<string, unknown> {
@@ -78,7 +83,7 @@ export function inputFromDraft(d: ProfileDraft, base?: ApiProfile | null): Profi
       bannedPhrases: v.bannedPhrases,
       sampleParagraph: v.sampleParagraph,
     },
-    brand: { ...obj(base?.brand), initials: initialsFor(d.name) || d.initials, genres: d.genres, bookTypes: d.bookTypes },
+    brand: { ...obj(base?.brand), photoAssetId: d.photoAssetId ?? null, initials: initialsFor(d.name) || d.initials, genres: d.genres, bookTypes: d.bookTypes },
     publishing: {
       ...obj(base?.publishing),
       copyrightTemplate: d.publishing.copyright,

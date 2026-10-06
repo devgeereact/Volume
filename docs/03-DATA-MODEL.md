@@ -1,6 +1,6 @@
 # 03 Data model
 
-Kysely with two dialects (D-015, D-019): SQLite through better-sqlite3 locally and in tests, MySQL through mysql2 on the owner's cPanel. Migrations live in `apps/server/src/db/migrations/` and run on both. The table list as built is in `apps/server/README.md`. SQLite runs in WAL mode, `foreign_keys = ON`. Zod schemas for JSON columns live in `packages/core/schemas`.
+Kysely with two dialects (D-015, D-019): SQLite through better-sqlite3 locally and in tests, MySQL through mysql2 on the owner's cPanel. Migrations live in `apps/server/src/db/migrations/` and run on both. The table list as built is in `apps/server/README.md`. SQLite runs in WAL mode, `foreign_keys = ON`. Server input/JSON validation is defined alongside repositories and routes; AI stage schemas are in packages/ai/src/stages/. The descriptive tables below began as the design model; migrations and apps/server/src/db/schema.ts define the exact implemented columns.
 
 ## Conventions
 
@@ -52,18 +52,9 @@ Index `(workspace_id, status, pen_name)`.
 
 **profile_memory**: `profile_id -> author_profiles`, `kind text` (`preference`, `avoid_phrase`, `keep_phrase`, `style_rule`, `fact`), `content text not null`, `origin text` (`accepted_edit`, `owner`), `source_suggestion_id text -> suggestions` (nullable), `weight integer default 1`, `active bool default 1`. Index `(profile_id, active)`.
 
-**model_choices**
+**Model overrides (JSON, not a separate table)**
 
-| Column | Type | Notes |
-|---|---|---|
-| scope | text not null | `workspace`, `profile`, `project` |
-| scope_id | text | null for workspace, else profile or project id |
-| stage | text not null | Stage key from `config/models.defaults.json`: `research`, `titles`, `blueprint`, `writing`, `summarise`, `checks`, `editing`, `matter_metadata`, `cover_brief`, `cover_image`, `marketing` |
-| model_slug | text not null | OpenRouter model id |
-| fallback_slugs | json | `string[]` in order |
-| params | json | `{temperature?, max_tokens?, web?: {engine?, max_results?}}` |
-
-Unique `(workspace_id, scope, scope_id, stage)`. Resolution: project, then profile, then workspace, then config default.
+The original model_choices table was not migrated. Overrides are stored in author_profiles.models, projects.settings.models and workspace settings models.overrides (D-019). Resolution is project, profile, workspace, then config default. Stage keys and fallback defaults come from config/models.defaults.json. Server model resolution and repositories define the exact JSON shapes; do not create a model_choices table from the earlier proposal.
 
 ## Projects and planning
 
@@ -86,7 +77,7 @@ Unique `(workspace_id, scope, scope_id, stage)`. Resolution: project, then profi
 | ai_disclosure | json | `{text, images, translation}` each `ai_generated`, `ai_assisted`, `none`; set by the app |
 | word_target | integer | |
 | budget_usd | real not null | Book budget |
-| spent_usd | real not null default 0 | Sum of `prompt_runs.cost_usd` |
+| cost_to_date_usd | real not null default 0 | Sum of `prompt_runs.cost_usd` |
 | approved_blueprint_id | text -> blueprints | |
 | published_at, archived_at | integer | |
 
@@ -135,7 +126,7 @@ Index `(project_id, position)`.
 
 ## Covers, listing and marketing
 
-**assets**: `project_id` (nullable), `profile_id` (nullable), `kind text` (`cover_concept`, `cover_ebook`, `cover_wrap`, `interior_image`, `logo`, `import`), `path text not null` (relative to `data/`), `mime text`, `bytes integer`, `width integer`, `height integer`, `dpi integer`, `sha256 text`, `ai_generated bool not null`, `prompt_run_id`. Index `(project_id, kind)`.
+**assets**: `project_id` (nullable), `profile_id` (nullable), `kind text` (including cover, interior, portrait and import assets), `filename text not null`, `chunk_size integer`, `chunk_count integer`, `status text`, `mime text`, `bytes integer`, `width integer`, `height integer`, `dpi integer`, `sha256 text`, `ai_generated bool not null`, `prompt_run_id`. Index `(project_id, kind)`.
 
 **covers**: `project_id` unique, `brief json`, `concepts json` (`{asset_id, prompt, prompt_run_id}[]`), `chosen_asset_id -> assets`, `typography json` (`{title, subtitle, author, fonts, colours, layout}`), `ebook_asset_id -> assets`, `wrap_asset_id -> assets`, `wrap_spec json` (`{trim, paper, pages, spine_in, width_in, height_in}`), `status text` (`brief`, `concepts`, `chosen`, `final`).
 
@@ -185,7 +176,6 @@ erDiagram
   author_profiles ||--o{ profile_samples : has
   author_profiles ||--o{ profile_memory : learns
   author_profiles ||--o{ projects : writes
-  workspaces ||--o{ model_choices : sets
   projects ||--o{ research_runs : has
   research_runs ||--o{ research_sources : cites
   projects ||--o{ title_sets : has
@@ -209,7 +199,7 @@ erDiagram
 
 ## Derived rules
 
-- `projects.spent_usd` is updated in the same transaction that inserts a `prompt_runs` row.
+- `projects.cost_to_date_usd` is updated in the same transaction that inserts a `prompt_runs` row.
 - `projects.ai_disclosure.text` becomes `ai_generated` as soon as any kept version has an `ai_*` origin, and cannot be set lower while one exists (FACTS 5.5: AI-generated "even if you applied substantial edits afterwards"). `images` follows `assets.ai_generated` on cover and interior assets.
 - `about_author` sections never hold their own text: export reads `author_profiles.bio_third_person`.
 - `also_by` lists projects of the same profile with status `published`, newest first.

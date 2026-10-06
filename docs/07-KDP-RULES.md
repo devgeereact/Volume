@@ -1,12 +1,12 @@
 # KDP rules
 
-Volume takes every KDP number from `config/kdp-rules/`, never from memory. This page summarises the current file, `config/kdp-rules/2026-10-03.json`, built from `docs/reference-kdp-facts-2026-10-03.md` (official pages read on 3 October 2026). Fact ids (for example 3.9) point to numbered entries in that facts file. If this page and the JSON disagree, the JSON wins and this page is fixed.
+Volume takes every KDP number from `config/kdp-rules/`, never from memory. This page summarises the current file, `config/kdp-rules/2026-10-06.json`. The original facts are in `docs/reference-kdp-facts-2026-10-03.md`; the targeted trim, margin and cover rechecks are in `docs/reference-kdp-facts-2026-10-06.md`. Rules not rechecked retain their 3 October verification date. Fact ids (for example 3.9) point to numbered entries in that facts file. If this page and the JSON disagree, the JSON wins and this page is fixed.
 
 Status: **confirmed** (seen on the official page), **partial** (page found, a detail missing or inconsistent: the app shows a "check before you rely on this" note), **unverified** (not in the facts file: preflight warns and the value is not printed as fact).
 
 ## Re-check rule
 
-- Rules are re-checked every 90 days. The current file was verified on 3 October 2026, so the re-check is due on **1 January 2027**.
+- Rules are re-checked every 90 days. The revision retains 3 October 2026 as the oldest verification date, so the re-check is due on **1 January 2027**.
 - After that date the Export screen and preflight warn: "KDP rules are more than 90 days old: re-check before you upload". It warns; it does not block.
 - A re-check never edits the old file. It reads every source page again and writes a new dated file (for example `2027-01-02.json`), even if nothing changed. Steps are in `config/kdp-rules/README.md`.
 
@@ -43,14 +43,14 @@ Worked examples: KDP's own 55-page black-ink book costs GBP 1.93. Ours: a 200-pa
 | Rule id | What | Fact | Status |
 |---|---|---|---|
 | `paperback.trimAndPages` | 6 x 9 in is the most common US trim; 6 x 9 black ink on white: 24 to 828 pages; minimum 24 pages; maximums 590 to 828 by option | 3.6 | confirmed |
-| `paperback.trimSizes.list` | Trim size picker list (5 x 8 to 8.5 x 11 in, including 5.5 x 8.5 in from the owner's drafts) | none | **unverified** |
+| `paperback.trimSizes.list` | Trim size picker list (5 x 8 to 8.5 x 11 in, including 5.5 x 8.5 in from the owner's drafts) | 11.1 | confirmed |
 | `print.bleed` | Interior bleed adds 0.125 in to the width and 0.25 in to the height (6 x 9 becomes 6.125 x 9.25 in) | 3.7 | confirmed |
-| `paperback.interiorMargins` | Inside margin by page count and outside minimums | none | **unverified** |
+| `paperback.interiorMargins` | Inside margin by page count and outside minimums | 11.2 | confirmed |
 | `paperback.cover` | One PDF with back, spine and front; 0.125 in (3.2 mm) bleed on all outer edges; images at least 300 DPI; KDP cover calculator gives exact sizes | 3.8 | confirmed |
 | `paperback.spine.widthPerPage` | Spine width = pages x 0.002252 in (white) or x 0.0025 in (cream) | 3.9 | confirmed |
 | `paperback.spine.textMinPages` | Spine text only at 80 pages or more (the page says both "at least 79" and "more than 79"; 80 is safe) | 3.10 | confirmed |
-| `paperback.cover.barcodeArea` | Barcode keep-out box on the back cover | none | **unverified** |
-| `paperback.cover.safeZone` | Cover text distances from trim and spine edges | none | **unverified** |
+| `paperback.cover.barcodeArea` | Barcode size and clearance; automatic placement still requires the generated template | 11.4 | partial |
+| `paperback.cover.safeZone` | Cover text distances from trim and spine edges | 11.3 | confirmed |
 | `ebook.cover` | Ideal 1,600 x 2,560 px; ratio at least 1.6:1; minimum 625 x 1,000; maximum 10,000 px a side; JPEG or TIFF (not PNG); under 50 MB; RGB | 10.5 | confirmed |
 | `manuscript.formats` | eBook: DOCX, KPF, EPUB recommended; paperback: PDF needed for bleed; MOBI not accepted for fixed layout | 6.1, 6.2 | confirmed |
 | `isbn` | Free KDP ISBN for print only and usable only on KDP; optional for eBooks. Volume never generates an ISBN | 4.1, 4.2 | confirmed |
@@ -90,3 +90,7 @@ Phase 4 acceptance compares Volume's wrap sizes with KDP's cover calculator for 
 ## Still to verify
 
 Four rules are unverified because the facts file does not cover them: the trim size list, interior margins, the barcode area and the cover safe zone. Check them on KDP's trim and margin guide (`GVBQ3CMEQW3W2VL6`) and paperback cover guide (`G201953020`) before phase 1 export and phase 4 covers ship, then release a new dated rules file.
+
+## 6 October 2026 supplement
+
+The current dated configuration is `2026-10-06.json`. Trim options, margin minimums and cover text-safe distances were checked against the official pages and are confirmed. Barcode size is partially confirmed; automatic placement still requires the book-specific template. See [dated facts](reference-kdp-facts-2026-10-06.md). Older tables above describe the original 3 October review.

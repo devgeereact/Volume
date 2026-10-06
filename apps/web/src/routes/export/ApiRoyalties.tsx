@@ -1,4 +1,4 @@
-import rulesFile from "@config/kdp-rules/2026-10-03.json";
+import rulesFile from "@config/kdp-rules/2026-10-06.json";
 import {
   ebookRoyaltyGBP,
   KdpRuleError,
@@ -7,6 +7,9 @@ import {
   paperbackRoyaltyRate,
   parseKdpRules,
   printingCostGBP,
+  parseTrimKey,
+  trimClassFor,
+  type TrimKey,
   type EbookRate,
 } from "@volume/core";
 import { KeyValueList } from "../../components/ui";
@@ -35,10 +38,10 @@ function ruleProblem(e: unknown): string {
   return e instanceof KdpRuleError ? e.message : "The KDP rules file could not answer this.";
 }
 
-function paperback(pages: number | null, price: number | null): Part {
+function paperback(pages: number | null, price: number | null, trim: TrimKey): Part {
   if (!pages) return { lines: [], notes: ["Build the pack to get the page count from the print PDF."] };
   try {
-    const print = printingCostGBP(rules, { pages });
+    const print = printingCostGBP(rules, { pages, trimClass: trimClassFor(rules, parseTrimKey(trim)) });
     const min = minimumListPriceGBP(rules, print.value);
     const lines: Line[] = [
       { label: "Pages (print PDF)", value: String(pages) },
@@ -101,7 +104,9 @@ export function ApiRoyalties({
   listPrices,
   pdf,
   epub,
+  trim = "6x9",
 }: {
+  trim?: TrimKey | undefined;
   listPrices: ApiListPrices | undefined;
   pdf: ApiExportRecord | undefined;
   epub: ApiExportRecord | undefined;
@@ -117,7 +122,7 @@ export function ApiRoyalties({
         <p className="text-small text-ink-secondary">amazon.co.uk, KDP rules {rules.version}</p>
       </div>
       <div className="mt-4 grid gap-6 sm:grid-cols-2">
-        <Block title="Paperback" part={paperback(pages, listPrices?.paperback ?? null)} />
+        <Block title="Paperback" part={paperback(pages, listPrices?.paperback ?? null, trim)} />
         <Block title="Kindle eBook" part={ebook(epub && epub.status === "done" ? epub : undefined, listPrices?.ebook ?? null)} />
       </div>
       {noPrices && (

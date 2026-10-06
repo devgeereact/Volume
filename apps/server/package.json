@@ -15,7 +15,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "migrate": "tsx src/db/migrate-cli.ts",
-    "seed": "tsx src/seed/seed-cli.ts"
+    "seed": "tsx src/seed/seed-cli.ts",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@volume/ai": "*",

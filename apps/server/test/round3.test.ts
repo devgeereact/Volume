@@ -273,7 +273,7 @@ describe('8. settings: house style and KDP rules', () => {
     const s = await t.call<{ houseStyle: Obj; kdpRules: Obj }>('GET', '/api/v1/settings');
     expect(s.body.houseStyle).toMatchObject({ version: 1, bannedCount: anyNumber, spellingPairs: anyNumber });
     expect(s.body.houseStyle['bannedCount'] as number).toBeGreaterThan(50);
-    expect(s.body.kdpRules).toMatchObject({ version: '2026-10-03', checkedAt: '2026-10-03', recheckDueAt: '2027-01-01' });
+    expect(s.body.kdpRules).toMatchObject({ version: '2026-10-06', checkedAt: '2026-10-03', recheckDueAt: '2027-01-01' });
   });
 });
 

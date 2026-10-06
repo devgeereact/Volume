@@ -1,3 +1,4 @@
+import { sql } from 'kysely';
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -572,6 +573,7 @@ describe('12. backups', () => {
     // The backup is a real database with the book in it.
     const { openSqlite } = await import('../src/db/connect.js');
     const copy = openSqlite(join(dataDir, 'backups', made.body.name));
+    expect((await sql<{ integrityCheck: string }>`PRAGMA integrity_check`.execute(copy.db)).rows).toEqual([{ integrityCheck: 'ok' }]);
     expect((await copy.db.selectFrom('projects').select('title').execute()).map((r) => r.title)).toEqual(['Calm Mornings']);
     await copy.close();
   });

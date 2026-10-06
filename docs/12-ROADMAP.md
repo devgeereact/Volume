@@ -2,6 +2,10 @@
 
 Nine phases, 0 to 8. Each ends with an **owner review gate**: the owner sees the result, tries it, and says go or fix before the next phase starts. No phase starts on top of an unreviewed one. Acceptance lines for phases 1 to 5 are taken from the approved plan.
 
+## Current checkpoint, 6 October 2026
+
+Implementation is at phase 5 with local corrections verified, not a completed v1 release gate. Free titles and blueprint pass, full free writing failed, sampled Word layouts pass, Kindle/KDP acceptance is outstanding and cPanel is deferred by the owner. Later phases 6 to 8 remain outside this pass. See KNOWN-ISSUES.md and the local/free validation reports for current evidence. Deliverables and acceptance below remain the approved targets, not a claim that every gate passed.
+
 ## Phase 0: workspace, rules, agents, design guide and demo
 
 - **Deliverables:** workspace and git repo (no commits until asked); `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agent/` files; all docs in `docs/`, `DECISIONS.md`, `CHANGELOG.md`, `KNOWN-ISSUES.md`; `config/` (KDP rules, model defaults, house style, book templates); `prompts/` v1 for all stages; `.claude/` agents, skills and hooks with tests; three design direction boards; after the owner's pick, the full design guide and a clickable prototype of every main screen with mock data (a Harni book and Windowsill Herbs).

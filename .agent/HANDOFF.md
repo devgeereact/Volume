@@ -133,3 +133,67 @@ Newest at the bottom. Every AI appends one entry per session: date, assistant, w
 - Updated CURRENT-TASK.md and this handoff before the initial commit. Staging respects .gitignore, excluding .env, local data, node_modules and generated outputs.
 - Targeted pre-commit scan PASS: 623 candidate files, no recognised credential patterns, sensitive paths, symlinks or files over 50 MB. Earlier checks today PASS: typecheck, lint, formatting, web build, 485 tests with 2 skipped. No product changes in this publication task.
 - Next: verify GitHub visibility and remote commit, then continue outstanding release validation.
+
+## 6 October 2026: detailed remaining-work review (Codex)
+- Reviewed implementation against PRD/roadmap, source and tests across web, server, AI, core/export, backups, transfer and auth. Report: docs/PROJECT-REVIEW-2026-10-06.md. Updated CURRENT-TASK.md and this log. No product changes or commits.
+- Reproduction FAIL: malformed child row in project ZIP caused rejection but increased projects from 1 to 2. Ran /tmp/volume-import-audit.mts against in-memory SQLite with mock providers and dotenv disabled. No real data or .env accessed.
+- Source findings: remaining budget is not passed into AI package internal calls; Markdown-to-book import workflow not found; API blueprint history lacks compare/restore; photo upload is a placeholder; writing starts without the PRD conditional cost confirmation; imports lack full manifest validation/aggregate expansion limits.
+- Earlier today unchanged application checks PASS: typecheck, lint, formatting, web build, 485 tests; 2 skipped (MySQL/EPUBCheck). Live AI, MySQL, long-book benchmark and manual publishing acceptance NOT TESTED.
+- Next: review priorities in the report, then authorise implementation scope.
+
+## 6 October 2026: atomic project import fix (Codex)
+- Owner requested the first review fix. Changed apps/server/src/repos/transfer.ts and apps/server/src/files/blob-store.ts so all import writes share one transaction, including BlobStore metadata/chunks. Kept profile matching and configured chunk size. Added apps/server/test/transfer.test.ts.
+- Tests: 3 rollback regressions failed before implementation, then passed. Added successful import/chunk-size test: 4 PASS. Existing transfer/blob tests PASS. Full server suite: 180 PASS, 1 skipped (MySQL). Root typecheck/lint PASS. Original /tmp in-memory reproduction now reports importRejected true and projects 1 to 1.
+- Updated CHANGELOG.md, DECISIONS.md (D-024), detailed review and session records. No real data, .env, live AI, commits or pushes. MySQL rollback NOT TESTED.
+- Next: carry remaining book/monthly budget into internal AI calls.
+
+## 6 October 2026: remaining local review corrections (Codex)
+
+- Owner instructed continuation through all review fixes. Applied GEE OS Build mode and project constraints; no subagents. No environment files, owner data, paid AI, production mutations, commits or pushes.
+- AI: packages/ai service checks every internal provider attempt via a server callback; adapter sums earlier task spend, runner serialises shared budget reservations and preserves paid partial usage. Added retry/task/concurrent-budget tests.
+- Transfer: strict migrated-column validation and references, ZIP entry/total/count/path/duplicate limits, missing-file errors, portrait export/import remapping. Added atomic Markdown import and transaction-aware manuscript writes. Library UI has one import dialog, including the empty state.
+- Web: TipTap free packages for manuscript blocks; API blueprint compare/restore as a new draft; high-cost writing confirmation; pre-publication prices; saved-profile JPEG/PNG portraits and export inclusion. Added focused browser scenarios.
+- KDP: official pages read, added 2026-10-06.json and dated facts without editing the released 3 October file. Verified trims, white/cream page limits, large-trim threshold, margins and safe text distances. Barcode suggested size/clearance partial until the generated template is checked. Corrected preflight cream limits and API large-trim printing costs.
+- Maintenance: lazy heavy routes, mock-only local GitHub workflow, native package script allowlist, unknown migration types, redirect default off, current phase/Kysely metadata, known issues and backup/restore documentation. Added synthetic benchmark script. EPUBCheck test now uses a real generated JPEG instead of a corrupt four-byte placeholder.
+- PASS: root typecheck, lint, format:check and git diff --check. npm test: core 75, AI 148, export 87, server 189 (499 total), MySQL and default optional EPUBCheck skipped. Explicit EPUBCheck 5.4.0 run: four EPUB tests PASS, no errors/warnings. Final npm run e2e: five PASS, including actual temporary process interruption/restart with accelerated stale-heartbeat time, editable import/undo/paste/reload, restore/cost confirmation/pricing, portrait save/reload and full 19-file pack.
+- Long-book PASS: 83,815 synthetic words, 326 pages at 5 x 8, 7.18 seconds including inspection, 970,361 PDF bytes, embedded fonts and no export warnings. Peak Node RSS 612.5 MiB excludes Chromium. Web build PASS, main 373 kB plus shared UI 423 kB; editor 528 kB on demand. No cold-load timing measured.
+- Remaining: coverage dependency approval (session question pending), paid live r6 confirmation/credit and budget, cPanel MySQL environment, owner Word/Kindle/KDP acceptance and personal facts. General accessibility/device acceptance not exhaustive. CI has not run remotely. Changes local and uncommitted. Current task and review ledger updated.
+
+## 6 October 2026: approved coverage measurement (Codex)
+
+- Owner’s “go ahead” approved the pending Vitest V8 development dependency. Installed @vitest/coverage-v8 5.0.3 and updated the lock file. No additional lifecycle scripts approved.
+- Added coverage scripts in root and four workspaces, coverage settings in existing configs and a new AI Vitest config. All src/**/*.ts files included, no exclusions. CI now runs coverage instead of duplicate uninstrumented tests.
+- PASS: npm run test:coverage, 499 tests passed, two default skips. Lines: core 92.46% against 90%; AI 94.35%, export 86.56%, server 91.92%, each against 80%. Reports ignored. Source scope and exact totals recorded in docs/LOCAL-VALIDATION-2026-10-06.md.
+- PASS: root typecheck, lint and formatting. Browser scenarios were not repeated for coverage configuration; the five scenarios passed in the preceding correction pass. Remote CI NOT TESTED. No live AI, owner data, environment files, production mutations, commits or pushes.
+- Updated testing guide, correction ledger, issues, current task, changelog and decision D-028. Remaining: budgeted live AI, cPanel test environment, owner publishing acceptance and personal decisions.
+
+## 6 October 2026: external acceptance preparation (Codex)
+
+- Owner requested live AI, cPanel MySQL and Word/Kindle/KDP review. Asked for a numeric AI spend cap, the disposable cPanel database with secure access, and the book selection plus a specific owner-data exception. Answers pending. No budget or environment inferred.
+- Read actual live-smoke and MySQL procedures. Live smoke loads .env and uses a fixed $0.50 cap, so it was not executed under current restrictions. MySQL test migrates and writes rows, requiring a named empty disposable database. Inherited OpenRouter key, MYSQL_TEST_URL and LIVE_AI enablement absent, checked as booleans only.
+- Generated fresh fixture DOCX with node --import tsx /private/tmp/volume-word-review.mts. PASS generation. Word opened it without a repair prompt; title page visibly rendered, 31 pages and 6,177 words. PARTIAL application review: later desktop call failed with noWindowsAvailable. No owner manuscript read.
+- Kindle Previewer absent from /Applications. Official Amazon documentation now identifies version 4; linked product page returned HTTP 503 through web. No install, licence acceptance, KDP login/upload or publication.
+- Updated local validation and current task. No product changes, paid calls, remote database writes, environment/owner-data reads, commits or pushes. Remaining checks BLOCKED by required access and decisions; fixture Word review PARTIAL.
+- Checks for this documentation-only update: git diff --check PASS. House-style scan PARTIAL: measured percentages and official documentation links trigger book-content guardrail warnings; no unsupported statistics were added. Removed the generic performance wording that triggered its promise detector. Product tests not repeated because no product code changed.
+
+## 6 October 2026: free-model and publishing validation (Codex)
+
+- Owner authorised free OpenRouter testing and one book review, and deferred cPanel. Active library was empty; created the clearly labelled synthetic Windowsill Herbs test book and fictional profile. Used existing server, did not read any key or environment file. Global model defaults unchanged.
+- PASS: Nvidia free titles (ten options), three-chapter schema-valid blueprint. FAIL: full writing and Lightning summary retry, output truncation stopped dependent sections without saving partial content. Saved chapter has three em dashes and excess words; application flagged them. Unsupported author claims also flagged.
+- Both requested Gemma free models tested: 26B job 01M49AWE8Z02B5GFWBX786FTWC and 31B job 01M49AWJ77JQ37F41ZRYN0H9AC. FAIL at provider, upstream Google AI Studio invalid-key error. All selected catalogue prices zero, recorded total 0 USD, no paid fallback/search/image calls.
+- PASS sampled fixture Word layouts: title, copyright, contents, chapter, repeated table header/pagination and final page. Kindle Previewer package signed/notarised, but licence acceptance approval pending, so not installed. KDP browser surfaces unavailable, online preview/template acceptance NOT TESTED. cPanel explicitly deferred.
+- Updated free validation report, known issues and current task. No product code changes this continuation. Product tests not repeated for validation records. No commits, pushes, publishing or database hosting changes. Next: resolve free upstream model availability/summary output limits, obtain Kindle licence approval, complete KDP application acceptance when browser control is available.
+
+## 6 October 2026: project documentation consistency audit (Codex)
+
+- Owner requested checking/updating project documentation. Used GEE OS Build mode for authorised local prose corrections; no subagents. Inspected 70-file documentation inventory, manifests/scripts, routes, schema/migrations, budget/import source, CI and dated validation results. Prompt versions and source drafts preserved.
+- Updated README, web/server/export and scripts guides, architecture/data/AI/security/UX/export/KDP specs, PRD/glossary, roadmap, design status, review ledger, validation/testing pointers and current task. Added docs/DOCUMENTATION-AUDIT-2026-10-06.md, changelog notes and D-030. Corrected stale phase 0/no-code status, prototype commands, nonexistent helpers, old KDP revision references, model table/cost/asset descriptions, redirect default and ZIP/CI/logging details.
+- PASS: local document link check (code example excluded), script names checked against manifests, KDP statuses checked against dated config, git diff --check. House-style PARTIAL: technical links/percentages and quoted prohibited-claim examples trigger the book-content guardrails; no new banned phrases or em dashes.
+- Product tests NOT APPLICABLE to this prose-only pass; existing dated evidence preserved. No product code/defaults/prompts, dependencies, environment files, owner data, servers, live calls, commits or pushes touched. Existing local corrections remain uncommitted.
+- Remaining: free full-writing failure/upstream Gemma errors, production-model/research/cover validation, Kindle licence approval and KDP application checks, owner profile/visual/redirect decisions, deferred cPanel and remote CI. Current known issues are authoritative; roadmap acceptance targets are not claimed complete.
+
+## 6 October 2026: authorised local commit (Codex)
+
+- Owner requested committing the completed local changes. Included correction code/tests, coverage and CI configuration, dated KDP rules, validation reports and documentation refresh. Protected environment/data paths excluded; unrelated owner environment edits preserved.
+- Existing verification evidence: typecheck, lint, formatting, 499 tests/coverage, five browser scenarios, EPUBCheck and long-book export passed earlier. Current documentation links/commands/config consistency and git diff --check PASS. No new application changes since those checks.
+- Commit is local only. No push, new live calls, server changes or publishing. Release acceptance remains PARTIAL, with current blockers in KNOWN-ISSUES.md.

@@ -152,13 +152,14 @@ export function coverMinDpi(rules: KdpRules): number {
 }
 
 /** Barcode keep-out box (unverified rule: callers must show the warning). */
-export function barcodeArea(rules: KdpRules): KdpResult<{ widthIn: number; heightIn: number; position: string }> {
+export function barcodeArea(rules: KdpRules): KdpResult<{ widthIn: number; heightIn: number; position: string; insetFromTrimIn: number }> {
   const r = getRule(rules, 'paperback.cover.barcodeArea');
   return {
     value: {
       widthIn: num(field(r.values, 'widthIn', r.id), r.id, 'values.widthIn'),
       heightIn: num(field(r.values, 'heightIn', r.id), r.id, 'values.heightIn'),
       position: text(field(r.values, 'position', r.id)),
+      insetFromTrimIn: isObj(r.values) && typeof r.values.insetFromTrimIn === 'number' ? r.values.insetFromTrimIn : 0,
     },
     ruleIds: [r.id],
     warnings: statusWarnings(rules, [r.id]),
@@ -196,9 +197,17 @@ export function trimSizes(rules: KdpRules): KdpResult<TrimSize[]> {
  * Page range for a trim (FACTS 3.6). 6 x 9 in black on white has its own range; other trims use the minimum for any
  * trim and the lowest maximum across options (a safe bound) with a check-before-use warning.
  */
-export function trimPageRange(rules: KdpRules, trim: TrimSize): KdpResult<{ min: number; max: number }> {
+export function trimPageRange(rules: KdpRules, trim: TrimSize, paper: Paper = 'white'): KdpResult<{ min: number; max: number }> {
   const r = getRule(rules, 'paperback.trimAndPages');
   const v = r.values;
+  const table = isObj(v) && Array.isArray(v.blackInkByTrim) ? v.blackInkByTrim : [];
+  const row = table.find((entry): entry is Record<string, unknown> => isObj(entry) && entry.widthIn === trim.widthIn && entry.heightIn === trim.heightIn);
+  if (row)
+    return {
+      value: { min: num(row.minPages, r.id, 'minPages'), max: num(row[paper === 'cream' ? 'creamMaxPages' : 'whiteMaxPages'], r.id, 'maxPages') },
+      ruleIds: [r.id],
+      warnings: statusWarnings(rules, [r.id]),
+    };
   const common = field(v, 'mostCommonTrimUS', r.id);
   const six = field(v, 'sixByNineBlackWhite', r.id);
   const minAny = num(field(v, 'minPagesAnyTrim', r.id), r.id, 'values.minPagesAnyTrim');
@@ -239,6 +248,14 @@ export function outsideMarginMinIn(rules: KdpRules, bleed: boolean): KdpResult<n
 // ---------- paperback money (amazon.co.uk) ----------
 
 export type TrimClass = 'regular' | 'large';
+export function trimClassFor(rules: KdpRules, trim: TrimSize): TrimClass {
+  const r = getRule(rules, 'paperback.trimAndPages');
+  const threshold = field(r.values, 'largeTrimThreshold', r.id);
+  return trim.widthIn > num(field(threshold, 'widthGreaterThanIn', r.id), r.id, 'widthGreaterThanIn') ||
+    trim.heightIn > num(field(threshold, 'heightGreaterThanIn', r.id), r.id, 'heightGreaterThanIn')
+    ? 'large'
+    : 'regular';
+}
 
 /**
  * Printing cost, black ink, amazon.co.uk (FACTS 3.3). Bands are taken in file order; the first band whose

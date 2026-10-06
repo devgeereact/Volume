@@ -2,11 +2,11 @@
 
 Vite, React, TypeScript strict, React Router, Tailwind v4, motion/react and TanStack Query. Moved here from `prototype/` on 5 October 2026. Talks only to `apps/server` over `/api/v1` (client in `src/api/`, see its README); never holds an API key. When the server is off, screens fall back to the demo data in `src/data/`. Dev and preview both run on 127.0.0.1:5180; the server owns 5181.
 
-# prototype
+## Live and demo modes
 
-Clickable demo of every Volume screen with mock data (phase 0). It follows the fused Volume direction (D-014): `docs/08-DESIGN-GUIDE.md`, the tokens in `packages/ui`, and the board at `design/final/volume-direction.html`. Its components seed `apps/web` and `packages/ui` in phase 1.
+The app has API-backed screens and a demo fallback. It began as the phase 0 prototype. It follows the fused Volume direction (D-014): `docs/08-DESIGN-GUIDE.md`, the tokens in `packages/ui`, and the board at `design/final/volume-direction.html`. Its shared components now support the built application.
 
-Everything on screen is demo data. The shell shows a "Demo data" badge, the prototype never reads a key, and it never calls OpenRouter.
+The shell shows a "Demo data" badge in fallback mode. API mode uses the local server for stored books, jobs and exports. The browser never reads the key or calls OpenRouter directly.
 
 ## Run it
 
@@ -14,29 +14,29 @@ From the repository root:
 
 ```sh
 npm install                      # once; installs the workspaces
-npm run dev -w prototype         # http://127.0.0.1:5180 (strict port, 127.0.0.1 only)
-npm run typecheck -w prototype   # tsc --noEmit, TypeScript strict
-npm run build -w prototype       # typecheck, then vite build into prototype/dist
-npm run preview -w prototype     # serves the build on http://127.0.0.1:5181
-npm run screenshot -w prototype  # see below
-npm run smoke -w prototype       # walks the main flow, fails on console errors (see below)
+npm run dev -w apps/web         # http://127.0.0.1:5180 (strict port, 127.0.0.1 only)
+npm run typecheck -w apps/web   # tsc --noEmit, TypeScript strict
+npm run build -w apps/web       # typecheck, then vite build into apps/web/dist
+npm run preview -w apps/web     # serves the build on http://127.0.0.1:5180
+npm run screenshot -w apps/web  # see below
+npm run smoke -w apps/web       # walks the main flow, fails on console errors (see below)
 ```
 
 The dev server is `vite` on 127.0.0.1:5180 with `strictPort`, so it stops with an error rather than moving to another port. This project never uses ports 5173 to 5175. Stop the dev server (Ctrl C) when you finish.
 
-There is no lint script yet: ESLint is not installed (it needs the owner's OK). Typecheck is the gate for now.
+Run `npm run lint` and `npm run format:check` from the repository root. ESLint and Prettier are installed (D-023).
 
-**Workspaces.** The root `package.json` lists only `["packages/ui", "prototype"]`, the folders that have a `package.json` today, so `npm install` works. Phase 1 adds `apps/*`, `packages/core`, `packages/ai` and `packages/export` back as each gets its `package.json`. `packages/ui` is the workspace package `@volume/ui`; the prototype imports `@volume/ui/tokens.css` and `@volume/ui/theme.css` from it.
+**Workspaces.** Root package.json lists packages/ui, packages/core, packages/ai, packages/export, apps/server and apps/web. The web app imports shared tokens and theme from @volume/ui.
 
 ### Screenshots
 
 ```sh
-npm run screenshot -w prototype                                  # every route (21, see below)
-npm run screenshot -w prototype -- /library /components          # chosen routes
-npm run screenshot -w prototype -- --no-build /books/handover/writing
+npm run screenshot -w apps/web                                  # every route (21, see below)
+npm run screenshot -w apps/web -- /library /components          # chosen routes
+npm run screenshot -w apps/web -- --no-build /books/handover/writing
 ```
 
-`scripts/screenshot.mjs` builds the app (skip with `--no-build`), starts its own `vite preview` on 127.0.0.1:5182 (strict, it refuses to run if the port is busy and never uses another one), visits each route in light and dark at 1440 x 900 and 390 x 844, and saves full-page PNGs to `prototype/screenshots/` (git-ignored) as `<route>-<theme>-<width>.png`. It prints console errors and horizontal overflow (the element where the overflow starts), stops the server, and exits 1 if any route had either.
+`scripts/screenshot.mjs` builds the app (skip with `--no-build`), starts its own `vite preview` on 127.0.0.1:5182 (strict, it refuses to run if the port is busy and never uses another one), visits each route in light and dark at 1440 x 900 and 390 x 844, and saves full-page PNGs to `apps/web/screenshots/` (git-ignored) as `<route>-<theme>-<width>.png`. It prints console errors and horizontal overflow (the element where the overflow starts), stops the server, and exits 1 if any route had either.
 
 The default list is every screen plus a few states: `/library`, `/library?view=ledger`, `/profiles`, `/profiles/harni-muharami`, `/profiles/new`, `/books/new`, `/new-book` (redirect), `/books/night-shift-survival/research` (running), `/books/the-calm-ward/research`, `/books/the-calm-ward/titles`, `/books/the-calm-ward/blueprint`, `/books/handover/writing`, `/books/the-new-charge-nurse/editor`, `/books/speaking-up-safely/cover`, `/books/sourdough-on-a-weeknight/export`, `/books/handover/marketing`, `/settings`, `/settings/models`, `/archive`, `/components` and `/nope` (not found). `SCREENSHOT_PORT` and `SCREENSHOT_OUTDIR` change the port and build folder when two runs must not collide.
 
@@ -45,9 +45,9 @@ Full-page shots show the sticky job bar where the first viewport ends, part way 
 ### Smoke test
 
 ```sh
-npm run smoke -w prototype                  # builds, then walks the flow
-npm run smoke -w prototype -- --no-build    # reuse prototype/dist
-npm run smoke -w prototype -- --headed      # watch it run
+npm run smoke -w apps/web                  # builds, then walks the flow
+npm run smoke -w apps/web -- --no-build    # reuse apps/web/dist
+npm run smoke -w apps/web -- --headed      # watch it run
 ```
 
 `scripts/smoke.mjs` starts its own `vite preview` on 127.0.0.1:5182 (`SMOKE_PORT` to change; strict, refuses a busy port), runs Chromium at 1440 x 900 and walks: Library, open The Calm Ward, Research, Titles (choose a title), Blueprint (select chapter 4, Approve dialog, approve), Writing (pause, resume), Editor (select text, Expand, Accept), Cover (page count changes the spine width), Export (royalty calculator), Marketing (Copy shows a toast), Settings (theme to dark), and the command menu (Ctrl K, type, Enter, then Escape). It prints PASS or FAIL per step, fails on any console error, stops the server and exits 1 on failure. Screenshot and smoke both use 5182, so run them one after the other.
@@ -55,7 +55,7 @@ npm run smoke -w prototype -- --headed      # watch it run
 ## Folder map
 
 ```
-prototype/
+apps/web/
   index.html               theme set before first paint (same rule as src/lib/theme.tsx)
   vite.config.ts           React, Tailwind v4 (@tailwindcss/vite), ports
   scripts/screenshot.mjs   Playwright screenshots, own preview server on 5182
@@ -72,9 +72,9 @@ prototype/
     routes/<screen>/       one folder per screen (see ownership)
 ```
 
-## Ownership while three screen agents work in parallel
+## Historical screen ownership
 
-The three screen agents have finished. Since the integration pass (4 October 2026) one owner holds the whole of `prototype/`; the table below is kept for the next time screens are built in parallel.
+The three screen agents have finished. Since the integration pass (4 October 2026) one owner holds the whole of `apps/web/`; the table below is kept for the next time screens are built in parallel.
 
 | Owner | Folders under `src/routes/` | Screens |
 |---|---|---|
@@ -252,7 +252,7 @@ Rules for mock data: realistic, British English, no lorem ipsum, no invented sta
 
 - Book-content fonts (16 OFL families for covers and interior themes) are installed from Fontsource and loaded in `styles/book-fonts.css` (Latin only). The list and licences are in `assets/fonts/README.md`. The interface still uses only Literata, Schibsted Grotesk and JetBrains Mono.
 - The top bar (breadcrumb, search, demo badge, theme) is not on the board; it was asked for in the prototype brief. It holds the only search (D-016).
-- Screenshots go to `prototype/screenshots/` (this brief) rather than `test-results/screens/` (the frontend agent file).
+- Screenshots go to `apps/web/screenshots/` (this brief) rather than `test-results/screens/` (the frontend agent file).
 - No ESLint or Prettier yet (needs approval). No unit tests; typecheck, the screenshot script and the smoke script are the checks.
 - Deferred prototype items (shared helpers still in screen folders, blueprint data, claim marks in editable text, cover fonts, lint, real TipTap, zip and server) are listed as K-P01 to K-P06 in `KNOWN-ISSUES.md`.
 

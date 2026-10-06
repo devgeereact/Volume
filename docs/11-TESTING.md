@@ -9,14 +9,17 @@ Every change is checked with typecheck, lint and the relevant tests before anyon
 | Types | TypeScript strict | `npm run typecheck` |
 | Lint | ESLint, Prettier | `npm run lint` |
 | Unit and integration | Vitest | `npm test` (all workspaces) or `npm test -w packages/core` |
+| Coverage | Vitest V8, enforced line thresholds | `npm run test:coverage` |
 | Golden files | Vitest with fixtures in `tests/golden/` | `npm test -w packages/export` |
 | End to end | Playwright with the mock AI provider | `npm run e2e` (added in phase 1) |
-| Live AI | Vitest, tagged `live` | `LIVE_AI=1 LIVE_AI_BUDGET_USD=2 npm run test:live` |
+| Live AI | Budgeted owner run, separate from automated checks | No root live-test script exists. Agree the budget and set `LIVE_AI=1` before a live run |
 | Hooks | Bash test script | `npm run hooks:test` |
 
 Unit tests sit next to the code (`*.test.ts`) or in `tests/unit/`. Fixtures: `tests/golden/` (manuscripts and expected exports), `tests/fixtures/ai/` (mock provider answers).
 
 Coverage targets: `packages/core` 90% lines, `packages/ai` and `packages/export` 80%, `apps/server` services 80%. Coverage is a floor, not a goal; every bug fix adds a test that failed before the fix.
+
+The coverage command includes every `src/**/*.ts` file in core, AI, export and server, including files not imported by tests. The server threshold covers all server source, a broader scope than services alone. Each workspace writes ignored HTML and JSON reports under `coverage/`. CI runs this command instead of repeating the same tests without coverage. Branch and function coverage are reported but have no enforced target. The measured results are in [local validation](LOCAL-VALIDATION-2026-10-06.md). Configuration follows the [official Vitest coverage guide](https://vitest.dev/guide/coverage.html).
 
 ## Unit tests (minimum set)
 
@@ -76,6 +79,10 @@ Runs against the real server and web app with `AI_PROVIDER=mock` and a temporary
 8. Cover: concepts, choose, build; export pack; unzip and check the file list.
 9. Accessibility smoke: keyboard-only path through the wizard; focus visible on every step. An axe-based scan is proposed but needs the owner's OK to install.
 Screenshots at 1440 and 390 px wide on every screen; no console errors allowed.
+
+## Latest acceptance evidence
+
+On 6 October, 499 local tests and all measured coverage thresholds passed; five mock browser scenarios passed. See LOCAL-VALIDATION-2026-10-06.md. Free live testing was separately authorised through the existing server with only verified zero-priced models: titles/blueprint pass, full writing fails, and both Gemma routes fail upstream. This does not validate paid defaults, research or covers. See FREE-AI-VALIDATION-2026-10-06.md. MySQL is deferred by the owner.
 
 ## Live AI runs
 

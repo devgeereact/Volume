@@ -11,23 +11,8 @@ import { AppShell } from "./shell/AppShell";
 import { BookLayout } from "./shell/BookLayout";
 import { NotFound } from "./shell/NotFound";
 import { RouteError } from "./shell/RouteError";
-import ArchivePage from "./routes/archive/ArchivePage";
-import BlueprintPage from "./routes/blueprint/BlueprintPage";
 import BookIndexRedirect from "./routes/books/BookIndexRedirect";
-import ComponentsPage from "./routes/components/ComponentsPage";
-import CoverPage from "./routes/cover/CoverPage";
-import EditorPage from "./routes/editor/EditorPage";
-import ExportPage from "./routes/export/ExportPage";
 import LibraryPage from "./routes/library/LibraryPage";
-import MarketingPage from "./routes/marketing/MarketingPage";
-import NewBookPage from "./routes/new-book/NewBookPage";
-import ProfileEditorPage from "./routes/profiles/ProfileEditorPage";
-import ProfilesPage from "./routes/profiles/ProfilesPage";
-import PublishedPage from "./routes/published/PublishedPage";
-import ResearchPage from "./routes/research/ResearchPage";
-import SettingsPage from "./routes/settings/SettingsPage";
-import TitlesPage from "./routes/titles/TitlesPage";
-import WritingPage from "./routes/writing/WritingPage";
 
 /* Routes for every screen in docs/09-UX-FLOWS.md. "/" and "/library" both show the Library;
    "/published" is the Published shelf. Book screens sit under /books/:bookId/ inside BookLayout, which
@@ -39,29 +24,29 @@ const router = createBrowserRouter([
     children: [
       { path: "/", element: <LibraryPage /> },
       { path: "/library", element: <LibraryPage /> },
-      { path: "/published", element: <PublishedPage /> },
-      { path: "/profiles", element: <ProfilesPage /> },
-      { path: "/profiles/:profileId", element: <ProfileEditorPage /> },
-      { path: "/books/new", element: <NewBookPage /> },
+      { path: "/published", lazy: async () => ({ Component: (await import("./routes/published/PublishedPage")).default }) },
+      { path: "/profiles", lazy: async () => ({ Component: (await import("./routes/profiles/ProfilesPage")).default }) },
+      { path: "/profiles/:profileId", lazy: async () => ({ Component: (await import("./routes/profiles/ProfileEditorPage")).default }) },
+      { path: "/books/new", lazy: async () => ({ Component: (await import("./routes/new-book/NewBookPage")).default }) },
       { path: "/new-book", element: <Navigate to="/books/new" replace /> },
       {
         path: "/books/:bookId",
         element: <BookLayout />,
         children: [
           { index: true, element: <BookIndexRedirect /> },
-          { path: "research", element: <ResearchPage /> },
-          { path: "titles", element: <TitlesPage /> },
-          { path: "blueprint", element: <BlueprintPage /> },
-          { path: "writing", element: <WritingPage /> },
-          { path: "editor/:sectionId?", element: <EditorPage /> },
-          { path: "cover", element: <CoverPage /> },
-          { path: "export", element: <ExportPage /> },
-          { path: "marketing", element: <MarketingPage /> },
+          { path: "research", lazy: async () => ({ Component: (await import("./routes/research/ResearchPage")).default }) },
+          { path: "titles", lazy: async () => ({ Component: (await import("./routes/titles/TitlesPage")).default }) },
+          { path: "blueprint", lazy: async () => ({ Component: (await import("./routes/blueprint/BlueprintPage")).default }) },
+          { path: "writing", lazy: async () => ({ Component: (await import("./routes/writing/WritingPage")).default }) },
+          { path: "editor/:sectionId?", lazy: async () => ({ Component: (await import("./routes/editor/EditorPage")).default }) },
+          { path: "cover", lazy: async () => ({ Component: (await import("./routes/cover/CoverPage")).default }) },
+          { path: "export", lazy: async () => ({ Component: (await import("./routes/export/ExportPage")).default }) },
+          { path: "marketing", lazy: async () => ({ Component: (await import("./routes/marketing/MarketingPage")).default }) },
         ],
       },
-      { path: "/settings/:tab?", element: <SettingsPage /> },
-      { path: "/archive", element: <ArchivePage /> },
-      { path: "/components", element: <ComponentsPage /> },
+      { path: "/settings/:tab?", lazy: async () => ({ Component: (await import("./routes/settings/SettingsPage")).default }) },
+      { path: "/archive", lazy: async () => ({ Component: (await import("./routes/archive/ArchivePage")).default }) },
+      { path: "/components", lazy: async () => ({ Component: (await import("./routes/components/ComponentsPage")).default }) },
       { path: "*", element: <NotFound /> },
     ],
   },

@@ -1,15 +1,9 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type ClipboardEvent,
-  type CSSProperties,
-  type KeyboardEvent,
-  type ReactNode,
-} from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import { Extension, type JSONContent } from "@tiptap/core";
+import StarterKit from "@tiptap/starter-kit";
+import { Plugin } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Check, ChevronDown, ClipboardPaste, MessageSquarePlus, PenLine, X } from "lucide-react";
 import { Banner, Button, EmptyState, GalleySheet, IconButton, Kbd, Loader, modKey } from "../../components/ui";
@@ -455,16 +449,6 @@ function closestBlock(node: Node): HTMLElement | null {
   return el?.closest<HTMLElement>("[data-block-id]") ?? null;
 }
 
-function caretOffset(el: HTMLElement): number {
-  const s = window.getSelection();
-  if (!s || s.rangeCount === 0) return el.textContent?.length ?? 0;
-  const r = s.getRangeAt(0);
-  const pre = document.createRange();
-  pre.setStart(el, 0);
-  pre.setEnd(r.startContainer, r.startOffset);
-  return pre.toString().length;
-}
-
 interface EditableBlockProps {
   block: MsBlock;
   indent: boolean;
@@ -478,85 +462,141 @@ interface EditableBlockProps {
   onSplit: (blockId: string, offset: number, text: string) => void;
 }
 
-/** One paragraph or subheading, editable in place. Text is read back on blur. */
-function EditableBlock({ block, indent, heading, claims, findRe, currentIndex, onDraft, onCommit, onSplit, onAddNote }: EditableBlockProps) {
-  function onKeyDown(e: KeyboardEvent<HTMLElement>) {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      onCommit(block.id, e.currentTarget.textContent ?? "");
-      onAddNote(block.id);
-      return;
-    }
-    if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
-      e.preventDefault();
-      const el = e.currentTarget;
-      onSplit(block.id, caretOffset(el), el.textContent ?? "");
-    }
-  }
-  function onPaste(e: ClipboardEvent<HTMLElement>) {
-    e.preventDefault();
-    const text = e.clipboardData.getData("text/plain").replace(/\s*\n+\s*/g, " ");
-    document.execCommand("insertText", false, text);
-  }
-  const common = {
-    "data-block-id": block.id,
-    contentEditable: true,
-    suppressContentEditableWarning: true,
-    spellCheck: true,
-    onInput: (e: { currentTarget: HTMLElement }) => onDraft(block.id, e.currentTarget.textContent ?? ""),
-    onBlur: (e: { currentTarget: HTMLElement }) => onCommit(block.id, e.currentTarget.textContent ?? ""),
-    onKeyDown,
-    onPaste,
-  };
-  const content = renderMarked(block.text, claims, findRanges(block.text, findRe), currentIndex);
-  if (block.kind === "h")
-    return (
-      <h3 {...common} style={heading} className="mb-2 rounded-xs font-ui text-subhead text-ink focus:outline-none focus-visible:bg-select-wash/40">
-        {content}
-      </h3>
-    );
-  return (
-    <p {...common} className={cn("rounded-xs focus:outline-none focus-visible:bg-select-wash/40", indent && "indent-[1.5em]")}>
-      {content}
-    </p>
+/** TipTap owns text and undo history; existing block callbacks preserve the manuscript and note layout. */
+function EditableBlock(props: EditableBlockProps) {
+  const { block, indent, heading, claims, findRe, currentIndex } = props;
+  const [binding] = useState(() => new BlockBindings(props));
+  useLayoutEffect(() => {
+    binding.update(props);
+  });
+  const highlights = useMemo(
+    () =>
+      Extension.create({
+        name: "volumeHighlights",
+        addProseMirrorPlugins() {
+          return [
+            new Plugin({
+              props: {
+                decorations(state) {
+                  const value = binding.read();
+                  const text = state.doc.textContent;
+                  const decorations: Decoration[] = [];
+                  for (const claim of value.claims) {
+                    const start = text.indexOf(claim.sentence);
+                    if (start >= 0 && claim.sentence)
+                      decorations.push(Decoration.inline(start + 1, start + claim.sentence.length + 1, { class: "vol-claim-mark" }));
+                  }
+                  for (const [index, [start, end]] of findRanges(text, value.findRe).entries()) {
+                    if (end > start)
+                      decorations.push(
+                        Decoration.inline(start + 1, end + 1, {
+                          class: index === value.currentIndex ? "bg-select-wash outline-2 outline-select rounded-xs" : "bg-select-wash rounded-xs",
+                          ...(index === value.currentIndex ? { "data-find-current": "true" } : {}),
+                        }),
+                      );
+                  }
+                  return DecorationSet.create(state.doc, decorations);
+                },
+              },
+            }),
+          ];
+        },
+      }),
+    [binding],
   );
+  const editor = useEditor(
+    {
+      extensions: [
+        StarterKit.configure({
+          bold: false,
+          italic: false,
+          strike: false,
+          underline: false,
+          link: false,
+          code: false,
+          codeBlock: false,
+          blockquote: false,
+          bulletList: false,
+          orderedList: false,
+          listItem: false,
+          listKeymap: false,
+          horizontalRule: false,
+          hardBreak: false,
+          trailingNode: false,
+          heading: { levels: [3] },
+        }),
+        highlights,
+      ],
+      content: blockDocument(block),
+      immediatelyRender: false,
+      shouldRerenderOnTransaction: false,
+      editorProps: {
+        attributes: {
+          "data-block-id": block.id,
+          role: "textbox",
+          "aria-label": block.kind === "h" ? "Manuscript subheading" : "Manuscript paragraph",
+          spellcheck: "true",
+          class: cn("rounded-xs outline-none focus-visible:bg-select-wash/40", indent && "indent-[1.5em]"),
+        },
+        handleKeyDown(view, event) {
+          if (event.key !== "Enter" || view.composing) return false;
+          const value = binding.read();
+          if (event.metaKey || event.ctrlKey) {
+            value.onCommit(value.block.id, view.state.doc.textContent);
+            value.onAddNote(value.block.id);
+            return true;
+          }
+          if (!event.shiftKey) {
+            value.onSplit(value.block.id, view.state.selection.$from.parentOffset, view.state.doc.textContent);
+            return true;
+          }
+          return true;
+        },
+        handlePaste(view, event) {
+          const text = event.clipboardData?.getData("text/plain").replace(/\s*\n+\s*/g, " ") ?? "";
+          view.dispatch(view.state.tr.insertText(text));
+          return true;
+        },
+      },
+      onUpdate({ editor: current }) {
+        const value = binding.read();
+        value.onDraft(value.block.id, current.getText());
+      },
+      onBlur({ editor: current }) {
+        const value = binding.read();
+        value.onCommit(value.block.id, current.getText());
+      },
+    },
+    [block.id],
+  );
+  useEffect(() => {
+    if (editor && editor.getText() !== block.text && !editor.isFocused) editor.commands.setContent(blockDocument(block), { emitUpdate: false });
+  }, [editor, block]);
+  useEffect(() => {
+    if (editor) editor.view.dispatch(editor.state.tr.setMeta("volumeHighlights", true));
+  }, [editor, claims, findRe, currentIndex]);
+  return <EditorContent editor={editor} style={heading} className={block.kind === "h" ? "mb-2 font-ui text-subhead text-ink" : undefined} />;
 }
 
-/** Split text at claim and find boundaries and wrap each piece. */
-function renderMarked(text: string, claims: MsClaim[], finds: [number, number][], currentIndex: number): ReactNode {
-  if (!text) return <br />;
-  const claimRanges = claims
-    .map((c) => {
-      const at = text.indexOf(c.sentence);
-      return at < 0 ? null : ([at, at + c.sentence.length] as [number, number]);
-    })
-    .filter((r): r is [number, number] => r !== null);
-  if (claimRanges.length === 0 && finds.length === 0) return text;
-  const cuts = new Set<number>([0, text.length]);
-  for (const [a, b] of [...claimRanges, ...finds]) {
-    cuts.add(a);
-    cuts.add(b);
+function blockDocument(block: MsBlock): JSONContent {
+  return {
+    type: "doc",
+    content: [
+      {
+        type: block.kind === "h" ? "heading" : "paragraph",
+        ...(block.kind === "h" ? { attrs: { level: 3 } } : {}),
+        content: block.text ? [{ type: "text", text: block.text }] : [],
+      },
+    ],
+  };
+}
+
+class BlockBindings {
+  constructor(private value: EditableBlockProps) {}
+  update(value: EditableBlockProps): void {
+    this.value = value;
   }
-  const points = [...cuts].sort((a, b) => a - b);
-  const out: ReactNode[] = [];
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i]!;
-    const b = points[i + 1]!;
-    const piece = text.slice(a, b);
-    const inClaim = claimRanges.some(([x, y]) => a >= x && b <= y);
-    const findIdx = finds.findIndex(([x, y]) => a >= x && b <= y);
-    let node: ReactNode = piece;
-    if (findIdx >= 0)
-      node = (
-        <mark
-          data-find-current={findIdx === currentIndex ? "true" : undefined}
-          className={cn("rounded-xs text-ink", findIdx === currentIndex ? "bg-select-wash outline-2 outline-select" : "bg-select-wash")}
-        >
-          {piece}
-        </mark>
-      );
-    if (inClaim) node = <span className="vol-claim-mark">{node}</span>;
-    out.push(<span key={a}>{node}</span>);
+  read(): EditableBlockProps {
+    return this.value;
   }
-  return out;
 }

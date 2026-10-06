@@ -2,7 +2,7 @@
 
 Every KDP number Volume uses (royalties, printing cost, spine width, bleed, cover sizes, listing limits, title limits, review rules) comes from a dated JSON file in this folder. Code and prompts never carry KDP numbers from memory.
 
-Current file: `2026-10-03.json`, built from `docs/reference-kdp-facts-2026-10-03.md` (official pages read on 3 October 2026). Human summary: `docs/07-KDP-RULES.md`.
+Current file: `2026-10-06.json` (updated trim, margin and cover facts; see `docs/reference-kdp-facts-2026-10-06.md`). Original rules: `2026-10-03.json`, built from `docs/reference-kdp-facts-2026-10-03.md` (official pages read on 3 October 2026). Human summary: `docs/07-KDP-RULES.md`.
 
 ## Rule fields
 
@@ -48,3 +48,7 @@ KDP changes prices and limits without notice (paperback royalties became tiered;
 - `paperback.cover.safeZone`: cover text safe distances.
 
 Check them against KDP's trim, margin and cover guides before phase 1 export and phase 4 covers ship.
+
+## 6 October revision
+
+Trim sizes, interior margins and cover safe distances are confirmed. Barcode dimensions are partially confirmed; verify automatic placement with the book-specific template. The original dated file is retained.
