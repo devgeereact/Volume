@@ -1,0 +1,100 @@
+{
+  "id": "gideon-akinlotan",
+  "name": "Gideon Akinlotan",
+  "initials": "GA",
+  "realPerson": true,
+  "legalName": "Gideon Akinlotan",
+  "location": "London, United Kingdom",
+  "imprint": "Gakinz",
+  "bio": "Gideon Akinlotan is a London-based writer and the person behind the Real Mr Gee and GAkinz brands. Through GAkinz, a web design and development studio, he designs and builds websites for small businesses, holding design and build to one standard so a site looks right and works right, with accessibility built in from the start.\n\nHe writes practical, plain-English books for people who want to use AI and digital tools to build a side hustle, without the hype that often surrounds the subject. His guides show the real steps, the real costs and the real limits, and they never promise income. He also writes beginner-friendly technology how-to books, and books on business and personal growth for people building something alongside a busy life. As a Christian, he writes about faith and everyday life with honesty and warmth.\n\nHis books share one aim: to give every reader a clear next step they can take today. You can find his work at realmrgee.store and gakinz.com.",
+  "shortBio": "Gideon Akinlotan is a London writer behind Real Mr Gee and the GAkinz web design and development studio. He writes practical, no-hype guides to AI side hustles, beginner technology, business and personal growth, and faith and everyday life.",
+  "credentials": [],
+  "links": [
+    {
+      "label": "Shop",
+      "value": "realmrgee.store"
+    },
+    {
+      "label": "Email, Real Mr Gee",
+      "value": "info@realmrgee.store"
+    },
+    {
+      "label": "Email, GAkinz",
+      "value": "Info@gakinz.com"
+    },
+    {
+      "label": "Website, GAkinz",
+      "value": "gakinz.com"
+    }
+  ],
+  "genres": [
+    "AI and digital side hustles",
+    "Technology how-to for beginners",
+    "Business and personal growth",
+    "Faith and life"
+  ],
+  "bookTypes": [
+    "ai-tech-howto",
+    "business-money",
+    "self-help",
+    "faith-spirituality",
+    "workbook"
+  ],
+  "voice": {
+    "tone": [
+      "practical",
+      "warm",
+      "straight-talking",
+      "encouraging without hype"
+    ],
+    "pov": "First person, speaking directly to the reader as 'you'",
+    "rhythm": "Short sentences for steps, longer ones for stories. One idea per paragraph, then a clear next step.",
+    "vocabulary": "Everyday words. Every technical term explained the first time it appears. Tool names written exactly as the maker writes them.",
+    "readingLevel": "General adult, friendly to complete beginners",
+    "dialogueStyle": "Rare. Short exchanges inside illustrative stories, marked as illustrative.",
+    "locale": "en-GB",
+    "bannedPhrases": [
+      "passive income",
+      "make money while you sleep",
+      "get rich",
+      "six figures",
+      "guaranteed income",
+      "financial freedom",
+      "secret formula",
+      "quit your job",
+      "hustle culture",
+      "10x"
+    ],
+    "sampleParagraph": "Here is the honest version. An AI tool will not build a business for you, and anyone who says otherwise is usually selling something. What it can do is take the slow, fiddly parts of a small idea and make them quicker. Picture a quiet evening, a blank page and one question: what could I make tonight that someone might find useful? You ask the tool for ten ideas. You throw away eight and keep two. Then you do the part no tool can do for you. You check whether people are already asking for it, you work out what it will cost you in time, and you decide what you would charge before you make a single thing. That is the method in this book. Small steps, real numbers, no promises. If you can send an email and follow a recipe, you can do this."
+  },
+  "publishing": {
+    "copyrightTemplate": "Copyright © {year} {name}. All rights reserved.",
+    "copyrightName": "Gideon Akinlotan",
+    "disclaimer": "This book is for general information only. It is not financial, legal or tax advice, and no income is promised. Results depend on your own work and circumstances. Check current terms, prices and rules with each provider, and with HMRC, before you act.",
+    "illustrativeLine": "The stories in this book are illustrative. Names and details have been changed or combined, and no example describes a real customer or result.",
+    "defaultBookType": "ai-tech-howto",
+    "defaultWordTarget": 30000,
+    "defaultTrim": "6 x 9 in",
+    "defaultInteriorTheme": "tech-guide",
+    "defaultCoverStyle": "tech-grid"
+  },
+  "models": {
+    "research": null,
+    "titles": null,
+    "blueprint": null,
+    "writing": null,
+    "summarise": null,
+    "checks": null,
+    "editing": null,
+    "matter_metadata": null,
+    "cover_brief": null,
+    "cover_image": null,
+    "marketing": null
+  },
+  "modelNotes": "Uses the defaults in config/models.defaults.json. Research uses web search, so tool names and prices in his how-to books come with sources and the month checked.",
+  "status": {
+    "bio": "owner-to-confirm",
+    "note": "Updated on 5 October 2026 from gakinz.com and gakinz.com/about (owner's request). The site describes the GAkinz studio (web design and development for small businesses, accessibility built in, fixed price) but never names Gideon, so his link to it comes from the owner. The studio's case studies use example sites and are not quoted. Still to confirm: the imprint (GAkinz or Real Mr Gee) and any credentials he wants printed."
+  },
+  "createdAt": "2026-10-04T09:00:00+01:00"
+}

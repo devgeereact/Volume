@@ -1,0 +1,218 @@
+{
+  "$comment": "Journal template (added 4 October 2026, D-017) for guided journals, planners and children's activity books. The body is a run of pages built from page kinds; most words are prompts and short intros. These are low-content books on KDP. source: profile | owner | ai | app.",
+  "id": "journal",
+  "version": 1,
+  "name": "Journal, planner and activity book",
+  "locale": "en-GB",
+  "voice": {
+    "perspective": "second person, short prompts",
+    "aboutTheAuthorPerspective": "third-person",
+    "contractions": true,
+    "houseStyle": "config/house-style.json"
+  },
+  "wordTargets": {
+    "total": {
+      "min": 300,
+      "max": 12000,
+      "default": 4000
+    },
+    "tolerance": 0.15,
+    "note": "Words are prompts, intros and instructions. Page count matters more than words."
+  },
+  "pageRules": {
+    "count": {
+      "default": 120,
+      "min": 24,
+      "max": 366
+    },
+    "kinds": {
+      "prompt": "A prompt of 8 to 30 words above writing lines.",
+      "lined": "Writing lines only, spacing from the interior theme.",
+      "dotted": "Dot grid for notes or drawing.",
+      "tracker": "Habit or mood grid for a week or month.",
+      "weekly-spread": "Seven days with space per day; dated planners get their dates from code, never from AI.",
+      "goals": "Goals with steps and a review box.",
+      "activity": "Children: one puzzle, maze, colouring outline or drawing prompt.",
+      "answers": "Children: answers for the puzzles, built from the puzzle data."
+    },
+    "repeatPattern": {
+      "default": [
+        "prompt",
+        "lined"
+      ],
+      "note": "The owner picks the pattern; the app repeats it to the page count."
+    },
+    "weekStarts": "monday",
+    "datesFrom": "code",
+    "safety": "Prompts never push readers into distress without signposting help; no therapy claims. Children's activities follow the picture-book forbidden list."
+  },
+  "print": {
+    "kdpRuleIds": [
+      "isbn",
+      "print.vat.uk",
+      "paperback.trimAndPages"
+    ],
+    "note": "Low-content: KDP's ISBN handling differs. Fill-in pages may change the VAT rate."
+  },
+  "sections": [
+    {
+      "id": "title-page",
+      "kind": "front",
+      "title": "Title Page",
+      "required": true,
+      "defaultOn": true,
+      "source": "owner"
+    },
+    {
+      "id": "copyright",
+      "kind": "front",
+      "title": "Copyright",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "templateFrom": "nonfiction",
+      "kdpRuleIds": [
+        "isbn"
+      ]
+    },
+    {
+      "id": "how-to-use",
+      "kind": "front",
+      "title": "How to Use This Book",
+      "required": false,
+      "defaultOn": true,
+      "source": "ai",
+      "promptId": "writing.front-matter",
+      "limits": {
+        "words": {
+          "max": 300
+        }
+      }
+    },
+    {
+      "id": "year-goals",
+      "kind": "front",
+      "title": "This Year",
+      "required": false,
+      "defaultOn": false,
+      "source": "app"
+    },
+    {
+      "id": "pages",
+      "kind": "chapter",
+      "title": "Page {n}",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "repeat": true,
+      "promptId": "writing.chapter",
+      "content": "Built from pageRules.kinds; prompts by AI, layouts by code."
+    },
+    {
+      "id": "answers",
+      "kind": "back",
+      "title": "Answers",
+      "required": false,
+      "defaultOn": false,
+      "source": "app"
+    },
+    {
+      "id": "notes-pages",
+      "kind": "back",
+      "title": "Notes",
+      "required": false,
+      "defaultOn": true,
+      "source": "app"
+    },
+    {
+      "id": "about-the-author",
+      "kind": "back",
+      "title": "About the Author",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "profile.bio word for word."
+    },
+    {
+      "id": "also-by",
+      "kind": "back",
+      "title": "Also by {penName}",
+      "required": false,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "Published books under this pen name only."
+    }
+  ],
+  "packages": {
+    "publishing": [
+      {
+        "id": "back-cover-blurb",
+        "source": "ai",
+        "promptId": "matter.back-cover"
+      },
+      {
+        "id": "short-bio",
+        "source": "profile"
+      },
+      {
+        "id": "amazon-description",
+        "source": "ai",
+        "promptId": "matter.amazon-description",
+        "kdpRuleIds": [
+          "listing.description.maxChars",
+          "listing.description.allowedFormatting"
+        ]
+      },
+      {
+        "id": "categories",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.categories"
+        ]
+      },
+      {
+        "id": "keywords",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.keywords"
+        ]
+      },
+      {
+        "id": "title-check",
+        "source": "app",
+        "kdpRuleIds": [
+          "listing.titleSubtitle.maxChars"
+        ]
+      },
+      {
+        "id": "ai-disclosure-note",
+        "source": "app",
+        "kdpRuleIds": [
+          "ai.disclosure"
+        ]
+      }
+    ],
+    "marketing": [
+      {
+        "id": "tiktok-scripts",
+        "source": "ai",
+        "promptId": "marketing.tiktok-scripts"
+      },
+      {
+        "id": "instagram-captions",
+        "source": "ai",
+        "promptId": "marketing.instagram-captions"
+      },
+      {
+        "id": "launch-email",
+        "source": "ai",
+        "promptId": "marketing.launch-email"
+      }
+    ]
+  },
+  "derivedFrom": [
+    "config/book-types.json: guided-journal, planner, activity-book"
+  ]
+}

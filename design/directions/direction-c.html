@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volume direction C: Night Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;1,7..72,400&family=DM+Serif+Display:ital@0;1&family=Libre+Franklin:wght@500;600;800&family=Big+Shoulders+Display:wght@900&family=Bodoni+Moda:ital,opsz,wght@1,6..96,500&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+:root{
+  --well:#17151F; --night:#1D1B26; --desk:#272433; --raised:#322E40; --moon:#ECE8F2; --dusk:#A8A3B6; --ember:#FF8A78;
+  --line:#383447; --line-2:#2F2B3B; --ember-wash:rgba(255,138,120,.12);
+  --disp:'Bricolage Grotesque',system-ui,sans-serif; --ui:'Atkinson Hyperlegible Next',system-ui,sans-serif; --book:'Literata',Georgia,serif;
+  --cv-r:4px; --cv-shadow:0 14px 24px -14px rgba(0,0,0,.7);
+}
+
+/* Book covers: content, identical on every board. Sized with container units so one cover works at any width. */
+.cv{position:relative;aspect-ratio:2/3;container-type:inline-size;overflow:hidden;border-radius:var(--cv-r,2px);box-shadow:var(--cv-shadow,none);flex:none}
+.cv::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.24) 0,rgba(255,255,255,.12) 2.4cqw,rgba(0,0,0,0) 6cqw);pointer-events:none}
+.cv>*{position:absolute;left:10cqw;right:9cqw;margin:0}
+.cv .cv-a{bottom:9cqw;font:600 4.4cqw/1 'Libre Franklin',sans-serif;letter-spacing:.16em;text-transform:uppercase}
+.cv-calm{background:#1F4B55;color:#F5F1E8}
+.cv-calm .cv-t{top:11cqw;font:400 17.5cqw/.9 'DM Serif Display',serif}
+.cv-calm .cv-s{top:47cqw;font:500 5.2cqw/1.3 'Libre Franklin',sans-serif;color:#BFE0DC;right:20cqw}
+.cv-calm svg{left:0;right:0;top:84cqw;width:100%;height:38cqw}
+.cv-hand{background:#EAE4D6;color:#191919}
+.cv-hand .cv-t{top:8cqw;font:900 31cqw/.8 'Big Shoulders Display',sans-serif;letter-spacing:-.01em}
+.cv-hand .cv-bar{top:63cqw;height:3.2cqw;right:46cqw;background:#C33A2C}
+.cv-hand .cv-s{top:72cqw;font:600 5.6cqw/1.25 'Libre Franklin',sans-serif;right:22cqw}
+.cv-charge{background:#E3A935;color:#1C2B4B}
+.cv-charge .cv-dot{top:10cqw;left:auto;right:-16cqw;width:64cqw;height:64cqw;border-radius:50%;background:#1C2B4B}
+.cv-charge .cv-dot2{top:30cqw;left:auto;right:12cqw;width:16cqw;height:16cqw;border-radius:50%;background:#E3A935}
+.cv-charge .cv-t{top:70cqw;font:800 12.6cqw/.98 'Libre Franklin',sans-serif;letter-spacing:-.02em}
+.cv-charge .cv-s{top:111cqw;font:500 5cqw/1.25 'Libre Franklin',sans-serif}
+.cv-speak{background:#4A1E3E;color:#F7D7E2}
+.cv-speak .cv-t{top:12cqw;font:italic 400 15.5cqw/.95 'DM Serif Display',serif}
+.cv-speak svg{top:54cqw;left:10cqw;width:44cqw;height:40cqw}
+.cv-speak .cv-s{top:100cqw;font:500 5.2cqw/1.3 'Libre Franklin',sans-serif;color:#E9B3C7;right:26cqw}
+.cv-sour{background:#3A2A1F;color:#F2D7A6}
+.cv-sour svg{top:12cqw;left:20cqw;width:60cqw;height:60cqw}
+.cv-sour .cv-t{top:82cqw;font:400 11.5cqw/1.02 'Young Serif',serif}
+.cv-herb{background:#5D7B55;color:#F6F2E4}
+.cv-herb svg{top:9cqw;left:30cqw;width:40cqw;height:68cqw}
+.cv-herb .cv-t{top:86cqw;font:italic 500 15cqw/.95 'Bodoni Moda',serif}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:#100F16;font-family:var(--ui);color:var(--moon);padding:40px 40px 56px;width:1520px}
+p,h1,h2,h3,h4,ul,ol,dl{margin:0}
+ul,ol{padding:0;list-style:none}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+svg.i{width:18px;height:18px;flex:none}
+
+.board-head{display:flex;align-items:baseline;gap:24px;margin:0 0 22px}
+.board-head h1{font:600 30px/1.1 var(--disp);letter-spacing:-.01em}
+.board-head p{font-size:15px;color:var(--dusk);max-width:72ch}
+.cap{font:500 13px/1 var(--ui);color:var(--dusk);margin:14px 0 36px}
+.frame{width:1440px;height:900px;overflow:hidden;border-radius:14px;box-shadow:0 0 0 1px #2C2938,0 40px 80px -40px rgba(0,0,0,.8);background:var(--night)}
+
+/* Shell */
+.app{display:grid;grid-template-columns:236px 1fr;height:100%}
+.side{background:var(--well);display:flex;flex-direction:column;padding:26px 14px 18px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 10px 26px;font:600 24px/1 var(--disp);letter-spacing:-.02em}
+.brand svg{width:22px;height:22px}
+.nav{display:grid;gap:2px}
+.nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:var(--dusk);text-decoration:none;font-size:15px;font-weight:500}
+.nav a.on{background:var(--raised);color:var(--moon)}
+.nav a.on .i{color:var(--ember)}
+.lbl{font-size:12.5px;font-weight:600;color:var(--dusk);padding:26px 12px 8px}
+.pens{display:grid;gap:2px}
+.pens button{display:flex;align-items:center;gap:10px;background:none;border:0;border-radius:8px;padding:7px 10px;color:var(--dusk);text-align:left;font-size:14px}
+.pens button span.av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:700;background:var(--raised);color:var(--moon)}
+.pens button em{font-style:normal;margin-left:auto;font-size:12.5px}
+.pens button.on{color:var(--moon);background:var(--desk)}
+.pens button.on span.av{background:var(--ember);color:var(--night)}
+.side-foot{margin-top:auto;font-size:13px;line-height:1.55;color:var(--dusk);padding:0 10px}
+.side-foot b{color:var(--moon);font-weight:600}
+.meter{height:4px;border-radius:2px;background:var(--raised);margin-top:8px}
+.meter i{display:block;height:100%;width:12%;background:var(--ember);border-radius:2px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;font-weight:700;font-size:15px;padding:11px 20px;border:1px solid transparent;white-space:nowrap}
+.btn-primary{background:var(--ember);color:var(--night)}
+.btn-ghost{background:transparent;color:var(--moon);border-color:#57516B}
+.btn-sm{padding:8px 14px;font-size:14px}
+
+/* Library */
+.main{padding:30px 40px 0;overflow:hidden}
+.top{display:flex;align-items:center;gap:16px}
+.top h2{font:600 40px/1 var(--disp);letter-spacing:-.025em}
+.top .sub{font-size:15px;color:var(--dusk);margin-left:4px;padding-top:10px}
+.top .spacer{flex:1}
+.search{display:flex;align-items:center;gap:8px;width:260px;height:44px;border-radius:999px;background:var(--desk);padding:0 16px;color:var(--dusk);font-size:14.5px}
+.live{margin-top:24px;background:var(--desk);border-radius:16px;padding:22px 24px;display:grid;grid-template-columns:104px 1fr 300px;gap:26px;position:relative;overflow:hidden}
+.live::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--ember)}
+.live .cv{width:104px}
+.livehead{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--dusk)}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--ember);box-shadow:0 0 0 4px rgba(255,138,120,.22)}
+.live h3{font:600 26px/1.15 var(--disp);letter-spacing:-.015em;margin-top:8px}
+.live h3 span{color:var(--dusk);font-weight:500}
+.chbars{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:16px}
+.chbars i{height:6px;border-radius:3px;background:var(--raised);position:relative;overflow:hidden}
+.chbars i.d{background:var(--moon)}
+.chbars i.c::after{content:"";position:absolute;inset:0;width:46%;background:var(--ember)}
+.chlab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--dusk);margin-top:7px}
+.stream{margin-top:14px;font:italic 400 15.5px/1.55 var(--book);color:#CFCAD9;max-width:62ch}
+.stream::after{content:"";display:inline-block;width:2px;height:1.05em;background:var(--ember);vertical-align:-2px;margin-left:3px}
+.livestats{border-left:1px solid var(--line);padding-left:24px;display:flex;flex-direction:column}
+.num{font:600 40px/1 var(--disp);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.num small{font:500 14px var(--ui);color:var(--dusk);letter-spacing:0;margin-left:6px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13.5px;margin-top:14px}
+.kv dt{color:var(--dusk)} .kv dd{margin:0;text-align:right}
+.livestats .row{display:flex;gap:8px;margin-top:auto}
+
+.activity{margin-top:30px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.activity h4{grid-column:1/-1;font:600 14px/1 var(--ui);color:var(--moon);margin:0 0 -2px}
+.activity div{background:var(--desk);border-radius:12px;padding:14px 16px;font-size:13.5px;line-height:1.45;color:var(--dusk)}
+.activity div b{display:block;color:var(--moon);font-weight:600;margin-bottom:2px}
+.activity time{font:600 13px/1 var(--disp);color:var(--ember);display:block;margin-bottom:8px}
+.board{margin-top:28px;display:grid;grid-template-columns:repeat(8,1fr);gap:16px}
+.col h4{display:flex;align-items:center;gap:8px;font:600 14px/1 var(--ui);color:var(--moon);padding-bottom:12px;margin-bottom:14px;border-bottom:2px solid var(--line);position:relative}
+.col h4 em{font-style:normal;color:var(--dusk);font-weight:500;margin-left:auto}
+.col.now h4{border-bottom-color:var(--ember)}
+.col .cv,.col .tc{width:100%}
+.col h5{margin:12px 0 0;font:600 15px/1.2 var(--disp);letter-spacing:-.005em}
+.col>p{font-size:12.5px;color:var(--dusk);margin-top:4px;line-height:1.35}
+.col>p b{color:var(--moon);font-weight:600}
+.tc{aspect-ratio:2/3;container-type:inline-size;border-radius:4px;background:repeating-linear-gradient(135deg,var(--desk) 0 6px,#2B2838 6px 12px);border:1px dashed #4A4560;display:flex;flex-direction:column;justify-content:flex-end;flex:none}
+.tc p{margin:0 10cqw 10cqw!important;font:600 12cqw/1.05 var(--disp)!important;color:var(--moon)!important}
+
+/* Blueprint */
+.bpapp{display:grid;grid-template-columns:68px 300px 1fr 336px;height:100%}
+.rail{background:var(--well);display:flex;flex-direction:column;align-items:center;padding:24px 0 18px;gap:6px}
+.rail .brand{padding:0 0 18px}
+.rail a{width:42px;height:42px;display:grid;place-items:center;border-radius:10px;color:var(--dusk)}
+.rail a.on{background:var(--raised);color:var(--ember)}
+.rail .me{margin-top:auto;width:34px;height:34px;border-radius:50%;background:var(--ember);color:var(--night);display:grid;place-items:center;font-size:12px;font-weight:700}
+.tree{background:var(--night);border-right:1px solid var(--line-2);padding:22px 14px 0;overflow:hidden}
+.tree .back{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--dusk);padding:0 8px 14px}
+.tree .back .i{width:15px;height:15px}
+.tree .lbl{padding:6px 8px 8px}
+.t-row{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;border-radius:8px;font-size:14px;line-height:1.3;color:var(--moon)}
+.t-row .n{font:600 14px/1.3 var(--disp);width:20px;flex:none;color:var(--dusk);font-variant-numeric:tabular-nums}
+.t-row.sel{background:var(--raised);box-shadow:inset 3px 0 0 var(--ember)}
+.t-row.sel .n{color:var(--ember)}
+.t-sub{margin:0 0 6px 38px;font-size:12.5px;line-height:1.35;color:var(--dusk)}
+.t-sub li{padding:2px 0 2px 10px;border-left:1px solid var(--line)}
+.t-matter{padding:6px 8px;font-size:13px;color:var(--dusk);display:flex;justify-content:space-between}
+.t-matter b{color:var(--moon);font-weight:600}
+
+.centre{padding:24px 36px 0;overflow:hidden}
+.pipe{display:flex;align-items:center;gap:0;font-size:12.5px;color:var(--dusk)}
+.pipe span{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.pipe span::before{content:"";width:8px;height:8px;border-radius:50%;border:1.5px solid #5D5772}
+.pipe span.d{color:var(--moon)}
+.pipe span.d::before{background:var(--moon);border-color:var(--moon)}
+.pipe span.c{color:var(--ember);font-weight:700}
+.pipe span.c::before{background:var(--ember);border-color:var(--ember);box-shadow:0 0 0 4px rgba(255,138,120,.2)}
+.pipe hr{flex:1;border:0;border-top:1px solid var(--line);margin:0 10px;min-width:12px}
+.tblock{margin-top:26px}
+.tblock h2{font:600 46px/1 var(--disp);letter-spacing:-.03em}
+.tblock .subt{font:italic 400 20px/1.3 var(--book);color:#CFCAD9;margin-top:8px}
+.tblock .by{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:14px;color:var(--dusk)}
+.tblock .by b{color:var(--moon);font-weight:600}
+.tblock .by .av{width:24px;height:24px;border-radius:50%;background:var(--ember);color:var(--night);display:grid;place-items:center;font-size:10px;font-weight:700}
+.pair{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-top:22px}
+.panel{background:var(--desk);border-radius:14px;padding:18px 20px}
+.panel h3{font:600 13px/1 var(--ui);color:var(--dusk);margin-bottom:10px}
+.prose{font:400 15.5px/1.6 var(--book);color:var(--moon)}
+.chap{margin-top:14px;background:var(--desk);border-radius:14px;padding:20px 22px;box-shadow:inset 0 0 0 1px rgba(255,138,120,.35)}
+.chap .hd{display:flex;align-items:baseline;gap:12px}
+.chap .hd .n{font:600 34px/1 var(--disp);color:var(--ember)}
+.chap .hd h3{font:600 22px/1.2 var(--disp);letter-spacing:-.01em}
+.chap .hd .tag{margin-left:auto;font-size:12.5px;color:var(--dusk)}
+.chap .prose{margin-top:10px;font-size:15px;color:#DCD7E5}
+.subs{margin-top:14px;display:grid;gap:0}
+.subs li{display:grid;grid-template-columns:1fr 160px 60px;align-items:center;gap:14px;font-size:14px;padding:8px 0;border-top:1px solid var(--line)}
+.subs li i{height:5px;border-radius:3px;background:var(--raised);position:relative}
+.subs li i b{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:#8E89A0}
+.subs li span{text-align:right;color:var(--dusk);font-variant-numeric:tabular-nums}
+
+.insp{background:var(--well);display:flex;flex-direction:column;height:900px}
+.iscroll{padding:24px 24px 0;overflow:hidden;flex:1}
+.insp section{padding:0 0 18px;margin-bottom:18px;border-bottom:1px solid var(--line-2)}
+.insp h3{font:600 13px/1 var(--ui);color:var(--dusk);margin-bottom:10px}
+.split{display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px;margin-top:12px}
+.split i:nth-child(1){flex:2400;background:#8E89A0}
+.split i:nth-child(2){flex:37800;background:var(--moon)}
+.split i:nth-child(3){flex:1800;background:#8E89A0}
+.legend{display:grid;grid-template-columns:1fr auto;gap:5px 10px;font-size:13px;margin-top:10px;color:var(--dusk)}
+.legend dd{margin:0;color:var(--moon);text-align:right;font-variant-numeric:tabular-nums}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{font-size:13px;background:var(--desk);border-radius:999px;padding:5px 11px;color:var(--moon)}
+.model{display:flex;align-items:center;gap:10px;background:var(--desk);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.model b{font-weight:700}
+.model small{display:block;color:var(--dusk);font-size:12.5px;margin-top:2px}
+.model .lg{width:28px;height:28px;border-radius:7px;background:var(--raised);display:grid;place-items:center;font:700 12px var(--disp);color:var(--ember)}
+.claim{display:flex;gap:10px;font-size:13.5px;line-height:1.45;color:var(--moon)}
+.claim .i{color:var(--ember);margin-top:1px}
+.ifoot{padding:16px 24px 22px;display:grid;gap:10px;border-top:1px solid var(--line-2)}
+.ifoot p{font-size:13px;color:var(--dusk)}
+.ifoot p b{color:var(--moon)}
+
+/* Tokens */
+.tokens{margin-top:8px;background:var(--night);border:1px solid #2C2938;border-radius:14px;padding:26px 30px;display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:28px}
+.tokens h2{font:600 13.5px/1 var(--ui);color:var(--dusk);margin-bottom:14px}
+.sw{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.sw div{font-size:12.5px;line-height:1.35;color:var(--dusk)}
+.sw i{display:block;height:56px;border-radius:8px;margin-bottom:8px;border:1px solid #3A3648}
+.sw b{display:block;font-weight:600;color:var(--moon)}
+.tk p{font-size:14px;line-height:1.5;margin-bottom:8px}
+.tk .ff1{font:600 23px/1.2 var(--disp);letter-spacing:-.01em}
+.tk .ff2{font:600 17px/1.2 var(--ui)}
+.tk .ff3{font:italic 400 17px/1.2 var(--book)}
+.feel{grid-column:1/-1;border-top:1px solid var(--line-2);padding-top:16px;font:500 19px/1.4 var(--disp)}
+.contrast{font-size:13px;color:var(--dusk);margin-top:10px;line-height:1.5}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-lib" viewBox="0 0 24 24"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16.5 5.2l3.8-1 3.7 15.5-3.8.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+<symbol id="i-prof" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.5 20c.6-3.6 3.2-5.6 6.5-5.6s5.9 2 6.5 5.6M15.5 5.2a3.5 3.5 0 0 1 0 6.6M18 14.8c2 .7 3.2 2.5 3.5 5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="i-new" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v7M8.5 13.5h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="i-set" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-redo" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.6h-4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<header class="board-head">
+  <h1>Direction C: Night Desk</h1>
+  <p>A dark, focused studio for long sessions. Soft violet-grey surfaces, one warm ember accent taken from the coral in your older palette, and live writing at the centre of the library.</p>
+</header>
+
+<!-- SCREEN 1: LIBRARY -->
+<section class="frame" aria-label="Library screen">
+<div class="app">
+  <aside class="side">
+    <div class="brand"><svg viewBox="0 0 22 22" aria-hidden="true"><rect x="2" y="2" width="18" height="4" rx="2" fill="#FF8A78"/><rect x="2" y="9" width="18" height="4" rx="2" fill="#ECE8F2"/><rect x="2" y="16" width="12" height="4" rx="2" fill="#A8A3B6"/></svg>volume</div>
+    <nav class="nav" aria-label="Main">
+      <a class="on" href="#"><svg class="i"><use href="#i-lib"/></svg>Library</a>
+      <a href="#"><svg class="i"><use href="#i-prof"/></svg>Profiles</a>
+      <a href="#"><svg class="i"><use href="#i-new"/></svg>New book</a>
+      <a href="#"><svg class="i"><use href="#i-set"/></svg>Settings</a>
+    </nav>
+    <p class="lbl">Pen names</p>
+    <div class="pens" role="radiogroup" aria-label="Pen name">
+      <button class="on" type="button" role="radio" aria-checked="true"><span class="av">All</span>All pen names<em>8</em></button>
+      <button type="button" role="radio" aria-checked="false"><span class="av">HM</span>Harni Muharami<em>5</em></button>
+      <button type="button" role="radio" aria-checked="false"><span class="av">AF</span>Ada Fenwick<em>2</em></button>
+      <button type="button" role="radio" aria-checked="false"><span class="av">TR</span>Tobi Rhymes<em>1</em></button>
+    </div>
+    <div class="side-foot">
+      <p>OpenRouter connected</p>
+      <p>October spend <b>$4.82</b> of $40</p>
+      <div class="meter"><i></i></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <h2>Library</h2><span class="sub">8 books, 1 writing now</span>
+      <span class="spacer"></span>
+      <div class="search"><svg class="i"><use href="#i-search"/></svg>Search the library</div>
+      <button class="btn btn-primary" type="button"><svg class="i"><use href="#i-plus"/></svg>New book</button>
+    </div>
+
+    <section class="live" aria-label="Writing now">
+      <div class="cv cv-hand" role="img" aria-label="Cover of Handover"><p class="cv-t">HAND<br>OVER</p><span class="cv-bar"></span><p class="cv-s">Clear Communication for Busy Wards</p><p class="cv-a">Harni Muharami</p></div>
+      <div>
+        <p class="livehead"><span class="pulse"></span>Writing now, Harni Muharami</p>
+        <h3>Handover <span>Chapter 6, The Night-to-Day Handover</span></h3>
+        <div class="chbars" aria-hidden="true"><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="c"></i><i></i><i></i><i></i><i></i></div>
+        <div class="chlab"><span>5 chapters written and checked</span><span>Chapter 6 of 10</span></div>
+        <p class="stream">So the handover begins not with the patient list but with a breath. I learnt that on a respiratory ward at seven in the morning, when the night team had nothing left to give and</p>
+      </div>
+      <div class="livestats">
+        <p class="num">21,340<small>of 38,000 words</small></p>
+        <dl class="kv"><dt>Time left</dt><dd>About 40 minutes</dd><dt>Model</dt><dd>anthropic/claude-sonnet</dd><dt>Cost so far</dt><dd>$1.92 of $15.00</dd></dl>
+        <div class="row"><button class="btn btn-ghost btn-sm" type="button">Pause</button><button class="btn btn-ghost btn-sm" type="button">Open live view</button></div>
+      </div>
+    </section>
+
+    <div class="board" aria-label="Books by stage">
+      <div class="col"><h4>Idea<em>1</em></h4><div class="tc"><p>Milo and the Moon Kite</p></div><h5>Milo and the Moon Kite</h5><p>Tobi Rhymes<br>Picture book, ages 3 to 6</p></div>
+      <div class="col"><h4>Research<em>1</em></h4><div class="tc"><p>Night Shift Survival</p></div><h5>Night Shift Survival</h5><p>Harni Muharami<br><b>18</b> sources so far</p></div>
+      <div class="col"><h4>Blueprint<em>1</em></h4><div class="cv cv-calm" role="img" aria-label="Cover of The Calm Ward"><p class="cv-t">The Calm<br>Ward</p><p class="cv-s">De-escalation and Compassion in NHS Practice</p><svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="#86C3BE" stroke-width=".9"><path d="M0 6 Q6.25 0 12.5 6 T25 6 T37.5 6 T50 6 T62.5 6 T75 6 T87.5 6 T100 6" opacity=".9"/><path d="M0 15 Q6.25 11 12.5 15 T25 15 T37.5 15 T50 15 T62.5 15 T75 15 T87.5 15 T100 15" opacity=".75"/><path d="M0 23 Q6.25 20.6 12.5 23 T25 23 T37.5 23 T50 23 T62.5 23 T75 23 T87.5 23 T100 23" opacity=".6"/><path d="M0 30 Q6.25 29 12.5 30 T25 30 T37.5 30 T50 30 T62.5 30 T75 30 T87.5 30 T100 30" opacity=".5"/><path d="M0 36.5 H100" opacity=".4"/></g></svg><p class="cv-a">Harni Muharami</p></div><h5>The Calm Ward</h5><p>Harni Muharami<br>Ready to approve</p></div>
+      <div class="col now"><h4>Writing<em>1</em></h4><div class="cv cv-hand" role="img" aria-label="Cover of Handover"><p class="cv-t">HAND<br>OVER</p><span class="cv-bar"></span><p class="cv-s">Clear Communication for Busy Wards</p><p class="cv-a">Harni Muharami</p></div><h5>Handover</h5><p>Harni Muharami<br><b>21,340</b> words</p></div>
+      <div class="col"><h4>Editing<em>1</em></h4><div class="cv cv-charge" role="img" aria-label="Cover of The New Charge Nurse"><span class="cv-dot"></span><span class="cv-dot2"></span><p class="cv-t">The New<br>Charge<br>Nurse</p><p class="cv-s">Your First Year Leading a Shift</p><p class="cv-a">Harni Muharami</p></div><h5>The New Charge Nurse</h5><p>Harni Muharami<br><b>44,120</b> words</p></div>
+      <div class="col"><h4>Cover<em>1</em></h4><div class="cv cv-speak" role="img" aria-label="Cover of Speaking Up Safely"><p class="cv-t">Speaking<br>Up Safely</p><svg viewBox="0 0 44 40" aria-hidden="true"><path d="M4 4 H40 V28 H18 L9 36 V28 H4 Z" fill="none" stroke="#E58FB0" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 13 H32 M12 19 H26" stroke="#E58FB0" stroke-width="2.2" stroke-linecap="round"/></svg><p class="cv-s">A Nurse's Guide to Raising Concerns</p><p class="cv-a">Harni Muharami</p></div><h5>Speaking Up Safely</h5><p>Harni Muharami<br><b>36,800</b> words</p></div>
+      <div class="col"><h4>Export<em>1</em></h4><div class="cv cv-sour" role="img" aria-label="Cover of Sourdough on a Weeknight"><svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="26" fill="#C98B4A"/><circle cx="30" cy="30" r="26" fill="none" stroke="#E3B27A" stroke-width="1.2" opacity=".6"/><path d="M14 22 Q30 14 46 22 M12 31 Q30 23 48 31 M15 40 Q30 33 45 40" fill="none" stroke="#3A2A1F" stroke-width="2.4" stroke-linecap="round"/></svg><p class="cv-t">Sourdough on a Weeknight</p><p class="cv-a">Ada Fenwick</p></div><h5>Sourdough on a Weeknight</h5><p>Ada Fenwick<br>2 preflight warnings</p></div>
+      <div class="col"><h4>Published<em>1</em></h4><div class="cv cv-herb" role="img" aria-label="Cover of Windowsill Herbs"><svg viewBox="0 0 40 68" aria-hidden="true"><path d="M20 66 V6" stroke="#DCE6C8" stroke-width="1.6" fill="none"/><g fill="#DCE6C8"><path d="M20 14 C12 12 8 6 9 2 C15 3 19 8 20 14Z"/><path d="M20 14 C28 12 32 6 31 2 C25 3 21 8 20 14Z"/><path d="M20 30 C10 28 5 21 6 16 C14 17 19 23 20 30Z"/><path d="M20 30 C30 28 35 21 34 16 C26 17 21 23 20 30Z"/><path d="M20 47 C9 45 3 37 4 31 C13 32 19 39 20 47Z"/><path d="M20 47 C31 45 37 37 36 31 C27 32 21 39 20 47Z"/></g></svg><p class="cv-t">Windowsill<br>Herbs</p><p class="cv-a">Ada Fenwick</p></div><h5>Windowsill Herbs</h5><p>Ada Fenwick<br><b>24,600</b> words</p></div>
+    </div>
+    <section class="activity" aria-label="Today">
+      <h4>Today</h4>
+      <div><time>14:31</time><b>Handover, chapter 5 passed checks</b>No em dashes, no US spellings, 1 claim sent to verify.</div>
+      <div><time>14:12</time><b>The Calm Ward, blueprint version 3</b>Chapter 4 regenerated with a stronger opening scene.</div>
+      <div><time>13:50</time><b>Night Shift Survival, research</b>18 cited sources found. 6 still to read.</div>
+      <div><time>09:05</time><b>Sourdough on a Weeknight, preflight</b>2 warnings: spine text and one low-resolution image.</div>
+    </section>
+  </main>
+</div>
+</section>
+<p class="cap">Screen 1. Library arranged along the pipeline, with the live writing job on top, 1440 by 900</p>
+
+<!-- SCREEN 2: BLUEPRINT -->
+<section class="frame" aria-label="Blueprint screen">
+<div class="bpapp">
+  <nav class="rail" aria-label="Main">
+    <div class="brand"><svg viewBox="0 0 22 22" aria-hidden="true"><rect x="2" y="2" width="18" height="4" rx="2" fill="#FF8A78"/><rect x="2" y="9" width="18" height="4" rx="2" fill="#ECE8F2"/><rect x="2" y="16" width="12" height="4" rx="2" fill="#A8A3B6"/></svg></div>
+    <a class="on" href="#" aria-label="Library"><svg class="i"><use href="#i-lib"/></svg></a>
+    <a href="#" aria-label="Profiles"><svg class="i"><use href="#i-prof"/></svg></a>
+    <a href="#" aria-label="New book"><svg class="i"><use href="#i-new"/></svg></a>
+    <a href="#" aria-label="Settings"><svg class="i"><use href="#i-set"/></svg></a>
+    <span class="me" title="Pen name: Harni Muharami">HM</span>
+  </nav>
+
+  <aside class="tree" aria-label="Contents">
+    <p class="back"><svg class="i"><use href="#i-back"/></svg>Library</p>
+    <p class="lbl">Contents</p>
+    <p class="t-matter"><b>Front matter</b>4 parts</p>
+    <div class="t-row"><span class="n">1</span>The Reality Of Risk In Modern Healthcare</div>
+    <div class="t-row"><span class="n">2</span>The Psychology Of Aggression And Distress</div>
+    <div class="t-row"><span class="n">3</span>Safe By Design: Environmental Factors</div>
+    <ul class="t-sub"><li>Optimising Ward Layout And Sightlines</li><li>Reducing Sensory Overload In Clinical Areas</li><li>Security Measures That Maintain Dignity</li></ul>
+    <div class="t-row sel"><span class="n">4</span>The Art Of Verbal De-escalation</div>
+    <ul class="t-sub"><li>Body Language And Non-Verbal Cues</li><li>The Talk Down Approach</li><li>Knowing When To Step Back</li><li>Communication Barriers And Interpreters</li></ul>
+    <div class="t-row"><span class="n">5</span>Addressing Horizontal Violence And Incivility</div>
+    <div class="t-row"><span class="n">6</span>Cultivating Psychological Safety</div>
+    <div class="t-row"><span class="n">7</span>Dynamic Risk Assessment In Practice</div>
+    <div class="t-row"><span class="n">8</span>Managing Acute Behavioural Disturbances</div>
+    <div class="t-row"><span class="n">9</span>Post-Incident Support And Learning</div>
+    <div class="t-row"><span class="n">10</span>Leadership And Systemic Change</div>
+    <p class="t-matter"><b>Back matter</b>4 parts</p>
+  </aside>
+
+  <main class="centre">
+    <div class="pipe" aria-label="Book stages"><span class="d">Idea</span><hr><span class="d">Research</span><hr><span class="c">Blueprint</span><hr><span>Writing</span><hr><span>Editing</span><hr><span>Cover</span><hr><span>Export</span><hr><span>Published</span></div>
+    <div class="tblock">
+      <h2>The Calm Ward</h2>
+      <p class="subt">De-escalation and Compassion in NHS Practice</p>
+      <p class="by"><span class="av">HM</span><b>Harni Muharami</b> blueprint version 3, today at 14:12</p>
+    </div>
+    <div class="pair">
+      <div class="panel"><h3>Summary</h3><p class="prose">Every shift on a busy ward holds moments that could tip into conflict: a frightened relative, a patient in pain, a colleague at the end of a long night. From years on wards and in the emergency department, I show how to read distress early, talk people down with dignity and learn from every incident without blame.</p></div>
+      <div class="panel"><h3>Target audience</h3><p class="prose">Ward nurses, healthcare assistants and student nurses in NHS settings, and the ward managers, matrons and educators who shape safer teams.</p></div>
+    </div>
+    <section class="chap" aria-label="Selected chapter">
+      <div class="hd"><span class="n">4</span><h3>The Art Of Verbal De-escalation</h3><span class="tag">Opens with a scene</span></div>
+      <p class="prose">A son at the nurses' station at three in the morning, voice rising, demanding a doctor. This chapter slows that moment down: what the body says before the words do, how the talk down approach works in practice, when stepping back is the safest choice, and how to stay calm through an interpreter.</p>
+      <ol class="subs">
+        <li>Body Language And Non-Verbal Cues<i><b style="width:58%"></b></i><span>1,000</span></li>
+        <li>The Talk Down Approach<i><b style="width:70%"></b></i><span>1,200</span></li>
+        <li>Knowing When To Step Back<i><b style="width:52%"></b></i><span>900</span></li>
+        <li>Communication Barriers And Interpreters<i><b style="width:52%"></b></i><span>900</span></li>
+      </ol>
+    </section>
+  </main>
+
+  <aside class="insp" aria-label="Blueprint details">
+    <div class="iscroll">
+      <section>
+        <h3>Word targets</h3>
+        <p class="num" style="font-size:36px">42,000<small>words</small></p>
+        <div class="split" aria-hidden="true"><i></i><i></i><i></i></div>
+        <dl class="legend"><dt>Front matter</dt><dd>2,400</dd><dt>10 chapters, 3,600 to 4,400 each</dt><dd>37,800</dd><dt>Back matter</dt><dd>1,800</dd></dl>
+      </section>
+      <section>
+        <h3>Tone notes</h3>
+        <div class="tags"><span>First person</span><span>Warm and steady</span><span>British English</span><span>NHS terms explained once</span><span>Illustrative stories only</span><span>No lists in chapters</span></div>
+      </section>
+      <section>
+        <h3>Model</h3>
+        <div class="model"><span class="lg">A</span><div><b>anthropic/claude-sonnet</b><small>via OpenRouter, from the profile settings</small></div></div>
+      </section>
+      <section>
+        <h3>Cost so far</h3>
+        <p class="num" style="font-size:36px">$0.46<small>of $12.00 budget</small></p>
+        <dl class="legend"><dt>Research</dt><dd>$0.31</dd><dt>Titles</dt><dd>$0.04</dd><dt>Blueprint, 3 versions</dt><dd>$0.11</dd></dl>
+      </section>
+      <div class="claim"><svg class="i"><use href="#i-flag"/></svg><p>3 clinical statements to verify in chapters 8 and 9 before export.</p></div>
+    </div>
+    <div class="ifoot">
+      <p>Selected part: <b>Chapter 4</b></p>
+      <button class="btn btn-ghost" type="button"><svg class="i"><use href="#i-redo"/></svg>Regenerate part</button>
+      <button class="btn btn-primary" type="button"><svg class="i"><use href="#i-check"/></svg>Approve blueprint</button>
+    </div>
+  </aside>
+</div>
+</section>
+<p class="cap">Screen 2. Blueprint with contents, chapter 4 in focus and inspector, 1440 by 900</p>
+
+<footer class="tokens" aria-label="Design tokens">
+  <div>
+    <h2>Colour</h2>
+    <div class="sw">
+      <div><i style="background:#17151F"></i><b>Well</b>#17151F<br>Rails, inspector</div>
+      <div><i style="background:#1D1B26"></i><b>Night</b>#1D1B26<br>Workspace</div>
+      <div><i style="background:#272433"></i><b>Desk</b>#272433<br>Panels</div>
+      <div><i style="background:#ECE8F2"></i><b>Moonlight</b>#ECE8F2<br>Text</div>
+      <div><i style="background:#A8A3B6"></i><b>Dusk</b>#A8A3B6<br>Secondary text</div>
+      <div><i style="background:#FF8A78"></i><b>Ember</b>#FF8A78<br>Action, live, focus</div>
+    </div>
+    <p class="contrast">Contrast: Moonlight on Night 14.06:1, Dusk on Night 6.94:1, Night text on Ember button 7.40:1, Ember text on Raised #322E40 5.72:1.</p>
+  </div>
+  <div class="tk">
+    <h2>Type</h2>
+    <p class="ff1">Bricolage Grotesque</p><p>Titles, numbers, chapter numerals.</p>
+    <p class="ff2">Atkinson Hyperlegible Next</p><p>Interface text, built for legibility over long sessions.</p>
+    <p class="ff3">Literata</p><p>Book text: summaries and the live writing stream.</p>
+  </div>
+  <div class="tk">
+    <h2>Shape and depth</h2>
+    <p>Radius 8px on nav, 14px on panels, full pill on buttons and tags, 4px on covers.</p>
+    <p>Depth by surface steps (Well, Night, Desk), not shadows. Only covers cast a soft shadow.</p>
+  </div>
+  <p class="feel">Feel: a quiet desk at night with one warm lamp on, where you watch the book being written.</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "content": {
+    "ideaSummary": "A calm, practical companion for newly qualified nurses facing their first run of night shifts in UK hospitals.",
+    "audience": {
+      "who": "Newly qualified nurses in their first year",
+      "situation": "Starting nights on a busy ward with little sleep routine",
+      "alreadyTried": ["Blackout blinds", "Advice from colleagues"],
+      "wordsTheyUse": ["night shift fatigue", "first nights", "handover nerves"]
+    },
+    "pains": [
+      { "pain": "Broken sleep after a run of nights", "evidence": "S1" },
+      { "pain": "Feeling alone at 3am", "evidence": "inference" }
+    ],
+    "desiredOutcomes": ["Sleep that recovers after nights", "Confidence at handover"],
+    "angles": [
+      { "angle": "Night shifts as a skill you can learn", "whyThisAuthor": "Twenty years of nights on acute wards", "evidence": ["S1"] }
+    ],
+    "competitorThemes": [
+      { "theme": "General sleep hygiene", "gapOrComplaint": "Little on the ward itself", "evidence": ["S2"] }
+    ],
+    "keywordIdeas": [
+      { "phrase": "night shift guide for nurses", "basis": "reader wording" },
+      { "phrase": "newly qualified nurse book", "basis": "S2" }
+    ],
+    "cautions": ["Sleep and medication advice must stay general and point to a GP."],
+    "sourceNotes": [
+      { "id": "S1", "whatItSupports": "Sleep problems after night shifts" },
+      { "id": "S2", "whatItSupports": "What existing guides cover" }
+    ]
+  },
+  "annotations": [
+    { "url": "https://www.example.org/night-shift-sleep", "title": "Sleep after night shifts", "content": "Advice on recovering sleep after a run of nights." },
+    { "url": "https://www.example.org/new-nurse-guides", "title": "Guides for new nurses", "content": "What first-year nurses say they need." }
+  ]
+}

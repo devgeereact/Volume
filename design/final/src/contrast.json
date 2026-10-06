@@ -1,0 +1,906 @@
+{
+  "light": [
+    {
+      "fg": "ink",
+      "bg": "canvas",
+      "fgHex": "#1A2033",
+      "bgHex": "#F3F2EE",
+      "use": "Body text on paper",
+      "ratio": 14.44,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "sheet",
+      "fgHex": "#1A2033",
+      "bgHex": "#FFFEFB",
+      "use": "Body text on sheet",
+      "ratio": 16.04,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "sunken",
+      "fgHex": "#1A2033",
+      "bgHex": "#EBE9E3",
+      "use": "Text on sunken rows",
+      "ratio": 13.32,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "raised",
+      "fgHex": "#1A2033",
+      "bgHex": "#FFFFFF",
+      "use": "Text in menus and modal",
+      "ratio": 16.17,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-secondary",
+      "bg": "canvas",
+      "fgHex": "#4A5064",
+      "bgHex": "#F3F2EE",
+      "use": "Secondary on paper",
+      "ratio": 7.15,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-secondary",
+      "bg": "sheet",
+      "fgHex": "#4A5064",
+      "bgHex": "#FFFEFB",
+      "use": "Secondary on sheet",
+      "ratio": 7.94,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-secondary",
+      "bg": "sunken",
+      "fgHex": "#4A5064",
+      "bgHex": "#EBE9E3",
+      "use": "Secondary on sunken",
+      "ratio": 6.6,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-secondary",
+      "bg": "raised",
+      "fgHex": "#4A5064",
+      "bgHex": "#FFFFFF",
+      "use": "Secondary in menus",
+      "ratio": 8.01,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-tertiary",
+      "bg": "canvas",
+      "fgHex": "#5E6375",
+      "bgHex": "#F3F2EE",
+      "use": "Hints on paper",
+      "ratio": 5.33,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-tertiary",
+      "bg": "sheet",
+      "fgHex": "#5E6375",
+      "bgHex": "#FFFEFB",
+      "use": "Hints and placeholders on sheet",
+      "ratio": 5.92,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-tertiary",
+      "bg": "raised",
+      "fgHex": "#5E6375",
+      "bgHex": "#FFFFFF",
+      "use": "Hints in menus",
+      "ratio": 5.97,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-tertiary",
+      "bg": "sunken",
+      "fgHex": "#5E6375",
+      "bgHex": "#EBE9E3",
+      "use": "Hints on sunken",
+      "ratio": 4.92,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-on-spine",
+      "bg": "spine",
+      "fgHex": "#EEECF4",
+      "bgHex": "#1A2238",
+      "use": "Nav text",
+      "ratio": 13.49,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-on-spine",
+      "bg": "spine-raised",
+      "fgHex": "#EEECF4",
+      "bgHex": "#283252",
+      "use": "Selected nav item",
+      "ratio": 10.75,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-on-spine-muted",
+      "bg": "spine",
+      "fgHex": "#AFB6CD",
+      "bgHex": "#1A2238",
+      "use": "Nav secondary",
+      "ratio": 7.82,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-on-spine-muted",
+      "bg": "spine-raised",
+      "fgHex": "#AFB6CD",
+      "bgHex": "#283252",
+      "use": "Nav secondary on selected",
+      "ratio": 6.23,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "on-accent",
+      "bg": "accent",
+      "fgHex": "#1A2238",
+      "bgHex": "#EBB241",
+      "use": "Primary button label",
+      "ratio": 8.25,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "on-accent",
+      "bg": "accent-hover",
+      "fgHex": "#1A2238",
+      "bgHex": "#F2C35F",
+      "use": "Primary button hover",
+      "ratio": 9.59,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "on-accent",
+      "bg": "accent-pressed",
+      "fgHex": "#1A2238",
+      "bgHex": "#D9A030",
+      "use": "Primary button pressed",
+      "ratio": 6.78,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "accent-text",
+      "bg": "canvas",
+      "fgHex": "#7F5B0B",
+      "bgHex": "#F3F2EE",
+      "use": "Live label on paper",
+      "ratio": 5.51,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "accent-text",
+      "bg": "sheet",
+      "fgHex": "#7F5B0B",
+      "bgHex": "#FFFEFB",
+      "use": "Live label on sheet",
+      "ratio": 6.12,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "accent-text",
+      "bg": "accent-wash",
+      "fgHex": "#7F5B0B",
+      "bgHex": "#FAF0D7",
+      "use": "Needs attention note",
+      "ratio": 5.44,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "accent-wash",
+      "fgHex": "#1A2033",
+      "bgHex": "#FAF0D7",
+      "use": "Body text in live panel",
+      "ratio": 14.26,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-secondary",
+      "bg": "accent-wash",
+      "fgHex": "#4A5064",
+      "bgHex": "#FAF0D7",
+      "use": "Secondary in live panel",
+      "ratio": 7.06,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "select",
+      "bg": "sheet",
+      "fgHex": "#2747B8",
+      "bgHex": "#FFFEFB",
+      "use": "Link and selection text",
+      "ratio": 7.77,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "select",
+      "bg": "canvas",
+      "fgHex": "#2747B8",
+      "bgHex": "#F3F2EE",
+      "use": "Link on paper",
+      "ratio": 7,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "select",
+      "bg": "select-wash",
+      "fgHex": "#2747B8",
+      "bgHex": "#E8ECFA",
+      "use": "Selected item label",
+      "ratio": 6.65,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "select-wash",
+      "fgHex": "#1A2033",
+      "bgHex": "#E8ECFA",
+      "use": "Body text on selected row",
+      "ratio": 13.72,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "claim",
+      "bg": "sheet",
+      "fgHex": "#B42318",
+      "bgHex": "#FFFEFB",
+      "use": "Claim and error text",
+      "ratio": 6.52,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "claim",
+      "bg": "canvas",
+      "fgHex": "#B42318",
+      "bgHex": "#F3F2EE",
+      "use": "Error on paper",
+      "ratio": 5.87,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "claim",
+      "bg": "claim-wash",
+      "fgHex": "#B42318",
+      "bgHex": "#FBEAE7",
+      "use": "Claim note",
+      "ratio": 5.64,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "claim-wash",
+      "fgHex": "#1A2033",
+      "bgHex": "#FBEAE7",
+      "use": "Body text in claim note",
+      "ratio": 13.88,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "on-claim",
+      "bg": "claim",
+      "fgHex": "#FFFFFF",
+      "bgHex": "#B42318",
+      "use": "Destructive button label",
+      "ratio": 6.57,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "success",
+      "bg": "sheet",
+      "fgHex": "#2C6A4B",
+      "bgHex": "#FFFEFB",
+      "use": "Check passed text",
+      "ratio": 6.37,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "success",
+      "bg": "success-wash",
+      "fgHex": "#2C6A4B",
+      "bgHex": "#E4F1E9",
+      "use": "Success toast text",
+      "ratio": 5.52,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "success-wash",
+      "fgHex": "#1A2033",
+      "bgHex": "#E4F1E9",
+      "use": "Body text in success toast",
+      "ratio": 13.91,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-on-spine",
+      "bg": "spine",
+      "fgHex": "#EEECF4",
+      "bgHex": "#1A2238",
+      "use": "Tooltip text",
+      "ratio": 13.49,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-disabled",
+      "bg": "sheet",
+      "fgHex": "#8E909B",
+      "bgHex": "#FFFEFB",
+      "use": "Disabled label (exempt, info)",
+      "ratio": 3.15,
+      "min": 0,
+      "pass": "info"
+    },
+    {
+      "fg": "border-strong",
+      "bg": "sheet",
+      "fgHex": "#8A877C",
+      "bgHex": "#FFFEFB",
+      "use": "Input boundary (non-text)",
+      "ratio": 3.57,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "border-strong",
+      "bg": "canvas",
+      "fgHex": "#8A877C",
+      "bgHex": "#F3F2EE",
+      "use": "Control boundary on paper (non-text)",
+      "ratio": 3.21,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "select",
+      "bg": "canvas",
+      "fgHex": "#2747B8",
+      "bgHex": "#F3F2EE",
+      "use": "Focus ring on paper (non-text)",
+      "ratio": 7,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "select",
+      "bg": "sheet",
+      "fgHex": "#2747B8",
+      "bgHex": "#FFFEFB",
+      "use": "Focus ring on sheet (non-text)",
+      "ratio": 7.77,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "progress",
+      "bg": "sunken",
+      "fgHex": "#1A2238",
+      "bgHex": "#EBE9E3",
+      "use": "Progress fill vs track (non-text)",
+      "ratio": 13.01,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "progress",
+      "bg": "sheet",
+      "fgHex": "#1A2238",
+      "bgHex": "#FFFEFB",
+      "use": "Progress fill vs sheet (non-text)",
+      "ratio": 15.66,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "accent",
+      "bg": "spine",
+      "fgHex": "#EBB241",
+      "bgHex": "#1A2238",
+      "use": "Live dot on spine (non-text)",
+      "ratio": 8.25,
+      "min": 3,
+      "pass": "PASS"
+    }
+  ],
+  "dark": [
+    {
+      "fg": "ink",
+      "bg": "canvas",
+      "fgHex": "#EDEBF4",
+      "bgHex": "#16172A",
+      "use": "Body text on paper",
+      "ratio": 14.95,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "sheet",
+      "fgHex": "#EDEBF4",
+      "bgHex": "#1E2033",
+      "use": "Body text on sheet",
+      "ratio": 13.58,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "sunken",
+      "fgHex": "#EDEBF4",
+      "bgHex": "#121322",
+      "use": "Text on sunken rows",
+      "ratio": 15.58,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "raised",
+      "fgHex": "#EDEBF4",
+      "bgHex": "#282B41",
+      "use": "Text in menus and modal",
+      "ratio": 11.77,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-secondary",
+      "bg": "canvas",
+      "fgHex": "#B3B5CA",
+      "bgHex": "#16172A",
+      "use": "Secondary on paper",
+      "ratio": 8.72,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-secondary",
+      "bg": "sheet",
+      "fgHex": "#B3B5CA",
+      "bgHex": "#1E2033",
+      "use": "Secondary on sheet",
+      "ratio": 7.93,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-secondary",
+      "bg": "sunken",
+      "fgHex": "#B3B5CA",
+      "bgHex": "#121322",
+      "use": "Secondary on sunken",
+      "ratio": 9.09,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-secondary",
+      "bg": "raised",
+      "fgHex": "#B3B5CA",
+      "bgHex": "#282B41",
+      "use": "Secondary in menus",
+      "ratio": 6.86,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-tertiary",
+      "bg": "canvas",
+      "fgHex": "#9599B2",
+      "bgHex": "#16172A",
+      "use": "Hints on paper",
+      "ratio": 6.28,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-tertiary",
+      "bg": "sheet",
+      "fgHex": "#9599B2",
+      "bgHex": "#1E2033",
+      "use": "Hints and placeholders on sheet",
+      "ratio": 5.71,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-tertiary",
+      "bg": "raised",
+      "fgHex": "#9599B2",
+      "bgHex": "#282B41",
+      "use": "Hints in menus",
+      "ratio": 4.94,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-tertiary",
+      "bg": "sunken",
+      "fgHex": "#9599B2",
+      "bgHex": "#121322",
+      "use": "Hints on sunken",
+      "ratio": 6.55,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-on-spine",
+      "bg": "spine",
+      "fgHex": "#EDEBF4",
+      "bgHex": "#10111F",
+      "use": "Nav text",
+      "ratio": 15.86,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-on-spine",
+      "bg": "spine-raised",
+      "fgHex": "#EDEBF4",
+      "bgHex": "#23263A",
+      "use": "Selected nav item",
+      "ratio": 12.62,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-on-spine-muted",
+      "bg": "spine",
+      "fgHex": "#A9ACC3",
+      "bgHex": "#10111F",
+      "use": "Nav secondary",
+      "ratio": 8.36,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-on-spine-muted",
+      "bg": "spine-raised",
+      "fgHex": "#A9ACC3",
+      "bgHex": "#23263A",
+      "use": "Nav secondary on selected",
+      "ratio": 6.65,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "on-accent",
+      "bg": "accent",
+      "fgHex": "#16172A",
+      "bgHex": "#EBB241",
+      "use": "Primary button label",
+      "ratio": 9.22,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "on-accent",
+      "bg": "accent-hover",
+      "fgHex": "#16172A",
+      "bgHex": "#F2C35F",
+      "use": "Primary button hover",
+      "ratio": 10.71,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "on-accent",
+      "bg": "accent-pressed",
+      "fgHex": "#16172A",
+      "bgHex": "#D9A030",
+      "use": "Primary button pressed",
+      "ratio": 7.58,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "accent-text",
+      "bg": "canvas",
+      "fgHex": "#F0C362",
+      "bgHex": "#16172A",
+      "use": "Live label on paper",
+      "ratio": 10.66,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "accent-text",
+      "bg": "sheet",
+      "fgHex": "#F0C362",
+      "bgHex": "#1E2033",
+      "use": "Live label on sheet",
+      "ratio": 9.69,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "accent-text",
+      "bg": "accent-wash",
+      "fgHex": "#F0C362",
+      "bgHex": "#2C2A2E",
+      "use": "Needs attention note",
+      "ratio": 8.59,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "accent-wash",
+      "fgHex": "#EDEBF4",
+      "bgHex": "#2C2A2E",
+      "use": "Body text in live panel",
+      "ratio": 12.04,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-secondary",
+      "bg": "accent-wash",
+      "fgHex": "#B3B5CA",
+      "bgHex": "#2C2A2E",
+      "use": "Secondary in live panel",
+      "ratio": 7.02,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "select",
+      "bg": "sheet",
+      "fgHex": "#9EB2FF",
+      "bgHex": "#1E2033",
+      "use": "Link and selection text",
+      "ratio": 7.84,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "select",
+      "bg": "canvas",
+      "fgHex": "#9EB2FF",
+      "bgHex": "#16172A",
+      "use": "Link on paper",
+      "ratio": 8.63,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "select",
+      "bg": "select-wash",
+      "fgHex": "#9EB2FF",
+      "bgHex": "#252C4E",
+      "use": "Selected item label",
+      "ratio": 6.63,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "select-wash",
+      "fgHex": "#EDEBF4",
+      "bgHex": "#252C4E",
+      "use": "Body text on selected row",
+      "ratio": 11.49,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "claim",
+      "bg": "sheet",
+      "fgHex": "#FF9D91",
+      "bgHex": "#1E2033",
+      "use": "Claim and error text",
+      "ratio": 8.01,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "claim",
+      "bg": "canvas",
+      "fgHex": "#FF9D91",
+      "bgHex": "#16172A",
+      "use": "Error on paper",
+      "ratio": 8.81,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "claim",
+      "bg": "claim-wash",
+      "fgHex": "#FF9D91",
+      "bgHex": "#35202E",
+      "use": "Claim note",
+      "ratio": 7.5,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "claim-wash",
+      "fgHex": "#EDEBF4",
+      "bgHex": "#35202E",
+      "use": "Body text in claim note",
+      "ratio": 12.73,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "on-claim",
+      "bg": "claim",
+      "fgHex": "#16172A",
+      "bgHex": "#FF9D91",
+      "use": "Destructive button label",
+      "ratio": 8.81,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "success",
+      "bg": "sheet",
+      "fgHex": "#86D2A8",
+      "bgHex": "#1E2033",
+      "use": "Check passed text",
+      "ratio": 9.01,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "success",
+      "bg": "success-wash",
+      "fgHex": "#86D2A8",
+      "bgHex": "#1B2F2E",
+      "use": "Success toast text",
+      "ratio": 7.9,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink",
+      "bg": "success-wash",
+      "fgHex": "#EDEBF4",
+      "bgHex": "#1B2F2E",
+      "use": "Body text in success toast",
+      "ratio": 11.92,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-on-spine",
+      "bg": "spine",
+      "fgHex": "#EDEBF4",
+      "bgHex": "#10111F",
+      "use": "Tooltip text",
+      "ratio": 15.86,
+      "min": 4.5,
+      "pass": "PASS"
+    },
+    {
+      "fg": "ink-disabled",
+      "bg": "sheet",
+      "fgHex": "#6A6E88",
+      "bgHex": "#1E2033",
+      "use": "Disabled label (exempt, info)",
+      "ratio": 3.21,
+      "min": 0,
+      "pass": "info"
+    },
+    {
+      "fg": "border-strong",
+      "bg": "sheet",
+      "fgHex": "#6D7190",
+      "bgHex": "#1E2033",
+      "use": "Input boundary (non-text)",
+      "ratio": 3.37,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "border-strong",
+      "bg": "canvas",
+      "fgHex": "#6D7190",
+      "bgHex": "#16172A",
+      "use": "Control boundary on paper (non-text)",
+      "ratio": 3.71,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "select",
+      "bg": "canvas",
+      "fgHex": "#9EB2FF",
+      "bgHex": "#16172A",
+      "use": "Focus ring on paper (non-text)",
+      "ratio": 8.63,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "select",
+      "bg": "sheet",
+      "fgHex": "#9EB2FF",
+      "bgHex": "#1E2033",
+      "use": "Focus ring on sheet (non-text)",
+      "ratio": 7.84,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "progress",
+      "bg": "sunken",
+      "fgHex": "#EBB241",
+      "bgHex": "#121322",
+      "use": "Progress fill vs track (non-text)",
+      "ratio": 9.61,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "progress",
+      "bg": "sheet",
+      "fgHex": "#EBB241",
+      "bgHex": "#1E2033",
+      "use": "Progress fill vs sheet (non-text)",
+      "ratio": 8.38,
+      "min": 3,
+      "pass": "PASS"
+    },
+    {
+      "fg": "accent",
+      "bg": "spine",
+      "fgHex": "#EBB241",
+      "bgHex": "#10111F",
+      "use": "Live dot on spine (non-text)",
+      "ratio": 9.78,
+      "min": 3,
+      "pass": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "id": "jr-kade",
+  "name": "J. R. Kade",
+  "initials": "JK",
+  "realPerson": false,
+  "legalName": null,
+  "location": null,
+  "imprint": "Night Ledger Books",
+  "bio": "J. R. Kade writes crime fiction, psychological suspense and cosy mysteries with one rule: every twist must be fair. The clues are always on the page, hidden in plain sight, so the reveal makes readers want to turn back to chapter one and catch what they missed.\n\nKade's thrillers are tight and fast, with short chapters, a clock that never stops ticking and ordinary people pushed to the edge in very British places: a canal town in winter, a quiet commuter village, a seaside hotel out of season. The cosy mysteries trade the dread for warmth, with amateur sleuths, nosy neighbours and murders that happen politely off the page.\n\nWhen not plotting, Kade keeps a notebook of locks, timetables and alibis, and a long list of reasons why the obvious suspect never did it. J. R. Kade is a pen name.",
+  "shortBio": "J. R. Kade writes fast, fair-play crime, suspense and cosy mysteries set in very British places, where every clue is on the page.",
+  "credentials": [],
+  "links": [],
+  "genres": [
+    "Crime",
+    "Psychological suspense",
+    "Cosy mystery"
+  ],
+  "bookTypes": [
+    "thriller",
+    "mystery-crime",
+    "cosy-mystery"
+  ],
+  "voice": {
+    "tone": [
+      "tense",
+      "precise",
+      "dry",
+      "humane"
+    ],
+    "pov": "Close third person, past tense; thrillers may switch between the protagonist and the antagonist in labelled chapters",
+    "rhythm": "Short chapters of 1,200 to 2,000 words. Short paragraphs under pressure, longer ones in quiet moments. Every chapter ends on a turn.",
+    "vocabulary": "Plain, concrete British English. Places, times and objects named exactly so clues can be tracked.",
+    "readingLevel": "General adult",
+    "dialogueStyle": "Clipped and oblique. Characters lie, dodge and interrupt; what is not said matters.",
+    "locale": "en-GB",
+    "planning": {
+      "twistPlan": true,
+      "clueLedger": true,
+      "note": "The blueprint records what the reader believes, what is true and the chapter where it flips. Every clue and red herring is logged with its chapter so the solution is fair."
+    },
+    "bannedPhrases": [
+      "little did they know",
+      "it was all a dream",
+      "a chill ran down",
+      "blood ran cold",
+      "the killer was the twin",
+      "suddenly"
+    ],
+    "sampleParagraph": "The lock keeper's cottage had been empty for six years, which was why Nina noticed the light. One window, upstairs, the left one. It went off as she watched. She stood on the towpath with the cold coming up through her boots and told herself the obvious things. A torch. A squatter. A trick of the water. Then she saw the gate. It had been chained shut every morning she had walked this way, and this morning the chain lay coiled on the path, neatly, as if someone had wanted it found. Nina had been a police officer for nine years before she stopped. She knew what neat meant. Neat meant time. Whoever had opened the gate had not been in a hurry, and that frightened her more than the light. She did not call it in. Not yet. First she counted the locks downstream. Eight. The ninth was the one in front of her."
+  },
+  "publishing": {
+    "copyrightTemplate": "Copyright © {year} {name}. All rights reserved.",
+    "copyrightName": "J. R. Kade",
+    "disclaimer": "This is a work of fiction. Names, characters, places and incidents are the product of the author's imagination or are used fictitiously. Any resemblance to actual persons, living or dead, or actual events is coincidental.",
+    "illustrativeLine": null,
+    "defaultBookType": "thriller",
+    "defaultWordTarget": 80000,
+    "defaultTrim": "5.5 x 8.5 in",
+    "defaultInteriorTheme": "thriller-sharp",
+    "defaultCoverStyle": "noir-spaced"
+  },
+  "models": {
+    "research": null,
+    "titles": null,
+    "blueprint": null,
+    "writing": null,
+    "summarise": null,
+    "checks": "~anthropic/claude-sonnet-latest",
+    "editing": null,
+    "matter_metadata": null,
+    "cover_brief": null,
+    "cover_image": null,
+    "marketing": null
+  },
+  "modelNotes": "Checks use the mid model so the clue ledger and timeline are checked against every chapter. Writing and editing use the defaults.",
+  "status": {
+    "bio": "pen-name",
+    "note": "Fictional pen name created in Volume. No real-world credentials are claimed; the 'former police officer' detail belongs to a character, not the author."
+  },
+  "createdAt": "2026-09-20T21:30:00+01:00"
+}

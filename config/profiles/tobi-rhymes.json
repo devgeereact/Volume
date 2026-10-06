@@ -1,0 +1,85 @@
+{
+  "id": "tobi-rhymes",
+  "name": "Tobi Rhymes",
+  "initials": "TR",
+  "realPerson": false,
+  "legalName": null,
+  "location": null,
+  "imprint": "Star Rhymes",
+  "bio": "Tobi Rhymes writes gentle bedtime stories and picture books for children aged three to seven. Every story has a friendly main character, a small problem that is solved with kindness, and one new word to learn, used at least three times so little listeners can say it too.\n\nTobi's books are made for the last quiet minutes of the day. The sentences are short, the rhythm is easy to read aloud and the endings are always calm and happy, so children feel safe and sleepy by the final page. There are no monsters, no dark woods and nothing scary, just soft light, kind friends and a goodnight wish.\n\nParents and carers will find the new word and its meaning at the front of every book, ready to talk about after the story. Tobi Rhymes is the storytelling name of the Star Rhymes imprint.",
+  "shortBio": "Tobi Rhymes writes gentle bedtime stories for children aged three to seven, with a new word in every book and nothing scary before sleep.",
+  "credentials": [],
+  "links": [],
+  "genres": [
+    "Picture books",
+    "Bedtime stories",
+    "Early readers"
+  ],
+  "bookTypes": [
+    "picture-book",
+    "bedtime-story",
+    "early-reader",
+    "activity-book"
+  ],
+  "voice": {
+    "tone": [
+      "gentle",
+      "playful",
+      "reassuring",
+      "soothing"
+    ],
+    "pov": "Third person, past or present tense, told to a child listening at bedtime",
+    "rhythm": "Short sentences, repeated lines children can join in with, occasional soft rhyme that is never forced. Slows down towards the end.",
+    "vocabulary": "Simple words, easy similes ('soft as a bunny's ear'), one new word per book explained in child-friendly terms.",
+    "readingLevel": "Read aloud to ages 3 to 7",
+    "dialogueStyle": "Simple, repeated dialogue a child can say along with the reader.",
+    "locale": "en-GB",
+    "audience": {
+      "ageMin": 3,
+      "ageMax": 7
+    },
+    "newWordPerBook": true,
+    "bannedPhrases": [
+      "go to sleep or else",
+      "naughty",
+      "lost forever",
+      "all alone in the dark",
+      "no one will find you",
+      "the end of the world",
+      "dark forest",
+      "punish"
+    ],
+    "sampleParagraph": "Pip the little hedgehog could not sleep. The moon was round and bright, and the stars were busy twinkling. 'Hello, stars,' said Pip. 'Are you sleepy too?' The stars twinkled back, soft as a bunny's ear. Pip's new word tonight was patient. Patient means waiting kindly, without fussing, even when you want something right now. 'I want to sleep right now,' said Pip. Mama Hedgehog tucked a leaf blanket around him. 'Then let us be patient,' she said. 'Let us count the stars together.' One star, two stars, three stars, four. Pip counted slowly. Pip counted softly. Pip was patient. Five stars, six stars, seven stars, more. His eyes felt warm and heavy. 'Goodnight, stars,' Pip whispered. 'I was patient.' And the stars twinkled goodnight as the whole quiet garden fell asleep.",
+    "contentRulesFrom": "config/book-templates/picture-book.json storyRules.forbidden"
+  },
+  "publishing": {
+    "copyrightTemplate": "Copyright © {year} {name}. All rights reserved.",
+    "copyrightName": "Tobi Rhymes",
+    "disclaimer": "This is a work of fiction. Names, characters and events are the product of the author's imagination.",
+    "illustrativeLine": null,
+    "defaultBookType": "bedtime-story",
+    "defaultWordTarget": 650,
+    "defaultTrim": "8.5 x 8.5 in",
+    "defaultInteriorTheme": "bedtime-soft",
+    "defaultCoverStyle": "storybook-round"
+  },
+  "models": {
+    "research": null,
+    "titles": null,
+    "blueprint": null,
+    "writing": "~anthropic/claude-opus-latest",
+    "summarise": null,
+    "checks": "~anthropic/claude-sonnet-latest",
+    "editing": null,
+    "matter_metadata": null,
+    "cover_brief": null,
+    "cover_image": "google/gemini-3-pro-image",
+    "marketing": null
+  },
+  "modelNotes": "Picture books are under 1,000 words, so the top model writes them for a few cents and gets the read-aloud rhythm right. Checks use a stronger model for the second safety pass. Covers and scenes use the stronger image model listed as a fallback in config/models.defaults.json, so the character looks the same on every spread.",
+  "status": {
+    "bio": "pen-name",
+    "note": "Fictional pen name created in Volume from the owner's bedtime story drafts (Star Rhymes). No real-world credentials are claimed."
+  },
+  "createdAt": "2026-09-28T19:05:00+01:00"
+}

@@ -1,0 +1,15 @@
+name: Volume
+summary: Local-first book production app with author profiles, AI research, blueprint, automatic writing, covers and KDP export pack.
+owner: Gideon (Gakinz, London)
+created: 2026-10-04
+location: ~/Projects/volume
+mode: build
+phase: 0
+phase_name: Workspace, rules, agents, design guide and demo
+stack: [node-26, typescript, vite, react, tailwind-4, fastify, sqlite-drizzle, playwright, openrouter]
+ai_provider: openrouter
+plan: docs/PLAN.md
+rules: AGENTS.md
+current_task: .agent/CURRENT-TASK.md
+handoff_log: .agent/HANDOFF.md
+review_gate: owner reviews at the end of every phase

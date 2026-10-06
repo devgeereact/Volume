@@ -1,0 +1,38 @@
+{
+  "name": "volume",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Local-first book production app: profiles, research, blueprint, automatic writing, covers and KDP export pack.",
+  "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
+  "workspaces": [
+    "packages/ui",
+    "packages/core",
+    "packages/ai",
+    "packages/export",
+    "apps/server",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test --workspaces --if-present",
+    "hooks:test": "bash .claude/hooks/test-hooks.sh",
+    "e2e": "node tests/e2e/run.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.12.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "prettier": "3.9.9",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-eslint": "8.71.0"
+  }
+}

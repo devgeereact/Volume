@@ -1,0 +1,295 @@
+{
+  "$comment": "Workbook template (phase 6): non-fiction with exercises and fill-in pages. Same section model as nonfiction.json. source: profile | owner | ai | app.",
+  "id": "workbook",
+  "version": 2,
+  "name": "Workbook",
+  "locale": "en-GB",
+  "extends": "nonfiction",
+  "variant": "practical",
+  "voice": {
+    "perspective": "first-person, speaking to 'you'",
+    "aboutTheAuthorPerspective": "third-person",
+    "contractions": true,
+    "houseStyle": "config/house-style.json"
+  },
+  "wordTargets": {
+    "total": {
+      "min": 10000,
+      "max": 30000,
+      "default": 18000
+    },
+    "tolerance": 0.15,
+    "introduction": {
+      "min": 600,
+      "max": 1500,
+      "default": 900
+    },
+    "conclusion": {
+      "min": 400,
+      "max": 1200,
+      "default": 700
+    }
+  },
+  "chapterRules": {
+    "count": {
+      "default": 8,
+      "min": 4,
+      "max": 14
+    },
+    "wordTarget": {
+      "default": 1600,
+      "min": 800,
+      "max": 2500
+    },
+    "subheadings": {
+      "min": 3,
+      "max": 5,
+      "titleCase": true,
+      "markdownLevel": 2
+    },
+    "takeaways": {
+      "enabled": true,
+      "count": {
+        "min": 3,
+        "max": 5
+      },
+      "heading": "Key Takeaways",
+      "format": "list"
+    },
+    "openingHook": {
+      "styleOptions": [
+        "question",
+        "scene",
+        "imagine"
+      ],
+      "default": "question",
+      "consistentAcrossBook": true
+    },
+    "bridgeToNext": {
+      "enabled": true
+    },
+    "listsInProse": true,
+    "tablesAllowed": true,
+    "exercises": {
+      "perChapter": {
+        "min": 2,
+        "max": 4
+      },
+      "types": [
+        "reflection",
+        "checklist",
+        "fill-in",
+        "tracker",
+        "scenario"
+      ],
+      "blocks": {
+        "reflection": "A question plus ruled lines. Default 6 lines.",
+        "checklist": "Up to 8 tick-box items.",
+        "fill-in": "Prompted blanks or a short table with empty cells.",
+        "tracker": "A simple grid for days or weeks.",
+        "scenario": "A short illustrative situation followed by questions."
+      },
+      "linesDefault": 6,
+      "safety": "No exercise gives medical, clinical, legal or financial instructions. Exercises about health point the reader to a qualified professional and go to the claims report."
+    }
+  },
+  "sections": [
+    {
+      "id": "half-title",
+      "kind": "front",
+      "title": "Half Title",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner"
+    },
+    {
+      "id": "title-page",
+      "kind": "front",
+      "title": "Title Page",
+      "required": true,
+      "defaultOn": true,
+      "source": "owner"
+    },
+    {
+      "id": "copyright",
+      "kind": "front",
+      "title": "Copyright",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "templateFrom": "nonfiction",
+      "kdpRuleIds": [
+        "isbn",
+        "print.vat.uk"
+      ],
+      "note": "Workbooks with fill-in pages may sit at a 20% VAT rate on print (fact 3.5). Low-content books may not get a free KDP ISBN (fact 4.3, partial)."
+    },
+    {
+      "id": "dedication",
+      "kind": "front",
+      "title": "Dedication",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "promptId": "writing.front-matter"
+    },
+    {
+      "id": "contents",
+      "kind": "front",
+      "title": "Contents",
+      "required": true,
+      "defaultOn": true,
+      "source": "app"
+    },
+    {
+      "id": "how-to-use",
+      "kind": "front",
+      "title": "How to Use This Workbook",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "promptId": "writing.front-matter"
+    },
+    {
+      "id": "acknowledgements",
+      "kind": "front",
+      "title": "Acknowledgements",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "promptId": "writing.front-matter"
+    },
+    {
+      "id": "introduction",
+      "kind": "front",
+      "title": "Introduction",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "promptId": "writing.introduction"
+    },
+    {
+      "id": "parts",
+      "kind": "part",
+      "title": "Part {roman}: {partTitle}",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai"
+    },
+    {
+      "id": "chapters",
+      "kind": "chapter",
+      "title": "Chapter {n}: {chapterTitle}",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "repeat": true,
+      "promptId": "writing.chapter"
+    },
+    {
+      "id": "conclusion",
+      "kind": "back",
+      "title": "Conclusion",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "promptId": "writing.conclusion"
+    },
+    {
+      "id": "glossary",
+      "kind": "back",
+      "title": "Glossary",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "content": "Plain-English definitions of the terms the chapters use, one or two sentences each.",
+      "promptId": "writing.back-matter"
+    },
+    {
+      "id": "answers",
+      "kind": "back",
+      "title": "Answers",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "Answers to the exercises, written or checked by the owner."
+    },
+    {
+      "id": "notes-pages",
+      "kind": "back",
+      "title": "Notes",
+      "required": false,
+      "defaultOn": true,
+      "source": "app",
+      "content": "Ruled pages, default 4."
+    },
+    {
+      "id": "resources",
+      "kind": "back",
+      "title": "Resources",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "Research sources or owner entries only."
+    },
+    {
+      "id": "about-the-author",
+      "kind": "back",
+      "title": "About the Author",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "profile.bio word for word."
+    },
+    {
+      "id": "also-by",
+      "kind": "back",
+      "title": "Also by {penName}",
+      "required": false,
+      "defaultOn": true,
+      "source": "profile"
+    },
+    {
+      "id": "review-request",
+      "kind": "back",
+      "title": "A Small Request",
+      "required": false,
+      "defaultOn": true,
+      "source": "ai",
+      "kdpRuleIds": [
+        "reviews.kdpRules",
+        "reviews.amazonCommunityRules"
+      ],
+      "promptId": "writing.back-matter"
+    },
+    {
+      "id": "newsletter-socials",
+      "kind": "back",
+      "title": "Stay in Touch",
+      "required": false,
+      "defaultOn": true,
+      "source": "profile"
+    },
+    {
+      "id": "summary",
+      "kind": "package",
+      "title": "Book Summary",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "promptId": "blueprint.blueprint"
+    }
+  ],
+  "packages": {
+    "publishing": "same as nonfiction",
+    "marketing": "same as nonfiction"
+  },
+  "print": {
+    "notes": "Fill-in pages need a generous inside margin (paperback.interiorMargins is unverified). Lined areas are drawn by the export, not typed as underscores."
+  },
+  "derivedFrom": [
+    "docs/PLAN.md: Book templates (workbook)",
+    "P02 BOK-17",
+    "reference facts 3.5, 4.3"
+  ]
+}

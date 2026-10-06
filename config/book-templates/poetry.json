@@ -1,0 +1,205 @@
+{
+  "$comment": "Poetry template (added 4 October 2026, D-017). Poems grouped into optional sections; every poem starts on a new page and keeps its line breaks in every format. The owner approves every poem. source: profile | owner | ai | app.",
+  "id": "poetry",
+  "version": 1,
+  "name": "Poetry collection",
+  "locale": "en-GB",
+  "voice": {
+    "perspective": "set per collection",
+    "aboutTheAuthorPerspective": "third-person",
+    "houseStyle": "config/house-style.json"
+  },
+  "wordTargets": {
+    "total": {
+      "min": 3000,
+      "max": 20000,
+      "default": 8000
+    },
+    "tolerance": 0.25,
+    "note": "Poems vary; the tolerance is wider."
+  },
+  "poemRules": {
+    "count": {
+      "default": 45,
+      "min": 25,
+      "max": 90
+    },
+    "linesPerPoem": {
+      "min": 4,
+      "max": 60
+    },
+    "lineBreaks": "Kept exactly; never reflowed or justified.",
+    "forms": [
+      "free verse",
+      "sonnet",
+      "haiku sequence",
+      "prose poem",
+      "ballad"
+    ],
+    "newPage": true,
+    "titles": "Title case; untitled poems use their first line in the contents.",
+    "originality": "No borrowed lines from published poems; quotations only if the owner supplied them."
+  },
+  "sections": [
+    {
+      "id": "title-page",
+      "kind": "front",
+      "title": "Title Page",
+      "required": true,
+      "defaultOn": true,
+      "source": "owner"
+    },
+    {
+      "id": "copyright",
+      "kind": "front",
+      "title": "Copyright",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "templateFrom": "nonfiction",
+      "kdpRuleIds": [
+        "isbn"
+      ]
+    },
+    {
+      "id": "dedication",
+      "kind": "front",
+      "title": "Dedication",
+      "required": false,
+      "defaultOn": true,
+      "source": "owner"
+    },
+    {
+      "id": "contents",
+      "kind": "front",
+      "title": "Contents",
+      "required": true,
+      "defaultOn": true,
+      "source": "app"
+    },
+    {
+      "id": "parts",
+      "kind": "part",
+      "title": "{partTitle}",
+      "required": false,
+      "defaultOn": true,
+      "source": "owner"
+    },
+    {
+      "id": "poems",
+      "kind": "chapter",
+      "title": "{chapterTitle}",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "repeat": true,
+      "promptId": "writing.chapter"
+    },
+    {
+      "id": "notes",
+      "kind": "back",
+      "title": "Notes",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner"
+    },
+    {
+      "id": "acknowledgements",
+      "kind": "back",
+      "title": "Acknowledgements",
+      "required": false,
+      "defaultOn": true,
+      "source": "owner"
+    },
+    {
+      "id": "about-the-author",
+      "kind": "back",
+      "title": "About the Author",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "profile.bio word for word."
+    },
+    {
+      "id": "also-by",
+      "kind": "back",
+      "title": "Also by {penName}",
+      "required": false,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "Published books under this pen name only."
+    }
+  ],
+  "packages": {
+    "publishing": [
+      {
+        "id": "back-cover-blurb",
+        "source": "ai",
+        "promptId": "matter.back-cover"
+      },
+      {
+        "id": "short-bio",
+        "source": "profile"
+      },
+      {
+        "id": "amazon-description",
+        "source": "ai",
+        "promptId": "matter.amazon-description",
+        "kdpRuleIds": [
+          "listing.description.maxChars",
+          "listing.description.allowedFormatting"
+        ]
+      },
+      {
+        "id": "categories",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.categories"
+        ]
+      },
+      {
+        "id": "keywords",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.keywords"
+        ]
+      },
+      {
+        "id": "title-check",
+        "source": "app",
+        "kdpRuleIds": [
+          "listing.titleSubtitle.maxChars"
+        ]
+      },
+      {
+        "id": "ai-disclosure-note",
+        "source": "app",
+        "kdpRuleIds": [
+          "ai.disclosure"
+        ]
+      }
+    ],
+    "marketing": [
+      {
+        "id": "tiktok-scripts",
+        "source": "ai",
+        "promptId": "marketing.tiktok-scripts"
+      },
+      {
+        "id": "instagram-captions",
+        "source": "ai",
+        "promptId": "marketing.instagram-captions"
+      },
+      {
+        "id": "launch-email",
+        "source": "ai",
+        "promptId": "marketing.launch-email"
+      }
+    ]
+  },
+  "derivedFrom": [
+    "config/book-types.json: poetry"
+  ]
+}

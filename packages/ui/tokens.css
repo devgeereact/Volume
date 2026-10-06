@@ -1,0 +1,226 @@
+/* Volume design tokens, generated from tokens.json. Do not edit by hand; edit tokens.json and regenerate.
+   Light is the default. Dark applies with [data-theme="dark"] on <html>, or with the system setting
+   when no data-theme is set. Contrast pairs are listed in docs/08-DESIGN-GUIDE.md (Visual direction). */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --vol-canvas: #F3F2EE;
+  --vol-sheet: #FFFEFB;
+  --vol-sunken: #EBE9E3;
+  --vol-raised: #FFFFFF;
+  --vol-spine: #1A2238;
+  --vol-spine-raised: #283252;
+  --vol-border: #E1DFD7;
+  --vol-border-strong: #8A877C;
+  --vol-ink: #1A2033;
+  --vol-ink-secondary: #4A5064;
+  --vol-ink-tertiary: #5E6375;
+  --vol-ink-disabled: #8E909B;
+  --vol-ink-on-spine: #EEECF4;
+  --vol-ink-on-spine-muted: #AFB6CD;
+  --vol-accent: #EBB241;
+  --vol-accent-hover: #F2C35F;
+  --vol-accent-pressed: #D9A030;
+  --vol-on-accent: #1A2238;
+  --vol-accent-text: #7F5B0B;
+  --vol-accent-wash: #FAF0D7;
+  --vol-progress: #1A2238;
+  --vol-select: #2747B8;
+  --vol-select-wash: #E8ECFA;
+  --vol-claim: #B42318;
+  --vol-claim-wash: #FBEAE7;
+  --vol-on-claim: #FFFFFF;
+  --vol-success: #2C6A4B;
+  --vol-success-wash: #E4F1E9;
+  --vol-scrim: #1A2238;
+  --vol-shadow-none: none;
+  --vol-shadow-button: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 0 0 1px rgba(26,34,56,0.14), 0 1px 2px rgba(26,34,56,0.10);
+  --vol-shadow-sheet: 0 1px 2px rgba(26,32,51,0.06), 0 18px 36px -20px rgba(26,32,51,0.22);
+  --vol-shadow-pop: 0 2px 6px rgba(26,32,51,0.08), 0 16px 32px -12px rgba(26,32,51,0.24);
+  --vol-shadow-modal: 0 4px 12px rgba(26,32,51,0.10), 0 40px 80px -24px rgba(26,32,51,0.40);
+  --vol-shadow-cover: 0 1px 1px rgba(26,32,51,0.12), 0 12px 20px -12px rgba(26,32,51,0.45);
+  --vol-scrim-opacity: 0.4;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --vol-canvas: #16172A;
+  --vol-sheet: #1E2033;
+  --vol-sunken: #121322;
+  --vol-raised: #282B41;
+  --vol-spine: #10111F;
+  --vol-spine-raised: #23263A;
+  --vol-border: #2F3249;
+  --vol-border-strong: #6D7190;
+  --vol-ink: #EDEBF4;
+  --vol-ink-secondary: #B3B5CA;
+  --vol-ink-tertiary: #9599B2;
+  --vol-ink-disabled: #6A6E88;
+  --vol-ink-on-spine: #EDEBF4;
+  --vol-ink-on-spine-muted: #A9ACC3;
+  --vol-accent: #EBB241;
+  --vol-accent-hover: #F2C35F;
+  --vol-accent-pressed: #D9A030;
+  --vol-on-accent: #16172A;
+  --vol-accent-text: #F0C362;
+  --vol-accent-wash: #2C2A2E;
+  --vol-progress: #EBB241;
+  --vol-select: #9EB2FF;
+  --vol-select-wash: #252C4E;
+  --vol-claim: #FF9D91;
+  --vol-claim-wash: #35202E;
+  --vol-on-claim: #16172A;
+  --vol-success: #86D2A8;
+  --vol-success-wash: #1B2F2E;
+  --vol-scrim: #07070F;
+  --vol-shadow-none: none;
+  --vol-shadow-button: inset 0 1px 0 rgba(255,255,255,0.40), inset 0 0 0 1px rgba(0,0,0,0.20), 0 1px 2px rgba(0,0,0,0.40);
+  --vol-shadow-sheet: 0 0 0 1px rgba(255,255,255,0.03), 0 24px 48px -24px rgba(0,0,0,0.70);
+  --vol-shadow-pop: 0 0 0 1px rgba(255,255,255,0.05), 0 18px 40px -12px rgba(0,0,0,0.75);
+  --vol-shadow-modal: 0 0 0 1px rgba(255,255,255,0.06), 0 40px 90px -20px rgba(0,0,0,0.85);
+  --vol-shadow-cover: 0 1px 1px rgba(0,0,0,0.40), 0 14px 24px -12px rgba(0,0,0,0.80);
+  --vol-scrim-opacity: 0.6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --vol-canvas: #16172A;
+    --vol-sheet: #1E2033;
+    --vol-sunken: #121322;
+    --vol-raised: #282B41;
+    --vol-spine: #10111F;
+    --vol-spine-raised: #23263A;
+    --vol-border: #2F3249;
+    --vol-border-strong: #6D7190;
+    --vol-ink: #EDEBF4;
+    --vol-ink-secondary: #B3B5CA;
+    --vol-ink-tertiary: #9599B2;
+    --vol-ink-disabled: #6A6E88;
+    --vol-ink-on-spine: #EDEBF4;
+    --vol-ink-on-spine-muted: #A9ACC3;
+    --vol-accent: #EBB241;
+    --vol-accent-hover: #F2C35F;
+    --vol-accent-pressed: #D9A030;
+    --vol-on-accent: #16172A;
+    --vol-accent-text: #F0C362;
+    --vol-accent-wash: #2C2A2E;
+    --vol-progress: #EBB241;
+    --vol-select: #9EB2FF;
+    --vol-select-wash: #252C4E;
+    --vol-claim: #FF9D91;
+    --vol-claim-wash: #35202E;
+    --vol-on-claim: #16172A;
+    --vol-success: #86D2A8;
+    --vol-success-wash: #1B2F2E;
+    --vol-scrim: #07070F;
+    --vol-shadow-none: none;
+    --vol-shadow-button: inset 0 1px 0 rgba(255,255,255,0.40), inset 0 0 0 1px rgba(0,0,0,0.20), 0 1px 2px rgba(0,0,0,0.40);
+    --vol-shadow-sheet: 0 0 0 1px rgba(255,255,255,0.03), 0 24px 48px -24px rgba(0,0,0,0.70);
+    --vol-shadow-pop: 0 0 0 1px rgba(255,255,255,0.05), 0 18px 40px -12px rgba(0,0,0,0.75);
+    --vol-shadow-modal: 0 0 0 1px rgba(255,255,255,0.06), 0 40px 90px -20px rgba(0,0,0,0.85);
+    --vol-shadow-cover: 0 1px 1px rgba(0,0,0,0.40), 0 14px 24px -12px rgba(0,0,0,0.80);
+    --vol-scrim-opacity: 0.6;
+  }
+}
+
+:root {
+  /* Fonts (self-host the OFL files in assets/fonts/) */
+  --vol-font-book: 'Literata', 'Iowan Old Style', Georgia, serif;
+  --vol-font-ui: 'Schibsted Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --vol-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Type scale: size / line height / weight / tracking */
+  --vol-type-display-size: 48px;
+  --vol-type-display-line: 52px;
+  --vol-type-display-weight: 500;
+  --vol-type-display-tracking: -0.02em;
+  --vol-type-title-size: 36px;
+  --vol-type-title-line: 42px;
+  --vol-type-title-weight: 500;
+  --vol-type-title-tracking: -0.015em;
+  --vol-type-figure-size: 30px;
+  --vol-type-figure-line: 36px;
+  --vol-type-figure-weight: 500;
+  --vol-type-figure-tracking: -0.01em;
+  --vol-type-heading-size: 22px;
+  --vol-type-heading-line: 28px;
+  --vol-type-heading-weight: 500;
+  --vol-type-heading-tracking: -0.005em;
+  --vol-type-subhead-size: 16px;
+  --vol-type-subhead-line: 22px;
+  --vol-type-subhead-weight: 600;
+  --vol-type-subhead-tracking: 0;
+  --vol-type-body-size: 15px;
+  --vol-type-body-line: 22px;
+  --vol-type-body-weight: 400;
+  --vol-type-body-tracking: 0;
+  --vol-type-label-size: 14px;
+  --vol-type-label-line: 20px;
+  --vol-type-label-weight: 500;
+  --vol-type-label-tracking: 0;
+  --vol-type-small-size: 13px;
+  --vol-type-small-line: 18px;
+  --vol-type-small-weight: 400;
+  --vol-type-small-tracking: 0.005em;
+  --vol-type-caption-size: 12px;
+  --vol-type-caption-line: 16px;
+  --vol-type-caption-weight: 500;
+  --vol-type-caption-tracking: 0.01em;
+  --vol-type-prose-size: 18px;
+  --vol-type-prose-line: 30px;
+  --vol-type-prose-weight: 400;
+  --vol-type-prose-tracking: 0;
+  --vol-type-prose-sm-size: 16px;
+  --vol-type-prose-sm-line: 26px;
+  --vol-type-prose-sm-weight: 400;
+  --vol-type-prose-sm-tracking: 0;
+
+  /* Spacing (8 px grid, 4 only inside dense controls) */
+  --vol-space-0: 0px;
+  --vol-space-1: 4px;
+  --vol-space-2: 8px;
+  --vol-space-3: 12px;
+  --vol-space-4: 16px;
+  --vol-space-6: 24px;
+  --vol-space-8: 32px;
+  --vol-space-12: 48px;
+  --vol-space-16: 64px;
+  --vol-space-24: 96px;
+
+  /* Radii */
+  --vol-radius-xs: 4px;
+  --vol-radius-sm: 6px;
+  --vol-radius-md: 10px;
+  --vol-radius-lg: 16px;
+  --vol-radius-pill: 999px;
+  --vol-radius-cover: 3px;
+
+  /* Motion */
+  --vol-dur-fast: 150ms;
+  --vol-dur-base: 200ms;
+  --vol-dur-slow: 300ms;
+  --vol-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --vol-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --vol-ease-page: cubic-bezier(0.3, 0.7, 0.1, 1);
+
+  /* Layout */
+  --vol-nav: 240px;
+  --vol-nav-collapsed: 64px;
+  --vol-inspector: 320px;
+  --vol-prose-max: 760px;
+  --vol-jobbar: 56px;
+  --vol-focus-width: 2px;
+  --vol-focus-offset: 2px;
+  --vol-target-min: 44px;
+}
+
+/* Reduced motion: transitions become a short fade or nothing. Components read these. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --vol-dur-fast: 0ms;
+    --vol-dur-base: 120ms;
+    --vol-dur-slow: 120ms;
+  }
+}

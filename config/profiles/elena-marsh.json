@@ -1,0 +1,91 @@
+{
+  "id": "elena-marsh",
+  "name": "Elena Marsh",
+  "initials": "EM",
+  "realPerson": false,
+  "legalName": null,
+  "location": null,
+  "imprint": "Harbour Lane Books",
+  "bio": "Elena Marsh writes warm, hopeful love stories set in small British towns where everyone knows your business and the sea is never far away. Her books follow ordinary people who are brave enough to try again: the chef who comes home to run her grandmother's café, the widower who learns to laugh, the old friends who were always meant to be more.\n\nElena's stories are sweet, or gently warm with the bedroom door closed, and full of banter, good food and found family. Every one ends happily. Each series is set in one town, so favourite characters return and readers can come back again and again.\n\nWhen she is not writing, Elena is sketching the map of her next harbour town, reading other people's love stories and planning picnics that the British weather rarely allows. Join her newsletter to hear about new books first.",
+  "shortBio": "Elena Marsh writes warm, hopeful small-town romance with banter, good food and a guaranteed happy ending. Each series returns to one British seaside town.",
+  "credentials": [],
+  "links": [
+    {
+      "label": "Newsletter",
+      "value": "Owner to add a sign-up link"
+    }
+  ],
+  "genres": [
+    "Contemporary romance",
+    "Historical romance",
+    "Small-town series"
+  ],
+  "bookTypes": [
+    "contemporary-romance",
+    "historical-romance"
+  ],
+  "voice": {
+    "tone": [
+      "warm",
+      "witty",
+      "hopeful",
+      "emotionally honest"
+    ],
+    "pov": "Dual close third person, past tense, alternating chapters between the two leads",
+    "rhythm": "Scenes built on dialogue and small sensory details. Chapters end on an emotional turn, never a summary.",
+    "vocabulary": "Everyday British English, food and coastal detail. No crude or clinical words for intimacy.",
+    "readingLevel": "General adult",
+    "dialogueStyle": "Quick banter with subtext. Tags kept to said and asked; actions do the rest.",
+    "locale": "en-GB",
+    "heatLevel": "sweet",
+    "heatLevelOptions": [
+      "sweet",
+      "clean",
+      "warm, door closed"
+    ],
+    "series": {
+      "ready": true,
+      "note": "Each book stands alone with its own couple; the town, its café and its cast carry across the series."
+    },
+    "bannedPhrases": [
+      "released a breath she didn't know she was holding",
+      "electricity shot through",
+      "a shiver ran down her spine",
+      "his lips crashed",
+      "smirked",
+      "growled",
+      "orbs"
+    ],
+    "sampleParagraph": "Rosie had planned to be calm about it. She had planned to say hello like a grown woman, hand over the box of scones and leave before the kettle boiled. Instead she stood on the doorstep of Gull Cottage with flour on her sleeve and the wind pulling her hair loose, while Tom Penhale looked at her as if eleven years were nothing at all. 'You came back,' he said. 'I came back for the café,' she said. 'Not for you.' 'Right.' He took the box. His thumb brushed hers, and she felt it all the way to her ears. 'Do you want to come in, then? Not for me. For the tea.' Behind her the harbour was loud with gulls and rigging. In front of her was the boy she had promised never to think about, grown into a man who still remembered how she took her tea."
+  },
+  "publishing": {
+    "copyrightTemplate": "Copyright © {year} {name}. All rights reserved.",
+    "copyrightName": "Elena Marsh",
+    "disclaimer": "This is a work of fiction. Names, characters, places and incidents are the product of the author's imagination or are used fictitiously. Any resemblance to actual persons, living or dead, or actual events is coincidental.",
+    "illustrativeLine": null,
+    "defaultBookType": "contemporary-romance",
+    "defaultWordTarget": 65000,
+    "defaultTrim": "5 x 8 in",
+    "defaultInteriorTheme": "romance-elegant",
+    "defaultCoverStyle": "romance-script"
+  },
+  "models": {
+    "research": null,
+    "titles": null,
+    "blueprint": null,
+    "writing": null,
+    "summarise": null,
+    "checks": null,
+    "editing": null,
+    "matter_metadata": null,
+    "cover_brief": null,
+    "cover_image": null,
+    "marketing": null
+  },
+  "modelNotes": "Defaults suit long fiction: the top model plans the story bible in the blueprint, and the mid model writes and edits 65,000 words at a sensible cost.",
+  "status": {
+    "bio": "pen-name",
+    "note": "Fictional pen name created in Volume. The bio describes the books and a persona, not a real person, and claims no qualifications or awards. The copyright name can be changed to the owner's legal name in Publishing defaults."
+  },
+  "createdAt": "2026-09-15T20:10:00+01:00"
+}

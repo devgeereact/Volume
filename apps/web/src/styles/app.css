@@ -1,0 +1,307 @@
+/* Volume prototype styles.
+   Tokens and the Tailwind theme come from @volume/ui (packages/ui). Do not add colours, sizes or
+   durations here that are not tokens. Book covers are content, so their palettes live in the data. */
+@import "tailwindcss";
+@import "@volume/ui/tokens.css";
+@import "@volume/ui/theme.css";
+@import "./fonts.css";
+@import "./book-fonts.css";
+
+/* Shell measurements that screens can read (set by the shell). */
+:root {
+  --shell-topbar: 56px;
+  --shell-jobbar: 0px;
+  /* Book screens (D-016): the step bar above the screen and Back and Next below it (shell/BookLayout). */
+  --shell-bookbar: 0px;
+  --shell-stepfooter: 0px;
+}
+:root[data-book="on"] {
+  --shell-bookbar: 56px;
+  --shell-stepfooter: 64px;
+}
+:root[data-jobbar="on"] {
+  --shell-jobbar: var(--vol-jobbar);
+}
+
+@layer base {
+  html {
+    background: var(--vol-canvas);
+    color: var(--vol-ink);
+    font-family: var(--vol-font-ui);
+    font-size: var(--vol-type-body-size);
+    line-height: var(--vol-type-body-line);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--vol-canvas);
+  }
+  :focus-visible {
+    outline: var(--vol-focus-width) solid var(--vol-select);
+    outline-offset: var(--vol-focus-offset);
+  }
+  ::selection {
+    background: var(--vol-select-wash);
+    color: var(--vol-ink);
+  }
+  /* Focus is never hidden behind the top bar or the job bar (WCAG 2.4.11). */
+  html {
+    scroll-padding-top: calc(var(--shell-topbar) + 16px);
+    scroll-padding-bottom: calc(var(--shell-jobbar) + 16px);
+  }
+  kbd {
+    font-family: var(--vol-font-mono);
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@layer utilities {
+  /* Lining figures for words, money and times. Schibsted Grotesk's tabular figures also make commas
+     and full stops tabular (wide gaps in "21,340"), so .num stays proportional in the interface font.
+     Literata (figures, book text) gets true tabular figures. Use .tnum for columns that must align. */
+  .num {
+    font-variant-numeric: lining-nums;
+  }
+  .font-book.num,
+  .font-book .num,
+  .tnum {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  /* Literata optical size for large type. */
+  .opsz-display {
+    font-variation-settings: "opsz" 72;
+  }
+  .opsz-title {
+    font-variation-settings: "opsz" 48;
+  }
+  /* Paragraphs after the first are indented, as in print. */
+  .print-indent > p + p {
+    text-indent: 1.5em;
+  }
+}
+
+/* Shell-height and hit-area helpers as Tailwind v4 utilities, so variants work (lg:h-screen-fill,
+   xl:min-h-screen-fill, sm:hit-44). Height of the area between the top bar and the job bar, for screens
+   with their own panes. */
+@utility h-screen-fill {
+  height: calc(100dvh - var(--shell-topbar) - var(--shell-bookbar) - var(--shell-stepfooter) - var(--shell-jobbar));
+}
+@utility min-h-screen-fill {
+  min-height: calc(100dvh - var(--shell-topbar) - var(--shell-bookbar) - var(--shell-stepfooter) - var(--shell-jobbar));
+}
+/* Extend a compact control's hit area to 44 px without changing its look. */
+@utility hit-44 {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, var(--vol-target-min));
+    height: max(100%, var(--vol-target-min));
+    transform: translate(-50%, -50%);
+  }
+}
+
+@layer components {
+  /* Gilt caret for streamed text (ink in). Blinks at 1 s steps; holds still with reduced motion. */
+  .vol-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    margin-left: 2px;
+    vertical-align: -2px;
+    background: var(--vol-accent);
+    animation: vol-caret 1s steps(1) infinite;
+  }
+  /* The gilt nib at the live edge of a progress bar. Fades between full and 35% while the job runs. */
+  .vol-nib {
+    animation: vol-nib 1600ms var(--vol-ease-out) infinite alternate;
+  }
+  /* Pen-stroke loader used by buttons and the stage track. */
+  .vol-loader > i {
+    display: block;
+    width: 9px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    transform-origin: left;
+    animation: vol-pen 900ms var(--vol-ease-out) infinite;
+  }
+  .vol-loader > i:nth-child(2) {
+    animation-delay: 150ms;
+  }
+  .vol-loader > i:nth-child(3) {
+    animation-delay: 300ms;
+  }
+  /* Skeletons breathe with opacity only. */
+  .vol-breathe {
+    animation: vol-breathe 1600ms ease-in-out infinite alternate;
+  }
+  /* Blue pencil: a 2 px stroke drawn down the leading edge of the selected item. */
+  .vol-pencil-edge {
+    position: relative;
+  }
+  .vol-pencil-edge::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--vol-select);
+    transform-origin: top;
+    animation: vol-pencil var(--vol-dur-base) var(--vol-ease-out) both;
+  }
+
+  /* Book cover object: 2:3, 3 px radius, spine shade, cover shadow. Positions use container units. */
+  .vol-cover {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    container-type: inline-size;
+    overflow: hidden;
+    border-radius: var(--vol-radius-cover);
+    box-shadow: var(--vol-shadow-cover);
+    flex: none;
+  }
+  .vol-cover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgb(0 0 0 / 0.24) 0, rgb(255 255 255 / 0.12) 2.4cqw, rgb(0 0 0 / 0) 6cqw);
+  }
+  .vol-cover > * {
+    position: absolute;
+    margin: 0;
+  }
+  .vol-cover-none {
+    background: var(--vol-sheet);
+    box-shadow: none;
+    border: 1px dashed var(--vol-border-strong);
+    display: grid;
+    place-items: center;
+  }
+  .vol-cover-none::after {
+    display: none;
+  }
+  .vol-cover-none > * {
+    position: static;
+  }
+  /* Cover lift on hover or keyboard focus of the nearest .group (the book link). */
+  .vol-lift {
+    position: relative;
+    perspective: 900px;
+  }
+  .vol-lift > .vol-cover {
+    transform-origin: left center;
+    transition: transform var(--vol-dur-base) var(--vol-ease-out);
+  }
+  .vol-lift::after {
+    content: "";
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: -6px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--vol-scrim);
+    filter: blur(10px);
+    opacity: 0;
+    z-index: -1;
+    transition: opacity var(--vol-dur-base) var(--vol-ease-out);
+  }
+  .group:hover .vol-lift > .vol-cover,
+  .group:focus-visible .vol-lift > .vol-cover,
+  .vol-lift[data-lifted="true"] > .vol-cover {
+    transform: translateY(-4px) rotateY(-8deg);
+  }
+  .group:hover .vol-lift::after,
+  .group:focus-visible .vol-lift::after,
+  .vol-lift[data-lifted="true"]::after {
+    opacity: 0.45;
+  }
+
+  /* Proof red wavy underline for a claim to verify. */
+  .vol-claim-mark {
+    text-decoration-line: underline;
+    text-decoration-style: wavy;
+    text-decoration-color: var(--vol-claim);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 4px;
+  }
+}
+
+@keyframes vol-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes vol-nib {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.35;
+  }
+}
+@keyframes vol-pen {
+  0% {
+    transform: scaleX(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0.4;
+  }
+}
+@keyframes vol-breathe {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
+
+/* Reduced motion: nothing moves on its own; live indicators hold still. */
+@media (prefers-reduced-motion: reduce) {
+  .vol-caret,
+  .vol-nib,
+  .vol-loader > i,
+  .vol-breathe {
+    animation: none;
+  }
+  .vol-loader > i {
+    transform: none;
+    opacity: 1;
+  }
+  .group:hover .vol-lift > .vol-cover,
+  .group:focus-visible .vol-lift > .vol-cover,
+  .vol-lift[data-lifted="true"] > .vol-cover {
+    transform: none;
+  }
+}
+/* Live indicators also stop while the tab is hidden (set by the shell). */
+:root[data-hidden="true"] .vol-caret,
+:root[data-hidden="true"] .vol-nib {
+  animation-play-state: paused;
+}

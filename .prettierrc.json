@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/prettierrc",
+  "printWidth": 160,
+  "overrides": [
+    {
+      "files": ["packages/**/*.{ts,tsx,mts,cts,js,mjs,cjs}", "apps/server/**/*.{ts,mts,cts,js,mjs,cjs}", "scripts/**/*.{ts,mts,js,mjs,cjs}"],
+      "options": { "singleQuote": true }
+    }
+  ]
+}

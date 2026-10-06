@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volume direction A: Bindery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Hanken+Grotesk:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Libre+Franklin:wght@500;600;800&family=Big+Shoulders+Display:wght@900&family=Bodoni+Moda:ital,opsz,wght@1,6..96,500&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1A2238; --gold:#F4B942; --cream:#FFF8E7; --paper:#FFFDF6; --sage:#9FA8A3; --charcoal:#2D3142;
+  --sage-ink:#5B6660; --gold-ink:#8A6514; --rule:#E7E0CC; --navy-2:#232C46; --mist:#C9CED8;
+  --serif:'Newsreader',Georgia,serif; --sans:'Hanken Grotesk',system-ui,sans-serif;
+  --cv-r:2px; --cv-shadow:0 1px 0 rgba(26,34,56,.10),0 10px 20px -10px rgba(26,34,56,.45);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:#E9E4D6;font-family:var(--sans);color:var(--charcoal);padding:40px 40px 56px;width:1520px}
+p,h1,h2,h3,ul,ol{margin:0}
+ul,ol{padding:0;list-style:none}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+svg.i{width:18px;height:18px;flex:none}
+
+
+/* Book covers: content, identical on every board. Sized with container units so one cover works at any width. */
+.cv{position:relative;aspect-ratio:2/3;container-type:inline-size;overflow:hidden;border-radius:var(--cv-r,2px);box-shadow:var(--cv-shadow,none);flex:none}
+.cv::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.24) 0,rgba(255,255,255,.12) 2.4cqw,rgba(0,0,0,0) 6cqw);pointer-events:none}
+.cv>*{position:absolute;left:10cqw;right:9cqw;margin:0}
+.cv .cv-a{bottom:9cqw;font:600 4.4cqw/1 'Libre Franklin',sans-serif;letter-spacing:.16em;text-transform:uppercase}
+.cv-calm{background:#1F4B55;color:#F5F1E8}
+.cv-calm .cv-t{top:11cqw;font:400 17.5cqw/.9 'DM Serif Display',serif}
+.cv-calm .cv-s{top:47cqw;font:500 5.2cqw/1.3 'Libre Franklin',sans-serif;color:#BFE0DC;right:20cqw}
+.cv-calm svg{left:0;right:0;top:84cqw;width:100%;height:38cqw}
+.cv-hand{background:#EAE4D6;color:#191919}
+.cv-hand .cv-t{top:8cqw;font:900 31cqw/.8 'Big Shoulders Display',sans-serif;letter-spacing:-.01em}
+.cv-hand .cv-bar{top:63cqw;height:3.2cqw;right:46cqw;background:#C33A2C}
+.cv-hand .cv-s{top:72cqw;font:600 5.6cqw/1.25 'Libre Franklin',sans-serif;right:22cqw}
+.cv-charge{background:#E3A935;color:#1C2B4B}
+.cv-charge .cv-dot{top:10cqw;left:auto;right:-16cqw;width:64cqw;height:64cqw;border-radius:50%;background:#1C2B4B}
+.cv-charge .cv-dot2{top:30cqw;left:auto;right:12cqw;width:16cqw;height:16cqw;border-radius:50%;background:#E3A935}
+.cv-charge .cv-t{top:70cqw;font:800 12.6cqw/.98 'Libre Franklin',sans-serif;letter-spacing:-.02em}
+.cv-charge .cv-s{top:111cqw;font:500 5cqw/1.25 'Libre Franklin',sans-serif}
+.cv-speak{background:#4A1E3E;color:#F7D7E2}
+.cv-speak .cv-t{top:12cqw;font:italic 400 15.5cqw/.95 'DM Serif Display',serif}
+.cv-speak svg{top:54cqw;left:10cqw;width:44cqw;height:40cqw}
+.cv-speak .cv-s{top:100cqw;font:500 5.2cqw/1.3 'Libre Franklin',sans-serif;color:#E9B3C7;right:26cqw}
+.cv-sour{background:#3A2A1F;color:#F2D7A6}
+.cv-sour svg{top:12cqw;left:20cqw;width:60cqw;height:60cqw}
+.cv-sour .cv-t{top:82cqw;font:400 11.5cqw/1.02 'Young Serif',serif}
+.cv-herb{background:#5D7B55;color:#F6F2E4}
+.cv-herb svg{top:9cqw;left:30cqw;width:40cqw;height:68cqw}
+.cv-herb .cv-t{top:86cqw;font:italic 500 15cqw/.95 'Bodoni Moda',serif}
+
+/* Board chrome */
+.board-head{display:flex;align-items:baseline;gap:24px;margin:0 0 22px}
+.board-head h1{font:600 30px/1.1 var(--serif);color:var(--navy)}
+.board-head p{font-size:15px;color:var(--sage-ink);max-width:70ch}
+.cap{font:500 13px/1 var(--sans);color:var(--sage-ink);margin:14px 0 36px}
+.frame{width:1440px;height:900px;overflow:hidden;border-radius:12px;box-shadow:0 30px 60px -30px rgba(26,34,56,.45),0 0 0 1px rgba(26,34,56,.12);background:var(--cream)}
+
+/* App shell */
+.app{display:grid;grid-template-columns:248px 1fr;height:100%}
+.side{background:var(--navy);color:var(--mist);display:flex;flex-direction:column;padding:26px 16px 20px;position:relative}
+.side::before{content:"";position:absolute;top:0;bottom:0;right:0;width:3px;background:linear-gradient(var(--gold),var(--gold)) right/1px 100% no-repeat}
+.brand{display:flex;align-items:center;gap:10px;padding:0 10px 26px;color:var(--cream);font:500 26px/1 var(--serif);letter-spacing:-.01em}
+.brand svg{width:22px;height:28px}
+.pen{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--navy-2);border:1px solid rgba(255,248,231,.14);border-radius:8px;padding:10px 12px;color:var(--cream)}
+.pen .av{display:flex}
+.pen .av span{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:600 10.5px/1 var(--sans);border:2px solid var(--navy-2);margin-left:-8px}
+.pen .av span:first-child{margin-left:0}
+.pen b{display:block;font-weight:600;font-size:14px}
+.pen small{display:block;font-size:12.5px;white-space:nowrap;color:var(--mist);margin-top:2px}
+.pen .i{margin-left:auto;color:var(--mist)}
+.nav{margin-top:22px;display:grid;gap:2px}
+.nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;color:var(--mist);text-decoration:none;font-size:15px;font-weight:500;position:relative}
+.nav a.on{background:rgba(244,185,66,.12);color:var(--cream)}
+.nav a.on::before{content:"";position:absolute;left:-16px;top:8px;bottom:8px;width:3px;border-radius:0 2px 2px 0;background:var(--gold)}
+.nav a.on .i{color:var(--gold)}
+.side-foot{margin-top:auto;border-top:1px solid rgba(255,248,231,.12);padding:16px 10px 0;font-size:13px;line-height:1.5}
+.side-foot .row{display:flex;justify-content:space-between}
+.side-foot .ok{display:flex;align-items:center;gap:8px;color:var(--cream);margin-bottom:10px}
+.side-foot .ok::before{content:"";width:8px;height:8px;border-radius:50%;background:#8FC9A3}
+.meter{height:4px;border-radius:2px;background:rgba(255,248,231,.14);margin-top:8px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--gold)}
+
+/* Shared controls */
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:6px;font-weight:600;font-size:15px;padding:11px 18px;border:1px solid transparent;white-space:nowrap}
+.btn-primary{background:var(--gold);color:var(--navy);border-color:#D9A030;box-shadow:inset 0 -2px 0 rgba(26,34,56,.12)}
+.btn-ghost{background:transparent;color:var(--navy);border-color:var(--navy)}
+.search{display:flex;align-items:center;gap:8px;width:280px;height:42px;border:1px solid #B9BDB3;border-radius:6px;background:var(--paper);padding:0 12px;color:var(--sage-ink);font-size:14.5px}
+
+/* Library */
+.main{padding:34px 44px 0;overflow:hidden}
+.top{display:flex;align-items:flex-end;gap:16px}
+.top h2{font:500 42px/1 var(--serif);color:var(--navy);letter-spacing:-.015em}
+.top .sub{font-size:15px;color:var(--sage-ink);margin-top:8px}
+.top .spacer{flex:1}
+.chips{display:flex;gap:8px;margin:26px 0 22px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid #CFCAB8;background:transparent;color:var(--charcoal);border-radius:999px;padding:6px 13px;font-size:13.5px;font-weight:500}
+.chip em{font-style:normal;color:var(--sage-ink);font-variant-numeric:tabular-nums}
+.chip.on{background:var(--navy);border-color:var(--navy);color:var(--cream)}
+.chip.on em{color:var(--gold)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.card{display:flex;gap:18px;background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:16px 18px 16px 16px;min-height:0}
+.card .cv,.card .tc{width:104px}
+.card .info{display:flex;flex-direction:column;min-width:0;flex:1}
+.stage{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--navy);background:#F3EBD3;border-radius:4px;padding:3px 8px}
+.stage::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--sage)}
+.stage.live::before{background:var(--gold);box-shadow:0 0 0 3px rgba(244,185,66,.3)}
+.stage.done{background:var(--navy);color:var(--gold)}
+.stage.done::before{background:var(--gold)}
+.card h3{font:500 19px/1.18 var(--serif);color:var(--navy);margin-top:10px}
+.card .st{font-size:13px;line-height:1.35;color:var(--sage-ink);margin-top:4px}
+.card .by{font-size:13px;color:var(--charcoal);margin-top:8px;font-weight:500}
+.card .foot{margin-top:auto;padding-top:10px;font-size:12.5px;color:var(--sage-ink);font-variant-numeric:tabular-nums}
+.card .foot b{color:var(--charcoal);font-weight:600}
+.bar{height:4px;background:#EDE6D2;border-radius:2px;margin:6px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--navy)}
+.bar.gold i{background:var(--gold)}
+/* Title card for books with no cover yet */
+.tc{aspect-ratio:2/3;container-type:inline-size;background:#F2EAD3;border-radius:2px;position:relative;display:flex;flex-direction:column;justify-content:center;padding:0;text-align:center;color:var(--navy);flex:none}
+.tc::before{content:"";position:absolute;inset:6cqw;border:1px dashed #A7AD9F;border-radius:1px}
+.tc p{font:italic 400 13cqw/1.08 var(--serif);margin:0 12cqw}
+.tc small{font:500 8cqw/1.2 var(--sans);color:var(--sage-ink);margin-top:8cqw}
+
+/* Blueprint screen */
+.bp{display:grid;grid-template-columns:1fr 330px;height:900px;overflow:hidden}
+.bp-main{display:flex;flex-direction:column;min-width:0}
+.bookbar{padding:20px 40px 0;border-bottom:1px solid var(--rule);background:var(--cream)}
+.crumb{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--sage-ink)}
+.crumb a{color:var(--sage-ink);text-decoration:none}
+.crumb strong{color:var(--charcoal);font-weight:600}
+.steps{display:flex;gap:0;margin-top:14px}
+.steps li{display:flex;align-items:center;gap:7px;padding:10px 16px 12px;font-size:13.5px;font-weight:500;color:var(--sage-ink);border-bottom:3px solid transparent}
+.steps li:first-child{padding-left:0}
+.steps li.done{color:var(--navy)}
+.steps li.done .i{width:14px;height:14px;color:var(--gold-ink)}
+.steps li.now{color:var(--navy);font-weight:700;border-bottom-color:var(--gold)}
+.steps li .n{font-variant-numeric:tabular-nums;color:inherit;opacity:.7}
+.doc{padding:14px 40px 0;overflow:hidden}
+.titleblock{display:flex;gap:22px;align-items:flex-end}
+.titleblock .cv{width:66px}
+.kind{font-size:13px;color:var(--sage-ink);font-weight:500}
+.titleblock h2{font:500 38px/1.02 var(--serif);color:var(--navy);letter-spacing:-.015em;margin-top:6px}
+.titleblock .subt{font:italic 400 19px/1.25 var(--serif);color:var(--charcoal);margin-top:4px}
+.titleblock .auth{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #CFCAB8;border-radius:999px;padding:3px 10px 3px 4px;font-size:13px;font-weight:500;color:var(--charcoal);background:var(--paper)}
+.pill span{width:20px;height:20px;border-radius:50%;background:var(--navy);color:var(--gold);display:grid;place-items:center;font-size:9.5px;font-weight:700}
+.twocol{display:grid;grid-template-columns:1.75fr 1fr;gap:30px;margin-top:12px;padding-top:12px;border-top:1px solid var(--rule)}
+h3.sec{font:600 13.5px/1 var(--sans);color:var(--navy);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+h3.sec::before{content:"";width:14px;height:2px;background:var(--gold)}
+.prose{font:400 15px/1.47 var(--serif);color:var(--charcoal);max-width:68ch}
+.contents{margin-top:14px;padding-top:12px;border-top:1px solid var(--rule)}
+.contents .head{display:flex;align-items:baseline;gap:14px}
+.matter{font-size:13px;color:var(--sage-ink)}
+.matter b{font-weight:600;color:var(--charcoal)}
+.toc{display:grid;grid-template-columns:1fr 1fr;gap:0 34px;margin-top:6px}
+.ch{display:grid;grid-template-columns:26px 1fr;padding:4px 8px 5px 0;border-radius:6px}
+.ch .no{font:500 17px/1.2 var(--serif);color:var(--gold-ink);font-variant-numeric:oldstyle-nums}
+.ch h4{margin:0;font:500 15.5px/1.25 var(--serif);color:var(--navy)}
+.ch ul{margin-top:3px;border-left:1px solid #CCD1CA;padding-left:11px}
+.ch li{font-size:12.5px;line-height:1.38;color:var(--charcoal)}
+.ch.sel{background:#F7EDCF;box-shadow:inset 3px 0 0 var(--gold);padding-left:8px;margin-left:-8px}
+.ch.sel .no{color:var(--navy)}
+.ch .redo{float:right;font-family:var(--sans);font-size:12px;font-weight:600;color:var(--navy);display:inline-flex;align-items:center;gap:4px}
+.ch .redo .i{width:13px;height:13px}
+
+.insp{background:var(--paper);border-left:1px solid var(--rule);display:flex;flex-direction:column;height:900px}
+.insp-scroll{padding:20px 24px 0;overflow:hidden;flex:1}
+.insp section{padding:12px 0;border-bottom:1px solid var(--rule)}
+.insp section:first-child{padding-top:0}
+.insp h3{font:600 12.5px/1 var(--sans);color:var(--sage-ink);margin-bottom:10px}
+.ver{display:flex;justify-content:space-between;align-items:center;font-size:13.5px}
+.ver b{font:500 18px/1.2 var(--serif);color:var(--navy)}
+.big{font:500 30px/1 var(--serif);color:var(--navy);font-variant-numeric:lining-nums tabular-nums}
+.big small{font:500 13px var(--sans);color:var(--sage-ink);margin-left:6px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:5px 10px;font-size:13.5px;margin-top:10px;font-variant-numeric:tabular-nums}
+.kv dt{color:var(--sage-ink)} .kv dd{margin:0;color:var(--charcoal);font-weight:500;text-align:right}
+.tone li{font-size:13.5px;line-height:1.4;padding:3px 0 3px 14px;position:relative}
+.tone li::before{content:"";position:absolute;left:0;top:10px;width:5px;height:5px;border-radius:50%;background:var(--sage)}
+.model{font-size:13.5px;line-height:1.45}
+.model code{font:600 13.5px var(--sans);color:var(--navy);background:#F3EBD3;border-radius:4px;padding:1px 6px}
+.model p+p{margin-top:6px}
+.flag{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.4;background:#FBF1D6;border:1px solid #EBD39A;border-radius:8px;padding:10px 12px}
+.flag .i{color:var(--gold-ink);margin-top:1px}
+.actions{padding:16px 24px 22px;border-top:1px solid var(--rule);background:var(--paper);display:grid;gap:10px}
+.actions .sel{font-size:13px;color:var(--sage-ink)}
+.actions .sel b{color:var(--charcoal);font-weight:600}
+.actions .btn{justify-content:center;width:100%}
+
+/* Tokens */
+.tokens{margin-top:8px;background:var(--paper);border:1px solid #D8D1BC;border-radius:12px;padding:26px 30px;display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:28px}
+.tokens h2{font:600 13.5px/1 var(--sans);color:var(--navy);margin-bottom:14px}
+.sw{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.sw div{font-size:12.5px;line-height:1.35}
+.sw i{display:block;height:56px;border-radius:6px;margin-bottom:8px;border:1px solid rgba(26,34,56,.12)}
+.sw b{display:block;font-weight:600;color:var(--navy)}
+.tk p{font-size:14px;line-height:1.5;margin-bottom:8px}
+.tk .ff1{font:500 22px/1.2 var(--serif);color:var(--navy)}
+.tk .ff2{font:600 17px/1.2 var(--sans);color:var(--navy)}
+.feel{grid-column:1/-1;border-top:1px solid var(--rule);padding-top:16px;font:italic 400 19px/1.4 var(--serif);color:var(--navy)}
+.contrast{font-size:13px;color:var(--sage-ink);margin-top:10px;line-height:1.5}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-lib" viewBox="0 0 24 24"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16.5 5.2l3.8-1 3.7 15.5-3.8.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+<symbol id="i-prof" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.5 20c.6-3.6 3.2-5.6 6.5-5.6s5.9 2 6.5 5.6M15.5 5.2a3.5 3.5 0 0 1 0 6.6M18 14.8c2 .7 3.2 2.5 3.5 5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="i-new" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v7M8.5 13.5h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="i-set" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-redo" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.6h-4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<header class="board-head">
+  <h1>Direction A: Bindery</h1>
+  <p>Your own palette from the Book Architect draft, refined. Navy cloth for the chrome, cream pages for the work, gold kept for the one action that matters.</p>
+</header>
+
+<!-- SCREEN 1: LIBRARY -->
+<section class="frame" aria-label="Library screen">
+<div class="app">
+  <aside class="side">
+    <div class="brand"><svg viewBox="0 0 22 28" aria-hidden="true"><rect x="1" y="1" width="20" height="26" rx="2" fill="none" stroke="#FFF8E7" stroke-width="1.6"/><rect x="1" y="5" width="20" height="2.4" fill="#F4B942"/><rect x="1" y="20.6" width="20" height="2.4" fill="#F4B942"/></svg>Volume</div>
+    <button class="pen" type="button" aria-label="Switch pen name">
+      <span class="av"><span style="background:#F4B942;color:#1A2238;width:30px;height:30px;font-size:12px">3</span></span>
+      <span><b>All pen names</b><small>8 books in the library</small></span>
+      <svg class="i"><use href="#i-chev"/></svg>
+    </button>
+    <nav class="nav" aria-label="Main">
+      <a class="on" href="#"><svg class="i"><use href="#i-lib"/></svg>Library</a>
+      <a href="#"><svg class="i"><use href="#i-prof"/></svg>Profiles</a>
+      <a href="#"><svg class="i"><use href="#i-new"/></svg>New book</a>
+      <a href="#"><svg class="i"><use href="#i-set"/></svg>Settings</a>
+    </nav>
+    <div class="side-foot">
+      <div class="ok">OpenRouter connected</div>
+      <div class="row"><span>AI spend in October</span><span style="color:#FFF8E7">$4.82 of $40</span></div>
+      <div class="meter"><i style="width:12%"></i></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div><h2>Library</h2><p class="sub">8 books across 3 pen names. Last change today at 14:12.</p></div>
+      <span class="spacer"></span>
+      <div class="search"><svg class="i"><use href="#i-search"/></svg>Search titles and pen names</div>
+      <button class="btn btn-primary" type="button"><svg class="i"><use href="#i-plus"/></svg>New book</button>
+    </div>
+    <div class="chips" role="group" aria-label="Filter by stage">
+      <button class="chip on" type="button">All <em>8</em></button>
+      <button class="chip" type="button">Idea <em>1</em></button>
+      <button class="chip" type="button">Research <em>1</em></button>
+      <button class="chip" type="button">Blueprint <em>1</em></button>
+      <button class="chip" type="button">Writing <em>1</em></button>
+      <button class="chip" type="button">Editing <em>1</em></button>
+      <button class="chip" type="button">Cover <em>1</em></button>
+      <button class="chip" type="button">Export <em>1</em></button>
+      <button class="chip" type="button">Published <em>1</em></button>
+    </div>
+    <div class="grid">
+      <article class="card"><div class="cv cv-hand" role="img" aria-label="Cover of Handover"><p class="cv-t">HAND<br>OVER</p><span class="cv-bar"></span><p class="cv-s">Clear Communication for Busy Wards</p><p class="cv-a">Harni Muharami</p></div><div class="info"><span class="stage live">Writing</span><h3>Handover</h3><p class="st">Clear Communication for Busy Wards</p><p class="by">Harni Muharami</p><div class="foot"><div class="bar gold"><i style="width:56%"></i></div><b>21,340</b> of 38,000 words<br>Writing chapter 6 of 10</div></div></article>
+      <article class="card"><div class="cv cv-calm" role="img" aria-label="Cover of The Calm Ward"><p class="cv-t">The Calm<br>Ward</p><p class="cv-s">De-escalation and Compassion in NHS Practice</p><svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="#86C3BE" stroke-width=".9"><path d="M0 6 Q6.25 0 12.5 6 T25 6 T37.5 6 T50 6 T62.5 6 T75 6 T87.5 6 T100 6" opacity=".9"/><path d="M0 15 Q6.25 11 12.5 15 T25 15 T37.5 15 T50 15 T62.5 15 T75 15 T87.5 15 T100 15" opacity=".75"/><path d="M0 23 Q6.25 20.6 12.5 23 T25 23 T37.5 23 T50 23 T62.5 23 T75 23 T87.5 23 T100 23" opacity=".6"/><path d="M0 30 Q6.25 29 12.5 30 T25 30 T37.5 30 T50 30 T62.5 30 T75 30 T87.5 30 T100 30" opacity=".5"/><path d="M0 36.5 H100" opacity=".4"/></g></svg><p class="cv-a">Harni Muharami</p></div><div class="info"><span class="stage">Blueprint</span><h3>The Calm Ward</h3><p class="st">De-escalation and Compassion in NHS Practice</p><p class="by">Harni Muharami</p><div class="foot">Target <b>42,000</b> words<br>Blueprint ready to approve</div></div></article>
+      <article class="card"><div class="cv cv-charge" role="img" aria-label="Cover of The New Charge Nurse"><span class="cv-dot"></span><span class="cv-dot2"></span><p class="cv-t">The New<br>Charge<br>Nurse</p><p class="cv-s">Your First Year Leading a Shift</p><p class="cv-a">Harni Muharami</p></div><div class="info"><span class="stage">Editing</span><h3>The New Charge Nurse</h3><p class="st">Your First Year Leading a Shift</p><p class="by">Harni Muharami</p><div class="foot"><div class="bar"><i style="width:60%"></i></div><b>44,120</b> words<br>Line edit, 6 of 10 chapters</div></div></article>
+      <article class="card"><div class="cv cv-speak" role="img" aria-label="Cover of Speaking Up Safely"><p class="cv-t">Speaking<br>Up Safely</p><svg viewBox="0 0 44 40" aria-hidden="true"><path d="M4 4 H40 V28 H18 L9 36 V28 H4 Z" fill="none" stroke="#E58FB0" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 13 H32 M12 19 H26" stroke="#E58FB0" stroke-width="2.2" stroke-linecap="round"/></svg><p class="cv-s">A Nurse's Guide to Raising Concerns</p><p class="cv-a">Harni Muharami</p></div><div class="info"><span class="stage">Cover</span><h3>Speaking Up Safely</h3><p class="st">A Nurse's Guide to Raising Concerns</p><p class="by">Harni Muharami</p><div class="foot"><b>36,800</b> words<br>3 cover concepts to compare</div></div></article>
+      <article class="card"><div class="cv cv-sour" role="img" aria-label="Cover of Sourdough on a Weeknight"><svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="26" fill="#C98B4A"/><circle cx="30" cy="30" r="26" fill="none" stroke="#E3B27A" stroke-width="1.2" opacity=".6"/><path d="M14 22 Q30 14 46 22 M12 31 Q30 23 48 31 M15 40 Q30 33 45 40" fill="none" stroke="#3A2A1F" stroke-width="2.4" stroke-linecap="round"/></svg><p class="cv-t">Sourdough on a Weeknight</p><p class="cv-a">Ada Fenwick</p></div><div class="info"><span class="stage">Export</span><h3>Sourdough on a Weeknight</h3><p class="st">Slow Bread for Busy People</p><p class="by">Ada Fenwick</p><div class="foot"><b>29,450</b> words<br>Preflight: 2 warnings to check</div></div></article>
+      <article class="card"><div class="cv cv-herb" role="img" aria-label="Cover of Windowsill Herbs"><svg viewBox="0 0 40 68" aria-hidden="true"><path d="M20 66 V6" stroke="#DCE6C8" stroke-width="1.6" fill="none"/><g fill="#DCE6C8"><path d="M20 14 C12 12 8 6 9 2 C15 3 19 8 20 14Z"/><path d="M20 14 C28 12 32 6 31 2 C25 3 21 8 20 14Z"/><path d="M20 30 C10 28 5 21 6 16 C14 17 19 23 20 30Z"/><path d="M20 30 C30 28 35 21 34 16 C26 17 21 23 20 30Z"/><path d="M20 47 C9 45 3 37 4 31 C13 32 19 39 20 47Z"/><path d="M20 47 C31 45 37 37 36 31 C27 32 21 39 20 47Z"/></g></svg><p class="cv-t">Windowsill<br>Herbs</p><p class="cv-a">Ada Fenwick</p></div><div class="info"><span class="stage done">Published</span><h3>Windowsill Herbs</h3><p class="st">Grow, Pick and Cook from One Sunny Sill</p><p class="by">Ada Fenwick</p><div class="foot"><b>24,600</b> words<br>Published 12 September 2026</div></div></article>
+      <article class="card"><div class="tc"><p>Night Shift Survival</p><small>No cover yet</small></div><div class="info"><span class="stage">Research</span><h3>Night Shift Survival</h3><p class="st">Sleep, Food and Recovery for Healthcare Workers</p><p class="by">Harni Muharami</p><div class="foot"><b>18</b> cited sources found<br>Research running, 4 minutes left</div></div></article>
+      <article class="card"><div class="tc"><p>Milo and the Moon Kite</p><small>No cover yet</small></div><div class="info"><span class="stage">Idea</span><h3>Milo and the Moon Kite</h3><p class="st">Picture book for ages 3 to 6</p><p class="by">Tobi Rhymes</p><div class="foot">Idea saved 2 October<br>Next step: research</div></div></article>
+    </div>
+  </main>
+</div>
+</section>
+<p class="cap">Screen 1. Library, all pen names, 1440 by 900</p>
+
+<!-- SCREEN 2: BLUEPRINT -->
+<section class="frame" aria-label="Blueprint screen">
+<div class="app">
+  <aside class="side">
+    <div class="brand"><svg viewBox="0 0 22 28" aria-hidden="true"><rect x="1" y="1" width="20" height="26" rx="2" fill="none" stroke="#FFF8E7" stroke-width="1.6"/><rect x="1" y="5" width="20" height="2.4" fill="#F4B942"/><rect x="1" y="20.6" width="20" height="2.4" fill="#F4B942"/></svg>Volume</div>
+    <button class="pen" type="button" aria-label="Switch pen name">
+      <span class="av"><span style="background:#F4B942;color:#1A2238;width:30px;height:30px;font-size:11px">HM</span></span>
+      <span><b>Harni Muharami</b><small>Pen name, 5 books</small></span>
+      <svg class="i"><use href="#i-chev"/></svg>
+    </button>
+    <nav class="nav" aria-label="Main">
+      <a class="on" href="#"><svg class="i"><use href="#i-lib"/></svg>Library</a>
+      <a href="#"><svg class="i"><use href="#i-prof"/></svg>Profiles</a>
+      <a href="#"><svg class="i"><use href="#i-new"/></svg>New book</a>
+      <a href="#"><svg class="i"><use href="#i-set"/></svg>Settings</a>
+    </nav>
+    <div class="side-foot">
+      <div class="ok">OpenRouter connected</div>
+      <div class="row"><span>AI spend in October</span><span style="color:#FFF8E7">$4.82 of $40</span></div>
+      <div class="meter"><i style="width:12%"></i></div>
+    </div>
+  </aside>
+
+  <div class="bp">
+    <div class="bp-main">
+      <div class="bookbar">
+        <div class="crumb"><a href="#">Library</a><svg class="i" style="width:14px;transform:rotate(-90deg)"><use href="#i-chev"/></svg><strong>The Calm Ward</strong></div>
+        <ol class="steps" aria-label="Book stages">
+          <li class="done"><svg class="i"><use href="#i-check"/></svg>Idea</li>
+          <li class="done"><svg class="i"><use href="#i-check"/></svg>Research</li>
+          <li class="done"><svg class="i"><use href="#i-check"/></svg>Title</li>
+          <li class="now" aria-current="step">Blueprint</li>
+          <li>Writing</li><li>Editing</li><li>Cover</li><li>Export</li><li>Published</li>
+        </ol>
+      </div>
+      <div class="doc">
+        <div class="titleblock">
+          <div class="cv cv-calm" role="img" aria-label="Cover of The Calm Ward"><p class="cv-t">The Calm<br>Ward</p><p class="cv-s">De-escalation and Compassion in NHS Practice</p><svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="#86C3BE" stroke-width=".9"><path d="M0 6 Q6.25 0 12.5 6 T25 6 T37.5 6 T50 6 T62.5 6 T75 6 T87.5 6 T100 6" opacity=".9"/><path d="M0 15 Q6.25 11 12.5 15 T25 15 T37.5 15 T50 15 T62.5 15 T75 15 T87.5 15 T100 15" opacity=".75"/><path d="M0 23 Q6.25 20.6 12.5 23 T25 23 T37.5 23 T50 23 T62.5 23 T75 23 T87.5 23 T100 23" opacity=".6"/><path d="M0 30 Q6.25 29 12.5 30 T25 30 T37.5 30 T50 30 T62.5 30 T75 30 T87.5 30 T100 30" opacity=".5"/><path d="M0 36.5 H100" opacity=".4"/></g></svg><p class="cv-a">Harni Muharami</p></div>
+          <div>
+            <p class="kind">Non-fiction, 10 chapters, blueprint version 3</p>
+            <h2>The Calm Ward</h2>
+            <p class="subt">De-escalation and Compassion in NHS Practice</p>
+            <p class="auth">By <span class="pill"><span>HM</span>Harni Muharami</span></p>
+          </div>
+        </div>
+        <div class="twocol">
+          <div><h3 class="sec">Summary</h3><p class="prose">Every shift on a busy ward holds moments that could tip into conflict: a frightened relative, a patient in pain, a colleague at the end of a long night. From years on wards and in the emergency department, I show how to read distress early, talk people down with dignity, keep teams safe and learn from each incident without blame.</p></div>
+          <div><h3 class="sec">Target audience</h3><p class="prose">Ward nurses, healthcare assistants and student nurses in NHS settings, plus the ward managers, matrons and clinical educators who shape safer teams.</p></div>
+        </div>
+        <div class="contents">
+          <div class="head"><h3 class="sec">Contents</h3><p class="matter"><b>Front matter</b> Dedication, Acknowledgements, Introduction, Preface</p></div>
+          <div class="toc">
+            <ol>
+              <li class="ch"><span class="no">1</span><div><h4>The Reality Of Risk In Modern Healthcare</h4><ul><li>The Rising Tide Of Aggression</li><li>The Hidden Cost Of Incivility</li><li>Impact On Staff Retention And Patient Care</li></ul></div></li>
+              <li class="ch"><span class="no">2</span><div><h4>The Psychology Of Aggression And Distress</h4><ul><li>Fear, Pain And Frustration As Drivers</li><li>Clinical Causes Of Behavioural Disturbance</li><li>Recognising The Escalation Cycle</li></ul></div></li>
+              <li class="ch"><span class="no">3</span><div><h4>Safe By Design: Environmental Factors</h4><ul><li>Optimising Ward Layout And Sightlines</li><li>Reducing Sensory Overload In Clinical Areas</li><li>Security Measures That Maintain Dignity</li></ul></div></li>
+              <li class="ch sel"><span class="no">4</span><div><h4>The Art Of Verbal De-escalation <span class="redo">Selected</span></h4><ul><li>Body Language And Non-Verbal Cues</li><li>The Talk Down Approach</li><li>Knowing When To Step Back</li><li>Communication Barriers And Interpreters</li></ul></div></li>
+              <li class="ch"><span class="no">5</span><div><h4>Addressing Horizontal Violence And Incivility</h4><ul><li>Bullying In The Breakroom</li><li>The Civility Saves Lives Movement</li><li>Encouraging Bystander Intervention</li></ul></div></li>
+            </ol>
+            <ol>
+              <li class="ch"><span class="no">6</span><div><h4>Cultivating Psychological Safety</h4><ul><li>Freedom To Speak Up Guardians</li><li>Moving Beyond A Blame Culture</li><li>Reporting Near Misses Without Fear</li></ul></div></li>
+              <li class="ch"><span class="no">7</span><div><h4>Dynamic Risk Assessment In Practice</h4><ul><li>Continuous Situational Awareness</li><li>Reading Patient History And Flags</li><li>Effective Handover Protocols</li></ul></div></li>
+              <li class="ch"><span class="no">8</span><div><h4>Managing Acute Behavioural Disturbances</h4><ul><li>Least Restrictive Practice Guidelines</li><li>The Mental Capacity Act And Restraint</li><li>Rapid Tranquilisation Safety Protocols</li></ul></div></li>
+              <li class="ch"><span class="no">9</span><div><h4>Post-Incident Support And Learning</h4><ul><li>Hot And Cold Debriefing Techniques</li><li>Trauma Risk Management (TRiM)</li><li>Restorative Practice With Patients</li></ul></div></li>
+              <li class="ch"><span class="no">10</span><div><h4>Leadership And Systemic Change</h4><ul><li>The Role Of Matrons And Ward Managers</li><li>Bridging The Gap Between Policy And Practice</li><li>Building A Resilient Team Culture</li></ul></div></li>
+              <li class="ch"><span class="no"></span><p class="matter" style="padding-top:4px"><b>Back matter</b> Conclusion, About the author, Also by</p></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="insp" aria-label="Blueprint details">
+      <div class="insp-scroll">
+        <section><div class="ver"><b>Blueprint version 3</b><span style="color:var(--sage-ink)">Today, 14:12</span></div></section>
+        <section>
+          <h3>Word targets</h3>
+          <p class="big">42,000<small>words in total</small></p>
+          <dl class="kv"><dt>10 chapters</dt><dd>3,600 to 4,400 each</dd><dt>Front matter</dt><dd>2,400</dd><dt>Back matter</dt><dd>1,800</dd></dl>
+        </section>
+        <section>
+          <h3>Tone notes</h3>
+          <ul class="tone"><li>First person, warm and steady</li><li>British English, NHS terms explained on first use</li><li>Stories are illustrative, no real patients</li><li>Flowing prose, no lists inside chapters</li></ul>
+        </section>
+        <section class="model">
+          <h3>Model</h3>
+          <p><code>anthropic/claude-sonnet</code> via OpenRouter</p>
+          
+        </section>
+        <section>
+          <h3>Cost so far</h3>
+          <p class="big">$0.46<small>of $12.00 budget</small></p>
+          <div class="bar gold" style="margin-top:10px"><i style="width:4%"></i></div>
+          <dl class="kv"><dt>Research</dt><dd>$0.31</dd><dt>Titles</dt><dd>$0.04</dd><dt>Blueprint, 3 versions</dt><dd>$0.11</dd></dl>
+        </section>
+        <section style="border:0"><div class="flag"><svg class="i"><use href="#i-flag"/></svg><span>3 clinical statements to verify in chapters 8 and 9 before export.</span></div></section>
+      </div>
+      <div class="actions">
+        <p class="sel">Selected part: <b>Chapter 4</b></p>
+        <button class="btn btn-ghost" type="button"><svg class="i"><use href="#i-redo"/></svg>Regenerate part</button>
+        <button class="btn btn-primary" type="button"><svg class="i"><use href="#i-check"/></svg>Approve blueprint</button>
+      </div>
+    </aside>
+  </div>
+</div>
+</section>
+<p class="cap">Screen 2. Blueprint for The Calm Ward, chapter 4 selected, 1440 by 900</p>
+
+<footer class="tokens" aria-label="Design tokens">
+  <div>
+    <h2>Colour</h2>
+    <div class="sw">
+      <div><i style="background:#1A2238"></i><b>Deep Navy</b>#1A2238<br>Chrome, headings</div>
+      <div><i style="background:#F4B942"></i><b>Rich Gold</b>#F4B942<br>Primary action, live</div>
+      <div><i style="background:#FFF8E7"></i><b>Warm Cream</b>#FFF8E7<br>Page</div>
+      <div><i style="background:#9FA8A3"></i><b>Soft Sage</b>#9FA8A3<br>Borders, dots only</div>
+      <div><i style="background:#2D3142"></i><b>Charcoal</b>#2D3142<br>Body text</div>
+      <div><i style="background:#8A6514"></i><b>Antique Gold</b>#8A6514<br>Gold for text</div>
+    </div>
+    <p class="contrast">Contrast (WCAG 2.2): body text Charcoal on Cream 12.17:1 (AAA). Primary button Navy on Gold 8.92:1 (AAA). Secondary text uses Sage Ink #5B6660, 5.64:1 (AA), because Soft Sage on Cream is only 2.31:1. Antique Gold on Cream 5.02:1 (AA). Nav text #C9CED8 on Navy 10.0:1.</p>
+  </div>
+  <div class="tk">
+    <h2>Type</h2>
+    <p class="ff1">Newsreader</p><p>Book titles, headings, summaries and all book text. Old-style numerals in the contents.</p>
+    <p class="ff2">Hanken Grotesk</p><p>Interface: navigation, labels, numbers, buttons.</p>
+  </div>
+  <div class="tk">
+    <h2>Shape and depth</h2>
+    <p>Radius 6px on controls, 10px on cards and panels, 999px on filter chips, 2px on covers.</p>
+    <p>Panels are flat with a cream rule. Only book covers cast a shadow, so they read as objects on a table.</p>
+  </div>
+  <p class="feel">Feel: a well-made hardback, navy cloth and gilt edges outside, calm cream pages inside.</p>
+</footer>
+</body>
+</html>

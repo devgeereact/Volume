@@ -1,0 +1,398 @@
+{
+  "$comment": "Fiction template (phase 6). Same section model as nonfiction.json. No takeaways, scene breaks, chapters without subheadings. source: profile | owner | ai | app (see README.md).",
+  "id": "fiction",
+  "version": 2,
+  "name": "Fiction",
+  "locale": "en-GB",
+  "voice": {
+    "perspective": "set per book: first-person or close-third",
+    "defaultPerspective": "close-third",
+    "tense": "past",
+    "aboutTheAuthorPerspective": "third-person",
+    "contractions": true,
+    "houseStyle": "config/house-style.json"
+  },
+  "wordTargets": {
+    "total": {
+      "min": 40000,
+      "max": 90000,
+      "default": 60000
+    },
+    "tolerance": 0.15,
+    "note": "Starting ranges for the owner to change per book; they are not market data."
+  },
+  "chapterRules": {
+    "count": {
+      "default": 24,
+      "min": 10,
+      "max": 50
+    },
+    "wordTarget": {
+      "default": 2500,
+      "min": 1500,
+      "max": 4000
+    },
+    "numbering": "arabic",
+    "titled": {
+      "default": false,
+      "note": "Chapter titles optional; when on, title case."
+    },
+    "subheadings": {
+      "min": 0,
+      "max": 0
+    },
+    "sceneBreaks": {
+      "enabled": true,
+      "marker": "* * *",
+      "note": "Marker rendered centred; never a dash."
+    },
+    "takeaways": {
+      "enabled": false
+    },
+    "openingHook": {
+      "styleOptions": [
+        "in-scene",
+        "dialogue",
+        "image",
+        "question"
+      ],
+      "default": "in-scene",
+      "consistentAcrossBook": false,
+      "rules": {
+        "in-scene": "Start inside action or a sensory moment.",
+        "dialogue": "Start on a line of dialogue.",
+        "image": "Start on a striking concrete image.",
+        "question": "Start on a question a character is asking."
+      }
+    },
+    "bridgeToNext": {
+      "enabled": true,
+      "rule": "End on a turn, a question or a change, never a summary."
+    },
+    "continuity": "Every chapter receives the story bible (characters, places, timeline) and the used-already ledger."
+  },
+  "storyBible": {
+    "fields": [
+      "logline",
+      "themes",
+      "characters (name, role, want, need, flaw, voice notes, appearance)",
+      "settings",
+      "timeline",
+      "rules of the world",
+      "point of view plan",
+      "ending"
+    ],
+    "source": "ai",
+    "promptId": "blueprint.blueprint"
+  },
+  "sections": [
+    {
+      "id": "half-title",
+      "kind": "front",
+      "title": "Half Title",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner"
+    },
+    {
+      "id": "title-page",
+      "kind": "front",
+      "title": "Title Page",
+      "required": true,
+      "defaultOn": true,
+      "source": "owner",
+      "fields": [
+        "book.title",
+        "book.subtitle",
+        "profile.penName",
+        "profile.imprint"
+      ]
+    },
+    {
+      "id": "copyright",
+      "kind": "front",
+      "title": "Copyright",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "template": [
+        "Copyright © {year} {authorName}. All rights reserved.",
+        "No part of this publication may be reproduced, distributed or transmitted in any form or by any means without the prior written permission of the author, except for brief quotations in reviews.",
+        "This is a work of fiction. Names, characters, places and incidents are the product of the author's imagination or are used fictitiously. Any resemblance to actual persons, living or dead, or actual events is coincidental.",
+        "{edition}",
+        "{isbnLine}",
+        "{imprintLine}"
+      ],
+      "fields": {
+        "year": "automatic",
+        "authorName": "profile.copyrightName or profile.penName",
+        "edition": "owner only",
+        "isbnLine": "owner-entered ISBN only, never generated",
+        "imprintLine": "profile.imprint only"
+      },
+      "kdpRuleIds": [
+        "isbn"
+      ]
+    },
+    {
+      "id": "dedication",
+      "kind": "front",
+      "title": "Dedication",
+      "required": false,
+      "defaultOn": true,
+      "source": "ai",
+      "content": "Names only from the profile.",
+      "promptId": "writing.front-matter"
+    },
+    {
+      "id": "epigraph",
+      "kind": "front",
+      "title": "Epigraph",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner"
+    },
+    {
+      "id": "map",
+      "kind": "front",
+      "title": "Map",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "A map of the story world, drawn or commissioned by the owner. Never AI text. Fantasy and romantasy books list it."
+    },
+    {
+      "id": "cast-of-characters",
+      "kind": "front",
+      "title": "Cast of Characters",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "Short list of the main characters with one line each, from the story bible. The owner writes or approves it. Cosy mysteries list it."
+    },
+    {
+      "id": "contents",
+      "kind": "front",
+      "title": "Contents",
+      "required": true,
+      "defaultOn": true,
+      "source": "app",
+      "content": "Chapters only (and parts if used)."
+    },
+    {
+      "id": "prologue",
+      "kind": "front",
+      "title": "Prologue",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "promptId": "writing.chapter"
+    },
+    {
+      "id": "parts",
+      "kind": "part",
+      "title": "Part {roman}: {partTitle}",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai"
+    },
+    {
+      "id": "chapters",
+      "kind": "chapter",
+      "title": "Chapter {n}",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "repeat": true,
+      "promptId": "writing.chapter"
+    },
+    {
+      "id": "epilogue",
+      "kind": "back",
+      "title": "Epilogue",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "promptId": "writing.conclusion"
+    },
+    {
+      "id": "glossary",
+      "kind": "back",
+      "title": "Glossary",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "content": "Invented words, places and terms of the story world, one or two sentences each, only as the chapters use them.",
+      "promptId": "writing.back-matter"
+    },
+    {
+      "id": "historical-note",
+      "kind": "back",
+      "title": "Historical Note",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "What is real and what is invented, in the owner's words. Never AI facts: historical claims need the owner's sources."
+    },
+    {
+      "id": "recipe-or-extra",
+      "kind": "back",
+      "title": "A Recipe or Extra",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "A recipe or small extra tied to the story, supplied by the owner."
+    },
+    {
+      "id": "story-notes",
+      "kind": "back",
+      "title": "Story Notes",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "A few lines from the owner on where each story came from."
+    },
+    {
+      "id": "acknowledgements",
+      "kind": "back",
+      "title": "Acknowledgements",
+      "required": false,
+      "defaultOn": true,
+      "source": "ai",
+      "content": "Groups only unless names are in the profile.",
+      "promptId": "writing.front-matter"
+    },
+    {
+      "id": "about-the-author",
+      "kind": "back",
+      "title": "About the Author",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "profile.bio word for word."
+    },
+    {
+      "id": "also-by",
+      "kind": "back",
+      "title": "Also by {penName}",
+      "required": false,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "Published books under this pen name only."
+    },
+    {
+      "id": "review-request",
+      "kind": "back",
+      "title": "A Small Request",
+      "required": false,
+      "defaultOn": true,
+      "source": "ai",
+      "kdpRuleIds": [
+        "reviews.kdpRules",
+        "reviews.amazonCommunityRules"
+      ],
+      "promptId": "writing.back-matter"
+    },
+    {
+      "id": "newsletter-socials",
+      "kind": "back",
+      "title": "Stay in Touch",
+      "required": false,
+      "defaultOn": true,
+      "source": "profile"
+    },
+    {
+      "id": "summary",
+      "kind": "package",
+      "title": "Synopsis",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "content": "Full synopsis including the ending, kept with the blueprint, not printed.",
+      "promptId": "blueprint.blueprint"
+    }
+  ],
+  "packages": {
+    "publishing": [
+      {
+        "id": "back-cover-blurb",
+        "source": "ai",
+        "promptId": "matter.back-cover",
+        "rule": "Hook, stakes, no spoilers."
+      },
+      {
+        "id": "short-bio",
+        "source": "profile"
+      },
+      {
+        "id": "amazon-description",
+        "source": "ai",
+        "promptId": "matter.amazon-description",
+        "kdpRuleIds": [
+          "listing.description.maxChars",
+          "listing.description.allowedFormatting"
+        ]
+      },
+      {
+        "id": "categories",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.categories"
+        ]
+      },
+      {
+        "id": "keywords",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.keywords"
+        ]
+      },
+      {
+        "id": "title-check",
+        "source": "app",
+        "kdpRuleIds": [
+          "listing.titleSubtitle.maxChars"
+        ]
+      },
+      {
+        "id": "ai-disclosure-note",
+        "source": "app",
+        "kdpRuleIds": [
+          "ai.disclosure"
+        ]
+      },
+      {
+        "id": "claims-report",
+        "source": "ai",
+        "promptId": "checks.claims",
+        "content": "Fiction still flags real-world medical, legal or safety instructions presented as fact, and real people named."
+      }
+    ],
+    "marketing": [
+      {
+        "id": "tiktok-scripts",
+        "source": "ai",
+        "promptId": "marketing.tiktok-scripts",
+        "rule": "Hooks with no spoilers."
+      },
+      {
+        "id": "instagram-captions",
+        "source": "ai",
+        "promptId": "marketing.instagram-captions"
+      },
+      {
+        "id": "launch-email",
+        "source": "ai",
+        "promptId": "marketing.launch-email"
+      }
+    ]
+  },
+  "derivedFrom": [
+    "docs/PLAN.md: Book templates (fiction)",
+    "draft: BOOK CREATION (title formulas for fiction)",
+    "draft: BOOK.md vision (genre engines, story bible)",
+    "P02 BOK-17, BOK-25"
+  ]
+}

@@ -1,0 +1,1267 @@
+{
+  "$comment": "Cover styles (D-017). A style sets typography, layout, a motif and a few palette families, so every book can look different while staying right for its genre. Fonts are SIL OFL 1.1 families installed for the prototype (assets/fonts/README.md). Positions and sizes are in cover-width units (1 = 1% of the cover width; a 2:3 cover is 150 units tall). A book picks a style and a palette and may override title lines, sizes and the motif. Typographic covers are the free default; image covers come from the cover stage. Text stays inside the safe zone in paperback.cover.safeZone (unverified) and away from the barcode area (paperback.cover.barcodeArea, unverified).",
+  "version": 1,
+  "updatedOn": "2026-10-04",
+  "units": "cover-width percent",
+  "kdpRuleIds": [
+    "paperback.cover",
+    "ebook.cover",
+    "paperback.cover.safeZone",
+    "paperback.cover.barcodeArea"
+  ],
+  "styles": [
+    {
+      "id": "serene-serif",
+      "name": "Serene serif",
+      "description": "Soft display serif over calm horizontal waves. Trustworthy and quiet.",
+      "suits": [
+        "healthcare-professional",
+        "health-wellbeing"
+      ],
+      "typography": {
+        "typeface": "serif-display",
+        "titleFont": "DM Serif Display",
+        "titleWeight": 400,
+        "titleItalic": false,
+        "titleCase": "as-written",
+        "titleTracking": "normal",
+        "subtitleFont": "Libre Franklin",
+        "authorFont": "Libre Franklin",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "title-top",
+        "align": "left",
+        "titleTop": 11,
+        "titleSize": 16,
+        "subtitleTop": 47,
+        "subtitleRightInset": 20,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "waves",
+        "box": {
+          "top": 84,
+          "left": 0,
+          "width": 100,
+          "height": 38
+        },
+        "description": "Layered wave lines across the foot of the cover."
+      },
+      "palettes": [
+        {
+          "id": "teal-cream",
+          "name": "Teal and cream",
+          "background": "#1F4B55",
+          "title": "#F5F1E8",
+          "subtitle": "#BFE0DC",
+          "author": "#F5F1E8",
+          "motif": "#86C3BE",
+          "motifAlt": "#86C3BE"
+        },
+        {
+          "id": "sage-ink",
+          "name": "Sage and ink",
+          "background": "#DCE5D6",
+          "title": "#1E2B2A",
+          "subtitle": "#3C524D",
+          "author": "#1E2B2A",
+          "motif": "#7FA391",
+          "motifAlt": "#7FA391"
+        },
+        {
+          "id": "dusk-blue",
+          "name": "Dusk blue",
+          "background": "#26314F",
+          "title": "#F1ECE2",
+          "subtitle": "#C9D3EE",
+          "author": "#F1ECE2",
+          "motif": "#8FA4D9",
+          "motifAlt": "#8FA4D9"
+        }
+      ]
+    },
+    {
+      "id": "bold-condensed",
+      "name": "Bold condensed",
+      "description": "Huge condensed capitals with one hard rule. Loud, practical, unmissable at thumbnail size.",
+      "suits": [
+        "healthcare-professional",
+        "self-help",
+        "business-money"
+      ],
+      "typography": {
+        "typeface": "condensed-black",
+        "titleFont": "Big Shoulders Display",
+        "titleWeight": 900,
+        "titleItalic": false,
+        "titleCase": "upper",
+        "titleTracking": "normal",
+        "subtitleFont": "Libre Franklin",
+        "authorFont": "Libre Franklin",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "stacked-top",
+        "align": "left",
+        "titleTop": 9,
+        "titleSize": 24,
+        "subtitleTop": 72,
+        "subtitleRightInset": 22,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "rule",
+        "box": {
+          "top": 63,
+          "left": 10,
+          "width": 44,
+          "height": 3.2
+        },
+        "description": "One thick rule between title and subtitle."
+      },
+      "palettes": [
+        {
+          "id": "paper-red",
+          "name": "Paper and signal red",
+          "background": "#EAE4D6",
+          "title": "#191919",
+          "subtitle": "#191919",
+          "author": "#191919",
+          "motif": "#C33A2C",
+          "motifAlt": "#C33A2C"
+        },
+        {
+          "id": "ink-yellow",
+          "name": "Ink and yellow",
+          "background": "#1B1D22",
+          "title": "#F4D35E",
+          "subtitle": "#E9E4D8",
+          "author": "#E9E4D8",
+          "motif": "#F4D35E",
+          "motifAlt": "#F4D35E"
+        },
+        {
+          "id": "blueprint",
+          "name": "Blueprint",
+          "background": "#1F4E8C",
+          "title": "#F2F5FA",
+          "subtitle": "#D5E2F3",
+          "author": "#F2F5FA",
+          "motif": "#9CC1F0",
+          "motifAlt": "#9CC1F0"
+        }
+      ]
+    },
+    {
+      "id": "modern-grotesk",
+      "name": "Modern grotesk",
+      "description": "Heavy grotesk set low, with overlapping circles above. Friendly and modern.",
+      "suits": [
+        "healthcare-professional",
+        "travel",
+        "self-help"
+      ],
+      "typography": {
+        "typeface": "grotesk-heavy",
+        "titleFont": "Libre Franklin",
+        "titleWeight": 800,
+        "titleItalic": false,
+        "titleCase": "as-written",
+        "titleTracking": "normal",
+        "subtitleFont": "Libre Franklin",
+        "authorFont": "Libre Franklin",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "title-low",
+        "align": "left",
+        "titleTop": 70,
+        "titleSize": 12.6,
+        "subtitleTop": 111,
+        "subtitleRightInset": 9,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "orbs",
+        "box": {
+          "top": 10,
+          "left": 52,
+          "width": 64,
+          "height": 64
+        },
+        "description": "Two overlapping circles bleeding off the top right."
+      },
+      "palettes": [
+        {
+          "id": "amber-navy",
+          "name": "Amber and navy",
+          "background": "#E3A935",
+          "title": "#1C2B4B",
+          "subtitle": "#1C2B4B",
+          "author": "#1C2B4B",
+          "motif": "#1C2B4B",
+          "motifAlt": "#E3A935"
+        },
+        {
+          "id": "mint-forest",
+          "name": "Mint and forest",
+          "background": "#BFE3CF",
+          "title": "#163A2C",
+          "subtitle": "#163A2C",
+          "author": "#163A2C",
+          "motif": "#2E6B4F",
+          "motifAlt": "#BFE3CF"
+        },
+        {
+          "id": "coral-plum",
+          "name": "Coral and plum",
+          "background": "#F2A38C",
+          "title": "#3B1C3A",
+          "subtitle": "#3B1C3A",
+          "author": "#3B1C3A",
+          "motif": "#3B1C3A",
+          "motifAlt": "#F2A38C"
+        }
+      ]
+    },
+    {
+      "id": "quiet-italic",
+      "name": "Quiet italic",
+      "description": "Large italic serif on a deep colour with a small line drawing. Personal and reflective.",
+      "suits": [
+        "memoir-biography",
+        "literary-fiction",
+        "short-story-collection",
+        "poetry"
+      ],
+      "typography": {
+        "typeface": "italic-serif",
+        "titleFont": "DM Serif Display",
+        "titleWeight": 400,
+        "titleItalic": true,
+        "titleCase": "as-written",
+        "titleTracking": "normal",
+        "subtitleFont": "Libre Franklin",
+        "authorFont": "Libre Franklin",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "title-top",
+        "align": "left",
+        "titleTop": 12,
+        "titleSize": 14,
+        "subtitleTop": 100,
+        "subtitleRightInset": 26,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "rule",
+        "box": {
+          "top": 56,
+          "left": 10,
+          "width": 24,
+          "height": 1.2
+        },
+        "description": "A short fine rule; books may swap in a drawing that fits the subject."
+      },
+      "palettes": [
+        {
+          "id": "plum-rose",
+          "name": "Plum and rose",
+          "background": "#4A1E3E",
+          "title": "#F7D7E2",
+          "subtitle": "#E9B3C7",
+          "author": "#F7D7E2",
+          "motif": "#E58FB0",
+          "motifAlt": "#E58FB0"
+        },
+        {
+          "id": "forest-cream",
+          "name": "Forest and cream",
+          "background": "#203A2F",
+          "title": "#EFE6D2",
+          "subtitle": "#C9D6C2",
+          "author": "#EFE6D2",
+          "motif": "#A9C29B",
+          "motifAlt": "#A9C29B"
+        },
+        {
+          "id": "slate-peach",
+          "name": "Slate and peach",
+          "background": "#36404D",
+          "title": "#F6D5C3",
+          "subtitle": "#E4C3B2",
+          "author": "#F6D5C3",
+          "motif": "#E9A98B",
+          "motifAlt": "#E9A98B"
+        }
+      ]
+    },
+    {
+      "id": "slab-kitchen",
+      "name": "Kitchen slab",
+      "description": "Sturdy serif with a big round drawing of the food. Warm and hungry.",
+      "suits": [
+        "cookbook"
+      ],
+      "typography": {
+        "typeface": "slab-serif",
+        "titleFont": "Young Serif",
+        "titleWeight": 400,
+        "titleItalic": false,
+        "titleCase": "as-written",
+        "titleTracking": "normal",
+        "subtitleFont": "Libre Franklin",
+        "authorFont": "Libre Franklin",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "title-low",
+        "align": "left",
+        "titleTop": 80,
+        "titleSize": 11,
+        "subtitleTop": null,
+        "subtitleRightInset": 9,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "loaf",
+        "box": {
+          "top": 12,
+          "left": 20,
+          "width": 60,
+          "height": 60
+        },
+        "description": "A round loaf seen from above with scored lines."
+      },
+      "palettes": [
+        {
+          "id": "crust-dark",
+          "name": "Crust",
+          "background": "#3A2A1F",
+          "title": "#F2D7A6",
+          "subtitle": "#F2D7A6",
+          "author": "#F2D7A6",
+          "motif": "#C98B4A",
+          "motifAlt": "#E3B27A"
+        },
+        {
+          "id": "flour-light",
+          "name": "Flour",
+          "background": "#F1E6D2",
+          "title": "#3A2A1F",
+          "subtitle": "#5A4433",
+          "author": "#3A2A1F",
+          "motif": "#C98B4A",
+          "motifAlt": "#8C5A2B"
+        },
+        {
+          "id": "tomato",
+          "name": "Tomato",
+          "background": "#B8402E",
+          "title": "#FBEBD9",
+          "subtitle": "#F6D3BC",
+          "author": "#FBEBD9",
+          "motif": "#F4B26B",
+          "motifAlt": "#FBEBD9"
+        }
+      ]
+    },
+    {
+      "id": "botanical-didone",
+      "name": "Botanical didone",
+      "description": "High-contrast italic didone with a fine botanical drawing. Elegant and calm.",
+      "suits": [
+        "historical-romance",
+        "historical-fiction"
+      ],
+      "typography": {
+        "typeface": "didone-italic",
+        "titleFont": "Bodoni Moda",
+        "titleWeight": 500,
+        "titleItalic": true,
+        "titleCase": "as-written",
+        "titleTracking": "normal",
+        "subtitleFont": "Libre Franklin",
+        "authorFont": "Libre Franklin",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "title-low",
+        "align": "left",
+        "titleTop": 86,
+        "titleSize": 14,
+        "subtitleTop": null,
+        "subtitleRightInset": 9,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "sprig",
+        "box": {
+          "top": 9,
+          "left": 30,
+          "width": 40,
+          "height": 68
+        },
+        "description": "A herb sprig drawn in one colour."
+      },
+      "palettes": [
+        {
+          "id": "herb-green",
+          "name": "Herb green",
+          "background": "#5D7B55",
+          "title": "#F6F2E4",
+          "subtitle": "#F6F2E4",
+          "author": "#F6F2E4",
+          "motif": "#DCE6C8",
+          "motifAlt": "#DCE6C8"
+        },
+        {
+          "id": "blush",
+          "name": "Blush",
+          "background": "#EBC9C0",
+          "title": "#4A2430",
+          "subtitle": "#4A2430",
+          "author": "#4A2430",
+          "motif": "#8E4C5C",
+          "motifAlt": "#8E4C5C"
+        },
+        {
+          "id": "ink",
+          "name": "Ink",
+          "background": "#1D2733",
+          "title": "#EFE7D6",
+          "subtitle": "#C9C2B3",
+          "author": "#EFE7D6",
+          "motif": "#B9A77E",
+          "motifAlt": "#B9A77E"
+        }
+      ]
+    },
+    {
+      "id": "headline-stack",
+      "name": "Headline stack",
+      "description": "Black capitals stacked edge to edge under a colour band, like a newspaper headline. Direct and honest.",
+      "suits": [
+        "business-money",
+        "self-help",
+        "young-adult"
+      ],
+      "typography": {
+        "typeface": "stack-black",
+        "titleFont": "Libre Franklin",
+        "titleWeight": 900,
+        "titleItalic": false,
+        "titleCase": "upper",
+        "titleTracking": "-0.035em",
+        "subtitleFont": "Libre Franklin",
+        "authorFont": "Libre Franklin",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "band-top",
+        "align": "left",
+        "titleTop": 24,
+        "titleSize": 15.5,
+        "subtitleTop": 92,
+        "subtitleRightInset": 14,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": {
+          "top": 0,
+          "height": 14
+        }
+      },
+      "motif": {
+        "kind": "rule",
+        "box": {
+          "top": 86,
+          "left": 10,
+          "width": 18,
+          "height": 2.4
+        },
+        "description": "A short heavy rule above the subtitle."
+      },
+      "palettes": [
+        {
+          "id": "cobalt-gold",
+          "name": "Cobalt and gold",
+          "background": "#1E3A8A",
+          "title": "#FFFFFF",
+          "subtitle": "#DCE5FF",
+          "author": "#FFFFFF",
+          "motif": "#F2B33D",
+          "motifAlt": "#F2B33D",
+          "band": "#F2B33D"
+        },
+        {
+          "id": "chalk-blue",
+          "name": "Chalk and blue",
+          "background": "#EDE8DF",
+          "title": "#13233F",
+          "subtitle": "#3A4A66",
+          "author": "#13233F",
+          "motif": "#2F6FDE",
+          "motifAlt": "#2F6FDE",
+          "band": "#13233F"
+        },
+        {
+          "id": "graphite-coral",
+          "name": "Graphite and coral",
+          "background": "#2B2D33",
+          "title": "#F7F4EF",
+          "subtitle": "#D6D3CD",
+          "author": "#F7F4EF",
+          "motif": "#FF8A65",
+          "motifAlt": "#FF8A65",
+          "band": "#FF8A65"
+        }
+      ]
+    },
+    {
+      "id": "tech-grid",
+      "name": "Tech grid",
+      "description": "Clean grotesk over a faint grid with connected nodes. Clear and current, never sci-fi clutter.",
+      "suits": [
+        "ai-tech-howto",
+        "science-fiction"
+      ],
+      "typography": {
+        "typeface": "tech-grotesk",
+        "titleFont": "Space Grotesk",
+        "titleWeight": 700,
+        "titleItalic": false,
+        "titleCase": "as-written",
+        "titleTracking": "-0.02em",
+        "subtitleFont": "Space Grotesk",
+        "authorFont": "Space Grotesk",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "title-mid",
+        "align": "left",
+        "titleTop": 62,
+        "titleSize": 13,
+        "subtitleTop": 100,
+        "subtitleRightInset": 12,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "circuit-grid",
+        "box": {
+          "top": 8,
+          "left": 0,
+          "width": 100,
+          "height": 52
+        },
+        "description": "A faint grid with a few connected nodes."
+      },
+      "palettes": [
+        {
+          "id": "midnight-cyan",
+          "name": "Midnight and cyan",
+          "background": "#0F1B2D",
+          "title": "#E8F1FF",
+          "subtitle": "#A9C1E6",
+          "author": "#E8F1FF",
+          "motif": "#4CC9F0",
+          "motifAlt": "#2A4466"
+        },
+        {
+          "id": "paper-blue",
+          "name": "Paper and blue",
+          "background": "#EEF2F7",
+          "title": "#10233F",
+          "subtitle": "#3D5273",
+          "author": "#10233F",
+          "motif": "#2563EB",
+          "motifAlt": "#C9D5E6"
+        },
+        {
+          "id": "violet-mint",
+          "name": "Violet and mint",
+          "background": "#2A1E5C",
+          "title": "#F1EEFF",
+          "subtitle": "#C9C0F2",
+          "author": "#F1EEFF",
+          "motif": "#7CE0C3",
+          "motifAlt": "#463A82"
+        }
+      ]
+    },
+    {
+      "id": "romance-script",
+      "name": "Romance seaside",
+      "description": "Flowing italic serif, centred, over a low sun and sea. Warm, hopeful, summer.",
+      "suits": [
+        "contemporary-romance"
+      ],
+      "typography": {
+        "typeface": "playfair-italic",
+        "titleFont": "Playfair Display",
+        "titleWeight": 500,
+        "titleItalic": true,
+        "titleCase": "as-written",
+        "titleTracking": "normal",
+        "subtitleFont": "Libre Franklin",
+        "authorFont": "Playfair Display",
+        "authorStyle": "italic"
+      },
+      "layout": {
+        "name": "title-centre",
+        "align": "center",
+        "titleTop": 14,
+        "titleSize": 14.5,
+        "subtitleTop": 50,
+        "subtitleRightInset": 10,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "sun-sea",
+        "box": {
+          "top": 86,
+          "left": 0,
+          "width": 100,
+          "height": 40
+        },
+        "description": "A half sun on the horizon with sea lines and two gulls."
+      },
+      "palettes": [
+        {
+          "id": "seaside-dawn",
+          "name": "Seaside dawn",
+          "background": "#F6D9C7",
+          "title": "#6B2240",
+          "subtitle": "#8A3B57",
+          "author": "#6B2240",
+          "motif": "#E98A6B",
+          "motifAlt": "#6FA3B8"
+        },
+        {
+          "id": "lavender-dusk",
+          "name": "Lavender dusk",
+          "background": "#3E2D52",
+          "title": "#F7E3EF",
+          "subtitle": "#E2C6DA",
+          "author": "#F7E3EF",
+          "motif": "#F2B5A0",
+          "motifAlt": "#9C86C9"
+        },
+        {
+          "id": "garden-rose",
+          "name": "Garden rose",
+          "background": "#F3E1E4",
+          "title": "#3F2A4A",
+          "subtitle": "#6A4F72",
+          "author": "#3F2A4A",
+          "motif": "#D97A8C",
+          "motifAlt": "#9DB89A"
+        }
+      ]
+    },
+    {
+      "id": "noir-spaced",
+      "name": "Noir spaced",
+      "description": "Wide-spaced capitals around a glowing keyhole on a dark ground. Tense and spare.",
+      "suits": [
+        "thriller",
+        "mystery-crime",
+        "horror-mild"
+      ],
+      "typography": {
+        "typeface": "wide-caps",
+        "titleFont": "Libre Franklin",
+        "titleWeight": 800,
+        "titleItalic": false,
+        "titleCase": "upper",
+        "titleTracking": "0.14em",
+        "subtitleFont": "Libre Franklin",
+        "authorFont": "Libre Franklin",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "title-centre",
+        "align": "center",
+        "titleTop": 16,
+        "titleSize": 9.6,
+        "subtitleTop": 34,
+        "subtitleRightInset": 10,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "keyhole",
+        "box": {
+          "top": 58,
+          "left": 32,
+          "width": 36,
+          "height": 62
+        },
+        "description": "A keyhole with a thin halo, the only light on the cover."
+      },
+      "palettes": [
+        {
+          "id": "petrol-red",
+          "name": "Petrol and red",
+          "background": "#10232A",
+          "title": "#F1EDE4",
+          "subtitle": "#9FB3B8",
+          "author": "#F1EDE4",
+          "motif": "#C8102E",
+          "motifAlt": "#2C4A53"
+        },
+        {
+          "id": "fog-black",
+          "name": "Fog",
+          "background": "#C9CED3",
+          "title": "#14181D",
+          "subtitle": "#3B4249",
+          "author": "#14181D",
+          "motif": "#14181D",
+          "motifAlt": "#9AA2AA"
+        },
+        {
+          "id": "amber-night",
+          "name": "Amber night",
+          "background": "#1A1620",
+          "title": "#F5E6C8",
+          "subtitle": "#BDAF95",
+          "author": "#F5E6C8",
+          "motif": "#E0A030",
+          "motifAlt": "#3A3242"
+        }
+      ]
+    },
+    {
+      "id": "storybook-round",
+      "name": "Storybook night",
+      "description": "Soft, rounded serif under a crescent moon and stars. Calm for bedtime.",
+      "suits": [
+        "bedtime-story",
+        "parenting-family"
+      ],
+      "typography": {
+        "typeface": "soft-serif",
+        "titleFont": "Fraunces",
+        "titleWeight": 700,
+        "titleItalic": false,
+        "titleCase": "as-written",
+        "titleTracking": "-0.01em",
+        "subtitleFont": "Andika",
+        "authorFont": "Andika",
+        "authorStyle": "plain"
+      },
+      "layout": {
+        "name": "title-low",
+        "align": "center",
+        "titleTop": 84,
+        "titleSize": 12.5,
+        "subtitleTop": null,
+        "subtitleRightInset": 10,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "stars-moon",
+        "box": {
+          "top": 8,
+          "left": 0,
+          "width": 100,
+          "height": 70
+        },
+        "description": "A crescent moon and a scatter of small stars."
+      },
+      "palettes": [
+        {
+          "id": "night-sky",
+          "name": "Night sky",
+          "background": "#1D2B5C",
+          "title": "#FFE9A8",
+          "subtitle": "#DCE3FF",
+          "author": "#FFE9A8",
+          "motif": "#FFE9A8",
+          "motifAlt": "#9FB4FF"
+        },
+        {
+          "id": "lilac-dream",
+          "name": "Lilac dream",
+          "background": "#C9B8E8",
+          "title": "#2B2152",
+          "subtitle": "#3E3470",
+          "author": "#2B2152",
+          "motif": "#FFF4C2",
+          "motifAlt": "#2B2152"
+        },
+        {
+          "id": "teal-night",
+          "name": "Teal night",
+          "background": "#123B44",
+          "title": "#F8E7B0",
+          "subtitle": "#CFE6E2",
+          "author": "#F8E7B0",
+          "motif": "#F8E7B0",
+          "motifAlt": "#7FC7BE"
+        }
+      ]
+    },
+    {
+      "id": "picture-bright",
+      "name": "Picture bright",
+      "description": "Big rounded letters and a bright simple shape. Cheerful at any size.",
+      "suits": [
+        "picture-book",
+        "early-reader",
+        "chapter-book",
+        "middle-grade",
+        "activity-book"
+      ],
+      "typography": {
+        "typeface": "friendly-round",
+        "titleFont": "Nunito",
+        "titleWeight": 900,
+        "titleItalic": false,
+        "titleCase": "as-written",
+        "titleTracking": "-0.01em",
+        "subtitleFont": "Nunito",
+        "authorFont": "Nunito",
+        "authorStyle": "plain"
+      },
+      "layout": {
+        "name": "title-top",
+        "align": "center",
+        "titleTop": 10,
+        "titleSize": 14,
+        "subtitleTop": null,
+        "subtitleRightInset": 10,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "kite",
+        "box": {
+          "top": 56,
+          "left": 30,
+          "width": 40,
+          "height": 80
+        },
+        "description": "A diamond kite with a ribboned tail."
+      },
+      "palettes": [
+        {
+          "id": "sky-sunny",
+          "name": "Sunny sky",
+          "background": "#8FD3F4",
+          "title": "#1B3A6B",
+          "subtitle": "#1B3A6B",
+          "author": "#1B3A6B",
+          "motif": "#F25C54",
+          "motifAlt": "#FFD23F"
+        },
+        {
+          "id": "meadow",
+          "name": "Meadow",
+          "background": "#BFE3A5",
+          "title": "#24452A",
+          "subtitle": "#24452A",
+          "author": "#24452A",
+          "motif": "#F28C28",
+          "motifAlt": "#5B8DEF"
+        },
+        {
+          "id": "candy",
+          "name": "Candy",
+          "background": "#FFD6E0",
+          "title": "#5A2346",
+          "subtitle": "#5A2346",
+          "author": "#5A2346",
+          "motif": "#3FA7D6",
+          "motifAlt": "#F7C548"
+        }
+      ]
+    },
+    {
+      "id": "faith-light",
+      "name": "Faith light",
+      "description": "Classic capitals with light breaking from above. Hopeful and reverent.",
+      "suits": [
+        "faith-spirituality"
+      ],
+      "typography": {
+        "typeface": "garamond-caps",
+        "titleFont": "Cormorant Garamond",
+        "titleWeight": 600,
+        "titleItalic": false,
+        "titleCase": "upper",
+        "titleTracking": "0.08em",
+        "subtitleFont": "Cormorant Garamond",
+        "authorFont": "Libre Franklin",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "title-low",
+        "align": "center",
+        "titleTop": 78,
+        "titleSize": 10.5,
+        "subtitleTop": 108,
+        "subtitleRightInset": 12,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "rays",
+        "box": {
+          "top": 0,
+          "left": 0,
+          "width": 100,
+          "height": 70
+        },
+        "description": "Fine rays of light falling from the top centre."
+      },
+      "palettes": [
+        {
+          "id": "deep-gold",
+          "name": "Deep blue and gold",
+          "background": "#1F2A44",
+          "title": "#FBF6EA",
+          "subtitle": "#D9CFB8",
+          "author": "#FBF6EA",
+          "motif": "#E7C27D",
+          "motifAlt": "#E7C27D"
+        },
+        {
+          "id": "olive-dawn",
+          "name": "Olive dawn",
+          "background": "#4B5536",
+          "title": "#F6F0DD",
+          "subtitle": "#DCD5BC",
+          "author": "#F6F0DD",
+          "motif": "#F0D58C",
+          "motifAlt": "#F0D58C"
+        },
+        {
+          "id": "stone",
+          "name": "Stone",
+          "background": "#E6E1D7",
+          "title": "#2C2A26",
+          "subtitle": "#57524A",
+          "author": "#2C2A26",
+          "motif": "#B08D57",
+          "motifAlt": "#B08D57"
+        }
+      ]
+    },
+    {
+      "id": "cosy-frame",
+      "name": "Cosy frame",
+      "description": "Warm serif inside a double frame with a magnifying glass. Gentle mystery.",
+      "suits": [
+        "cosy-mystery"
+      ],
+      "typography": {
+        "typeface": "playfair-roman",
+        "titleFont": "Playfair Display",
+        "titleWeight": 700,
+        "titleItalic": false,
+        "titleCase": "as-written",
+        "titleTracking": "normal",
+        "subtitleFont": "Libre Franklin",
+        "authorFont": "Playfair Display",
+        "authorStyle": "italic"
+      },
+      "layout": {
+        "name": "framed",
+        "align": "center",
+        "titleTop": 20,
+        "titleSize": 13,
+        "subtitleTop": 56,
+        "subtitleRightInset": 12,
+        "frame": true,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "magnifier",
+        "box": {
+          "top": 80,
+          "left": 34,
+          "width": 32,
+          "height": 40
+        },
+        "description": "A magnifying glass, slightly tilted."
+      },
+      "palettes": [
+        {
+          "id": "bottle-green",
+          "name": "Bottle green",
+          "background": "#2F4A3A",
+          "title": "#F4E9D0",
+          "subtitle": "#D9CFB4",
+          "author": "#F4E9D0",
+          "motif": "#E2B65C",
+          "motifAlt": "#E2B65C"
+        },
+        {
+          "id": "damson",
+          "name": "Damson",
+          "background": "#5B2A45",
+          "title": "#F8E8DA",
+          "subtitle": "#E5CDBE",
+          "author": "#F8E8DA",
+          "motif": "#F0B37E",
+          "motifAlt": "#F0B37E"
+        },
+        {
+          "id": "duck-egg",
+          "name": "Duck egg",
+          "background": "#BCD8D4",
+          "title": "#23353A",
+          "subtitle": "#3E5559",
+          "author": "#23353A",
+          "motif": "#B5543C",
+          "motifAlt": "#B5543C"
+        }
+      ]
+    },
+    {
+      "id": "fantasy-crest",
+      "name": "Fantasy crest",
+      "description": "Engraved capitals around a crest of rings and a star. Epic without clutter.",
+      "suits": [
+        "fantasy",
+        "romantasy"
+      ],
+      "typography": {
+        "typeface": "garamond-caps",
+        "titleFont": "Cormorant Garamond",
+        "titleWeight": 700,
+        "titleItalic": false,
+        "titleCase": "upper",
+        "titleTracking": "0.06em",
+        "subtitleFont": "Cormorant Garamond",
+        "authorFont": "Cormorant Garamond",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "title-low",
+        "align": "center",
+        "titleTop": 86,
+        "titleSize": 11.5,
+        "subtitleTop": 118,
+        "subtitleRightInset": 12,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "crest",
+        "box": {
+          "top": 16,
+          "left": 25,
+          "width": 50,
+          "height": 50
+        },
+        "description": "Two rings and a four-point star."
+      },
+      "palettes": [
+        {
+          "id": "midnight-gold",
+          "name": "Midnight and gold",
+          "background": "#141B33",
+          "title": "#E9CF8E",
+          "subtitle": "#C4B48A",
+          "author": "#E9CF8E",
+          "motif": "#E9CF8E",
+          "motifAlt": "#6B5A2E"
+        },
+        {
+          "id": "ember",
+          "name": "Ember",
+          "background": "#3A1414",
+          "title": "#F3D7B0",
+          "subtitle": "#D6B795",
+          "author": "#F3D7B0",
+          "motif": "#E07A3F",
+          "motifAlt": "#7A2E1E"
+        },
+        {
+          "id": "frost",
+          "name": "Frost",
+          "background": "#DDE6EE",
+          "title": "#1E2A3A",
+          "subtitle": "#3E4D60",
+          "author": "#1E2A3A",
+          "motif": "#6C8AB3",
+          "motifAlt": "#A9BBD3"
+        }
+      ]
+    },
+    {
+      "id": "journal-minimal",
+      "name": "Journal minimal",
+      "description": "Small italic title, lots of space and one hairline. Calm, giftable.",
+      "suits": [
+        "guided-journal",
+        "planner",
+        "poetry"
+      ],
+      "typography": {
+        "typeface": "garamond-italic",
+        "titleFont": "Cormorant Garamond",
+        "titleWeight": 500,
+        "titleItalic": true,
+        "titleCase": "as-written",
+        "titleTracking": "normal",
+        "subtitleFont": "Atkinson Hyperlegible Next",
+        "authorFont": "Atkinson Hyperlegible Next",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "title-centre",
+        "align": "center",
+        "titleTop": 58,
+        "titleSize": 10,
+        "subtitleTop": 76,
+        "subtitleRightInset": 14,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "rule",
+        "box": {
+          "top": 52,
+          "left": 40,
+          "width": 20,
+          "height": 0.6
+        },
+        "description": "One hairline above the title."
+      },
+      "palettes": [
+        {
+          "id": "oat",
+          "name": "Oat",
+          "background": "#E9E2D3",
+          "title": "#2E2A24",
+          "subtitle": "#5C554B",
+          "author": "#2E2A24",
+          "motif": "#2E2A24",
+          "motifAlt": "#2E2A24"
+        },
+        {
+          "id": "sea-glass",
+          "name": "Sea glass",
+          "background": "#CFE1DA",
+          "title": "#20332E",
+          "subtitle": "#44605A",
+          "author": "#20332E",
+          "motif": "#20332E",
+          "motifAlt": "#20332E"
+        },
+        {
+          "id": "charcoal",
+          "name": "Charcoal",
+          "background": "#2C2C2E",
+          "title": "#EDE7DB",
+          "subtitle": "#BDB6A9",
+          "author": "#EDE7DB",
+          "motif": "#EDE7DB",
+          "motifAlt": "#EDE7DB"
+        }
+      ]
+    },
+    {
+      "id": "workbook-blocks",
+      "name": "Workbook blocks",
+      "description": "Bold legible title with stacked blocks and tick boxes. Says 'you will write in this'.",
+      "suits": [
+        "workbook",
+        "education-study"
+      ],
+      "typography": {
+        "typeface": "hyperlegible-bold",
+        "titleFont": "Atkinson Hyperlegible Next",
+        "titleWeight": 800,
+        "titleItalic": false,
+        "titleCase": "as-written",
+        "titleTracking": "normal",
+        "subtitleFont": "Atkinson Hyperlegible Next",
+        "authorFont": "Atkinson Hyperlegible Next",
+        "authorStyle": "caps"
+      },
+      "layout": {
+        "name": "title-top",
+        "align": "left",
+        "titleTop": 12,
+        "titleSize": 12.5,
+        "subtitleTop": 48,
+        "subtitleRightInset": 12,
+        "frame": false,
+        "authorPosition": "foot",
+        "band": null
+      },
+      "motif": {
+        "kind": "blocks",
+        "box": {
+          "top": 74,
+          "left": 10,
+          "width": 80,
+          "height": 52
+        },
+        "description": "Stacked blocks with tick boxes."
+      },
+      "palettes": [
+        {
+          "id": "sunflower",
+          "name": "Sunflower",
+          "background": "#F6C744",
+          "title": "#1E2433",
+          "subtitle": "#1E2433",
+          "author": "#1E2433",
+          "motif": "#1E2433",
+          "motifAlt": "#FFFFFF"
+        },
+        {
+          "id": "teal-paper",
+          "name": "Teal",
+          "background": "#1D6F6A",
+          "title": "#F7F3EA",
+          "subtitle": "#D7EBE7",
+          "author": "#F7F3EA",
+          "motif": "#F7F3EA",
+          "motifAlt": "#2A8C86"
+        },
+        {
+          "id": "tomato-ink",
+          "name": "Tomato",
+          "background": "#E4573D",
+          "title": "#FFF8EE",
+          "subtitle": "#FFE3D6",
+          "author": "#FFF8EE",
+          "motif": "#FFF8EE",
+          "motifAlt": "#C1412A"
+        }
+      ]
+    }
+  ]
+}

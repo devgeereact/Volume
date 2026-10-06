@@ -1,0 +1,1125 @@
+{
+  "$comment": "Interior themes (D-017). Each book gets its own theme so no two look alike. Fonts are SIL OFL 1.1 families installed for the prototype and listed in assets/fonts/README.md. Body text stays 10 to 12 pt for adult books (picture books larger) with line height 1.2 to 1.5. Margins: the inside margin always comes from the KDP rule paperback.interiorMargins (unverified, so preflight warns); themes only add extraInsideIn and set outside, top and bottom. Sizes are points; margins inches.",
+  "version": 1,
+  "updatedOn": "2026-10-04",
+  "limits": {
+    "adultBodyPt": {
+      "min": 10,
+      "max": 12
+    },
+    "childrenBodyPt": {
+      "min": 14,
+      "max": 24
+    },
+    "lineHeight": {
+      "min": 1.2,
+      "max": 1.5
+    },
+    "fontsEmbedded": true,
+    "kdpRuleIds": [
+      "paperback.interiorMargins",
+      "print.bleed",
+      "manuscript.formats"
+    ]
+  },
+  "themes": [
+    {
+      "id": "classic-novel",
+      "name": "Classic Novel",
+      "description": "Traditional book typography for novels: Garamond text, quiet headings, centred openers.",
+      "bodyFont": "EB Garamond",
+      "headingFont": "EB Garamond",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 11,
+        "lineHeight": 1.35,
+        "headingPt": 16,
+        "chapterTitlePt": 26,
+        "footnotePt": 9
+      },
+      "text": {
+        "align": "justified",
+        "hyphenate": true,
+        "paragraphIndentEm": 1.2,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Classic proportions: generous outer and foot margins",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.125,
+        "outsideIn": 0.6,
+        "topIn": 0.7,
+        "bottomIn": 0.8,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "centred number and title, one third down the page",
+        "startsOn": "recto",
+        "dropFolio": true,
+        "numberFormat": "words"
+      },
+      "sceneBreak": {
+        "glyph": "* * *",
+        "centred": true
+      },
+      "ornament": "fleuron",
+      "runningHeads": "Author on left pages, book title on right pages, small caps",
+      "dropCaps": {
+        "enabled": true,
+        "lines": 2
+      },
+      "colourInterior": false,
+      "readability": [
+        "EB Garamond has a small x-height, so it stays at 11 pt, not smaller",
+        "Justified with hyphenation to avoid rivers"
+      ],
+      "suitsBookTypes": [
+        "historical-romance",
+        "horror-mild",
+        "historical-fiction",
+        "literary-fiction",
+        "short-story-collection"
+      ]
+    },
+    {
+      "id": "romance-elegant",
+      "name": "Romance Elegant",
+      "description": "Soft, airy pages for love stories: Lora text with Playfair italic chapter titles and a heart-line break.",
+      "bodyFont": "Lora",
+      "headingFont": "Playfair Display",
+      "accentFont": "Playfair Display",
+      "sizes": {
+        "bodyPt": 10.5,
+        "lineHeight": 1.4,
+        "headingPt": 18,
+        "chapterTitlePt": 29,
+        "footnotePt": 8.5
+      },
+      "text": {
+        "align": "justified",
+        "hyphenate": true,
+        "paragraphIndentEm": 1.2,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Balanced, slightly wider outer margin",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.1,
+        "outsideIn": 0.55,
+        "topIn": 0.65,
+        "bottomIn": 0.75,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "chapter number in small Playfair italic above a large italic title, left aligned with a hairline",
+        "startsOn": "any",
+        "dropFolio": true,
+        "numberFormat": "numerals"
+      },
+      "sceneBreak": {
+        "glyph": "~ ♥ ~",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "heart-line",
+      "runningHeads": "Author left, title right, italic",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Lora's open forms read well at 10.5 pt",
+        "Chapters may start on any page to keep page count down"
+      ],
+      "suitsBookTypes": [
+        "contemporary-romance"
+      ]
+    },
+    {
+      "id": "thriller-sharp",
+      "name": "Thriller Sharp",
+      "description": "Tight, fast pages: Crimson Pro text, condensed Big Shoulders chapter numbers, no ornaments.",
+      "bodyFont": "Crimson Pro",
+      "headingFont": "Big Shoulders Display",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 11,
+        "lineHeight": 1.3,
+        "headingPt": 20,
+        "chapterTitlePt": 32,
+        "footnotePt": 9
+      },
+      "text": {
+        "align": "justified",
+        "hyphenate": true,
+        "paragraphIndentEm": 1.0,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Economical: standard outer margins",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.1,
+        "outsideIn": 0.5,
+        "topIn": 0.6,
+        "bottomIn": 0.7,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "huge condensed chapter number flush left, location and time line below in small caps",
+        "startsOn": "any",
+        "dropFolio": true,
+        "numberFormat": "numerals"
+      },
+      "sceneBreak": {
+        "glyph": "■",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "none",
+      "runningHeads": "Title only, right pages; none on chapter openers",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Short chapters start on any page so the pace never stalls",
+        "Crimson Pro is compact, which keeps long thrillers affordable to print"
+      ],
+      "suitsBookTypes": [
+        "science-fiction",
+        "thriller",
+        "mystery-crime"
+      ]
+    },
+    {
+      "id": "cosy-mystery",
+      "name": "Cosy Mystery",
+      "description": "Friendly, warm pages: Lora text with Young Serif chapter titles and a teacup-style break.",
+      "bodyFont": "Lora",
+      "headingFont": "Young Serif",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 11,
+        "lineHeight": 1.4,
+        "headingPt": 18,
+        "chapterTitlePt": 29,
+        "footnotePt": 9
+      },
+      "text": {
+        "align": "justified",
+        "hyphenate": true,
+        "paragraphIndentEm": 1.2,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Comfortable margins",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.1,
+        "outsideIn": 0.55,
+        "topIn": 0.65,
+        "bottomIn": 0.75,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "chapter title in Young Serif with a small framed number above",
+        "startsOn": "any",
+        "dropFolio": true,
+        "numberFormat": "numerals"
+      },
+      "sceneBreak": {
+        "glyph": "❦",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "floral-heart",
+      "runningHeads": "Series name left, title right",
+      "dropCaps": {
+        "enabled": true,
+        "lines": 2
+      },
+      "colourInterior": false,
+      "readability": [
+        "Slightly looser leading for a relaxed read",
+        "Drop caps in Young Serif"
+      ],
+      "suitsBookTypes": [
+        "cosy-mystery",
+        "young-adult",
+        "middle-grade"
+      ]
+    },
+    {
+      "id": "fantasy-epic",
+      "name": "Fantasy Epic",
+      "description": "Grand but readable: EB Garamond text, Cormorant Garamond display openers with three-line drop caps and a star ornament.",
+      "bodyFont": "EB Garamond",
+      "headingFont": "Cormorant Garamond",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 11,
+        "lineHeight": 1.35,
+        "headingPt": 22,
+        "chapterTitlePt": 35,
+        "footnotePt": 9
+      },
+      "text": {
+        "align": "justified",
+        "hyphenate": true,
+        "paragraphIndentEm": 1.2,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Generous: long books need a wider inside margin, which the KDP rule supplies",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.125,
+        "outsideIn": 0.6,
+        "topIn": 0.7,
+        "bottomIn": 0.8,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "part and chapter titles in large Cormorant with an ornament rule; optional map before part one",
+        "startsOn": "recto",
+        "dropFolio": true,
+        "numberFormat": "words"
+      },
+      "sceneBreak": {
+        "glyph": "✦",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "star-rule",
+      "runningHeads": "Author left, title right, small caps",
+      "dropCaps": {
+        "enabled": true,
+        "lines": 3
+      },
+      "colourInterior": false,
+      "readability": [
+        "Cormorant only at display sizes; it is too light for body text",
+        "Glossary set at body size, not smaller"
+      ],
+      "suitsBookTypes": [
+        "romantasy",
+        "fantasy"
+      ]
+    },
+    {
+      "id": "modern-nonfiction",
+      "name": "Modern Non-fiction",
+      "description": "Clean, confident non-fiction: Merriweather text and Libre Franklin headings, left aligned subheadings.",
+      "bodyFont": "Merriweather",
+      "headingFont": "Libre Franklin",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 10,
+        "lineHeight": 1.45,
+        "headingPt": 14,
+        "chapterTitlePt": 24,
+        "footnotePt": 8.5
+      },
+      "text": {
+        "align": "justified",
+        "hyphenate": true,
+        "paragraphIndentEm": 1.0,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Modern: even margins with room for notes",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.125,
+        "outsideIn": 0.6,
+        "topIn": 0.7,
+        "bottomIn": 0.75,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "chapter number and title flush left in Libre Franklin bold, rule below",
+        "startsOn": "recto",
+        "dropFolio": true,
+        "numberFormat": "numerals"
+      },
+      "sceneBreak": {
+        "glyph": "· · ·",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "none",
+      "runningHeads": "Chapter title right, book title left",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Merriweather is large on the body, so 10 pt reads like 11",
+        "Key takeaways set in Libre Franklin in a ruled box"
+      ],
+      "suitsBookTypes": [
+        "self-help"
+      ]
+    },
+    {
+      "id": "healthcare-practical",
+      "name": "Healthcare Practical",
+      "description": "Built for tired eyes after a shift: Atkinson Hyperlegible Next text, Libre Franklin headings, ragged right.",
+      "bodyFont": "Atkinson Hyperlegible Next",
+      "headingFont": "Libre Franklin",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 10.5,
+        "lineHeight": 1.45,
+        "headingPt": 14,
+        "chapterTitlePt": 22,
+        "footnotePt": 8.5
+      },
+      "text": {
+        "align": "left",
+        "hyphenate": false,
+        "paragraphIndentEm": 0,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Practical: wide outer margin for notes",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.125,
+        "outsideIn": 0.65,
+        "topIn": 0.7,
+        "bottomIn": 0.8,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "chapter number in a square, title below, one-line summary in italic",
+        "startsOn": "recto",
+        "dropFolio": true,
+        "numberFormat": "numerals"
+      },
+      "sceneBreak": {
+        "glyph": "◇",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "none",
+      "runningHeads": "Chapter title right, book title left",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Ragged right with no hyphenation: easier to scan",
+        "Block paragraphs with space between, as in clinical guides",
+        "Reflective prompts in a tinted grey box that prints well in black ink"
+      ],
+      "suitsBookTypes": [
+        "healthcare-professional"
+      ]
+    },
+    {
+      "id": "calm-reflective",
+      "name": "Calm Reflective",
+      "description": "Quiet pages with plenty of air: Literata text, Fraunces chapter titles and a wave ornament.",
+      "bodyFont": "Literata",
+      "headingFont": "Fraunces",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 10.5,
+        "lineHeight": 1.45,
+        "headingPt": 16,
+        "chapterTitlePt": 26,
+        "footnotePt": 8.5
+      },
+      "text": {
+        "align": "justified",
+        "hyphenate": true,
+        "paragraphIndentEm": 1.2,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Spacious: deeper top margin",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.125,
+        "outsideIn": 0.6,
+        "topIn": 0.85,
+        "bottomIn": 0.8,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "title set low on a mostly empty page, wave ornament above",
+        "startsOn": "recto",
+        "dropFolio": true,
+        "numberFormat": "words"
+      },
+      "sceneBreak": {
+        "glyph": "〰",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "wave",
+      "runningHeads": "Book title left, chapter title right, italic",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Extra white space signals calm",
+        "Literata's optical sizes keep 10.5 pt crisp"
+      ],
+      "suitsBookTypes": [
+        "healthcare-professional",
+        "health-wellbeing"
+      ]
+    },
+    {
+      "id": "wellbeing-gentle",
+      "name": "Wellbeing Gentle",
+      "description": "Soft and kind: Lora text with rounded Nunito headings and a leaf ornament.",
+      "bodyFont": "Lora",
+      "headingFont": "Nunito",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 11,
+        "lineHeight": 1.45,
+        "headingPt": 15,
+        "chapterTitlePt": 24,
+        "footnotePt": 9
+      },
+      "text": {
+        "align": "justified",
+        "hyphenate": true,
+        "paragraphIndentEm": 1.2,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Comfortable margins",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.1,
+        "outsideIn": 0.6,
+        "topIn": 0.7,
+        "bottomIn": 0.8,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "chapter title in Nunito, small leaf above, short intro paragraph larger",
+        "startsOn": "any",
+        "dropFolio": true,
+        "numberFormat": "numerals"
+      },
+      "sceneBreak": {
+        "glyph": "❧",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "leaf",
+      "runningHeads": "Book title left, chapter title right",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Rounded headings feel friendly without looking childish",
+        "First paragraph of each chapter set at 12 pt"
+      ],
+      "suitsBookTypes": [
+        "health-wellbeing",
+        "parenting-family"
+      ]
+    },
+    {
+      "id": "practical-guide",
+      "name": "Practical Guide",
+      "description": "Straightforward how-to pages: Crimson Pro text, Libre Franklin headings and numbered steps.",
+      "bodyFont": "Crimson Pro",
+      "headingFont": "Libre Franklin",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 11.5,
+        "lineHeight": 1.35,
+        "headingPt": 14,
+        "chapterTitlePt": 22,
+        "footnotePt": 9.5
+      },
+      "text": {
+        "align": "justified",
+        "hyphenate": true,
+        "paragraphIndentEm": 1.0,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Practical margins",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.1,
+        "outsideIn": 0.55,
+        "topIn": 0.65,
+        "bottomIn": 0.75,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "chapter number large and light, title bold beside it",
+        "startsOn": "any",
+        "dropFolio": true,
+        "numberFormat": "numerals"
+      },
+      "sceneBreak": {
+        "glyph": "* * *",
+        "centred": true
+      },
+      "ornament": "none",
+      "runningHeads": "Chapter title right, book title left",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Crimson Pro is compact, so 11.5 pt matches others at 11",
+        "Steps numbered in Libre Franklin"
+      ],
+      "suitsBookTypes": [
+        "travel"
+      ]
+    },
+    {
+      "id": "tech-guide",
+      "name": "Tech Guide",
+      "description": "For beginners learning tools: Literata text, Space Grotesk headings and boxed 'try this' steps.",
+      "bodyFont": "Literata",
+      "headingFont": "Space Grotesk",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 10.5,
+        "lineHeight": 1.45,
+        "headingPt": 14,
+        "chapterTitlePt": 22,
+        "footnotePt": 8.5
+      },
+      "text": {
+        "align": "left",
+        "hyphenate": false,
+        "paragraphIndentEm": 0,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Practical: wide outer margin",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.125,
+        "outsideIn": 0.6,
+        "topIn": 0.7,
+        "bottomIn": 0.75,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "chapter number in Space Grotesk on a ruled grid, title below",
+        "startsOn": "recto",
+        "dropFolio": true,
+        "numberFormat": "numerals"
+      },
+      "sceneBreak": {
+        "glyph": "//",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "grid",
+      "runningHeads": "Chapter title right, book title left",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Block paragraphs for step-by-step text",
+        "Menu names and button labels in Space Grotesk, never a code font",
+        "Every 'try this' box starts with what you will see"
+      ],
+      "suitsBookTypes": [
+        "ai-tech-howto"
+      ]
+    },
+    {
+      "id": "business-bold",
+      "name": "Business Bold",
+      "description": "Direct and confident: Crimson Pro text, heavy Libre Franklin headings and pull-out key points.",
+      "bodyFont": "Crimson Pro",
+      "headingFont": "Libre Franklin",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 11.5,
+        "lineHeight": 1.35,
+        "headingPt": 15,
+        "chapterTitlePt": 24,
+        "footnotePt": 9.5
+      },
+      "text": {
+        "align": "justified",
+        "hyphenate": true,
+        "paragraphIndentEm": 1.0,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Standard margins",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.1,
+        "outsideIn": 0.55,
+        "topIn": 0.65,
+        "bottomIn": 0.75,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "big bold chapter title over two lines, number in a solid bar",
+        "startsOn": "recto",
+        "dropFolio": true,
+        "numberFormat": "numerals"
+      },
+      "sceneBreak": {
+        "glyph": "▪ ▪ ▪",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "bar",
+      "runningHeads": "Book title left, chapter title right, bold",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Pull-out key points in Libre Franklin at 12 pt",
+        "Earnings disclaimer set at body size, never small print"
+      ],
+      "suitsBookTypes": [
+        "business-money"
+      ]
+    },
+    {
+      "id": "memoir-warm",
+      "name": "Memoir Warm",
+      "description": "Personal and warm: Crimson Pro text with Cormorant Garamond italic titles and a single dot ornament.",
+      "bodyFont": "Crimson Pro",
+      "headingFont": "Cormorant Garamond",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 11.5,
+        "lineHeight": 1.4,
+        "headingPt": 20,
+        "chapterTitlePt": 32,
+        "footnotePt": 9.5
+      },
+      "text": {
+        "align": "justified",
+        "hyphenate": true,
+        "paragraphIndentEm": 1.2,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Classic proportions",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.125,
+        "outsideIn": 0.6,
+        "topIn": 0.7,
+        "bottomIn": 0.8,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "chapter title in Cormorant italic, centred, small year or place line below",
+        "startsOn": "recto",
+        "dropFolio": true,
+        "numberFormat": "words"
+      },
+      "sceneBreak": {
+        "glyph": "•",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "dot",
+      "runningHeads": "Author left, title right, italic",
+      "dropCaps": {
+        "enabled": true,
+        "lines": 2
+      },
+      "colourInterior": false,
+      "readability": [
+        "Story-first pages with no boxes or lists",
+        "Cormorant only for titles"
+      ],
+      "suitsBookTypes": [
+        "memoir-biography",
+        "faith-spirituality",
+        "healthcare-professional"
+      ]
+    },
+    {
+      "id": "childrens-large-type",
+      "name": "Children's Large Type",
+      "description": "Bright picture-book pages: Andika text at large sizes, designed for early readers' letter shapes.",
+      "bodyFont": "Andika",
+      "headingFont": "Nunito",
+      "accentFont": "Nunito",
+      "sizes": {
+        "bodyPt": 20,
+        "lineHeight": 1.4,
+        "headingPt": 30,
+        "chapterTitlePt": 48,
+        "footnotePt": 18
+      },
+      "text": {
+        "align": "left",
+        "hyphenate": false,
+        "paragraphIndentEm": 0,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Full bleed with a wide safe area for text",
+        "kdpRuleIds": [
+          "paperback.interiorMargins",
+          "print.bleed"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.0,
+        "outsideIn": 0.5,
+        "topIn": 0.5,
+        "bottomIn": 0.5,
+        "bleed": true
+      },
+      "chapterOpener": {
+        "style": "full-bleed illustration with text in a clear panel; no chapter openers in picture books",
+        "startsOn": "any",
+        "dropFolio": true,
+        "numberFormat": "none"
+      },
+      "sceneBreak": {
+        "glyph": "",
+        "centred": true
+      },
+      "ornament": "none",
+      "runningHeads": "None",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": true,
+      "readability": [
+        "Andika was designed for children learning to read: single-storey a and g",
+        "Picture books 18 to 24 pt; early readers 16 pt; chapter books 14 pt",
+        "Text never sits on a busy part of the picture"
+      ],
+      "suitsBookTypes": [
+        "picture-book",
+        "early-reader",
+        "chapter-book"
+      ]
+    },
+    {
+      "id": "bedtime-soft",
+      "name": "Bedtime Soft",
+      "description": "Calm night-time pages: Andika text with soft Fraunces titles, deep blue and moonlight colours.",
+      "bodyFont": "Andika",
+      "headingFont": "Fraunces",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 18,
+        "lineHeight": 1.45,
+        "headingPt": 28,
+        "chapterTitlePt": 45,
+        "footnotePt": 16
+      },
+      "text": {
+        "align": "left",
+        "hyphenate": false,
+        "paragraphIndentEm": 0,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Full bleed with a wide safe area",
+        "kdpRuleIds": [
+          "paperback.interiorMargins",
+          "print.bleed"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.0,
+        "outsideIn": 0.5,
+        "topIn": 0.5,
+        "bottomIn": 0.5,
+        "bleed": true
+      },
+      "chapterOpener": {
+        "style": "illustration across the spread, text low on a calm area, a small star on each page",
+        "startsOn": "any",
+        "dropFolio": true,
+        "numberFormat": "none"
+      },
+      "sceneBreak": {
+        "glyph": "",
+        "centred": true
+      },
+      "ornament": "stars",
+      "runningHeads": "None",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": true,
+      "readability": [
+        "Lower contrast pictures at the end to wind down, text contrast kept high",
+        "The new word set in bold the first time it appears"
+      ],
+      "suitsBookTypes": [
+        "bedtime-story"
+      ]
+    },
+    {
+      "id": "workbook",
+      "name": "Workbook",
+      "description": "Pages to write in: Atkinson Hyperlegible Next text, Space Grotesk headings, ruled lines at handwriting height.",
+      "bodyFont": "Atkinson Hyperlegible Next",
+      "headingFont": "Space Grotesk",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 11,
+        "lineHeight": 1.4,
+        "headingPt": 15,
+        "chapterTitlePt": 24,
+        "footnotePt": 9
+      },
+      "text": {
+        "align": "left",
+        "hyphenate": false,
+        "paragraphIndentEm": 0,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Wide inside margin so writing near the spine is possible",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.25,
+        "outsideIn": 0.6,
+        "topIn": 0.6,
+        "bottomIn": 0.7,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "chapter number in a solid block, goal line below, then exercises",
+        "startsOn": "recto",
+        "dropFolio": true,
+        "numberFormat": "numerals"
+      },
+      "sceneBreak": {
+        "glyph": "",
+        "centred": true
+      },
+      "ornament": "none",
+      "runningHeads": "Chapter title right",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Writing lines 8 mm apart",
+        "Tick boxes at least 5 mm",
+        "Grey fills at 15% or darker so they print"
+      ],
+      "suitsBookTypes": [
+        "activity-book",
+        "education-study",
+        "workbook"
+      ]
+    },
+    {
+      "id": "cookbook",
+      "name": "Cookbook",
+      "description": "Kitchen-ready pages: Lora text, Young Serif recipe titles, ingredients in a side column.",
+      "bodyFont": "Lora",
+      "headingFont": "Young Serif",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 10.5,
+        "lineHeight": 1.4,
+        "headingPt": 18,
+        "chapterTitlePt": 29,
+        "footnotePt": 8.5
+      },
+      "text": {
+        "align": "left",
+        "hyphenate": false,
+        "paragraphIndentEm": 0,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Generous outer margin for notes",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.1,
+        "outsideIn": 0.6,
+        "topIn": 0.6,
+        "bottomIn": 0.7,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "recipe title in Young Serif, headnote in italic, serves and timings line, two columns below",
+        "startsOn": "any",
+        "dropFolio": false,
+        "numberFormat": "none"
+      },
+      "sceneBreak": {
+        "glyph": "",
+        "centred": true
+      },
+      "ornament": "loaf",
+      "runningHeads": "Chapter title right",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Method steps numbered and spaced so a floury finger can find its place",
+        "Each recipe kept on one spread where possible"
+      ],
+      "suitsBookTypes": [
+        "cookbook"
+      ]
+    },
+    {
+      "id": "journal-minimal",
+      "name": "Journal Minimal",
+      "description": "Quiet, open pages: Cormorant Garamond prompts and Atkinson Hyperlegible Next instructions, fine lines.",
+      "bodyFont": "Atkinson Hyperlegible Next",
+      "headingFont": "Cormorant Garamond",
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 10.5,
+        "lineHeight": 1.4,
+        "headingPt": 18,
+        "chapterTitlePt": 29,
+        "footnotePt": 8.5
+      },
+      "text": {
+        "align": "left",
+        "hyphenate": false,
+        "paragraphIndentEm": 0,
+        "firstParagraphIndent": false,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Wide inside margin for writing",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme only adds the extra space below.",
+        "extraInsideIn": 0.25,
+        "outsideIn": 0.55,
+        "topIn": 0.6,
+        "bottomIn": 0.7,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "prompt in Cormorant italic at the top, lines below; poems start on a new page",
+        "startsOn": "any",
+        "dropFolio": false,
+        "numberFormat": "none"
+      },
+      "sceneBreak": {
+        "glyph": "",
+        "centred": true
+      },
+      "ornament": "line",
+      "runningHeads": "None",
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colourInterior": false,
+      "readability": [
+        "Line weight 0.5 pt in 60% grey: visible, not loud",
+        "Poetry keeps line breaks and is never justified"
+      ],
+      "suitsBookTypes": [
+        "guided-journal",
+        "planner",
+        "poetry"
+      ]
+    }
+  ]
+}

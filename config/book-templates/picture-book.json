@@ -1,0 +1,313 @@
+{
+  "$comment": "Picture book template (phase 7), from the owner's Children's Bedtime Story Writer and Kids' Bedtime Story & Video Script Generator drafts. Channel-specific calls to action from the drafts are replaced by an optional {cta} the owner fills. source: profile | owner | ai | app.",
+  "id": "picture-book",
+  "version": 2,
+  "name": "Picture Book (Bedtime Story)",
+  "locale": "en-GB",
+  "audience": {
+    "ageRangeOptions": [
+      {
+        "min": 3,
+        "max": 7
+      },
+      {
+        "min": 3,
+        "max": 8
+      }
+    ],
+    "defaultAgeRange": {
+      "min": 3,
+      "max": 7
+    }
+  },
+  "storyRules": {
+    "wordLimit": {
+      "max": 1000,
+      "default": 600,
+      "note": "Under 1,000 words in total story text (drafts)."
+    },
+    "newWord": {
+      "required": true,
+      "rule": "One key word to learn (for example Brave, Grateful, Courageous), used naturally at least three times and explained in words a small child understands. If the word is unusual (Xenial, Zealous), give its meaning in the story."
+    },
+    "mainCharacter": "A friendly main character: an animal, a gentle magical creature or a kind child.",
+    "characterCount": {
+      "min": 1,
+      "max": 4,
+      "default": 2
+    },
+    "conflict": "A gentle, small, non-scary problem that is solved kindly and easily.",
+    "message": "One positive message: kindness, courage, sharing, friendship, patience, gratitude.",
+    "emotions": {
+      "pick": {
+        "min": 2,
+        "max": 3
+      },
+      "options": [
+        "happy",
+        "sad (briefly, easily resolved)",
+        "surprised",
+        "curious",
+        "excited",
+        "nervous (mildly, quickly overcome)",
+        "proud",
+        "grateful",
+        "hopeful"
+      ]
+    },
+    "ending": "Happy and soothing, so the child feels safe and relaxed.",
+    "goodnightMessage": {
+      "enabled": false,
+      "rule": "Optional short goodnight message a parent can say after the story."
+    },
+    "titleStyle": "Cute and catchy, with alliteration, rhyme or rhythm (for example 'Pip the Penguin's Persistent Path').",
+    "language": [
+      "Simple words and short sentences",
+      "Simple repeated dialogue children can join in with",
+      "Occasional gentle rhyme or rhythm, never forced",
+      "Easy similes ('soft as a bunny's ear')",
+      "Sensory details: soft textures, comforting sounds, warm light",
+      "Active voice"
+    ],
+    "forbidden": [
+      "anything scary",
+      "witchcraft, curses or sinister magic",
+      "monsters, villains or scary creatures",
+      "dark forests or frightening places",
+      "nightmares",
+      "danger, injury or illness shown in a frightening way",
+      "punishment or shaming",
+      "brand names and real people",
+      "unsafe behaviour presented as fine (for example going off alone)"
+    ],
+    "safetyCheck": "Every story is checked twice against the forbidden list: once by the writer prompt before it answers, once by checks.claims in children mode.",
+    "cta": {
+      "variable": "{cta}",
+      "default": "",
+      "rule": "Optional closing line for a video or channel, supplied by the owner (the drafts used a channel follow request). Never added to the printed book unless the owner turns it on."
+    }
+  },
+  "spreads": {
+    "count": {
+      "default": 12,
+      "min": 8,
+      "max": 16
+    },
+    "wordsPerSpread": {
+      "min": 15,
+      "max": 80
+    },
+    "perSpread": [
+      "text",
+      "sceneImagePrompt",
+      "cameraAngle",
+      "lighting",
+      "characterPositions",
+      "backgroundSounds (optional, for video)"
+    ],
+    "cameraAngles": [
+      "wide establishing shot",
+      "medium shot",
+      "close-up",
+      "over-the-shoulder",
+      "low angle looking up",
+      "high angle looking down",
+      "bird's-eye view",
+      "eye-level two-shot",
+      "slow push-in",
+      "gentle pan"
+    ],
+    "artStyleDefault": "Bright, soft 3D animated look with rounded shapes and warm light, not imitating any named studio.",
+    "characterSheet": "One character description prompt reused in every scene prompt for consistency.",
+    "noTextInImages": true
+  },
+  "print": {
+    "colour": "full colour",
+    "interiorBleed": true,
+    "kdpRuleIds": [
+      "print.bleed",
+      "paperback.trimAndPages",
+      "paperback.trimSizes.list"
+    ],
+    "trimDefault": {
+      "widthIn": 8.5,
+      "heightIn": 8.5,
+      "status": "unverified trim list"
+    },
+    "pageCountNote": "KDP's minimum is 24 pages (fact 3.6); 12 spreads plus front and back matter fits a 32-page layout.",
+    "spineText": "Picture books are usually under 80 pages, so no spine text (paperback.spine.textMinPages)."
+  },
+  "sections": [
+    {
+      "id": "title-page",
+      "kind": "front",
+      "title": "Title Page",
+      "required": true,
+      "defaultOn": true,
+      "source": "owner"
+    },
+    {
+      "id": "copyright",
+      "kind": "front",
+      "title": "Copyright",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "templateFrom": "fiction",
+      "kdpRuleIds": [
+        "isbn"
+      ]
+    },
+    {
+      "id": "dedication",
+      "kind": "front",
+      "title": "Dedication",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner"
+    },
+    {
+      "id": "word-of-the-day",
+      "kind": "front",
+      "title": "Today's New Word",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "content": "The new word and a one-line child-friendly meaning.",
+      "promptId": "children.picture-book-story"
+    },
+    {
+      "id": "spreads",
+      "kind": "chapter",
+      "title": "Spread {n}",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "repeat": true,
+      "promptId": "children.picture-book-story"
+    },
+    {
+      "id": "goodnight-message",
+      "kind": "back",
+      "title": "Goodnight",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "promptId": "children.picture-book-story"
+    },
+    {
+      "id": "new-words-list",
+      "kind": "back",
+      "title": "New Words",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "The new words introduced in the story, each with a child-friendly meaning, checked by the owner. Early readers list it."
+    },
+    {
+      "id": "about-the-author",
+      "kind": "back",
+      "title": "About the Author",
+      "required": false,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "profile.bio word for word."
+    },
+    {
+      "id": "also-by",
+      "kind": "back",
+      "title": "Also by {penName}",
+      "required": false,
+      "defaultOn": true,
+      "source": "profile"
+    }
+  ],
+  "packages": {
+    "publishing": [
+      {
+        "id": "back-cover-blurb",
+        "source": "ai",
+        "promptId": "matter.back-cover",
+        "limits": {
+          "words": {
+            "max": 80
+          }
+        }
+      },
+      {
+        "id": "amazon-description",
+        "source": "ai",
+        "promptId": "matter.amazon-description",
+        "kdpRuleIds": [
+          "listing.description.maxChars"
+        ]
+      },
+      {
+        "id": "categories",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.categories"
+        ]
+      },
+      {
+        "id": "keywords",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.keywords"
+        ]
+      },
+      {
+        "id": "title-check",
+        "source": "app",
+        "kdpRuleIds": [
+          "listing.titleSubtitle.maxChars"
+        ]
+      },
+      {
+        "id": "ai-disclosure-note",
+        "source": "app",
+        "kdpRuleIds": [
+          "ai.disclosure"
+        ],
+        "content": "Text and images AI-generated."
+      },
+      {
+        "id": "scene-prompts",
+        "source": "ai",
+        "promptId": "children.scene-prompts"
+      },
+      {
+        "id": "claims-report",
+        "source": "ai",
+        "promptId": "checks.claims",
+        "content": "Children mode: also lists anything that breaks the forbidden list."
+      }
+    ],
+    "marketing": [
+      {
+        "id": "tiktok-scripts",
+        "source": "ai",
+        "promptId": "marketing.tiktok-scripts",
+        "rule": "Parent audience; no claims about learning outcomes."
+      },
+      {
+        "id": "instagram-captions",
+        "source": "ai",
+        "promptId": "marketing.instagram-captions"
+      },
+      {
+        "id": "launch-email",
+        "source": "ai",
+        "promptId": "marketing.launch-email"
+      }
+    ]
+  },
+  "derivedFrom": [
+    "draft: Children's Bedtime Story Writer",
+    "draft: Kids' Bedtime Story & Video Script Generator (Star Rhymes TV)",
+    "docs/PLAN.md: picture book template",
+    "reference facts 3.6, 3.7, 3.10"
+  ]
+}

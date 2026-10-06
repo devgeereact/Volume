@@ -1,0 +1,133 @@
+/* Tailwind v4 theme for Volume, generated from tokens.json. Import after tailwindcss and tokens.css:
+     @import "tailwindcss";
+     @import "@volume/ui/tokens.css";
+     @import "@volume/ui/theme.css";
+   Utilities resolve to the --vol-* variables at run time (@theme inline), so the theme switch needs no rebuild.
+   Spacing uses Tailwind's default 4 px step (p-1 = 4px, p-2 = 8px, p-6 = 24px), which matches the 8 px grid. */
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-canvas: var(--vol-canvas);
+  --color-sheet: var(--vol-sheet);
+  --color-sunken: var(--vol-sunken);
+  --color-raised: var(--vol-raised);
+  --color-spine: var(--vol-spine);
+  --color-spine-raised: var(--vol-spine-raised);
+  --color-border: var(--vol-border);
+  --color-border-strong: var(--vol-border-strong);
+  --color-ink: var(--vol-ink);
+  --color-ink-secondary: var(--vol-ink-secondary);
+  --color-ink-tertiary: var(--vol-ink-tertiary);
+  --color-ink-disabled: var(--vol-ink-disabled);
+  --color-ink-on-spine: var(--vol-ink-on-spine);
+  --color-ink-on-spine-muted: var(--vol-ink-on-spine-muted);
+  --color-accent: var(--vol-accent);
+  --color-accent-hover: var(--vol-accent-hover);
+  --color-accent-pressed: var(--vol-accent-pressed);
+  --color-on-accent: var(--vol-on-accent);
+  --color-accent-text: var(--vol-accent-text);
+  --color-accent-wash: var(--vol-accent-wash);
+  --color-progress: var(--vol-progress);
+  --color-select: var(--vol-select);
+  --color-select-wash: var(--vol-select-wash);
+  --color-claim: var(--vol-claim);
+  --color-claim-wash: var(--vol-claim-wash);
+  --color-on-claim: var(--vol-on-claim);
+  --color-success: var(--vol-success);
+  --color-success-wash: var(--vol-success-wash);
+  --color-scrim: var(--vol-scrim);
+
+  --font-*: initial;
+  --font-book: var(--vol-font-book);
+  --font-ui: var(--vol-font-ui);
+  --font-mono: var(--vol-font-mono);
+
+  --text-display: var(--vol-type-display-size);
+  --text-display--line-height: var(--vol-type-display-line);
+  --text-display--font-weight: var(--vol-type-display-weight);
+  --text-display--letter-spacing: var(--vol-type-display-tracking);
+  --text-title: var(--vol-type-title-size);
+  --text-title--line-height: var(--vol-type-title-line);
+  --text-title--font-weight: var(--vol-type-title-weight);
+  --text-title--letter-spacing: var(--vol-type-title-tracking);
+  --text-figure: var(--vol-type-figure-size);
+  --text-figure--line-height: var(--vol-type-figure-line);
+  --text-figure--font-weight: var(--vol-type-figure-weight);
+  --text-figure--letter-spacing: var(--vol-type-figure-tracking);
+  --text-heading: var(--vol-type-heading-size);
+  --text-heading--line-height: var(--vol-type-heading-line);
+  --text-heading--font-weight: var(--vol-type-heading-weight);
+  --text-heading--letter-spacing: var(--vol-type-heading-tracking);
+  --text-subhead: var(--vol-type-subhead-size);
+  --text-subhead--line-height: var(--vol-type-subhead-line);
+  --text-subhead--font-weight: var(--vol-type-subhead-weight);
+  --text-subhead--letter-spacing: var(--vol-type-subhead-tracking);
+  --text-body: var(--vol-type-body-size);
+  --text-body--line-height: var(--vol-type-body-line);
+  --text-body--font-weight: var(--vol-type-body-weight);
+  --text-body--letter-spacing: var(--vol-type-body-tracking);
+  --text-label: var(--vol-type-label-size);
+  --text-label--line-height: var(--vol-type-label-line);
+  --text-label--font-weight: var(--vol-type-label-weight);
+  --text-label--letter-spacing: var(--vol-type-label-tracking);
+  --text-small: var(--vol-type-small-size);
+  --text-small--line-height: var(--vol-type-small-line);
+  --text-small--font-weight: var(--vol-type-small-weight);
+  --text-small--letter-spacing: var(--vol-type-small-tracking);
+  --text-caption: var(--vol-type-caption-size);
+  --text-caption--line-height: var(--vol-type-caption-line);
+  --text-caption--font-weight: var(--vol-type-caption-weight);
+  --text-caption--letter-spacing: var(--vol-type-caption-tracking);
+  --text-prose: var(--vol-type-prose-size);
+  --text-prose--line-height: var(--vol-type-prose-line);
+  --text-prose--font-weight: var(--vol-type-prose-weight);
+  --text-prose--letter-spacing: var(--vol-type-prose-tracking);
+  --text-prose-sm: var(--vol-type-prose-sm-size);
+  --text-prose-sm--line-height: var(--vol-type-prose-sm-line);
+  --text-prose-sm--font-weight: var(--vol-type-prose-sm-weight);
+  --text-prose-sm--letter-spacing: var(--vol-type-prose-sm-tracking);
+
+  --radius-*: initial;
+  --radius-xs: var(--vol-radius-xs);
+  --radius-sm: var(--vol-radius-sm);
+  --radius-md: var(--vol-radius-md);
+  --radius-lg: var(--vol-radius-lg);
+  --radius-pill: var(--vol-radius-pill);
+  --radius-cover: var(--vol-radius-cover);
+
+  --shadow-*: initial;
+  --shadow-button: var(--vol-shadow-button);
+  --shadow-sheet: var(--vol-shadow-sheet);
+  --shadow-pop: var(--vol-shadow-pop);
+  --shadow-modal: var(--vol-shadow-modal);
+  --shadow-cover: var(--vol-shadow-cover);
+
+  --ease-out: var(--vol-ease-out);
+  --ease-in: var(--vol-ease-in);
+  --ease-page: var(--vol-ease-page);
+
+  --animate-ink-fill: vol-ink-fill var(--vol-dur-slow) var(--vol-ease-out) both;
+  --animate-page-turn: vol-page-turn var(--vol-dur-slow) var(--vol-ease-page) both;
+  --animate-ink-in: vol-ink-in var(--vol-dur-base) var(--vol-ease-out) both;
+  --animate-pencil: vol-pencil var(--vol-dur-base) var(--vol-ease-out) both;
+  --animate-pencil-x: vol-pencil-x var(--vol-dur-base) var(--vol-ease-out) both;
+}
+
+/* Signature motion. Transform and opacity only. Reduced motion swaps each for a fade or nothing. */
+@keyframes vol-ink-fill { from { transform: scaleX(var(--vol-fill-from, 0)); } to { transform: scaleX(var(--vol-fill-to, 1)); } }
+@keyframes vol-page-turn { from { transform: perspective(600px) rotateY(-80deg); opacity: 0; } to { transform: perspective(600px) rotateY(0); opacity: 1; } }
+@keyframes vol-ink-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+@keyframes vol-pencil { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes vol-pencil-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes vol-ink-fill { from { opacity: 1; } to { opacity: 1; } }
+  @keyframes vol-page-turn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes vol-ink-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes vol-pencil { from { opacity: 1; } to { opacity: 1; } }
+  @keyframes vol-pencil-x { from { opacity: 1; } to { opacity: 1; } }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@volume/export",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Volume exporters: print PDF (Paged.js in Playwright Chromium), DOCX, EPUB 3, TXT, MD, eBook cover JPEG, paperback wrap PDF, preflight and the KDP upload pack.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "export-book": "tsx scripts/export-book.ts"
+  },
+  "dependencies": {
+    "@fontsource/atkinson-hyperlegible-next": "5.3.0",
+    "@fontsource/big-shoulders-display": "5.3.0",
+    "@fontsource/bodoni-moda": "5.3.0",
+    "@fontsource/cormorant-garamond": "5.3.0",
+    "@fontsource/crimson-pro": "5.3.0",
+    "@fontsource/eb-garamond": "5.3.0",
+    "@fontsource/fraunces": "5.3.0",
+    "@fontsource/libre-franklin": "5.3.0",
+    "@fontsource/literata": "5.3.0",
+    "@fontsource/lora": "5.3.0",
+    "@fontsource/merriweather": "5.3.0",
+    "@fontsource/nunito": "5.3.0",
+    "@fontsource/playfair-display": "5.3.0",
+    "@fontsource/space-grotesk": "5.3.0",
+    "@volume/core": "*",
+    "docx": "^9.8.1",
+    "jszip": "^3.10.2",
+    "pagedjs": "^0.4.3",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.4.299",
+    "playwright": "^1.63.0",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

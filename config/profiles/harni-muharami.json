@@ -1,0 +1,104 @@
+{
+  "id": "harni-muharami",
+  "name": "Harni Muharami",
+  "initials": "HM",
+  "realPerson": true,
+  "legalName": "Harni Muharami",
+  "location": "London, United Kingdom",
+  "imprint": null,
+  "bio": "Harni Muharami is an NHS nurse, clinical educator and author based in London. Her career has taken her from non-clinical roles to ward nursing, the emergency department and clinical education, and today she leads a health training hub that supports workforce education and practice improvement. Mentoring nurses and helping colleagues develop their careers remain central to her work.\n\nHarni holds a Bachelor of Science and an MSc in Management and Leadership in Health, and she is currently undertaking PhD studies. Her books make space for both the practical and personal sides of nursing: safe care, speaking up, career development and the emotional demands of working in healthcare. She writes for students finding their feet, nurses building confidence and colleagues supporting others, while her books on gratitude and relationships invite any reader to reflect on everyday life.\n\nAway from work, Harni is a wife and mother who enjoys cycling, soft music, cooking, reading and writing.",
+  "shortBio": "Harni Muharami is an NHS nurse and clinical educator in London. She leads a health training hub and holds an MSc in Management and Leadership in Health. She is currently doing a PhD.",
+  "credentials": [
+    "Bachelor of Science",
+    "MSc in Management and Leadership in Health",
+    "PhD studies in progress",
+    "NHS nurse and clinical educator",
+    "Leads a health training hub"
+  ],
+  "links": [
+    {
+      "label": "Website",
+      "value": "harni.uk"
+    },
+    {
+      "label": "Instagram",
+      "value": "@lulu_harni"
+    }
+  ],
+  "genres": [
+    "Healthcare leadership",
+    "Nursing practice",
+    "Wellbeing for healthcare staff"
+  ],
+  "bookTypes": [
+    "healthcare-professional",
+    "health-wellbeing",
+    "workbook",
+    "memoir-biography"
+  ],
+  "voice": {
+    "tone": [
+      "warm",
+      "compassionate",
+      "authoritative",
+      "steady"
+    ],
+    "pov": "First person, speaking to fellow nurses and healthcare staff as 'you'",
+    "rhythm": "Opens on a real-feeling ward moment, then explains, then gives a step to use on the next shift. Calm, unhurried paragraphs.",
+    "vocabulary": "British English and NHS terms, each explained in plain words the first time (for example handover, band 6, Datix, NMC). No jargon left unexplained.",
+    "readingLevel": "Professional adult, readable for students and healthcare assistants",
+    "dialogueStyle": "Short, realistic exchanges between colleagues or with patients, always illustrative and never identifiable.",
+    "locale": "en-GB",
+    "bannedPhrases": [
+      "angels",
+      "heroes",
+      "superhuman",
+      "burnout cure",
+      "self-care is selfish",
+      "just breathe",
+      "toxic positivity",
+      "on the front line of a war"
+    ],
+    "sampleParagraph": "Picture the start of a late shift. The ward is full, the phones are ringing, and handover, the moment one team passes care to the next, is happening at the nurses' station with a dozen interruptions. Most of us have been there, trying to hold twenty-eight patients in our heads at once. I want to offer you something simpler. Before you write a single word, ask one question: who worries you most? Start there. Say what you have seen, what you have done and what you need the next nurse to watch for. Use SBAR if your trust uses it, which stands for Situation, Background, Assessment and Recommendation, but do not let the form do your thinking. Your clinical judgement is the reason handover exists. Look after it, and look after yourself while you do."
+  },
+  "publishing": {
+    "copyrightTemplate": "Copyright © {year} {name}. All rights reserved.",
+    "copyrightName": "Harni Muharami",
+    "disclaimer": "This book offers general educational guidance and reflection. It is not individual clinical, medical or legal advice, and it is not official NHS guidance. It does not replace professional judgement, current clinical guidance, the NMC Code or local policies. The author writes in a personal capacity: the views in this book are her own, not those of her employer.",
+    "illustrativeLine": "The stories in this book are illustrative. Patients, colleagues and places are composites, and details have been changed so that no one can be identified.",
+    "defaultBookType": "healthcare-professional",
+    "defaultWordTarget": 40000,
+    "defaultTrim": "6 x 9 in",
+    "defaultInteriorTheme": "healthcare-practical",
+    "defaultCoverStyle": "serene-serif",
+    "alsoBy": {
+      "note": "13 books on Amazon.co.uk (Kindle and paperback, all in Kindle Unlimited). The titles below are the ones named on harni.uk/about, read on 5 October 2026.",
+      "titles": [
+        "Safe by Design, Safe by Culture",
+        "The Honest Truth About Nurses",
+        "Start the Shift, Not the Catch-Up",
+        "Gratitude Reimagined",
+        "The 30-Day Relationship Reboot"
+      ]
+    }
+  },
+  "models": {
+    "research": null,
+    "titles": null,
+    "blueprint": null,
+    "writing": null,
+    "summarise": null,
+    "checks": "~anthropic/claude-sonnet-latest",
+    "editing": null,
+    "matter_metadata": null,
+    "cover_brief": null,
+    "cover_image": null,
+    "marketing": null
+  },
+  "modelNotes": "Checks use a stronger model than the default because clinical statements must reach the claims-to-verify report. Everything else uses config/models.defaults.json.",
+  "status": {
+    "bio": "confirmed",
+    "note": "Updated on 5 October 2026 from harni.uk/about (owner's request). The degree title is confirmed as MSc in Management and Leadership in Health (closes K-06). The personal line (wife and mother, cycling, soft music, cooking, reading, writing) comes from the owner's drafts and does not appear on the website."
+  },
+  "createdAt": "2026-09-02T10:15:00+01:00"
+}

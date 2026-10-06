@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles mc:Ignorable="w14 w15" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml">
+<w:docDefaults>
+<w:rPrDefault>
+<w:rPr>
+<w:rFonts w:ascii="Source Sans 3" w:cs="Source Sans 3" w:eastAsia="Source Sans 3" w:hAnsi="Source Sans 3"/>
+<w:sz w:val="22"/>
+<w:szCs w:val="22"/>
+</w:rPr>
+</w:rPrDefault>
+<w:pPrDefault/>
+</w:docDefaults>
+<w:style w:type="paragraph" w:styleId="Title">
+<w:name w:val="Title"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
+<w:qFormat/>
+<w:rPr>
+<w:sz w:val="56"/>
+<w:szCs w:val="56"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Heading1">
+<w:name w:val="Heading 1"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:pageBreakBefore/>
+<w:spacing w:after="360" w:before="1440"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="left"/>
+<w:outlineLvl w:val="0"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Plus Jakarta Sans" w:cs="Plus Jakarta Sans" w:eastAsia="Plus Jakarta Sans" w:hAnsi="Plus Jakarta Sans"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="111111"/>
+<w:sz w:val="40"/>
+<w:szCs w:val="40"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Heading2">
+<w:name w:val="Heading 2"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:after="80" w:before="280"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="left"/>
+<w:outlineLvl w:val="1"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Plus Jakarta Sans" w:cs="Plus Jakarta Sans" w:eastAsia="Plus Jakarta Sans" w:hAnsi="Plus Jakarta Sans"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="111111"/>
+<w:sz w:val="25"/>
+<w:szCs w:val="25"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Heading3">
+<w:name w:val="Heading 3"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:after="60" w:before="220"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="left"/>
+<w:outlineLvl w:val="2"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Plus Jakarta Sans" w:cs="Plus Jakarta Sans" w:eastAsia="Plus Jakarta Sans" w:hAnsi="Plus Jakarta Sans"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="111111"/>
+<w:sz w:val="23"/>
+<w:szCs w:val="23"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Heading4">
+<w:name w:val="Heading 4"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:after="40" w:before="180"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="left"/>
+<w:outlineLvl w:val="3"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Plus Jakarta Sans" w:cs="Plus Jakarta Sans" w:eastAsia="Plus Jakarta Sans" w:hAnsi="Plus Jakarta Sans"/>
+<w:b/>
+<w:bCs/>
+<w:i/>
+<w:iCs/>
+<w:color w:val="111111"/>
+<w:sz w:val="22"/>
+<w:szCs w:val="22"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Heading5">
+<w:name w:val="Heading 5"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
+<w:qFormat/>
+<w:rPr>
+<w:color w:val="2E74B5"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Heading6">
+<w:name w:val="Heading 6"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
+<w:qFormat/>
+<w:rPr>
+<w:color w:val="1F4D78"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Strong">
+<w:name w:val="Strong"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
+<w:qFormat/>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="ListParagraph">
+<w:name w:val="List Paragraph"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+</w:style>
+<w:style w:type="character" w:styleId="Hyperlink">
+<w:name w:val="Hyperlink"/>
+<w:basedOn w:val="DefaultParagraphFont"/>
+<w:uiPriority w:val="99"/>
+<w:unhideWhenUsed/>
+<w:rPr>
+<w:color w:val="0563C1"/>
+<w:u w:val="single"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:styleId="FootnoteReference">
+<w:name w:val="footnote reference"/>
+<w:basedOn w:val="DefaultParagraphFont"/>
+<w:uiPriority w:val="99"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+<w:rPr>
+<w:vertAlign w:val="superscript"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="FootnoteText">
+<w:name w:val="footnote text"/>
+<w:basedOn w:val="Normal"/>
+<w:link w:val="FootnoteTextChar"/>
+<w:uiPriority w:val="99"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+<w:pPr>
+<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:styleId="FootnoteTextChar">
+<w:name w:val="Footnote Text Char"/>
+<w:basedOn w:val="DefaultParagraphFont"/>
+<w:link w:val="FootnoteText"/>
+<w:uiPriority w:val="99"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+<w:rPr>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:styleId="EndnoteReference">
+<w:name w:val="endnote reference"/>
+<w:basedOn w:val="DefaultParagraphFont"/>
+<w:uiPriority w:val="99"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+<w:rPr>
+<w:vertAlign w:val="superscript"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="EndnoteText">
+<w:name w:val="endnote text"/>
+<w:basedOn w:val="Normal"/>
+<w:link w:val="EndnoteTextChar"/>
+<w:uiPriority w:val="99"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+<w:pPr>
+<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:style>
+<w:style w:type="character" w:styleId="EndnoteTextChar">
+<w:name w:val="Endnote Text Char"/>
+<w:basedOn w:val="DefaultParagraphFont"/>
+<w:link w:val="EndnoteText"/>
+<w:uiPriority w:val="99"/>
+<w:semiHidden/>
+<w:unhideWhenUsed/>
+<w:rPr>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Normal" w:default="1">
+<w:name w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:widowControl/>
+<w:spacing w:after="0" w:before="0" w:line="296"/>
+<w:ind w:firstLine="288"/>
+<w:jc w:val="both"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Source Sans 3" w:cs="Source Sans 3" w:eastAsia="Source Sans 3" w:hAnsi="Source Sans 3"/>
+<w:color w:val="111111"/>
+<w:sz w:val="22"/>
+<w:szCs w:val="22"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="FirstParagraph">
+<w:name w:val="First Paragraph"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:ind w:firstLine="0"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="TitlePageTitle">
+<w:name w:val="Title Page Title"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="TitlePageSubtitle"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="120" w:before="3000"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Plus Jakarta Sans" w:cs="Plus Jakarta Sans" w:eastAsia="Plus Jakarta Sans" w:hAnsi="Plus Jakarta Sans"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="111111"/>
+<w:sz w:val="56"/>
+<w:szCs w:val="56"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="TitlePageSubtitle">
+<w:name w:val="Title Page Subtitle"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="120"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="26"/>
+<w:szCs w:val="26"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="TitlePageAuthor">
+<w:name w:val="Title Page Author"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="120" w:before="1200"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Plus Jakarta Sans" w:cs="Plus Jakarta Sans" w:eastAsia="Plus Jakarta Sans" w:hAnsi="Plus Jakarta Sans"/>
+<w:sz w:val="26"/>
+<w:szCs w:val="26"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Copyright">
+<w:name w:val="Copyright"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="100"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="left"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="CopyrightFirst">
+<w:name w:val="Copyright First"/>
+<w:basedOn w:val="Copyright"/>
+<w:next w:val="Copyright"/>
+<w:qFormat/>
+<w:pPr>
+<w:pageBreakBefore/>
+<w:spacing w:after="100" w:before="5000"/>
+</w:pPr>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="ContentsHeading">
+<w:name w:val="Contents Heading"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="ContentsEntry"/>
+<w:qFormat/>
+<w:pPr>
+<w:pageBreakBefore/>
+<w:spacing w:after="360" w:before="1200"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="left"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Plus Jakarta Sans" w:cs="Plus Jakarta Sans" w:eastAsia="Plus Jakarta Sans" w:hAnsi="Plus Jakarta Sans"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="111111"/>
+<w:sz w:val="40"/>
+<w:szCs w:val="40"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="ContentsEntry">
+<w:name w:val="Contents Entry"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="40" w:before="80"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="left"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="ContentsSubentry">
+<w:name w:val="Contents Subentry"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="0"/>
+<w:ind w:left="432" w:firstLine="0"/>
+<w:jc w:val="left"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="PartTitle">
+<w:name w:val="Part Title"/>
+<w:basedOn w:val="Heading1"/>
+<w:next w:val="FirstParagraph"/>
+<w:qFormat/>
+<w:pPr>
+<w:pageBreakBefore/>
+<w:spacing w:after="480" w:before="3200"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="center"/>
+<w:outlineLvl w:val="0"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Plus Jakarta Sans" w:cs="Plus Jakarta Sans" w:eastAsia="Plus Jakarta Sans" w:hAnsi="Plus Jakarta Sans"/>
+<w:b/>
+<w:bCs/>
+<w:sz w:val="48"/>
+<w:szCs w:val="48"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Epigraph">
+<w:name w:val="Epigraph"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="120" w:before="120"/>
+<w:ind w:left="576" w:right="576" w:firstLine="0"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:i/>
+<w:iCs/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Dedication">
+<w:name w:val="Dedication"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="120" w:before="120"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:i/>
+<w:iCs/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="ListBullet">
+<w:name w:val="List Bullet"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="2"/>
+</w:numPr>
+<w:spacing w:after="60"/>
+<w:ind w:left="432" w:hanging="288"/>
+<w:jc w:val="left"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="ListNumber">
+<w:name w:val="List Number"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="60"/>
+<w:ind w:left="432" w:hanging="360"/>
+<w:jc w:val="left"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="TakeawaysHeading">
+<w:name w:val="Takeaways Heading"/>
+<w:basedOn w:val="Normal"/>
+<w:next w:val="TakeawaysItem"/>
+<w:qFormat/>
+<w:pPr>
+<w:keepNext/>
+<w:spacing w:after="80" w:before="240"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="left"/>
+</w:pPr>
+<w:rPr>
+<w:rFonts w:ascii="Plus Jakarta Sans" w:cs="Plus Jakarta Sans" w:eastAsia="Plus Jakarta Sans" w:hAnsi="Plus Jakarta Sans"/>
+<w:b/>
+<w:bCs/>
+<w:color w:val="111111"/>
+<w:sz w:val="20"/>
+<w:szCs w:val="20"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="TakeawaysItem">
+<w:name w:val="Takeaways Item"/>
+<w:basedOn w:val="ListBullet"/>
+<w:qFormat/>
+<w:pPr>
+<w:numPr>
+<w:ilvl w:val="0"/>
+<w:numId w:val="2"/>
+</w:numPr>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="SceneBreak">
+<w:name w:val="Scene Break"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="200" w:before="200"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="center"/>
+</w:pPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="DemoNote">
+<w:name w:val="Demo Note"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:pBdr>
+<w:top w:val="single" w:color="111111" w:sz="6" w:space="4"/>
+<w:left w:val="single" w:color="111111" w:sz="6" w:space="4"/>
+<w:bottom w:val="single" w:color="111111" w:sz="6" w:space="4"/>
+<w:right w:val="single" w:color="111111" w:sz="6" w:space="4"/>
+</w:pBdr>
+<w:spacing w:after="200" w:before="120"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="left"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="18"/>
+<w:szCs w:val="18"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Callout">
+<w:name w:val="Callout"/>
+<w:basedOn w:val="DemoNote"/>
+<w:qFormat/>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Quote">
+<w:name w:val="Quote"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="120" w:before="120"/>
+<w:ind w:left="432" w:right="432" w:firstLine="0"/>
+</w:pPr>
+<w:rPr>
+<w:i/>
+<w:iCs/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="TableText">
+<w:name w:val="Table Text"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:line="240"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="left"/>
+</w:pPr>
+<w:rPr>
+<w:sz w:val="17"/>
+<w:szCs w:val="17"/>
+</w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="Caption">
+<w:name w:val="Caption"/>
+<w:basedOn w:val="Normal"/>
+<w:qFormat/>
+<w:pPr>
+<w:spacing w:after="160"/>
+<w:ind w:firstLine="0"/>
+<w:jc w:val="center"/>
+</w:pPr>
+<w:rPr>
+<w:i/>
+<w:iCs/>
+<w:sz w:val="17"/>
+<w:szCs w:val="17"/>
+</w:rPr>
+</w:style>
+</w:styles>

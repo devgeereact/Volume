@@ -1,0 +1,324 @@
+{
+  "$comment": "Default OpenRouter model per pipeline stage. The owner can change any stage in Settings; choices are saved per workspace, profile and book. Every slug must be verified against GET https://openrouter.ai/api/v1/models before phase 2 (verifyBeforePhase2). Never switch to a fallback silently: retry, then offer the next fallback to the owner.",
+  "version": 1,
+  "checkedOn": "2026-10-05",
+  "verifyBeforePhase2": true,
+  "verification": {
+    "method": "GET https://openrouter.ai/api/v1/models (public, no key) and match each slug's id, supported_parameters and architecture.output_modalities.",
+    "lastResult": "On 2026-10-04 every defaultModel and fallback slug below appeared in the public model list. Aliases starting with '~' point at the provider's latest model and can move without notice, so phase 2 must re-check them and record the concrete model each alias resolved to in the usage log.",
+    "stillToVerify": [
+      "Whether the ':online' suffix works on '~' alias slugs (the docs example uses a concrete slug). Volume uses the web plugin object instead, which does not depend on the slug.",
+      "Header names for app attribution (HTTP-Referer and X-OpenRouter-Title per the plan; older docs used X-Title)."
+    ],
+    "sources": [
+      "https://openrouter.ai/api/v1/models (read 2026-10-04)",
+      "https://openrouter.ai/docs/features/web-search (read 2026-10-04)",
+      "https://openrouter.ai/docs/features/multimodal/image-generation (read 2026-10-04)",
+      "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens (read 2026-10-05)",
+      "https://openrouter.ai/docs/api/reference/errors-and-debugging (read 2026-10-05)",
+      "https://openrouter.ai/docs/guides/overview/multimodal/image-generation (read 2026-10-05)",
+      "https://openrouter.ai/docs/guides/features/plugins/web-search (read 2026-10-05)",
+      "https://platform.claude.com/docs/en/models/opus-5-5/migration-guide (read 2026-10-05)"
+    ],
+    "resolved": [
+      "2026-10-05: /api/v1/images rejects aspect_ratio '5:8' (live error lists 1:1, 1:2, 1:4, 1:8, 2:1, 2:3, 2.35:1, 3:2, 3:4, 4:1, 4:3, 4:5, 5:2, 5:4, 5:7, 7:5, 8:1, 9:16, 16:9, 9:19.5, 19.5:9, 9:20, 20:9, 9:21, 21:9, auto). Volume asks for 2:3 and the export fits the art to 1600 x 2560 (object-fit: cover).",
+      "2026-10-05: Claude Opus 5.5 rejects any non-default temperature, top_p or top_k with a 400, and Claude Sonnet 5.5 rejects non-default values (Anthropic migration guide for Opus 5.5 and the Claude API skill model table). OpenRouter still lists 'temperature' in supported_parameters for both, so modelRules below leave it out.",
+      "2026-10-05: reasoning tokens count against max_tokens on most providers; a cut-off answer comes back with finish_reason 'length' (OpenRouter reasoning-tokens guide). Stage max tokens were raised so reasoning models have room."
+    ]
+  },
+  "provider": "openrouter",
+  "apiKeyEnv": "OPENROUTER_API_KEY",
+  "endpoints": {
+    "baseUrl": "https://openrouter.ai/api/v1",
+    "chatCompletions": "POST https://openrouter.ai/api/v1/chat/completions",
+    "images": "POST https://openrouter.ai/api/v1/images",
+    "models": "GET https://openrouter.ai/api/v1/models"
+  },
+  "headers": {
+    "HTTP-Referer": "http://127.0.0.1",
+    "X-OpenRouter-Title": "Volume"
+  },
+  "modelRules": [
+    {
+      "match": "^~anthropic/claude-(opus|sonnet|fable)-latest$",
+      "omitParams": [
+        "temperature",
+        "top_p",
+        "top_k"
+      ],
+      "note": "The aliases point at Claude Opus 5.5, Sonnet 5.5 and Fable 5.1 today, which reject non-default sampling settings."
+    },
+    {
+      "match": "^anthropic/claude-(opus-(4\\.[78]|5)|sonnet-5|fable-|mythos-)",
+      "omitParams": [
+        "temperature",
+        "top_p",
+        "top_k"
+      ],
+      "note": "Claude Opus 4.7 and later, Sonnet 5 and later, Fable and Mythos return 400 for non-default temperature, top_p or top_k (Anthropic migration guides)."
+    }
+  ],
+  "tiers": {
+    "top": "Best writing and planning model. Used where one call shapes the whole book.",
+    "mid": "Strong, cheaper writer. Used for long text and edits.",
+    "small": "Small fast model for checks, summaries and structured extraction.",
+    "search": "Model run with OpenRouter web search. Sources come only from url_citation annotations.",
+    "image": "Image model through the images endpoint. Never asked to draw text."
+  },
+  "webSearch": {
+    "plugin": {
+      "id": "web",
+      "engine": "native",
+      "max_results": 8
+    },
+    "alternative": "Append ':online' to a concrete model slug.",
+    "engines": [
+      "native",
+      "exa",
+      "firecrawl",
+      "parallel",
+      "perplexity"
+    ],
+    "nativeFor": [
+      "openai",
+      "anthropic",
+      "google",
+      "perplexity"
+    ],
+    "citationField": "choices[0].message.annotations[].url_citation {url, title, content, start_index, end_index}",
+    "rule": "Store only sources that arrive as url_citation annotations. Discard any URL or title the model types in its text.",
+    "retryEngineWhenNoSources": "exa",
+    "highSearchesPerCall": 4,
+    "enginePricePerCall": {
+      "exa": 0.007
+    },
+    "pricingNote": "Native search is billed at the provider's price (pricing.web_search per request, several queries possible). Exa is USD 0.007 per request with up to 10 results (openrouter.ai/docs/guides/features/plugins/web-search, read 2026-10-05). On 2026-10-05 a live research call on Gemini 3.1 Pro with native search came back with no url_citation sources and no search charge, so a search call with no sources is tried once more with Exa."
+  },
+  "imageDefaults": {
+    "endpoint": "images",
+    "responseField": "data[].b64_json with data[].media_type",
+    "options": {
+      "aspect_ratio": [
+        "2:3"
+      ],
+      "resolution": [
+        "1K",
+        "2K",
+        "4K"
+      ],
+      "output_format": [
+        "png",
+        "jpeg"
+      ],
+      "n": [
+        1
+      ]
+    },
+    "kdpRuleIds": [
+      "ebook.cover",
+      "paperback.cover",
+      "paperback.spine.widthPerPage"
+    ],
+    "note": "Title, subtitle and author name are always set by the app over the art, never generated by the model. One image per concept (n 1): only the first image of a request is used, so more would be paid for and thrown away. 2:3 art is fitted to the 1600 x 2560 eBook cover by the export."
+  },
+  "budgets": {
+    "perBookDefaultUSD": 15,
+    "perCallWarnUSD": 1,
+    "note": "Placeholder figures, not measured costs: the owner sets the real caps in Settings after the first budgeted live run. The job queue stops a book when the cap is reached and asks the owner. Estimates: the high end assumes the full output allowance (max tokens, or highOutputTokens where reasoning has been seen to go past it) plus highSearchesPerCall web searches for search stages."
+  },
+  "stages": {
+    "research": {
+      "tier": "search",
+      "defaultModel": "~google/gemini-pro-latest",
+      "fallbacks": [
+        "~google/gemini-flash-latest",
+        "~anthropic/claude-sonnet-latest"
+      ],
+      "webSearch": true,
+      "maxTokens": 16000,
+      "temperature": 0.3,
+      "responseFormat": "json_schema",
+      "prompts": [
+        "research.title-research"
+      ],
+      "notes": "Run with the web plugin (webSearch.plugin) so every model in the list gets search. Native search for Google and Anthropic. Only url_citation sources are kept. To verify against GET /api/v1/models. Max tokens 16,000 and highOutputTokens 20,000: on 2026-10-05 Gemini 3.1 Pro used 11,951 output tokens (mostly reasoning) on one research call.",
+      "highOutputTokens": 20000,
+      "expectedOutputTokens": 12000
+    },
+    "titles": {
+      "tier": "mid",
+      "defaultModel": "~anthropic/claude-sonnet-latest",
+      "fallbacks": [
+        "~google/gemini-pro-latest",
+        "~openai/gpt-mini-latest"
+      ],
+      "maxTokens": 16000,
+      "temperature": 0.9,
+      "responseFormat": "json_schema",
+      "prompts": [
+        "titles.topic-directions",
+        "titles.title-options"
+      ],
+      "notes": "High temperature for variety; the app checks every title against listing.titleSubtitle.maxChars and the house style. To verify against GET /api/v1/models. Max tokens 16,000: Claude Sonnet 5.5 always reasons, and at 4,000 the title options were cut off (2026-10-05). Topic directions used about 3,300 output tokens.",
+      "expectedOutputTokens": 4000
+    },
+    "blueprint": {
+      "tier": "top",
+      "defaultModel": "~anthropic/claude-opus-latest",
+      "fallbacks": [
+        "~anthropic/claude-sonnet-latest",
+        "~google/gemini-pro-latest"
+      ],
+      "maxTokens": 32000,
+      "temperature": 0.7,
+      "responseFormat": "json_schema",
+      "prompts": [
+        "blueprint.blueprint",
+        "blueprint.regenerate-part"
+      ],
+      "notes": "One call shapes the whole book, so it gets the top tier. Structured output (supported_parameters includes structured_outputs on 2026-10-04). To verify against GET /api/v1/models. Max tokens 32,000: Claude Opus 5.5 always thinks and max tokens covers thinking plus text (Anthropic Opus 5.5 migration guide).",
+      "expectedOutputTokens": 12000
+    },
+    "writing": {
+      "tier": "mid",
+      "defaultModel": "~anthropic/claude-sonnet-latest",
+      "fallbacks": [
+        "~anthropic/claude-opus-latest",
+        "~google/gemini-pro-latest"
+      ],
+      "maxTokens": 32000,
+      "temperature": 0.8,
+      "stream": true,
+      "responseFormat": "markdown",
+      "prompts": [
+        "writing.chapter",
+        "writing.extend-section",
+        "writing.introduction",
+        "writing.conclusion",
+        "writing.front-matter",
+        "writing.back-matter",
+        "writing.rewrite-selection",
+        "children.picture-book-story",
+        "writing.weave-note"
+      ],
+      "notes": "Streamed, one job per chapter. 12,000 tokens covers a 4,000-word chapter with room to spare. To verify against GET /api/v1/models. Max tokens 32,000 so reasoning cannot crowd out a 4,000-word chapter (streamed, so no request timeout)."
+    },
+    "summarise": {
+      "tier": "small",
+      "defaultModel": "~anthropic/claude-haiku-latest",
+      "fallbacks": [
+        "~google/gemini-flash-latest",
+        "~openai/gpt-mini-latest"
+      ],
+      "maxTokens": 4000,
+      "temperature": 0.2,
+      "responseFormat": "json_schema",
+      "prompts": [
+        "checks.summarise-and-ledger"
+      ],
+      "notes": "Runs after each chapter: summary for later chapters plus the used-already ledger. To verify against GET /api/v1/models."
+    },
+    "checks": {
+      "tier": "small",
+      "defaultModel": "~anthropic/claude-haiku-latest",
+      "fallbacks": [
+        "~google/gemini-flash-latest",
+        "~openai/gpt-mini-latest"
+      ],
+      "maxTokens": 8000,
+      "temperature": 0,
+      "responseFormat": "json_schema",
+      "prompts": [
+        "checks.claims",
+        "checks.consistency"
+      ],
+      "notes": "Code checks run first (em dashes, spellings, banned phrases, word counts, guardrailPatterns); the model only does claims and consistency. ~openai/gpt-mini-latest did not list 'temperature' in supported_parameters on 2026-10-04, so the client must drop it for that fallback. To verify against GET /api/v1/models."
+    },
+    "editing": {
+      "tier": "mid",
+      "defaultModel": "~anthropic/claude-sonnet-latest",
+      "fallbacks": [
+        "~anthropic/claude-opus-latest",
+        "~google/gemini-pro-latest"
+      ],
+      "maxTokens": 32000,
+      "temperature": 0.4,
+      "responseFormat": "json_schema",
+      "prompts": [
+        "editing.structural",
+        "editing.line-edit-uk",
+        "editing.voice"
+      ],
+      "notes": "Every accepted edit becomes a new version. To verify against GET /api/v1/models. Max tokens 32,000: a line edit returns the whole chapter plus reasoning."
+    },
+    "matter_metadata": {
+      "tier": "mid",
+      "defaultModel": "~anthropic/claude-sonnet-latest",
+      "fallbacks": [
+        "~google/gemini-pro-latest",
+        "~anthropic/claude-haiku-latest"
+      ],
+      "maxTokens": 16000,
+      "temperature": 0.6,
+      "responseFormat": "json_schema",
+      "prompts": [
+        "matter.amazon-description",
+        "matter.keywords-categories",
+        "matter.back-cover"
+      ],
+      "notes": "Character limits come from config/kdp-rules and are checked by code after the call. To verify against GET /api/v1/models."
+    },
+    "cover_brief": {
+      "tier": "mid",
+      "defaultModel": "~anthropic/claude-sonnet-latest",
+      "fallbacks": [
+        "~google/gemini-pro-latest"
+      ],
+      "maxTokens": 12000,
+      "temperature": 0.8,
+      "responseFormat": "json_schema",
+      "prompts": [
+        "cover.cover-brief",
+        "cover.cover-image",
+        "children.scene-prompts"
+      ],
+      "notes": "Writes the brief and 3 to 4 concept prompts. To verify against GET /api/v1/models."
+    },
+    "cover_image": {
+      "tier": "image",
+      "defaultModel": "google/gemini-2.5-flash-image",
+      "fallbacks": [
+        "google/gemini-3.1-flash-image",
+        "google/gemini-3-pro-image"
+      ],
+      "endpoint": "images",
+      "maxTokens": null,
+      "temperature": null,
+      "aspectRatio": "2:3",
+      "resolution": "2K",
+      "outputFormat": "png",
+      "n": 1,
+      "prompts": [],
+      "receives": "imagePrompt from cover.cover-image, or a scene prompt from children.scene-prompts",
+      "notes": "Uses POST /api/v1/images (base64 results, no charge on failure per the plan). One image per concept (n 1). Aspect ratio 2:3 (5:8 is rejected); the export fits it to 1600 x 2560. The model never draws text; typography is added by the app. Export converts to JPEG for KDP (ebook.cover file types). To verify against GET /api/v1/models."
+    },
+    "marketing": {
+      "tier": "mid",
+      "defaultModel": "~anthropic/claude-sonnet-latest",
+      "fallbacks": [
+        "~google/gemini-pro-latest",
+        "~anthropic/claude-haiku-latest"
+      ],
+      "maxTokens": 16000,
+      "temperature": 0.8,
+      "responseFormat": "json_schema",
+      "prompts": [
+        "marketing.tiktok-scripts",
+        "marketing.instagram-captions",
+        "marketing.launch-email"
+      ],
+      "notes": "To verify against GET /api/v1/models. Max tokens 16,000: a launch pack used about 4,900 output tokens on Claude Sonnet 5.5 (2026-10-05).",
+      "expectedOutputTokens": 6000
+    }
+  }
+}

@@ -1,0 +1,2187 @@
+{
+  "$comment": "Book type catalogue (D-017). Every new book picks one type; the type names its structure template (config/book-templates/), starting word and unit ranges, genre rules, and the default interior theme (config/interior-themes.json) and cover style (config/cover-styles.json). Word and unit ranges are starting points for the owner to change per book, not market data. KDP facts are never copied here: kdpNotes point at rule ids in config/kdp-rules/. Trim sizes come from paperback.trimSizes.list, which is unverified until checked against KDP.",
+  "version": 1,
+  "updatedOn": "2026-10-04",
+  "categories": [
+    {
+      "id": "fiction",
+      "name": "Fiction",
+      "description": "Novels, novellas and story collections, written scene by scene with a story bible."
+    },
+    {
+      "id": "childrens",
+      "name": "Children's",
+      "description": "Picture books, bedtime stories and books for young readers, checked against the gentle content rules."
+    },
+    {
+      "id": "nonfiction",
+      "name": "Non-fiction",
+      "description": "First-person guides and narrative non-fiction with chapters, subheadings and key takeaways."
+    },
+    {
+      "id": "workbooks-journals",
+      "name": "Workbooks and journals",
+      "description": "Books the reader writes in, and poetry."
+    }
+  ],
+  "unitNames": {
+    "chapters": "chapters",
+    "stories": "stories",
+    "spreads": "spreads",
+    "entries": "entries",
+    "recipes": "recipes",
+    "poems": "poems",
+    "pages": "pages"
+  },
+  "types": [
+    {
+      "id": "contemporary-romance",
+      "name": "Contemporary romance",
+      "category": "fiction",
+      "description": "A love story set now, with a guaranteed happy or hopeful ending. Often the first of a series set in one town.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "dedication",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "acknowledgements",
+          "about-the-author",
+          "also-by",
+          "review-request",
+          "newsletter-socials"
+        ]
+      },
+      "wordRange": {
+        "min": 50000,
+        "max": 85000,
+        "default": 65000
+      },
+      "chapterRange": {
+        "min": 20,
+        "max": 40,
+        "default": 28
+      },
+      "genreRules": {
+        "expectations": [
+          "Two leads with alternating or close-third point of view",
+          "The relationship is the main plot",
+          "A happy ever after or happy for now ending"
+        ],
+        "mustHaves": [
+          "Meet moment in the first three chapters",
+          "A real obstacle that comes from character, not coincidence",
+          "A dark moment before the resolution",
+          "Heat level stated in the blueprint (sweet, clean, or warm with the door closed)"
+        ],
+        "tropes": [
+          "second chance",
+          "fake relationship",
+          "grumpy and sunshine",
+          "small-town return",
+          "friends to lovers",
+          "forced proximity"
+        ],
+        "avoid": [
+          "Cheating between the leads",
+          "Explicit content unless the owner sets the heat level",
+          "Ending without the couple together"
+        ]
+      },
+      "defaultInteriorTheme": "romance-elegant",
+      "defaultCoverStyle": "romance-script",
+      "defaultTrim": "5 x 8 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Series name and number go in the listing, not the title field.",
+          "ruleIds": [
+            "listing.titleSubtitle.maxChars"
+          ]
+        },
+        {
+          "text": "Spine text only from 80 pages.",
+          "ruleIds": [
+            "paperback.spine.textMinPages"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "historical-romance",
+      "name": "Historical romance",
+      "category": "fiction",
+      "description": "A love story set in a real past period, from Regency to the 1950s, with period detail kept accurate.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "dedication",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "historical-note",
+          "acknowledgements",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 60000,
+        "max": 95000,
+        "default": 75000
+      },
+      "chapterRange": {
+        "min": 22,
+        "max": 40,
+        "default": 30
+      },
+      "genreRules": {
+        "expectations": [
+          "Period manners, dress and speech without modern slang",
+          "Social rules of the time create the obstacle",
+          "A happy ending"
+        ],
+        "mustHaves": [
+          "Story bible period sheet: year, place, class, money, travel",
+          "Historical note in the back matter separating fact from invention",
+          "Real historical people only in passing and never given invented private acts"
+        ],
+        "tropes": [
+          "marriage of convenience",
+          "governess and heir",
+          "wallflower",
+          "letters",
+          "rival families"
+        ],
+        "avoid": [
+          "Anachronistic words and attitudes presented as period-true",
+          "Invented historical facts presented as real"
+        ]
+      },
+      "defaultInteriorTheme": "classic-novel",
+      "defaultCoverStyle": "botanical-didone",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Historical facts used as claims go to the claims-to-verify report.",
+          "ruleIds": []
+        }
+      ]
+    },
+    {
+      "id": "romantasy",
+      "name": "Romantasy",
+      "category": "fiction",
+      "description": "Romance and fantasy with equal weight: a magic system, a world at stake and a central love story.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "dedication",
+          "map",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "glossary",
+          "acknowledgements",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 80000,
+        "max": 120000,
+        "default": 95000
+      },
+      "chapterRange": {
+        "min": 28,
+        "max": 50,
+        "default": 36
+      },
+      "genreRules": {
+        "expectations": [
+          "World rules set in the story bible and never broken",
+          "Romance arc and quest arc that turn on each other",
+          "Series hooks allowed but the romance resolves or clearly continues"
+        ],
+        "mustHaves": [
+          "Magic system with costs",
+          "Named places and a glossary",
+          "Point of view plan per chapter"
+        ],
+        "tropes": [
+          "enemies to lovers",
+          "fated mates",
+          "court intrigue",
+          "chosen one",
+          "bargain"
+        ],
+        "avoid": [
+          "Explicit content unless the owner sets it",
+          "Names or worlds lifted from existing series"
+        ]
+      },
+      "defaultInteriorTheme": "fantasy-epic",
+      "defaultCoverStyle": "fantasy-crest",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "A map counts as an image: supply it at print resolution or leave it out.",
+          "ruleIds": [
+            "paperback.trimAndPages"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fantasy",
+      "name": "Fantasy",
+      "category": "fiction",
+      "description": "Epic or quest fantasy in an invented world with its own history, magic and stakes.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "map",
+          "contents",
+          "prologue"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "glossary",
+          "acknowledgements",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 80000,
+        "max": 130000,
+        "default": 100000
+      },
+      "chapterRange": {
+        "min": 25,
+        "max": 55,
+        "default": 38
+      },
+      "genreRules": {
+        "expectations": [
+          "A world that feels lived in",
+          "A quest or conflict with clear stakes",
+          "Magic with limits"
+        ],
+        "mustHaves": [
+          "Story bible with history, factions, magic rules and a timeline",
+          "Glossary for invented words",
+          "Consistent naming"
+        ],
+        "tropes": [
+          "quest",
+          "found family",
+          "lost heir",
+          "dark lord",
+          "mentor"
+        ],
+        "avoid": [
+          "Info dumps in the first chapter",
+          "Borrowed names, places or magic from existing series"
+        ]
+      },
+      "defaultInteriorTheme": "fantasy-epic",
+      "defaultCoverStyle": "fantasy-crest",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Long books: check the page maximum for the trim before export.",
+          "ruleIds": [
+            "paperback.trimAndPages"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "science-fiction",
+      "name": "Science fiction",
+      "category": "fiction",
+      "description": "Stories built on a scientific or technological idea: near future, space, or alternate worlds.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "acknowledgements",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 70000,
+        "max": 110000,
+        "default": 85000
+      },
+      "chapterRange": {
+        "min": 22,
+        "max": 45,
+        "default": 30
+      },
+      "genreRules": {
+        "expectations": [
+          "One central 'what if' explored with care",
+          "Technology with consistent rules",
+          "Human stakes at the centre"
+        ],
+        "mustHaves": [
+          "Story bible tech sheet: what exists, what it costs, what it cannot do",
+          "Timeline"
+        ],
+        "tropes": [
+          "first contact",
+          "generation ship",
+          "AI awakening",
+          "time loop",
+          "dystopia"
+        ],
+        "avoid": [
+          "Real science stated wrongly as fact",
+          "Lectures that stop the story"
+        ]
+      },
+      "defaultInteriorTheme": "thriller-sharp",
+      "defaultCoverStyle": "tech-grid",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": []
+    },
+    {
+      "id": "thriller",
+      "name": "Thriller",
+      "category": "fiction",
+      "description": "High-stakes, fast-paced fiction with a ticking clock and a protagonist under threat.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "acknowledgements",
+          "about-the-author",
+          "also-by",
+          "review-request",
+          "newsletter-socials"
+        ]
+      },
+      "wordRange": {
+        "min": 70000,
+        "max": 100000,
+        "default": 80000
+      },
+      "chapterRange": {
+        "min": 35,
+        "max": 80,
+        "default": 55
+      },
+      "genreRules": {
+        "expectations": [
+          "Short chapters ending on a turn",
+          "A clear threat and a deadline",
+          "Rising stakes every act"
+        ],
+        "mustHaves": [
+          "Twist plan in the blueprint: what the reader believes, what is true, when it flips",
+          "Clue ledger so every twist is fair",
+          "Antagonist plan with motive"
+        ],
+        "tropes": [
+          "unreliable narrator",
+          "race against time",
+          "conspiracy",
+          "missing person",
+          "domestic secret"
+        ],
+        "avoid": [
+          "Step-by-step instructions for real crimes or weapons",
+          "Gratuitous violence against children or animals",
+          "Twists that cheat the reader"
+        ]
+      },
+      "defaultInteriorTheme": "thriller-sharp",
+      "defaultCoverStyle": "noir-spaced",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Real crime methods presented as instructions are blocked by the claims check.",
+          "ruleIds": [
+            "content.prohibited"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mystery-crime",
+      "name": "Mystery and crime",
+      "category": "fiction",
+      "description": "A crime, an investigator and a fair-play solution: police procedural, private detective or amateur sleuth.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "acknowledgements",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 65000,
+        "max": 95000,
+        "default": 78000
+      },
+      "chapterRange": {
+        "min": 25,
+        "max": 60,
+        "default": 40
+      },
+      "genreRules": {
+        "expectations": [
+          "The crime happens early",
+          "Suspects with motive, means and opportunity",
+          "The solution uses clues the reader saw"
+        ],
+        "mustHaves": [
+          "Clue ledger: where each clue and red herring appears",
+          "Suspect sheet",
+          "Investigation timeline"
+        ],
+        "tropes": [
+          "locked room",
+          "cold case",
+          "village secrets",
+          "detective with a past",
+          "red herring"
+        ],
+        "avoid": [
+          "A solution from nowhere",
+          "Real police procedure stated wrongly as fact"
+        ]
+      },
+      "defaultInteriorTheme": "thriller-sharp",
+      "defaultCoverStyle": "noir-spaced",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": []
+    },
+    {
+      "id": "cosy-mystery",
+      "name": "Cosy mystery",
+      "category": "fiction",
+      "description": "A gentle whodunnit: an amateur sleuth, a close community, no gore and a satisfying reveal.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "cast-of-characters",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "recipe-or-extra",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 55000,
+        "max": 75000,
+        "default": 65000
+      },
+      "chapterRange": {
+        "min": 22,
+        "max": 40,
+        "default": 30
+      },
+      "genreRules": {
+        "expectations": [
+          "Amateur sleuth with a hobby or trade",
+          "Small community setting",
+          "Violence off the page"
+        ],
+        "mustHaves": [
+          "Clue ledger and fair-play solution",
+          "Recurring cast for a series",
+          "Warm, witty tone"
+        ],
+        "tropes": [
+          "village fete",
+          "bakery or bookshop sleuth",
+          "pet sidekick",
+          "nosy neighbour",
+          "allotment"
+        ],
+        "avoid": [
+          "Graphic violence",
+          "Swearing beyond mild",
+          "Explicit content"
+        ]
+      },
+      "defaultInteriorTheme": "cosy-mystery",
+      "defaultCoverStyle": "cosy-frame",
+      "defaultTrim": "5 x 8 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": []
+    },
+    {
+      "id": "horror-mild",
+      "name": "Horror (mild)",
+      "category": "fiction",
+      "description": "Atmospheric, unsettling fiction: ghost stories and quiet dread rather than gore.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 50000,
+        "max": 85000,
+        "default": 65000
+      },
+      "chapterRange": {
+        "min": 20,
+        "max": 40,
+        "default": 28
+      },
+      "genreRules": {
+        "expectations": [
+          "Dread that builds",
+          "A setting with a history",
+          "An ending that lingers"
+        ],
+        "mustHaves": [
+          "Content notes in the front matter",
+          "Rules for the supernatural in the story bible"
+        ],
+        "tropes": [
+          "haunted house",
+          "folk horror",
+          "cursed object",
+          "isolated village"
+        ],
+        "avoid": [
+          "Gore described in detail",
+          "Self-harm shown as a solution",
+          "Harm to children on the page"
+        ],
+        "readerAge": "Adult"
+      },
+      "defaultInteriorTheme": "classic-novel",
+      "defaultCoverStyle": "noir-spaced",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Content notes help readers; KDP content rules still apply.",
+          "ruleIds": [
+            "content.prohibited"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "historical-fiction",
+      "name": "Historical fiction",
+      "category": "fiction",
+      "description": "A story set in a real period, with invented characters living through real events.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "epigraph",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "historical-note",
+          "acknowledgements",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 80000,
+        "max": 120000,
+        "default": 95000
+      },
+      "chapterRange": {
+        "min": 25,
+        "max": 50,
+        "default": 34
+      },
+      "genreRules": {
+        "expectations": [
+          "Research-led period detail",
+          "Personal stakes inside public events"
+        ],
+        "mustHaves": [
+          "Historical note separating fact from invention",
+          "Research sources for every period fact"
+        ],
+        "tropes": [
+          "wartime",
+          "dual timeline",
+          "lost letters",
+          "family saga"
+        ],
+        "avoid": [
+          "Invented quotes from real people",
+          "Period facts without a source"
+        ]
+      },
+      "defaultInteriorTheme": "classic-novel",
+      "defaultCoverStyle": "botanical-didone",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Period facts presented as true go to the claims-to-verify report.",
+          "ruleIds": []
+        }
+      ]
+    },
+    {
+      "id": "literary-fiction",
+      "name": "Literary fiction",
+      "category": "fiction",
+      "description": "Character-led fiction where language, theme and inner life carry the story.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "epigraph",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "acknowledgements",
+          "about-the-author",
+          "also-by"
+        ]
+      },
+      "wordRange": {
+        "min": 60000,
+        "max": 100000,
+        "default": 75000
+      },
+      "chapterRange": {
+        "min": 12,
+        "max": 40,
+        "default": 22
+      },
+      "genreRules": {
+        "expectations": [
+          "Distinct narrative voice",
+          "Theme explored through character",
+          "Endings may be open"
+        ],
+        "mustHaves": [
+          "Voice sample approved before writing",
+          "Theme notes in the story bible"
+        ],
+        "tropes": [
+          "coming of age",
+          "family",
+          "memory",
+          "place"
+        ],
+        "avoid": [
+          "Purple prose and stock phrases (house style)",
+          "Epigraphs from quotes the owner did not supply"
+        ]
+      },
+      "defaultInteriorTheme": "classic-novel",
+      "defaultCoverStyle": "quiet-italic",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": []
+    },
+    {
+      "id": "short-story-collection",
+      "name": "Short story collection",
+      "category": "fiction",
+      "description": "Several complete stories under one title, linked by theme, place or character.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "dedication",
+          "contents"
+        ],
+        "bodyUnit": "stories",
+        "backMatter": [
+          "story-notes",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 30000,
+        "max": 70000,
+        "default": 45000
+      },
+      "chapterRange": {
+        "min": 6,
+        "max": 20,
+        "default": 10
+      },
+      "genreRules": {
+        "expectations": [
+          "Each story complete in itself",
+          "A thread that ties the collection"
+        ],
+        "mustHaves": [
+          "Running order that varies length and mood",
+          "Story titles in title case"
+        ],
+        "avoid": [
+          "Stories that need the reader to have read another to make sense"
+        ]
+      },
+      "defaultInteriorTheme": "classic-novel",
+      "defaultCoverStyle": "quiet-italic",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": []
+    },
+    {
+      "id": "young-adult",
+      "name": "Young adult",
+      "category": "fiction",
+      "description": "Fiction for readers aged 13 to 18 with a teenage protagonist and coming-of-age stakes.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "acknowledgements",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 50000,
+        "max": 85000,
+        "default": 65000
+      },
+      "chapterRange": {
+        "min": 20,
+        "max": 45,
+        "default": 30
+      },
+      "genreRules": {
+        "expectations": [
+          "Teen protagonist, first person or close third",
+          "Identity and belonging",
+          "Voice that respects the reader"
+        ],
+        "mustHaves": [
+          "Age-appropriate content notes",
+          "Helplines or resources only from research sources if a hard topic appears"
+        ],
+        "avoid": [
+          "Explicit content",
+          "Glamorised self-harm, drugs or risky behaviour",
+          "Talking down to the reader"
+        ],
+        "readerAge": "13 to 18"
+      },
+      "defaultInteriorTheme": "cosy-mystery",
+      "defaultCoverStyle": "headline-stack",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Set the reading age honestly in the listing.",
+          "ruleIds": [
+            "listing.categories"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "picture-book",
+      "name": "Picture book",
+      "category": "childrens",
+      "description": "A short illustrated story told across spreads, read aloud to children aged 3 to 7.",
+      "templateFile": "picture-book.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "word-of-the-day"
+        ],
+        "bodyUnit": "spreads",
+        "backMatter": [
+          "goodnight-message",
+          "about-the-author",
+          "also-by"
+        ]
+      },
+      "wordRange": {
+        "min": 300,
+        "max": 1000,
+        "default": 600
+      },
+      "chapterRange": {
+        "min": 8,
+        "max": 16,
+        "default": 12
+      },
+      "genreRules": {
+        "expectations": [
+          "Friendly main character",
+          "Gentle problem solved kindly",
+          "Read-aloud rhythm"
+        ],
+        "mustHaves": [
+          "One new word used at least three times and explained",
+          "Scene prompt for every spread with the same character sheet",
+          "Happy, soothing ending"
+        ],
+        "avoid": [
+          "Anything scary",
+          "Villains, monsters or dark places",
+          "Brand names and real people",
+          "Unsafe behaviour shown as fine"
+        ],
+        "readerAge": "3 to 7"
+      },
+      "defaultInteriorTheme": "childrens-large-type",
+      "defaultCoverStyle": "picture-bright",
+      "defaultTrim": "8.5 x 8.5 in",
+      "interior": "colour",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Full-colour interior with bleed.",
+          "ruleIds": [
+            "print.bleed"
+          ]
+        },
+        {
+          "text": "At least 24 pages; no spine text under 80 pages.",
+          "ruleIds": [
+            "paperback.trimAndPages",
+            "paperback.spine.textMinPages"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bedtime-story",
+      "name": "Bedtime story",
+      "category": "childrens",
+      "description": "A calm, soothing story for the last minutes of the day, with soft sounds, warm light and a goodnight line.",
+      "templateFile": "picture-book.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "word-of-the-day"
+        ],
+        "bodyUnit": "spreads",
+        "backMatter": [
+          "goodnight-message",
+          "about-the-author",
+          "also-by"
+        ]
+      },
+      "wordRange": {
+        "min": 300,
+        "max": 1000,
+        "default": 650
+      },
+      "chapterRange": {
+        "min": 8,
+        "max": 16,
+        "default": 12
+      },
+      "genreRules": {
+        "expectations": [
+          "Slowing pace towards the end",
+          "Sensory comfort: soft textures, quiet sounds, warm light",
+          "Repeated lines children can join in with"
+        ],
+        "mustHaves": [
+          "One new word per book, explained in child-friendly words",
+          "Goodnight message switched on",
+          "Both safety checks pass"
+        ],
+        "avoid": [
+          "Nightmares, shadows or anything frightening",
+          "Excitement that winds a child up at the end",
+          "Punishment or shaming"
+        ],
+        "readerAge": "3 to 7"
+      },
+      "defaultInteriorTheme": "bedtime-soft",
+      "defaultCoverStyle": "storybook-round",
+      "defaultTrim": "8.5 x 8.5 in",
+      "interior": "colour",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Full-colour interior with bleed.",
+          "ruleIds": [
+            "print.bleed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "early-reader",
+      "name": "Early reader",
+      "category": "childrens",
+      "description": "A first chapter-style book for children starting to read alone, with short sentences and simple words.",
+      "templateFile": "picture-book.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "word-of-the-day"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "new-words-list",
+          "about-the-author",
+          "also-by"
+        ]
+      },
+      "wordRange": {
+        "min": 1000,
+        "max": 3500,
+        "default": 2000
+      },
+      "chapterRange": {
+        "min": 3,
+        "max": 8,
+        "default": 5
+      },
+      "genreRules": {
+        "expectations": [
+          "Short sentences and repeated sight words",
+          "One idea per page",
+          "Pictures support the words"
+        ],
+        "mustHaves": [
+          "New words list at the back",
+          "Large, clear type"
+        ],
+        "avoid": [
+          "Long or complex sentences",
+          "Anything scary"
+        ],
+        "readerAge": "5 to 7"
+      },
+      "defaultInteriorTheme": "childrens-large-type",
+      "defaultCoverStyle": "picture-bright",
+      "defaultTrim": "6 x 9 in",
+      "interior": "colour",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Colour interior; check printing cost before setting the price.",
+          "ruleIds": [
+            "paperback.minimumListPrice"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chapter-book",
+      "name": "Chapter book",
+      "category": "childrens",
+      "description": "Short illustrated chapters for confident young readers, often a series with the same friends.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "about-the-author",
+          "also-by"
+        ]
+      },
+      "wordRange": {
+        "min": 5000,
+        "max": 15000,
+        "default": 9000
+      },
+      "chapterRange": {
+        "min": 6,
+        "max": 12,
+        "default": 8
+      },
+      "genreRules": {
+        "expectations": [
+          "Funny, warm and fast",
+          "A problem the child solves",
+          "Series-ready cast"
+        ],
+        "mustHaves": [
+          "Chapters of 800 to 1,500 words",
+          "Simple vocabulary with a few stretch words"
+        ],
+        "avoid": [
+          "Frightening scenes",
+          "Adults solving the problem for the child"
+        ],
+        "readerAge": "6 to 9"
+      },
+      "defaultInteriorTheme": "childrens-large-type",
+      "defaultCoverStyle": "picture-bright",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": []
+    },
+    {
+      "id": "middle-grade",
+      "name": "Middle grade",
+      "category": "childrens",
+      "description": "Novels for readers aged 8 to 12: adventure, friendship and a hero their age.",
+      "templateFile": "fiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "acknowledgements",
+          "about-the-author",
+          "also-by"
+        ]
+      },
+      "wordRange": {
+        "min": 25000,
+        "max": 55000,
+        "default": 40000
+      },
+      "chapterRange": {
+        "min": 15,
+        "max": 35,
+        "default": 24
+      },
+      "genreRules": {
+        "expectations": [
+          "Protagonist aged 10 to 13",
+          "Friendship and courage",
+          "Hope at the end"
+        ],
+        "mustHaves": [
+          "Age-appropriate stakes",
+          "Clear chapter endings that pull the reader on"
+        ],
+        "avoid": [
+          "Romance beyond a crush",
+          "Graphic peril",
+          "Swearing"
+        ],
+        "readerAge": "8 to 12"
+      },
+      "defaultInteriorTheme": "cosy-mystery",
+      "defaultCoverStyle": "picture-bright",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": []
+    },
+    {
+      "id": "activity-book",
+      "name": "Activity book",
+      "category": "childrens",
+      "description": "Puzzles, colouring, mazes, drawing prompts and word games for children.",
+      "templateFile": "journal.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "how-to-use"
+        ],
+        "bodyUnit": "pages",
+        "backMatter": [
+          "answers",
+          "about-the-author",
+          "also-by"
+        ]
+      },
+      "wordRange": {
+        "min": 500,
+        "max": 5000,
+        "default": 1500
+      },
+      "chapterRange": {
+        "min": 30,
+        "max": 120,
+        "default": 60
+      },
+      "genreRules": {
+        "expectations": [
+          "One activity per page",
+          "Clear instructions a child can follow",
+          "Answer pages at the back"
+        ],
+        "mustHaves": [
+          "Age range on the cover and in the listing",
+          "Thick, simple line art for colouring"
+        ],
+        "avoid": [
+          "Copyrighted characters",
+          "Small parts or unsafe craft steps"
+        ],
+        "readerAge": "4 to 9"
+      },
+      "defaultInteriorTheme": "workbook",
+      "defaultCoverStyle": "picture-bright",
+      "defaultTrim": "8.5 x 11 in",
+      "interior": "black-and-white",
+      "lowContent": true,
+      "kdpNotes": [
+        {
+          "text": "Activity and colouring books may count as low-content; ISBN rules differ.",
+          "ruleIds": [
+            "isbn"
+          ]
+        },
+        {
+          "text": "Large trim: printing cost uses the large-trim table.",
+          "ruleIds": [
+            "paperback.printingCost.uk.blackInk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "self-help",
+      "name": "Self-help and personal growth",
+      "category": "nonfiction",
+      "description": "A first-person guide to changing a habit, a mindset or a part of life, with stories and steps.",
+      "templateFile": "nonfiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "dedication",
+          "contents",
+          "introduction"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "conclusion",
+          "acknowledgements",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 25000,
+        "max": 50000,
+        "default": 35000
+      },
+      "chapterRange": {
+        "min": 8,
+        "max": 15,
+        "default": 10
+      },
+      "genreRules": {
+        "expectations": [
+          "Warm first-person voice",
+          "One promise the book keeps",
+          "Stories that show, then steps that help"
+        ],
+        "mustHaves": [
+          "Three or more subheadings per chapter",
+          "Key takeaways",
+          "Illustrative stories marked as such"
+        ],
+        "avoid": [
+          "Promises of guaranteed results",
+          "Invented studies, statistics or testimonials",
+          "Therapy or medical advice presented as fact"
+        ]
+      },
+      "defaultInteriorTheme": "modern-nonfiction",
+      "defaultCoverStyle": "headline-stack",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": []
+    },
+    {
+      "id": "business-money",
+      "name": "Business and money",
+      "category": "nonfiction",
+      "description": "Practical guides to starting, running or growing a small business or side income, with honest expectations.",
+      "templateFile": "nonfiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents",
+          "introduction"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "conclusion",
+          "resources",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 25000,
+        "max": 50000,
+        "default": 32000
+      },
+      "chapterRange": {
+        "min": 8,
+        "max": 14,
+        "default": 10
+      },
+      "genreRules": {
+        "expectations": [
+          "Clear steps the reader can try this week",
+          "Real costs and risks named",
+          "UK context: HMRC, VAT, sole trader basics pointed to official sources"
+        ],
+        "mustHaves": [
+          "Earnings disclaimer in the front matter",
+          "Resources only from research sources"
+        ],
+        "avoid": [
+          "Income claims or 'get rich' promises",
+          "Tax or legal advice presented as definitive",
+          "Invented case studies presented as real"
+        ]
+      },
+      "defaultInteriorTheme": "business-bold",
+      "defaultCoverStyle": "headline-stack",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Money and tax statements go to the claims-to-verify report.",
+          "ruleIds": []
+        }
+      ]
+    },
+    {
+      "id": "ai-tech-howto",
+      "name": "AI and technology how-to",
+      "category": "nonfiction",
+      "description": "Plain-English guides to using AI tools and everyday technology, written for beginners.",
+      "templateFile": "nonfiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents",
+          "introduction",
+          "how-to-use"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "conclusion",
+          "glossary",
+          "resources",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 20000,
+        "max": 45000,
+        "default": 30000
+      },
+      "chapterRange": {
+        "min": 8,
+        "max": 16,
+        "default": 12
+      },
+      "genreRules": {
+        "datedPrices": true,
+        "expectations": [
+          "Step-by-step tasks with what the reader should see",
+          "Glossary for every new term",
+          "Dated: tools change, so screens and prices carry the month checked"
+        ],
+        "mustHaves": [
+          "Practical variant with short lists",
+          "A safety and privacy note before any tool that handles personal data",
+          "Tool names checked against research sources"
+        ],
+        "avoid": [
+          "Hype and income claims",
+          "Screenshots of third-party products without permission",
+          "Prices or features stated without a date"
+        ]
+      },
+      "defaultInteriorTheme": "tech-guide",
+      "defaultCoverStyle": "tech-grid",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Books mostly from public-domain or freely available content can be refused; write original text.",
+          "ruleIds": [
+            "content.prohibited"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "health-wellbeing",
+      "name": "Health and wellbeing",
+      "category": "nonfiction",
+      "description": "Everyday wellbeing for general readers: sleep, food, movement and rest, without medical claims.",
+      "templateFile": "nonfiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "medical-disclaimer",
+          "contents",
+          "introduction"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "conclusion",
+          "resources",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 25000,
+        "max": 45000,
+        "default": 35000
+      },
+      "chapterRange": {
+        "min": 8,
+        "max": 14,
+        "default": 10
+      },
+      "genreRules": {
+        "expectations": [
+          "Kind, practical voice",
+          "Small changes, not overhauls",
+          "Sources for every health statement"
+        ],
+        "mustHaves": [
+          "Medical disclaimer in the front matter",
+          "Every health statement in the claims-to-verify report",
+          "Point readers to their GP or NHS 111 for symptoms"
+        ],
+        "avoid": [
+          "Diagnosis or treatment advice",
+          "Supplement or diet claims without sources",
+          "Before-and-after promises"
+        ]
+      },
+      "defaultInteriorTheme": "wellbeing-gentle",
+      "defaultCoverStyle": "serene-serif",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Health claims are checked before export; unverified claims block the pack.",
+          "ruleIds": []
+        }
+      ]
+    },
+    {
+      "id": "healthcare-professional",
+      "name": "Healthcare professional",
+      "category": "nonfiction",
+      "description": "Books for nurses and other NHS staff on practice, leadership, education and wellbeing at work.",
+      "templateFile": "nonfiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "professional-disclaimer",
+          "contents",
+          "introduction"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "conclusion",
+          "glossary-of-nhs-terms",
+          "resources",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 30000,
+        "max": 50000,
+        "default": 40000
+      },
+      "chapterRange": {
+        "min": 8,
+        "max": 14,
+        "default": 10
+      },
+      "genreRules": {
+        "expectations": [
+          "Grounded in real NHS practice",
+          "Respect for patients and colleagues",
+          "Reflective prompts a nurse can use on shift"
+        ],
+        "mustHaves": [
+          "Professional disclaimer: local policy and the NMC Code come first",
+          "NHS terms explained on first use",
+          "Clinical statements in the claims-to-verify report",
+          "Illustrative patient stories, never identifiable"
+        ],
+        "avoid": [
+          "Clinical instructions presented as protocol",
+          "Identifiable patients, colleagues or trusts",
+          "Invented guidance, policy numbers or statistics"
+        ]
+      },
+      "defaultInteriorTheme": "healthcare-practical",
+      "defaultCoverStyle": "serene-serif",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Clinical and safety statements go to the claims-to-verify report before export.",
+          "ruleIds": []
+        }
+      ]
+    },
+    {
+      "id": "memoir-biography",
+      "name": "Memoir and biography",
+      "category": "nonfiction",
+      "description": "A true life story told in scenes: the author's own, or a family member's with their consent.",
+      "templateFile": "nonfiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "dedication",
+          "author-note",
+          "contents"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "acknowledgements",
+          "about-the-author",
+          "also-by"
+        ]
+      },
+      "wordRange": {
+        "min": 50000,
+        "max": 90000,
+        "default": 65000
+      },
+      "chapterRange": {
+        "min": 12,
+        "max": 30,
+        "default": 18
+      },
+      "genreRules": {
+        "expectations": [
+          "Scenes, not summaries",
+          "Honest reflection",
+          "A shape: what changed"
+        ],
+        "mustHaves": [
+          "Author note on names changed and memory",
+          "Narrative variant with no takeaways",
+          "Owner reviews every real person mentioned"
+        ],
+        "avoid": [
+          "Invented events presented as true",
+          "Private details of living people without consent"
+        ]
+      },
+      "defaultInteriorTheme": "memoir-warm",
+      "defaultCoverStyle": "quiet-italic",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": []
+    },
+    {
+      "id": "cookbook",
+      "name": "Cookbook",
+      "category": "nonfiction",
+      "description": "Recipes grouped by meal or season, with method steps, timings and the cook's notes.",
+      "templateFile": "cookbook.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents",
+          "introduction",
+          "kitchen-notes"
+        ],
+        "bodyUnit": "recipes",
+        "backMatter": [
+          "conversion-tables",
+          "index",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 15000,
+        "max": 45000,
+        "default": 25000
+      },
+      "chapterRange": {
+        "min": 25,
+        "max": 120,
+        "default": 50
+      },
+      "genreRules": {
+        "expectations": [
+          "Metric first",
+          "Ingredients in the order used",
+          "One action per method step"
+        ],
+        "mustHaves": [
+          "Serves, prep time and cook time on every recipe",
+          "Allergen note where common allergens appear",
+          "Food safety statements in the claims report"
+        ],
+        "avoid": [
+          "Health or weight-loss claims",
+          "Recipes copied from other books or sites",
+          "Undercooking advice for meat, eggs or rice"
+        ]
+      },
+      "defaultInteriorTheme": "cookbook",
+      "defaultCoverStyle": "slab-kitchen",
+      "defaultTrim": "7 x 10 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Colour photos raise printing cost a lot; check before choosing colour.",
+          "ruleIds": [
+            "paperback.minimumListPrice"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "travel",
+      "name": "Travel",
+      "category": "nonfiction",
+      "description": "Guides and travel writing: where to go, how to get there and what it is like.",
+      "templateFile": "nonfiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents",
+          "introduction",
+          "how-to-use"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "practical-information",
+          "resources",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 25000,
+        "max": 60000,
+        "default": 40000
+      },
+      "chapterRange": {
+        "min": 8,
+        "max": 20,
+        "default": 12
+      },
+      "genreRules": {
+        "datedPrices": true,
+        "expectations": [
+          "Place described through the senses",
+          "Practical facts dated"
+        ],
+        "mustHaves": [
+          "Prices, opening times and transport details marked with the month checked",
+          "Sources for every practical fact"
+        ],
+        "avoid": [
+          "Undated prices",
+          "Safety advice without an official source"
+        ]
+      },
+      "defaultInteriorTheme": "practical-guide",
+      "defaultCoverStyle": "modern-grotesk",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": []
+    },
+    {
+      "id": "home-garden-hobbies",
+      "name": "Home, garden and hobbies",
+      "category": "nonfiction",
+      "description": "Practical guides to growing, making and fixing things at home, with clear steps and seasonal notes.",
+      "templateFile": "nonfiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents",
+          "introduction",
+          "how-to-use"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "conclusion",
+          "seasonal-calendar",
+          "resources",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 15000,
+        "max": 40000,
+        "default": 24000
+      },
+      "chapterRange": {
+        "min": 6,
+        "max": 14,
+        "default": 10
+      },
+      "genreRules": {
+        "expectations": [
+          "Steps the reader can follow at home",
+          "UK seasons, climate and suppliers",
+          "Honest about what can go wrong"
+        ],
+        "mustHaves": [
+          "Practical variant with short lists",
+          "Safety notes for tools, chemicals and plants that can harm pets or children",
+          "Seasonal timings checked against research sources"
+        ],
+        "avoid": [
+          "Health claims for plants or remedies",
+          "Brand promotion",
+          "Unsafe shortcuts"
+        ]
+      },
+      "defaultInteriorTheme": "practical-guide",
+      "defaultCoverStyle": "botanical-didone",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Plant safety and remedy statements go to the claims-to-verify report.",
+          "ruleIds": []
+        }
+      ]
+    },
+    {
+      "id": "faith-spirituality",
+      "name": "Faith and spirituality",
+      "category": "nonfiction",
+      "description": "Devotional and reflective books: faith in everyday life, prayer, scripture and hope.",
+      "templateFile": "nonfiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "scripture-permissions",
+          "dedication",
+          "contents",
+          "introduction"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "conclusion",
+          "prayer-or-reflection",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 20000,
+        "max": 45000,
+        "default": 30000
+      },
+      "chapterRange": {
+        "min": 7,
+        "max": 40,
+        "default": 12
+      },
+      "genreRules": {
+        "expectations": [
+          "Respectful, hopeful voice",
+          "Scripture quoted accurately with the translation named",
+          "Reflection questions"
+        ],
+        "mustHaves": [
+          "Bible translation chosen in the blueprint and its permission notice on the copyright page",
+          "Quotes checked word for word"
+        ],
+        "avoid": [
+          "Misquoted or invented scripture",
+          "Attacks on other faiths",
+          "Health or wealth promises"
+        ]
+      },
+      "defaultInteriorTheme": "memoir-warm",
+      "defaultCoverStyle": "faith-light",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Scripture quotations need the translation's permission notice; the owner confirms it.",
+          "ruleIds": []
+        }
+      ]
+    },
+    {
+      "id": "parenting-family",
+      "name": "Parenting and family",
+      "category": "nonfiction",
+      "description": "Warm, practical help for parents and carers, from babies to teenagers.",
+      "templateFile": "nonfiction.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "disclaimer",
+          "contents",
+          "introduction"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "conclusion",
+          "resources",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 25000,
+        "max": 45000,
+        "default": 32000
+      },
+      "chapterRange": {
+        "min": 8,
+        "max": 14,
+        "default": 10
+      },
+      "genreRules": {
+        "expectations": [
+          "Reassuring, never judging",
+          "Real-life examples marked illustrative"
+        ],
+        "mustHaves": [
+          "Child health and safety statements in the claims report",
+          "Point to the GP, health visitor or NHS 111 for health worries"
+        ],
+        "avoid": [
+          "Medical advice for children",
+          "Shaming parents"
+        ]
+      },
+      "defaultInteriorTheme": "wellbeing-gentle",
+      "defaultCoverStyle": "storybook-round",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": []
+    },
+    {
+      "id": "education-study",
+      "name": "Education and study guide",
+      "category": "nonfiction",
+      "description": "Revision guides and study skills for students and adult learners, with worked examples.",
+      "templateFile": "workbook.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents",
+          "how-to-use"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "answers",
+          "glossary",
+          "about-the-author",
+          "also-by"
+        ]
+      },
+      "wordRange": {
+        "min": 15000,
+        "max": 40000,
+        "default": 25000
+      },
+      "chapterRange": {
+        "min": 6,
+        "max": 16,
+        "default": 10
+      },
+      "genreRules": {
+        "expectations": [
+          "Clear learning goal per chapter",
+          "Worked examples, then practice"
+        ],
+        "mustHaves": [
+          "Answers at the back",
+          "Exam board or syllabus named only if the owner confirms it"
+        ],
+        "avoid": [
+          "Claims of guaranteed grades",
+          "Copied past papers"
+        ]
+      },
+      "defaultInteriorTheme": "workbook",
+      "defaultCoverStyle": "workbook-blocks",
+      "defaultTrim": "8.5 x 11 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Fill-in pages may change the VAT rate on print.",
+          "ruleIds": [
+            "print.vat.uk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "workbook",
+      "name": "Workbook",
+      "category": "workbooks-journals",
+      "description": "A guide the reader works through: short teaching, then exercises, checklists and trackers.",
+      "templateFile": "workbook.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "contents",
+          "how-to-use"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "notes-pages",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 10000,
+        "max": 30000,
+        "default": 18000
+      },
+      "chapterRange": {
+        "min": 4,
+        "max": 14,
+        "default": 8
+      },
+      "genreRules": {
+        "expectations": [
+          "Two to four exercises per chapter",
+          "Room to write"
+        ],
+        "mustHaves": [
+          "Ruled lines sized for handwriting",
+          "Exercise types varied"
+        ],
+        "avoid": [
+          "Medical, legal or financial instructions in exercises"
+        ]
+      },
+      "defaultInteriorTheme": "workbook",
+      "defaultCoverStyle": "workbook-blocks",
+      "defaultTrim": "8.5 x 11 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Fill-in pages may change the VAT rate on print.",
+          "ruleIds": [
+            "print.vat.uk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "guided-journal",
+      "name": "Guided journal",
+      "category": "workbooks-journals",
+      "description": "Prompts and space to write: gratitude, reflection, prayer or recovery, one entry a day.",
+      "templateFile": "journal.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "how-to-use"
+        ],
+        "bodyUnit": "entries",
+        "backMatter": [
+          "notes-pages",
+          "about-the-author",
+          "also-by"
+        ]
+      },
+      "wordRange": {
+        "min": 2000,
+        "max": 12000,
+        "default": 5000
+      },
+      "chapterRange": {
+        "min": 30,
+        "max": 366,
+        "default": 90
+      },
+      "genreRules": {
+        "expectations": [
+          "One prompt per entry",
+          "Varied prompts that build over time"
+        ],
+        "mustHaves": [
+          "Writing lines sized for handwriting",
+          "Short intro on how to use it"
+        ],
+        "avoid": [
+          "Therapy claims",
+          "Prompts that push readers into distress without signposting help"
+        ]
+      },
+      "defaultInteriorTheme": "journal-minimal",
+      "defaultCoverStyle": "journal-minimal",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": true,
+      "kdpNotes": [
+        {
+          "text": "Journals and planners are low-content books on KDP; ISBN handling differs.",
+          "ruleIds": [
+            "isbn"
+          ]
+        },
+        {
+          "text": "Fill-in pages may change the VAT rate on print.",
+          "ruleIds": [
+            "print.vat.uk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planner",
+      "name": "Planner",
+      "category": "workbooks-journals",
+      "description": "Undated or dated planning pages: weekly spreads, habit trackers, goals and notes.",
+      "templateFile": "journal.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "how-to-use",
+          "year-goals"
+        ],
+        "bodyUnit": "pages",
+        "backMatter": [
+          "notes-pages"
+        ]
+      },
+      "wordRange": {
+        "min": 300,
+        "max": 3000,
+        "default": 1000
+      },
+      "chapterRange": {
+        "min": 52,
+        "max": 366,
+        "default": 120
+      },
+      "genreRules": {
+        "expectations": [
+          "Repeating layouts",
+          "Clear grid and generous writing space"
+        ],
+        "mustHaves": [
+          "Dated planners: dates checked by code, never by AI",
+          "Week starts on Monday for en-GB"
+        ],
+        "avoid": [
+          "Wrong dates or bank holidays",
+          "Thin lines that do not print"
+        ]
+      },
+      "defaultInteriorTheme": "journal-minimal",
+      "defaultCoverStyle": "journal-minimal",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": true,
+      "kdpNotes": [
+        {
+          "text": "Low-content book; ISBN handling differs.",
+          "ruleIds": [
+            "isbn"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "poetry",
+      "name": "Poetry",
+      "category": "workbooks-journals",
+      "description": "A collection of poems grouped in sections, set with care for line breaks and white space.",
+      "templateFile": "poetry.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "dedication",
+          "contents"
+        ],
+        "bodyUnit": "poems",
+        "backMatter": [
+          "notes",
+          "acknowledgements",
+          "about-the-author",
+          "also-by"
+        ]
+      },
+      "wordRange": {
+        "min": 3000,
+        "max": 20000,
+        "default": 8000
+      },
+      "chapterRange": {
+        "min": 25,
+        "max": 90,
+        "default": 45
+      },
+      "genreRules": {
+        "expectations": [
+          "A voice and theme across the collection",
+          "Each poem starts on a new page"
+        ],
+        "mustHaves": [
+          "Line breaks kept exactly in every format",
+          "Owner approves every poem"
+        ],
+        "avoid": [
+          "Lines borrowed from published poems",
+          "Forced rhyme"
+        ]
+      },
+      "defaultInteriorTheme": "journal-minimal",
+      "defaultCoverStyle": "quiet-italic",
+      "defaultTrim": "5.5 x 8.5 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Ebook line breaks need a reflowable layout check before upload.",
+          "ruleIds": [
+            "manuscript.formats"
+          ]
+        }
+      ]
+    }
+  ]
+}

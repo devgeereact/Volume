@@ -1,0 +1,273 @@
+{
+  "$comment": "Cookbook template (added 4 October 2026 for the book type catalogue, D-017). Same section model as nonfiction.json; the body is recipes grouped into chapters by meal or season. source: profile | owner | ai | app (see README.md).",
+  "id": "cookbook",
+  "version": 1,
+  "name": "Cookbook",
+  "locale": "en-GB",
+  "extends": "nonfiction",
+  "variant": "practical",
+  "voice": {
+    "perspective": "first-person, speaking to 'you'",
+    "aboutTheAuthorPerspective": "third-person",
+    "contractions": true,
+    "houseStyle": "config/house-style.json"
+  },
+  "wordTargets": {
+    "total": {
+      "min": 15000,
+      "max": 45000,
+      "default": 25000
+    },
+    "tolerance": 0.15,
+    "introduction": {
+      "min": 800,
+      "max": 2000,
+      "default": 1200
+    },
+    "note": "Starting ranges, not market data."
+  },
+  "chapterRules": {
+    "count": {
+      "default": 6,
+      "min": 3,
+      "max": 12
+    },
+    "titled": {
+      "default": true
+    },
+    "note": "Chapters group recipes (for example Breakfast, Weeknight, Weekend). Each chapter opens with a short intro of 150 to 400 words."
+  },
+  "recipeRules": {
+    "count": {
+      "default": 50,
+      "min": 25,
+      "max": 120
+    },
+    "fields": [
+      "title",
+      "headnote",
+      "serves",
+      "prepMinutes",
+      "cookMinutes",
+      "ingredients (metric first, imperial in brackets)",
+      "method (numbered, one action per step)",
+      "cook's note (optional)",
+      "allergens"
+    ],
+    "headnote": {
+      "words": {
+        "min": 40,
+        "max": 120
+      }
+    },
+    "units": "Metric first, oven in °C with fan and gas mark.",
+    "safety": "Food safety statements (cooking temperatures, storage, allergens) go to the claims-to-verify report. No health or weight-loss claims.",
+    "originality": "Every recipe written fresh; never copied from another book or site."
+  },
+  "sections": [
+    {
+      "id": "half-title",
+      "kind": "front",
+      "title": "Half Title",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner"
+    },
+    {
+      "id": "title-page",
+      "kind": "front",
+      "title": "Title Page",
+      "required": true,
+      "defaultOn": true,
+      "source": "owner"
+    },
+    {
+      "id": "copyright",
+      "kind": "front",
+      "title": "Copyright",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "templateFrom": "nonfiction",
+      "kdpRuleIds": [
+        "isbn"
+      ]
+    },
+    {
+      "id": "contents",
+      "kind": "front",
+      "title": "Contents",
+      "required": true,
+      "defaultOn": true,
+      "source": "app",
+      "content": "Chapters and recipe titles."
+    },
+    {
+      "id": "introduction",
+      "kind": "front",
+      "title": "Introduction",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "promptId": "writing.introduction"
+    },
+    {
+      "id": "kitchen-notes",
+      "kind": "front",
+      "title": "Before You Start",
+      "required": false,
+      "defaultOn": true,
+      "source": "ai",
+      "content": "Equipment, store-cupboard staples, oven notes.",
+      "promptId": "writing.front-matter"
+    },
+    {
+      "id": "chapters",
+      "kind": "chapter",
+      "title": "{chapterTitle}",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "repeat": true,
+      "promptId": "writing.chapter",
+      "content": "Chapter intro, then its recipes in the recipe format."
+    },
+    {
+      "id": "conversion-tables",
+      "kind": "back",
+      "title": "Conversion Tables",
+      "required": false,
+      "defaultOn": true,
+      "source": "app",
+      "content": "Built by code from fixed conversions, never by AI."
+    },
+    {
+      "id": "index",
+      "kind": "back",
+      "title": "Index",
+      "required": false,
+      "defaultOn": true,
+      "source": "app",
+      "content": "Recipes and main ingredients, built by code."
+    },
+    {
+      "id": "acknowledgements",
+      "kind": "back",
+      "title": "Acknowledgements",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "promptId": "writing.front-matter"
+    },
+    {
+      "id": "about-the-author",
+      "kind": "back",
+      "title": "About the Author",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "profile.bio word for word."
+    },
+    {
+      "id": "also-by",
+      "kind": "back",
+      "title": "Also by {penName}",
+      "required": false,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "Published books under this pen name only."
+    },
+    {
+      "id": "review-request",
+      "kind": "back",
+      "title": "A Small Request",
+      "required": false,
+      "defaultOn": true,
+      "source": "ai",
+      "kdpRuleIds": [
+        "reviews.kdpRules",
+        "reviews.amazonCommunityRules"
+      ],
+      "promptId": "writing.back-matter"
+    }
+  ],
+  "packages": {
+    "publishing": [
+      {
+        "id": "back-cover-blurb",
+        "source": "ai",
+        "promptId": "matter.back-cover"
+      },
+      {
+        "id": "short-bio",
+        "source": "profile"
+      },
+      {
+        "id": "amazon-description",
+        "source": "ai",
+        "promptId": "matter.amazon-description",
+        "kdpRuleIds": [
+          "listing.description.maxChars",
+          "listing.description.allowedFormatting"
+        ]
+      },
+      {
+        "id": "categories",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.categories"
+        ]
+      },
+      {
+        "id": "keywords",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.keywords"
+        ]
+      },
+      {
+        "id": "title-check",
+        "source": "app",
+        "kdpRuleIds": [
+          "listing.titleSubtitle.maxChars"
+        ]
+      },
+      {
+        "id": "ai-disclosure-note",
+        "source": "app",
+        "kdpRuleIds": [
+          "ai.disclosure"
+        ]
+      },
+      {
+        "id": "claims-report",
+        "source": "ai",
+        "promptId": "checks.claims",
+        "content": "Food safety, allergens, health claims."
+      }
+    ],
+    "marketing": [
+      {
+        "id": "tiktok-scripts",
+        "source": "ai",
+        "promptId": "marketing.tiktok-scripts"
+      },
+      {
+        "id": "instagram-captions",
+        "source": "ai",
+        "promptId": "marketing.instagram-captions"
+      },
+      {
+        "id": "launch-email",
+        "source": "ai",
+        "promptId": "marketing.launch-email"
+      }
+    ]
+  },
+  "derivedFrom": [
+    "config/book-types.json: cookbook",
+    "docs/PLAN.md: book structure"
+  ]
+}
