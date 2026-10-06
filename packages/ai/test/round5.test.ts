@@ -91,7 +91,7 @@ describe('used-already list', () => {
   it('asks the summary to log warnings and defined terms', async () => {
     const s = service();
     const r = await s.runStage('checks.summarise-and-ledger', FULL_INPUT);
-    expect(r.promptVersion).toBe(2);
+    expect(r.promptVersion).toBe(loader.load('checks.summarise-and-ledger').meta.version);
     expect(loader.load('checks.summarise-and-ledger').user + loader.load('checks.summarise-and-ledger').system).toContain(
       'warning, caution, safety or privacy note',
     );

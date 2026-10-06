@@ -191,3 +191,11 @@ Live run 3 ("Small Offer, Real Customers") added these rules. Code: `packages/co
 - Streams in chunks with a short delay so progress UI and SSE can be tested.
 - Fault injection by scenario name: `rate_limit`, `server_error`, `invalid_json`, `stream_cut`, `refusal`, `model_missing`, `slow`.
 - Reports a fixed fake cost so budget logic is tested without money.
+
+## Humanizer wording, 6 October 2026
+
+Latest prompt versions apply humanizer 3.0.0 principles within the existing task contracts. Writing guidance follows author samples and the subject, with optional scenes and chapter connections instead of a compulsory story/bridge formula. Editing preserves supported facts, exact source markers and protected lines; internal checks preserve evidence quotations. The voice prompt no longer suggests turning a factual explanation into an invented first-person memory.
+
+This guidance lives in prompts/, with no machine-specific runtime skill dependency and no additional automatic AI call. Style repair still runs only on its existing banned-phrase/opening triggers. It remains a targeted repair, not a general new editing pass. House style and accurate AI disclosure remain in force. PromptLoader caches files when constructed; an already running server needs an owner-controlled restart to load the new files. No existing server was restarted during this change.
+
+Mock verification confirms prompt selection, rendering and output contracts, not the literary quality of a live book. New live quality acceptance remains NOT TESTED. The earlier free-run failures are preserved in FREE-AI-VALIDATION-2026-10-06.md.

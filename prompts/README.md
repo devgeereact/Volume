@@ -121,3 +121,9 @@ Research sources are numbered `[S1]`, `[S2]`... When a chapter states a fact fro
 - First person is for the author's view, guidance and reasoning. Writing prompts never invent the author's past experience, habits, mistakes or conversations, and state the author's background at most once in the body (`{{profile.factsUsedIn}}`).
 - No firm, product, platform, app or person is named as a scam, regulated, unregulated or on a warning list unless a research source with its marker states it.
 - Listing and front-matter text promises nothing about the finished text that no check has confirmed: dated prices only when `{{book.pricesCheck}}` starts with `passed`.
+
+## Humanizer guidance
+
+The latest prompt versions apply humanizer 3.0.0 principles to wording: direct points, varied rhythm, author samples, specific supported details and fewer formulaic openings or endings. Existing contracts and house style take priority. Editorial/checker prompts preserve facts and exact evidence; only fiction or explicitly permitted illustrative composites allow invented scenes.
+
+The guidance is embedded in versioned files. The app does not read a skill from the owner's home directory, and the revision adds no automatic AI call. Voice and line-edit tasks perform the requested editing; automatic style repair retains its existing triggers and targeted scope. AI-generated disclosure remains accurate.

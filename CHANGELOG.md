@@ -5,10 +5,12 @@ User-visible changes, newest first. Dates in British format.
 ## 6 October 2026
 
 ### Added
+- New versions of all 32 prompt IDs apply humanizer wording guidance while preserving author facts, source evidence, output contracts and older pins.
 - Documentation audit report with current build, validation and remaining acceptance pointers.
 - `npm run test:coverage` measures all core, AI, export and server source and enforces the documented line coverage targets in CI.
 
 ### Fixed
+- Writing prompts use optional scenes and chapter connections; the voice editor no longer encourages fabricated personal anecdotes. Removed the unused null BookHeader component.
 - Project guides now describe the built app, current workspace commands, dated KDP rules, import protections and free-model validation results. Historical plans and original findings are clearly labelled.
 - Project imports now commit the profile, book, file metadata, file chunks and child rows together. A failed import leaves existing books and files unchanged and removes every row created by that import.
 

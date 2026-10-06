@@ -68,7 +68,7 @@ apps/web/
     components/ui/         shared components, one per file, index.ts re-exports them
     data/                  typed mock data (index.ts re-exports everything)
     lib/                   hooks and providers: theme, toast, job, pen name, command menu, focus trap, format, motion
-    shell/                 app shell: Spine, TopBar, CommandPalette, JobBar, BookHeader, ScreenPlaceholder, NotFound
+    shell/                 app shell: Spine, TopBar, CommandPalette, JobBar, BookLayout, ScreenPlaceholder, NotFound
     routes/<screen>/       one folder per screen (see ownership)
 ```
 
@@ -158,7 +158,7 @@ export default function BlueprintPage() {
 Layout notes:
 
 - The shell is a grid: spine (240 px; 64 px inside a book and on tablets; a drawer on phones), then a column with the 56 px top bar, `<main>` and the job bar. The document scrolls.
-- **Book screens (D-016).** Every `/books/:bookId/<step>` route renders inside `shell/BookLayout.tsx`, which adds, once: the **book bar** (56 px: mini cover, and on wide screens the title and profile, then `BookSteps`) above the screen, and the **StepFooter** (64 px: "Back: <previous step>", "Step n of 8", "Next: <next step>") below it. Do not render your own step bar, stage track, mini cover row, breadcrumb or "Library" back link. `BookHeader` is deprecated and renders nothing; remove its import.
+- **Book screens (D-016).** Every `/books/:bookId/<step>` route renders inside `shell/BookLayout.tsx`, which adds, once: the **book bar** (56 px: mini cover, and on wide screens the title and profile, then `BookSteps`) above the screen, and the **StepFooter** (64 px: "Back: <previous step>", "Step n of 8", "Next: <next step>") below it. Do not render your own step bar, stage track, mini cover row, breadcrumb or "Library" back link.
 - **Your screen's main action goes in the footer.** Call `useStepAction({ label: "Approve blueprint", onClick, estimate, disabledReason })` (from `lib/stepAction`) and the footer's Next becomes that gilt button, with a quiet "Skip to <next step>" link beside it. Then remove the screen's own copy of that primary button, so there is one gilt button per screen. Pass `to` instead of `onClick` for a link. Pass null (or do not call it) to keep the plain "Next: <step>" link. Only label, link, estimate and disabled reason trigger an update; the click handler can change every render.
 - For screens with their own scrolling panes (Blueprint, Writing, Editor), use `h-screen-fill` (or `min-h-screen-fill`): the height between the top bar (and book bar) and the step footer (and job bar). They are Tailwind `@utility` rules, so variants work: `lg:h-screen-fill`, `xl:min-h-screen-fill`. CSS variables: `--shell-topbar`, `--shell-bookbar`, `--shell-stepfooter`, `--shell-jobbar` (the book ones are 0 outside a book; `data-book="on"` on `<html>` switches them on).
 - **Navigation (D-016).** Left nav: Library, Published, Profiles, New book, Archive, Settings (`globalNav` in `screens.ts`; the command menu reads it too). No book steps in the spine. Breadcrumbs: Library, then the book title only. One global search: the top bar (Cmd K or Ctrl K). Page-level lists use `FilterField` (labelled "Filter"), never a second search box. One small "Demo" badge in the top bar; screens do not add their own demo strips.
@@ -260,7 +260,6 @@ Rules for mock data: realistic, British English, no lorem ipsum, no invented sta
 
 The foundation (shell, shared components, data) is done. These duplicates and stale bits are still inside route files, which the foundation does not edit:
 
-- **Remove `<BookHeader book={book} />`** (it renders nothing now; the shell shows the identity and steps): `research/ResearchPage.tsx:140`, `titles/TitlesPage.tsx:141`, `blueprint/BlueprintPage.tsx:64` and `:389`, `writing/WritingIdle.tsx:105`, `editor/EditorPage.tsx:59` and `:381`, `cover/CoverPage.tsx:61`, `export/ExportPage.tsx:40`, `marketing/MarketingPage.tsx:49`. Remove any wrapper padding or border left around it.
 - **Second step bar:** `blueprint/BlueprintPage.tsx:355` renders its own `StageTrack`; delete it. `cover/CoverPage.tsx:189` has a "Cover steps" sub-stepper (brief, concepts, choose, build); turn it into status text or section headings, not a second stepper.
 - **Page-level Library links:** `blueprint/OutlineRail.tsx:99` and `writing/SectionList.tsx:33` (`to="/library"`). The breadcrumb and the footer's Back cover this.
 - **Second search box:** `library/LibraryPage.tsx` with `library/SearchField.tsx` ("Search titles and pen names", with its own Cmd K hint) and `archive/ArchivePage.tsx`. Replace with `FilterField` (label "Filter", placeholder "Filter by title or profile"). The Library chip "All pen names" should read "All profiles" to match the spine.

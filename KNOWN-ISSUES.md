@@ -4,12 +4,13 @@ Updated 6 October 2026 after the local correction pass. Evidence and original fi
 
 | Item | Remaining work | Status |
 |---|---|---|
+| Humanizer live acceptance | New versions of all 32 prompts pass mock integration, server and browser checks. Actual prose quality needs a fresh authorised live run after the owner reloads/restarts the existing server. Earlier free-route errors remain unresolved. | NOT TESTED live |
 | Live AI acceptance | Owner approved free-only testing. Live titles and three-chapter blueprint pass on Nvidia; full writing failed on summary truncation with both tested Nvidia summary models. Both requested Gemma routes returned upstream invalid-key errors. Recorded cost zero. Production-model quality, research citations and AI covers remain unverified. [Free validation](docs/FREE-AI-VALIDATION-2026-10-06.md). | PARTIAL |
 | MySQL on cPanel | Deferred by owner. When resumed, supply a disposable test environment and verify TLS, complete migrations, jobs/files and restore before production migration. | NOT TESTED, deferred |
 | Publishing acceptance | Sampled Windowsill Herbs DOCX layouts pass in Word. Kindle installer verification passes outside the sandbox; licence approval pending. Browser surfaces unavailable for template/draft interaction. Owner-book and KDP acceptance remain unverified. [Free validation](docs/FREE-AI-VALIDATION-2026-10-06.md). | PARTIAL |
 | Barcode placement | Dimensions and supplied-barcode clearance are checked; automatic position still needs the generated cover template. Dated rules retain a partial warning. | PARTIAL |
 | KDP wording | Spine text at 79 pages and the printing-cost overlap at 110 remain ambiguous in official guidance. Safe defaults and warnings remain. | PARTIAL |
-| GitHub checks | Local CI workflow prepared. A GitHub run has not occurred because these fixes have not been pushed. | NOT TESTED remotely |
+| GitHub checks | CI workflow included in the owner-authorised push. Remote execution/results still require verification. | NOT TESTED remotely |
 | Visual direction, D-014 | Fused direction is implemented, but the recorded decision remains proposed. Owner confirmation is still required; documentation refresh does not approve it. | Owner decision |
 | Profile facts | Owner confirms Gideon's imprint/credentials and Harni's personal details. Do not invent or silently amend them. | Owner decision |
 | Redirect lookups, D-020 | Default is now off. Explicit approval is still needed before enabling non-OpenRouter lookups for book research. | Owner decision |

@@ -2,7 +2,7 @@
 
 **Phase:** local v1 correction pass, publishing acceptance outstanding.
 **Mode:** build.
-**Status:** local fixes implemented and verified on 6 October 2026. Release status PARTIAL. Owner authorised free-only OpenRouter validation and reading one book’s generated files; cPanel testing is deferred. Free text validation attempts have concluded with partial acceptance. Documentation consistency pass completed; see docs/DOCUMENTATION-AUDIT-2026-10-06.md. Corrections and documentation are included in the owner-authorised local commit; no push performed.
+**Status:** local fixes implemented and verified on 6 October 2026. Release status PARTIAL. Owner authorised free-only OpenRouter validation and reading one book’s generated files; cPanel testing is deferred. Free text validation attempts have concluded with partial acceptance. Documentation consistency pass completed; see docs/DOCUMENTATION-AUDIT-2026-10-06.md. Corrections and documentation are included in the owner-authorised local commit; owner authorised pushing the corrections and prompt revisions.
 
 ## Completed in this pass
 
@@ -31,6 +31,16 @@
 3. Publishing review: user granted access to one book, but current SQLite project list and app library were empty. Selected the Windowsill Herbs fixture and created the separate labelled free-test book. Fresh sample DOCX opened in Word; title, copyright, contents, chapter, table pagination/repeated header and final-page layouts visibly checked. Kindle Previewer 4 downloaded from the official help-page link; complete 489,948,921-byte package passes signing and notarisation checks outside the sandbox. The earlier sandboxed verification error is resolved. Installer not run; explicit licence acceptance question pending. Browser surfaces unavailable, so KDP draft upload and generated template comparison remain NOT TESTED. Barcode placement stays partial.
 4. Owner decisions: Gideon's imprint/credentials, Harni's personal line and proposed decisions. D-020 remains proposed with redirect resolution now default off.
 5. .env.example remains owner-edited as previously recorded. No environment files read. Only authorised book-list metadata and the labelled synthetic test book were accessed in data/ during this free validation.
-6. Commit/push only on the owner's request. Initial private devgeereact/Volume repository is already published; these corrections and CI are committed locally. Remote CI has not run.
+6. Commit/push only on the owner's request. Initial private devgeereact/Volume repository is already published; the corrections and prompt revisions are included in the owner-authorised push to origin/main. Remote CI results require separate verification.
 
 Later roadmap phases (fiction/workbooks, picture books, batches/accounts) are outside this v1 correction pass.
+
+## Active follow-up: humanizer prompt revision completed locally
+
+Owner approved the prompt/dead-code plan. Created new versions of all 32 prompt IDs using humanizer 3.0.0 principles; updated prompt index, guides, tests, changelog, D-031 and known issues. Old versions remain unchanged. No runtime dependency on the owner's skill path, new AI call or model-default change.
+
+Removed only the verified unused null BookHeader component and its documentation references. Static audit examined 377 JS/TS files; unreferenced-looking CLI/manual/design tools have explicit entry points and were retained. No blanket claim that all exported or dynamically referenced code is dead.
+
+PASS: typecheck, lint, formatting, AI 155 tests, server 189 tests (MySQL skipped), five browser scenarios and git diff --check. House-style PARTIAL: 66 existing detector findings, same counts as the original prompts, from rule examples/contracts. No new banned-phrase or dash findings. See local validation.
+
+Next: owner-controlled restart/reload of the existing server to load prompt revisions, then fresh authorised live quality validation. No existing server restarted; no live calls, environment/data reads, dependencies, commits or pushes. This follow-up is included in the owner-authorised commit/push to origin/main; cPanel stays deferred.

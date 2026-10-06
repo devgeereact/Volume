@@ -205,3 +205,9 @@ Use the existing authenticated server without reading or exposing its key. Selec
 - Status: Applied documentation maintenance under the owner's request. No stack or product behaviour change.
 - Decision: keep original approved plans, source drafts and review findings as historical material with clear current pointers. Current operational guides follow implemented scripts and source; current acceptance follows dated validation reports and KNOWN-ISSUES.md.
 - Consequence: documentation refresh does not turn proposed owner decisions into approvals or failed/unperformed checks into passes. No external rules were reverified in this documentation-only pass.
+
+## D-031, 6 October 2026: versioned humanizer guidance
+
+- Status: Accepted scope, owner approved the implementation plan.
+- Decision: store adapted humanizer 3.0.0 principles in new prompt versions, with no home-directory skill dependency, extra automatic editing call or change to model defaults. Preserve exact task contracts, source evidence, historical versions, owner voice, house style and AI disclosure.
+- Consequence: active prompts select the latest versions when a new loader starts; explicit older pins remain valid. Mock tests establish integration/contract behaviour, not live prose quality. Only proven unused source was deleted; tools and history remain.

@@ -40,3 +40,11 @@ Further Word inspection and the complete official Kindle installer download are 
 ## Outstanding acceptance
 
 Free titles/blueprint pass; full free writing failed and production-model quality remains unverified. Sampled Word layouts pass in the later report. Kindle/KDP acceptance remains outstanding and cPanel is explicitly deferred by the owner. See KNOWN-ISSUES.md. GitHub CI is prepared locally but not yet executed remotely.
+
+## Humanizer prompt revision and dead-code check
+
+- PASS: 32 new prompt versions load/render with the original variables, stages, tiers and guardrail metadata; old version pins remain available. The index points to each selected revision, including JSON repair. Seven new tests capture mock provider requests from writing, voice editing, line editing and summaries and check the guidance reaches the model without an extra call.
+- PASS: AI suite 155 tests; server suite 189 tests, one MySQL skip; five browser scenarios including full export pack and recovery. Root typecheck, lint, format:check and git diff --check PASS. Browser run also builds server and web.
+- House-style scan PARTIAL: 66 book-content detector findings across the 32 new prompts, with the same pattern counts as the previous versions. They occur in existing prohibition examples, medical/safety rules, word-target tolerances and output contract text. No new banned-phrase or dash findings. Prompt versions were scanned without suppressing those findings.
+- Static import audit inspected 377 JavaScript/TypeScript files, including tests and tools. Removed apps/web/src/shell/BookHeader.tsx, a deprecated null component with no imports or runtime references. Retained migration/seed CLIs, manual API check and design generators after confirming manifest/document/script references. No historical prompts, fixtures, demo routes or public exports were removed. Static import analysis is not proof about arbitrary runtime strings or external consumers.
+- No live model request, dependency installation, owner-data/environment read, user-server restart, commit or push. New writing quality remains NOT TESTED live. Changes are local and uncommitted.

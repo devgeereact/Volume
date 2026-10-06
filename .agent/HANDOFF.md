@@ -197,3 +197,26 @@ Newest at the bottom. Every AI appends one entry per session: date, assistant, w
 - Owner requested committing the completed local changes. Included correction code/tests, coverage and CI configuration, dated KDP rules, validation reports and documentation refresh. Protected environment/data paths excluded; unrelated owner environment edits preserved.
 - Existing verification evidence: typecheck, lint, formatting, 499 tests/coverage, five browser scenarios, EPUBCheck and long-book export passed earlier. Current documentation links/commands/config consistency and git diff --check PASS. No new application changes since those checks.
 - Commit is local only. No push, new live calls, server changes or publishing. Release acceptance remains PARTIAL, with current blockers in KNOWN-ISSUES.md.
+
+## 6 October 2026: prompt/humanizer task inspection (Codex)
+
+- Owner requested prompt polishing with the humanizer skill and dead-code removal. Read the invoked skill and AI prompt role; inspected prompt loader, task registry, service consumers, prompt tests and latest writing/editing prompts. Confirmed prompts/ is actively used, with 32 IDs and 84 version files.
+- Found forced story/bridge/emotional formulas that need targeted rewrites while preserving voice samples, author facts, source markers, output schemas, house style and AI disclosure. No output-quality guarantee or concealment of AI provenance is proposed.
+- Plan question pending under AGENTS.md working rule 1 before broad edits: new active prompt versions, consumer/index updates, mock tests and proven dead-code removal. Historical versions stay. No prompts, source or deletions changed.
+- Static import audit: 377 JS/TS files; unused deprecated null BookHeader component is the verified candidate. CLI/design/manual check entry points retained. Baseline npm run typecheck PASS; npm run lint PASS. No installs, live calls, environment/data reads, commits or pushes.
+- Updated only current task and handoff with the findings. Next: await plan approval, then implement and verify.
+
+## 6 October 2026: approved humanizer prompts and dead-code cleanup (Codex)
+
+- Owner approved the plan. Applied the humanizer skill in file/embedded mode, adapted its source-preservation and prose principles to all 32 prompt IDs as new versions. Historical files, variables, schema keys, stages/tiers and guardrail metadata preserved. Changed chapter/introduction/conclusion formulas and removed a fabricated anecdote suggestion in editing.voice. Guidance is portable in prompts/, with no new provider call or model setting change.
+- Updated docs/05-PROMPTS.md including stale JSON-repair pointer, prompt README, AI guide, validation, current task, issues, changelog and D-031. Added packages/ai/test/humanizer.test.ts and changed one fixed-version expectation to the loader-selected version.
+- Removed apps/web/src/shell/BookHeader.tsx only: null-rendering deprecated component with no imports or runtime references. Updated web README references. Import audit of 377 JS/TS files retained explicit CLI/design/manual check entry points, demo code, public exports, fixtures and old prompts.
+- PASS: root typecheck, lint, format:check; AI 155 tests; server 189 tests (one MySQL skip); five browser scenarios, server/web builds; git diff --check. First AI run exposed an obsolete expected version and sandbox local HTTP restriction; corrected the expectation and reran mock tests with loopback access.
+- House-style PARTIAL: 66 detector findings in both previous and revised prompts with identical pattern counts. Findings are inherited prohibition examples, medical/safety rules, percentages and output-contract wording; no new banned words or dash findings. No suppression added.
+- No live AI, paid calls, package installation, owner data/environment access, existing-server restart, commit or push. New prose quality NOT TESTED live. Owner must reload/restart the existing server before using revisions because PromptLoader caches on construction. Next: fresh authorised live quality acceptance; cPanel remains deferred.
+
+## 6 October 2026: authorised prompt commit and push (Codex)
+
+- Owner requested committing and pushing all current changes. Target confirmed: main at origin, https://github.com/devgeereact/Volume.git. Includes the earlier local correction commit and the new humanizer prompt/cleanup commit. No force push.
+- Verified changed-path scope, protected environment/data exclusion and git diff --check. Existing prompt checks: AI 155 tests, server 189 tests, five browser scenarios, typecheck, lint and formatting PASS. No new product changes during this Git operation.
+- Commit hashes and remote synchronisation are verifiable in Git history. Remote CI outcome is separate from local checks; live prose quality remains NOT TESTED and the existing server still needs owner-controlled restart. No live calls, dependencies, publication or cPanel changes.
