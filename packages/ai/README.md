@@ -192,7 +192,7 @@ interface AiProvider {
 }
 ```
 
-This differs from the sketch in `docs/02-ARCHITECTURE.md` (separate `stream()` method): streaming is `chat({ stream: true, onDelta })`.
+This differs from the sketch in `docs/02-architecture/ARCHITECTURE.md` (separate `stream()` method): streaming is `chat({ stream: true, onDelta })`.
 
 `ModelInfo`: `{ slug, name, contextLength, maxCompletionTokens, pricing: { inputPerMillion, outputPerMillion, imageInputPerMillion, imageOutputPerMillion, webSearchPerRequest, perRequest }, inputModalities, outputModalities, supportedParameters, supportsTools, supportsStructured, supportsSearch, supportsImageOutput, aliasTarget }`. `supportsSearch` means native search is priced for the model; the web plugin gives any model search through Exa.
 

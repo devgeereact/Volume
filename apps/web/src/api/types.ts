@@ -3,7 +3,7 @@
    Source of truth: apps/server/src/routes/*.ts and apps/server/src/repos/*.ts. Times are epoch
    milliseconds (numbers), money is US dollars, ids are ULID strings. When the server changes a
    shape, change it here and in adapters.ts. Names start with "Api" where the prototype already has
-   a type of the same name (prototype/src/data/types.ts). */
+   a type of the same name (apps/web/src/demo/types.ts). */
 
 export type EpochMs = number;
 

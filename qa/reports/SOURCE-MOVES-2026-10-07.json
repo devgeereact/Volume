@@ -1,0 +1,590 @@
+{
+  "screen_file_moves": [
+    {
+      "from": "apps/web/src/routes/archive/ArchivePage.tsx",
+      "to": "apps/web/src/features/archive/ArchivePage.tsx",
+      "original_sha256": "046c636f3f8d0ae109adce56a0e303397299af2b363ea21ffdf04b4fd000c47c",
+      "candidate_sha256": "4a432fd2dbf20072ec1c20385d1ac16bb53ffe2cf09b23a5a933b4f27c55418f"
+    },
+    {
+      "from": "apps/web/src/routes/blueprint/BlueprintApi.tsx",
+      "to": "apps/web/src/features/blueprint/BlueprintApi.tsx",
+      "original_sha256": "991ab7c2b69c58e24b4e8240bb78eb534f27c4ced6e930b8cfcf09ddcd0155ef",
+      "candidate_sha256": "23690e92039e39aef5fb85a35fc79f1a46129316cf8943283bfb616c8d0ef0f0"
+    },
+    {
+      "from": "apps/web/src/routes/blueprint/BlueprintInspector.tsx",
+      "to": "apps/web/src/features/blueprint/BlueprintInspector.tsx",
+      "original_sha256": "97cf3726c960103dc6ddd9168f2ca6eda48b432735186d1b171f76d15b821ca5",
+      "candidate_sha256": "1ba47b2d6074c660ebd46eba07bb6fdd9cf29230b8330fdf2c35a04d4eb67fb1"
+    },
+    {
+      "from": "apps/web/src/routes/blueprint/BlueprintPage.tsx",
+      "to": "apps/web/src/features/blueprint/BlueprintPage.tsx",
+      "original_sha256": "1f43e2814d89a2c51dc9a09ae0eafdd4c9b4d408271144107858eaeef45aff37",
+      "candidate_sha256": "f07d80518a7a35b2d39afba49205f22cb37a0b752cb3eb3fdd7db623d1ea9d2a"
+    },
+    {
+      "from": "apps/web/src/routes/blueprint/Galley.tsx",
+      "to": "apps/web/src/features/blueprint/Galley.tsx",
+      "original_sha256": "313d5702d761820e5b870e40f6c298828657ec92fb38202d7873d2c056ec7978",
+      "candidate_sha256": "779b61fd118634b024661dd623e5d843ef456209ea6fb4ccf9c9f560882f2a68"
+    },
+    {
+      "from": "apps/web/src/routes/blueprint/ListingEditors.tsx",
+      "to": "apps/web/src/features/blueprint/ListingEditors.tsx",
+      "original_sha256": "9af0b587f782c561ec95c2c7f36b810a0523a2766161d2c859ce0b1c900f95b7",
+      "candidate_sha256": "9af0b587f782c561ec95c2c7f36b810a0523a2766161d2c859ce0b1c900f95b7"
+    },
+    {
+      "from": "apps/web/src/routes/blueprint/OutlineRail.tsx",
+      "to": "apps/web/src/features/blueprint/OutlineRail.tsx",
+      "original_sha256": "270b2fbcc2186723109d1e7d8956aa54a47865ca557521800d0ac9603bc9f396",
+      "candidate_sha256": "270b2fbcc2186723109d1e7d8956aa54a47865ca557521800d0ac9603bc9f396"
+    },
+    {
+      "from": "apps/web/src/routes/blueprint/TypeBlueprint.tsx",
+      "to": "apps/web/src/features/blueprint/TypeBlueprint.tsx",
+      "original_sha256": "fbe1e0eb79197d77ca1957556b3ae7dd69c7bec2eac66f7ba507495df4f9ae51",
+      "candidate_sha256": "6f98e7006582a1a3a187b628ffd875b8790855c9ec53fdc74bb992c0f7e9e709"
+    },
+    {
+      "from": "apps/web/src/routes/blueprint/blueprintExtras.ts",
+      "to": "apps/web/src/features/blueprint/blueprintExtras.ts",
+      "original_sha256": "8954f0e8e01d40f7ec035b090219db6d1980abd635a78ef500686d6eae3c9104",
+      "candidate_sha256": "1031f71b60daabad4d74e24a426552a034dd7206ae4980135cef0673240b35ad"
+    },
+    {
+      "from": "apps/web/src/routes/books/BookIndexRedirect.tsx",
+      "to": "apps/web/src/features/books/BookIndexRedirect.tsx",
+      "original_sha256": "66ac8a769cb6a3ca970d4ee4e7829e3bbc5b81d8520ede36e2e656838b2d65a7",
+      "candidate_sha256": "563c6035bb1ce6dc6a5161b5dc0a9aae63ea77918e3fc51bca4d6cb5a16efbd0"
+    },
+    {
+      "from": "apps/web/src/routes/components/ComponentsPage.tsx",
+      "to": "apps/web/src/features/components/ComponentsPage.tsx",
+      "original_sha256": "03e5cf167cb7f83529deeb7563aedd72985fc02d82db37da3d7d392c3f01319f",
+      "candidate_sha256": "bc91ffd9a96e763b9b05e2475f3f7869ea4375d1a0effdaace08e7d65fe80440"
+    },
+    {
+      "from": "apps/web/src/routes/cover/ApiCover.tsx",
+      "to": "apps/web/src/features/cover/ApiCover.tsx",
+      "original_sha256": "177f46ee816875d0d182d4784ef2f7c0dc858494821ddff70e92d389a1eaf6ff",
+      "candidate_sha256": "c2743d8219fd191ecef9d52f7375591a36bca2b2510bf601ecb9f499f0b1731e"
+    },
+    {
+      "from": "apps/web/src/routes/cover/ArtCover.tsx",
+      "to": "apps/web/src/features/cover/ArtCover.tsx",
+      "original_sha256": "6a9a290a0f0a38e201c21a153dd1b4e02eb4464e9a64b0afb61db7646926b4b2",
+      "candidate_sha256": "78c32f5054cd05a5388bc37e82789915d294cbdaba06882d135e5e2314af4878"
+    },
+    {
+      "from": "apps/web/src/routes/cover/CoverPage.tsx",
+      "to": "apps/web/src/features/cover/CoverPage.tsx",
+      "original_sha256": "f0641984482d5be280a5c7488d5e88c5f0eda0a31e3432be44bf1926f12a7ab6",
+      "candidate_sha256": "2128d0a9d7f83a67d838157bba0377e9b5138b7943d4a40a950880c4dd85a105"
+    },
+    {
+      "from": "apps/web/src/routes/cover/WrapPreview.tsx",
+      "to": "apps/web/src/features/cover/WrapPreview.tsx",
+      "original_sha256": "b1fd3ab05b1706e64628517f8a6cd724b3e25fd47402bad01908b961a0e7dd5d",
+      "candidate_sha256": "f5f5f2e101fe451f03e7bd7bab536985f29a6f8f3b19a59af50d6825c15f2845"
+    },
+    {
+      "from": "apps/web/src/routes/cover/concepts.ts",
+      "to": "apps/web/src/features/cover/concepts.ts",
+      "original_sha256": "f262ce0a968a8cd6f7f8dc04b661a58ba805379ddcfc78c6a76ab99a8589cd31",
+      "candidate_sha256": "ada92b0325a5c1f9e203c1ae70fc7ad587bf88ef36dbf98eac908b2e978a7179"
+    },
+    {
+      "from": "apps/web/src/routes/editor/ApiCompare.tsx",
+      "to": "apps/web/src/features/editor/ApiCompare.tsx",
+      "original_sha256": "20952d6c5aa095d27dfe0018fce8ac69d254021513211e51cbd2b01074f54372",
+      "candidate_sha256": "20952d6c5aa095d27dfe0018fce8ac69d254021513211e51cbd2b01074f54372"
+    },
+    {
+      "from": "apps/web/src/routes/editor/ApiEditor.tsx",
+      "to": "apps/web/src/features/editor/ApiEditor.tsx",
+      "original_sha256": "246b302434fba64b7b34487509d1670635de1e139116ddf398fd417f17639517",
+      "candidate_sha256": "605816cd259ccf99c4a772b9828d9c7cd1577061d6ccd6eb3eda763ccc9b93c5"
+    },
+    {
+      "from": "apps/web/src/routes/editor/DiffText.tsx",
+      "to": "apps/web/src/features/editor/DiffText.tsx",
+      "original_sha256": "be40c938bea60b3009ef06a65c83df6b96aec414584a480e7f7e9e35009553af",
+      "candidate_sha256": "be40c938bea60b3009ef06a65c83df6b96aec414584a480e7f7e9e35009553af"
+    },
+    {
+      "from": "apps/web/src/routes/editor/EditorCanvas.tsx",
+      "to": "apps/web/src/features/editor/EditorCanvas.tsx",
+      "original_sha256": "40aff820d7b114b3b81dee2f5e7f1ef474736d5382080ec59d2783f85b5c6de3",
+      "candidate_sha256": "40aff820d7b114b3b81dee2f5e7f1ef474736d5382080ec59d2783f85b5c6de3"
+    },
+    {
+      "from": "apps/web/src/routes/editor/EditorInspector.tsx",
+      "to": "apps/web/src/features/editor/EditorInspector.tsx",
+      "original_sha256": "535980a1f747bfb8c10e36cb337869fd3cf2be07866337b8396633731f194d63",
+      "candidate_sha256": "535980a1f747bfb8c10e36cb337869fd3cf2be07866337b8396633731f194d63"
+    },
+    {
+      "from": "apps/web/src/routes/editor/EditorPage.tsx",
+      "to": "apps/web/src/features/editor/EditorPage.tsx",
+      "original_sha256": "1a24877310d16610f050e694d75411d40f0870af2b547258684fe25f820d0c35",
+      "candidate_sha256": "da9647c046815583a741879ad05d1910211d3265aff93e9c15c8a0e734b55435"
+    },
+    {
+      "from": "apps/web/src/routes/editor/FindReplace.tsx",
+      "to": "apps/web/src/features/editor/FindReplace.tsx",
+      "original_sha256": "40102b7d252772ff6f1f6479d27e98a08da3ac86b362020e012948dd7e145877",
+      "candidate_sha256": "40102b7d252772ff6f1f6479d27e98a08da3ac86b362020e012948dd7e145877"
+    },
+    {
+      "from": "apps/web/src/routes/editor/ManuscriptTree.tsx",
+      "to": "apps/web/src/features/editor/ManuscriptTree.tsx",
+      "original_sha256": "c71a1327a68435989919d95b9f20d0c433eece82805c20579710af71f39305ff",
+      "candidate_sha256": "c71a1327a68435989919d95b9f20d0c433eece82805c20579710af71f39305ff"
+    },
+    {
+      "from": "apps/web/src/routes/editor/NoteCard.tsx",
+      "to": "apps/web/src/features/editor/NoteCard.tsx",
+      "original_sha256": "192cf28b0808ea3281f35aea63df46f0753b0dbff84f7f22c4c3e5cca28255c4",
+      "candidate_sha256": "192cf28b0808ea3281f35aea63df46f0753b0dbff84f7f22c4c3e5cca28255c4"
+    },
+    {
+      "from": "apps/web/src/routes/editor/VersionDrawer.tsx",
+      "to": "apps/web/src/features/editor/VersionDrawer.tsx",
+      "original_sha256": "f78f0e8db4316cc28af7ab68d725baef27c2cf87c51ee43c12051cce7c12f863",
+      "candidate_sha256": "f78f0e8db4316cc28af7ab68d725baef27c2cf87c51ee43c12051cce7c12f863"
+    },
+    {
+      "from": "apps/web/src/routes/editor/manuscript.ts",
+      "to": "apps/web/src/features/editor/manuscript.ts",
+      "original_sha256": "3a2c79be79d7ae8ab95d7010582a17f17ff43bd875f60f36dcf051636a64e221",
+      "candidate_sha256": "a886eac0d06986cf36cb34887843363596dc41d34605e282f4d09bef763b01b0"
+    },
+    {
+      "from": "apps/web/src/routes/editor/textTools.ts",
+      "to": "apps/web/src/features/editor/textTools.ts",
+      "original_sha256": "992fd39477ade0ad149e4895ad7e20f61b7033f644b3fb1c7cdd5d52d5bae8e0",
+      "candidate_sha256": "992fd39477ade0ad149e4895ad7e20f61b7033f644b3fb1c7cdd5d52d5bae8e0"
+    },
+    {
+      "from": "apps/web/src/routes/editor/useManuscript.ts",
+      "to": "apps/web/src/features/editor/useManuscript.ts",
+      "original_sha256": "17990f2051705997ecbf0c71187d7f631e652ed846b61a0b6669f509aab36519",
+      "candidate_sha256": "b1af0eb6034ba38a070307d54fc65cc4e570a6c226cced8edb87b89f67cf9012"
+    },
+    {
+      "from": "apps/web/src/routes/export/ApiExport.tsx",
+      "to": "apps/web/src/features/export/ApiExport.tsx",
+      "original_sha256": "40c594c7eb470d560c23f32b14310386df3157fc5f29c67330820b1f70b798c9",
+      "candidate_sha256": "3085f8437d5400480b77d37f3f6b3bc81270523c710d11849fe75b1815c99a32"
+    },
+    {
+      "from": "apps/web/src/routes/export/ApiRoyalties.tsx",
+      "to": "apps/web/src/features/export/ApiRoyalties.tsx",
+      "original_sha256": "d0f220a4f200c2ce3080b460c5043dc8ecb10782aceebb9179109328f6d65ff6",
+      "candidate_sha256": "d0f220a4f200c2ce3080b460c5043dc8ecb10782aceebb9179109328f6d65ff6"
+    },
+    {
+      "from": "apps/web/src/routes/export/Calculator.tsx",
+      "to": "apps/web/src/features/export/Calculator.tsx",
+      "original_sha256": "5c94aff55b33c59dcb112016e789613be3f9dbdb2141fdaefd6cd5ae158db920",
+      "candidate_sha256": "5c94aff55b33c59dcb112016e789613be3f9dbdb2141fdaefd6cd5ae158db920"
+    },
+    {
+      "from": "apps/web/src/routes/export/ExportPage.tsx",
+      "to": "apps/web/src/features/export/ExportPage.tsx",
+      "original_sha256": "fcf99fe661d64521f8de6461a476e45197c70c12c5852ea48c419d6657359811",
+      "candidate_sha256": "6457f4090cd0a4791c32ec19bc51ab899e30770290cdaf932d4443ef4836fde5"
+    },
+    {
+      "from": "apps/web/src/routes/export/InteriorPreview.tsx",
+      "to": "apps/web/src/features/export/InteriorPreview.tsx",
+      "original_sha256": "e51e11301c56f5078a7f09bec1c765c6ae52569af9fb1dc6f0d917e7ae95fcad",
+      "candidate_sha256": "d618c38955778a0d48d8904f1b43664a0c959e775e9e74071429c9d54857ee86"
+    },
+    {
+      "from": "apps/web/src/routes/export/Preflight.tsx",
+      "to": "apps/web/src/features/export/Preflight.tsx",
+      "original_sha256": "9528a24ba0a76a3c1e58f332144571f8c90f1888fc725f1c72d71ddcdf9102fb",
+      "candidate_sha256": "37765c85de8601044a4efc288758a56b56e1f7728acc649781a4249cf362158a"
+    },
+    {
+      "from": "apps/web/src/routes/export/kdpRules.ts",
+      "to": "apps/web/src/features/export/kdpRules.ts",
+      "original_sha256": "79d8dcc614ce354b17a025b5e4da9e54ef0aaf520df5a0b46462dae26d2d513a",
+      "candidate_sha256": "79d8dcc614ce354b17a025b5e4da9e54ef0aaf520df5a0b46462dae26d2d513a"
+    },
+    {
+      "from": "apps/web/src/routes/library/ImportManuscriptDialog.tsx",
+      "to": "apps/web/src/features/library/ImportManuscriptDialog.tsx",
+      "original_sha256": "b19a40ed2bdd435bd8122be13302605e96fe82979f39287bf40e9890207d79ed",
+      "candidate_sha256": "35627cec81810eb5374056ebe4ae2495315b9dd08c5518af8b20ffb673beb6ce"
+    },
+    {
+      "from": "apps/web/src/routes/library/LedgerView.tsx",
+      "to": "apps/web/src/features/library/LedgerView.tsx",
+      "original_sha256": "a67ee4959338a4e6295f359940afde3ce5ad221e9bfe0b0d6d8bdce18036128b",
+      "candidate_sha256": "c96154fc9bc784769d5eb7ef87a5e60d773ade30604036c141282262ba6f2465"
+    },
+    {
+      "from": "apps/web/src/routes/library/LibraryPage.tsx",
+      "to": "apps/web/src/features/library/LibraryPage.tsx",
+      "original_sha256": "44254d1421c4102a246764a491378dd042923a9ddfaea60dfd055abbd42dcbd7",
+      "candidate_sha256": "9c4354314a889478ca44f3d4ba5b41df190e7c94af8b82a282c6257941f98fdc"
+    },
+    {
+      "from": "apps/web/src/routes/library/LivePanel.tsx",
+      "to": "apps/web/src/features/library/LivePanel.tsx",
+      "original_sha256": "7c624b5dd7b5891b693ff60cdcd8e3e0e4ff4f38fb3c5b77c9165396ff8676bd",
+      "candidate_sha256": "5d8d1b0254b89474c391136475ba35ea36ef0fb1dd6de5f041da45a15ddfb286"
+    },
+    {
+      "from": "apps/web/src/routes/library/PipelineView.tsx",
+      "to": "apps/web/src/features/library/PipelineView.tsx",
+      "original_sha256": "f9e9fe41390bc24c6215eb813a16743762a046a3d0bdd830347e48ee2156d793",
+      "candidate_sha256": "672b9104eacf91e51f18d0f97de8d660030baefef9efb043da5b167727cedc76"
+    },
+    {
+      "from": "apps/web/src/routes/library/StageTicks.tsx",
+      "to": "apps/web/src/features/library/StageTicks.tsx",
+      "original_sha256": "3235e9435ec15813f16dff606d2a5c61e3a0f3ad44418832927c0f95a1e8db5e",
+      "candidate_sha256": "3235e9435ec15813f16dff606d2a5c61e3a0f3ad44418832927c0f95a1e8db5e"
+    },
+    {
+      "from": "apps/web/src/routes/library/TodayStrip.tsx",
+      "to": "apps/web/src/features/library/TodayStrip.tsx",
+      "original_sha256": "22e81cc7d822fb12f1162cfca3cae517a223b9d1657f3143c464c8fd0ff754c2",
+      "candidate_sha256": "7bd085131f58fe4d7a0f1076737ffa67863bfddccf42f0fecfa75f841d9a547c"
+    },
+    {
+      "from": "apps/web/src/routes/library/bookStatus.ts",
+      "to": "apps/web/src/features/library/bookStatus.ts",
+      "original_sha256": "753e39f7732ec9250e08364251fee8881a27e7486f0a4f2c00d498210d85c67d",
+      "candidate_sha256": "67493e18546d0279326dae15ad06ecafb3b385b75bb5da107af55efacef132ae"
+    },
+    {
+      "from": "apps/web/src/routes/library/demoState.ts",
+      "to": "apps/web/src/features/library/demoState.ts",
+      "original_sha256": "f295f99add23807e9afc1190438d62c9769f24655f9f6d5b76cb53f753c06be9",
+      "candidate_sha256": "f295f99add23807e9afc1190438d62c9769f24655f9f6d5b76cb53f753c06be9"
+    },
+    {
+      "from": "apps/web/src/routes/library/draftCover.ts",
+      "to": "apps/web/src/features/library/draftCover.ts",
+      "original_sha256": "68c23d8acb12b0f43ecb33255bd9bdd00529fa94a8bf748de8aced659f76fd87",
+      "candidate_sha256": "9f61fe177f2b65741402888328ad9c2fbc5511694cf5054aac1594acd02f7327"
+    },
+    {
+      "from": "apps/web/src/routes/marketing/ApiMarketing.tsx",
+      "to": "apps/web/src/features/marketing/ApiMarketing.tsx",
+      "original_sha256": "6697a699891fc609d53c4a91c6943ce0c98dd52c0986a0c44fbd5a461760baf9",
+      "candidate_sha256": "6b85c2e4cbe1e7bea040fdfc4f7de9dd6ceef9154842d3f4d3123ec676ebb35a"
+    },
+    {
+      "from": "apps/web/src/routes/marketing/MarketingPage.tsx",
+      "to": "apps/web/src/features/marketing/MarketingPage.tsx",
+      "original_sha256": "4edc6f8d735cfbb754492b785f296a72c795badf1ffc58001fe87e762262c5a5",
+      "candidate_sha256": "fb07490b6d4fd3b68e69081c0abb4858653a7e05c4404d972c7fb0e2d01fe8f9"
+    },
+    {
+      "from": "apps/web/src/routes/marketing/marketingExtras.ts",
+      "to": "apps/web/src/features/marketing/marketingExtras.ts",
+      "original_sha256": "06827159c9a6a016cc4e22d05b6eb1156ff50813ecafce8b4b320b8f02546bd8",
+      "candidate_sha256": "1e3720ca6b6ec01beea1b9c6c2d220f601cb8edee647d88ffdbfd4d6f2fe75ab"
+    },
+    {
+      "from": "apps/web/src/routes/new-book/BookTypeStep.tsx",
+      "to": "apps/web/src/features/new-book/BookTypeStep.tsx",
+      "original_sha256": "599f520da773a756dcbf9bfdbb5ae20205e4c077b240a6092bcb74b73468def1",
+      "candidate_sha256": "fa7aa7abc806d850335e1ea151e16cb31464845a8ec8635b0753945b460e5997"
+    },
+    {
+      "from": "apps/web/src/routes/new-book/ChoiceCard.tsx",
+      "to": "apps/web/src/features/new-book/ChoiceCard.tsx",
+      "original_sha256": "cdf714f61d4b2de119f1fc3188ec604ddd661a091ab708ecfc65dc7bbc21f8dc",
+      "candidate_sha256": "cdf714f61d4b2de119f1fc3188ec604ddd661a091ab708ecfc65dc7bbc21f8dc"
+    },
+    {
+      "from": "apps/web/src/routes/new-book/NewBookPage.tsx",
+      "to": "apps/web/src/features/new-book/NewBookPage.tsx",
+      "original_sha256": "d9f8adf8c09666fb84386e17f1d55c51b8baa5cecd5f14630b9c74bfe8226ce4",
+      "candidate_sha256": "5b945096b6872c92b8365f04cd277e09bf15e0d58610910f36732fd028fb67ad"
+    },
+    {
+      "from": "apps/web/src/routes/new-book/WizardSteps.tsx",
+      "to": "apps/web/src/features/new-book/WizardSteps.tsx",
+      "original_sha256": "e72800110de6b31066b7a3d79f9f2d32c81578cdbb2a28c925f5bbd493c98edd",
+      "candidate_sha256": "e72800110de6b31066b7a3d79f9f2d32c81578cdbb2a28c925f5bbd493c98edd"
+    },
+    {
+      "from": "apps/web/src/routes/new-book/wizardData.ts",
+      "to": "apps/web/src/features/new-book/wizardData.ts",
+      "original_sha256": "af5815e0706225c6f908abc1e3c1c3c01e6a74599cc3321d4159212c973ed4a5",
+      "candidate_sha256": "2103a85b0afc0354fa8c71683a28df48c7bb10dcebfff75407876575c5b47ba1"
+    },
+    {
+      "from": "apps/web/src/routes/profiles/IdentityTab.tsx",
+      "to": "apps/web/src/features/profiles/IdentityTab.tsx",
+      "original_sha256": "fdc39a460baa356e48b51d52532a658b88912bcbf67e94b7d945714ab9860b88",
+      "candidate_sha256": "fdc39a460baa356e48b51d52532a658b88912bcbf67e94b7d945714ab9860b88"
+    },
+    {
+      "from": "apps/web/src/routes/profiles/ListEditor.tsx",
+      "to": "apps/web/src/features/profiles/ListEditor.tsx",
+      "original_sha256": "77f27c72642dcb5936454969225019b9af257a62f0e08245a56afe6f5c6f0fe3",
+      "candidate_sha256": "77f27c72642dcb5936454969225019b9af257a62f0e08245a56afe6f5c6f0fe3"
+    },
+    {
+      "from": "apps/web/src/routes/profiles/MemoryTab.tsx",
+      "to": "apps/web/src/features/profiles/MemoryTab.tsx",
+      "original_sha256": "3ae24fe541630244eab6cb86836d0ed77c6c7414453c42e1d6470cd13e9353f0",
+      "candidate_sha256": "3ae24fe541630244eab6cb86836d0ed77c6c7414453c42e1d6470cd13e9353f0"
+    },
+    {
+      "from": "apps/web/src/routes/profiles/ModelsTab.tsx",
+      "to": "apps/web/src/features/profiles/ModelsTab.tsx",
+      "original_sha256": "ba510619410d3f5ee65ef31375bb1a2ab6c0afa369e0888f123d17f0780c5cbf",
+      "candidate_sha256": "8a802413369f121275f32e93efa918f2f3d9f0a901bc80c2a9b3a8cdcd153f49"
+    },
+    {
+      "from": "apps/web/src/routes/profiles/ProfileEditorPage.tsx",
+      "to": "apps/web/src/features/profiles/ProfileEditorPage.tsx",
+      "original_sha256": "caa2cc127c12263198d09429169a51979484fafac4eac6f369fd7fd66f7e872c",
+      "candidate_sha256": "bdc9ae4545323b638a37f895784db5434de7a966ee4c552e05d0b1f49e94f1c8"
+    },
+    {
+      "from": "apps/web/src/routes/profiles/ProfilesPage.tsx",
+      "to": "apps/web/src/features/profiles/ProfilesPage.tsx",
+      "original_sha256": "b8986105ee1cf786cdcb328faf410031d5c582d7e43d7254cf2a91d8e6121595",
+      "candidate_sha256": "9539252fb5f23b2f78af03f2f996b42011e367cb2c773db2da7c6a33a033a25b"
+    },
+    {
+      "from": "apps/web/src/routes/profiles/PublishingTab.tsx",
+      "to": "apps/web/src/features/profiles/PublishingTab.tsx",
+      "original_sha256": "26785fc49fc390881994a65a4c783d355527a6383e142b4a9a9fd9a63d65d1ad",
+      "candidate_sha256": "42cae177e025a1cfa103cb8430b015a85359e591ac78906cde7b1e2b0cf69f7e"
+    },
+    {
+      "from": "apps/web/src/routes/profiles/VoiceTab.tsx",
+      "to": "apps/web/src/features/profiles/VoiceTab.tsx",
+      "original_sha256": "add084afcdf19c1158c37cccf65453d48335a801e895c283802638e4e8c0a15c",
+      "candidate_sha256": "50acd8ce0342f3b12818bdd23a344fa0938b60a842d8c3ce442228c2e219866e"
+    },
+    {
+      "from": "apps/web/src/routes/profiles/profileApi.ts",
+      "to": "apps/web/src/features/profiles/profileApi.ts",
+      "original_sha256": "6077fdd6ee12a5a6f6557aecc2925dafd36d9630d2f95e086aef36ecc2c43f11",
+      "candidate_sha256": "1ef704fe82e93bf27267f4034d1bd9621e55d539982b313a84443d58f24dcfe1"
+    },
+    {
+      "from": "apps/web/src/routes/profiles/profileRules.ts",
+      "to": "apps/web/src/features/profiles/profileRules.ts",
+      "original_sha256": "138da76a457567235c33506a96f38c834d73d92a6e3c015a47d31871f0cc07fb",
+      "candidate_sha256": "de5cc6b94b6d5fce82b971fbf864cea8980afb821f0fad01dcb5def84e106ad4"
+    },
+    {
+      "from": "apps/web/src/routes/profiles/profileStore.ts",
+      "to": "apps/web/src/features/profiles/profileStore.ts",
+      "original_sha256": "52567b8e18d1fee187527f09d674197b6d945a5219cf4c51450a20c68bf7c1dd",
+      "candidate_sha256": "7cb44c84df7b88a17c99428797cc7ffb5cc7b2df5859c2bf1002bd04f67e30ae"
+    },
+    {
+      "from": "apps/web/src/routes/published/PublishedDetailsDialog.tsx",
+      "to": "apps/web/src/features/published/PublishedDetailsDialog.tsx",
+      "original_sha256": "8b3c8bc299a7701e524fb8b41f3d63372a34e54e6cc58b535615b3a29bfdc46a",
+      "candidate_sha256": "8b3c8bc299a7701e524fb8b41f3d63372a34e54e6cc58b535615b3a29bfdc46a"
+    },
+    {
+      "from": "apps/web/src/routes/published/PublishedPage.tsx",
+      "to": "apps/web/src/features/published/PublishedPage.tsx",
+      "original_sha256": "c6f52f990218f36e629d4042e2fcb7c253dc2e3afce3150121d8d1da6110b06f",
+      "candidate_sha256": "a392a894273ceaa1e0a6b705adab493ab13b3f4b281c55b942571b4bb6149eda"
+    },
+    {
+      "from": "apps/web/src/routes/research/DemoStates.tsx",
+      "to": "apps/web/src/features/research/DemoStates.tsx",
+      "original_sha256": "ef7dbd5309af8b2804b72ecae812ad29c26bdefa9d74545ed36c9c62116812ea",
+      "candidate_sha256": "ef7dbd5309af8b2804b72ecae812ad29c26bdefa9d74545ed36c9c62116812ea"
+    },
+    {
+      "from": "apps/web/src/routes/research/GuardrailNote.tsx",
+      "to": "apps/web/src/features/research/GuardrailNote.tsx",
+      "original_sha256": "b924273a272e5c0f0882eda210c600c895316d71d15d58e54bcdd4c1035a316b",
+      "candidate_sha256": "b924273a272e5c0f0882eda210c600c895316d71d15d58e54bcdd4c1035a316b"
+    },
+    {
+      "from": "apps/web/src/routes/research/ResearchApi.tsx",
+      "to": "apps/web/src/features/research/ResearchApi.tsx",
+      "original_sha256": "27430e2a52cf8527efaa23d5a14ef8cc04139f3c2311a203543c9423ce4d251d",
+      "candidate_sha256": "fe4be996959b2514c5d430e52411b4e51a480e859b9c0ea765c257e40d983cc8"
+    },
+    {
+      "from": "apps/web/src/routes/research/ResearchPage.tsx",
+      "to": "apps/web/src/features/research/ResearchPage.tsx",
+      "original_sha256": "ebb315cfce2c29e76d1a998eab7e898425b9aaa126ca36fbfbd546d5d771d11f",
+      "candidate_sha256": "fc50c23bb5d9c257d7a7120052ad3ba3d8330672ad4737569724d38f6fb5576d"
+    },
+    {
+      "from": "apps/web/src/routes/research/RunModelModal.tsx",
+      "to": "apps/web/src/features/research/RunModelModal.tsx",
+      "original_sha256": "654cfdeb41629b31233f63f166774951be676195980b2667735ecb3d211b0166",
+      "candidate_sha256": "c763af8f42e113de74e7efe4a729a31653190582d5002f7dd15e308487b862c0"
+    },
+    {
+      "from": "apps/web/src/routes/research/SourceCard.tsx",
+      "to": "apps/web/src/features/research/SourceCard.tsx",
+      "original_sha256": "e5aaea3a792286aba4d3a86e2f47f74d2f046e95ad96e9ce2913006b1b4dd10d",
+      "candidate_sha256": "34c11a46fd5e10281336eadf389c747eecd0bab10d76c975a7e61d24639d95d7"
+    },
+    {
+      "from": "apps/web/src/routes/research/researchExtras.ts",
+      "to": "apps/web/src/features/research/researchExtras.ts",
+      "original_sha256": "33b66f37b55a549e0315ecac722ec421f433c282e75d80623bea8c5fd18d73ba",
+      "candidate_sha256": "116400f39d292e8c5142f3b215b4ad7876c0b1afad8890e4dbf7f5e89b8c5d44"
+    },
+    {
+      "from": "apps/web/src/routes/research/sim.ts",
+      "to": "apps/web/src/features/research/sim.ts",
+      "original_sha256": "ecdfa0f8e66d6ec61f72b9f354eacf308296c9877955b9e05f587c2df1ad07d3",
+      "candidate_sha256": "756be6a649444c08c7cea62e8ce980675c627ba34a17d664c01617c97a7529c6"
+    },
+    {
+      "from": "apps/web/src/routes/settings/ModelStageDialog.tsx",
+      "to": "apps/web/src/features/settings/ModelStageDialog.tsx",
+      "original_sha256": "69925c4754bb6e1e4c4e480d9bd4f40b3ce9fc7c7d7aace09732ff993d585169",
+      "candidate_sha256": "69925c4754bb6e1e4c4e480d9bd4f40b3ce9fc7c7d7aace09732ff993d585169"
+    },
+    {
+      "from": "apps/web/src/routes/settings/ModelsPanel.tsx",
+      "to": "apps/web/src/features/settings/ModelsPanel.tsx",
+      "original_sha256": "329a04a750f41cfe0a477fc1550a2a57b3c3ee721ecae5346f2f8a6f544f48eb",
+      "candidate_sha256": "73acb9dda64cef9680fcad50938d8a585fa4b8fd1f89783f5f679007521434f4"
+    },
+    {
+      "from": "apps/web/src/routes/settings/PanelHeader.tsx",
+      "to": "apps/web/src/features/settings/PanelHeader.tsx",
+      "original_sha256": "ca5c66abc0dadc9be7eb0f6938fee00e28a37f23cb4ee0e73425ddf4792dfc74",
+      "candidate_sha256": "ca5c66abc0dadc9be7eb0f6938fee00e28a37f23cb4ee0e73425ddf4792dfc74"
+    },
+    {
+      "from": "apps/web/src/routes/settings/SettingsPage.tsx",
+      "to": "apps/web/src/features/settings/SettingsPage.tsx",
+      "original_sha256": "7301f76ddcf30b8e61183625c8aa3cb5f6fdb4022e9f43f006e8cf9bc36b652d",
+      "candidate_sha256": "7301f76ddcf30b8e61183625c8aa3cb5f6fdb4022e9f43f006e8cf9bc36b652d"
+    },
+    {
+      "from": "apps/web/src/routes/settings/apiPanels.tsx",
+      "to": "apps/web/src/features/settings/apiPanels.tsx",
+      "original_sha256": "ccce82bef43fb05ffa02a07d69c5d444aa8fbe6ae122f1cd2a2d9129d573ea9d",
+      "candidate_sha256": "c3c19e92e439b9c072e2981c5621ff7e4039fd77b1deb8b206c91c7eea56255b"
+    },
+    {
+      "from": "apps/web/src/routes/settings/modelDefaults.ts",
+      "to": "apps/web/src/features/settings/modelDefaults.ts",
+      "original_sha256": "1122c3523f277373a29f618cda784e5a0a1a1df9f40a34bdb8da5c2f8748da00",
+      "candidate_sha256": "33af064815a8365d219c415bb9634a4f8116b7c038e22a5a32325d18fb289768"
+    },
+    {
+      "from": "apps/web/src/routes/settings/panels.tsx",
+      "to": "apps/web/src/features/settings/panels.tsx",
+      "original_sha256": "0b31dca84e573ef719af6cb5a690b384626f6da353e4493a572d3e8c5f15689b",
+      "candidate_sha256": "2fabe343a50d692b08ba0aecd191f1b47d3e3c41c7012f9086e4e6e59c9dec9c"
+    },
+    {
+      "from": "apps/web/src/routes/titles/TitleCard.tsx",
+      "to": "apps/web/src/features/titles/TitleCard.tsx",
+      "original_sha256": "cbe5b5a870970872c7dcf1daae25b6c7708391b1e8da1efd1123fd501257832a",
+      "candidate_sha256": "60bbe408547cfd427ab84b3fe2b6e21557670c2683e4a43f067c6c79b026e4bd"
+    },
+    {
+      "from": "apps/web/src/routes/titles/TitlesApi.tsx",
+      "to": "apps/web/src/features/titles/TitlesApi.tsx",
+      "original_sha256": "28cfa147ae3e622dd125a18284779ffeebe29bdf13c13386278eb57e40db0d15",
+      "candidate_sha256": "f5177c2be4b77c3509a4768101f757d8b33ae4ea6dd73b1ad0d7befa228cd9b8"
+    },
+    {
+      "from": "apps/web/src/routes/titles/TitlesPage.tsx",
+      "to": "apps/web/src/features/titles/TitlesPage.tsx",
+      "original_sha256": "c017dddf01d1bc1079ef43caeb32e563e01607fc344f8989e0fc4db982c7a803",
+      "candidate_sha256": "c0b073db7cbfe3a912bec0def1bb0d8d1d08a11b21960d839f8df113e58aa58f"
+    },
+    {
+      "from": "apps/web/src/routes/titles/titlesExtras.ts",
+      "to": "apps/web/src/features/titles/titlesExtras.ts",
+      "original_sha256": "3fe6a8aa8d7b8871346bd2aef28bbe15e43252054422da59aebdfa4ca79d8e65",
+      "candidate_sha256": "71f58da5b46684aea56d4d227fc06ff58a4942a33a17c5ae6c237fc1f528d14e"
+    },
+    {
+      "from": "apps/web/src/routes/writing/LiveCanvas.tsx",
+      "to": "apps/web/src/features/writing/LiveCanvas.tsx",
+      "original_sha256": "45f58579ae617ef97e5275b76a852a7af03b4bbcfdf3dc741ab69ed37f4d11c9",
+      "candidate_sha256": "a7c1f8016c066d7549e96bd8de6c1656c1b50ee8f8ec2eb6cf191561bb116324"
+    },
+    {
+      "from": "apps/web/src/routes/writing/RetryDialog.tsx",
+      "to": "apps/web/src/features/writing/RetryDialog.tsx",
+      "original_sha256": "d5de350101c7a2eaf3b31e0b8835e1e8747b72bb50ab785258659aa6ab8324d3",
+      "candidate_sha256": "d5de350101c7a2eaf3b31e0b8835e1e8747b72bb50ab785258659aa6ab8324d3"
+    },
+    {
+      "from": "apps/web/src/routes/writing/SectionList.tsx",
+      "to": "apps/web/src/features/writing/SectionList.tsx",
+      "original_sha256": "f450732e5daa5d94d3f0d68e0b98b332e4035e42c4b2486d4730f58fb26eea5e",
+      "candidate_sha256": "8691e3c84ba51939dbb4df17062b04b55e79a25d6c1b03d4e2f431c6d9e1c89e"
+    },
+    {
+      "from": "apps/web/src/routes/writing/WritingApi.tsx",
+      "to": "apps/web/src/features/writing/WritingApi.tsx",
+      "original_sha256": "d6b1e83233b6ad39f45ecb25bbb9bbac0a663ce92f2626f488247c0c625c2313",
+      "candidate_sha256": "fba111f5a2e63edb42f1a1d9d8655d3698a4ad5b6f283d2777385e23edb7585f"
+    },
+    {
+      "from": "apps/web/src/routes/writing/WritingIdle.tsx",
+      "to": "apps/web/src/features/writing/WritingIdle.tsx",
+      "original_sha256": "9c112ebc593cf5f582dd6677b564f630f31de2e5c4b40f022c88cba9a7005df8",
+      "candidate_sha256": "5ec50416b818873a9c0c2b042c596a455a3827cf8b7d99b39c1fbbdee6ceb73e"
+    },
+    {
+      "from": "apps/web/src/routes/writing/WritingInspector.tsx",
+      "to": "apps/web/src/features/writing/WritingInspector.tsx",
+      "original_sha256": "80d46a5f44ecaf1113a67d35a004e47e785d2c055d61ad95de473524d215f711",
+      "candidate_sha256": "2155958a85bb4966782e31aad7ee91fc062411df57f5fe110fbf2d1e63b6c2ca"
+    },
+    {
+      "from": "apps/web/src/routes/writing/WritingPage.tsx",
+      "to": "apps/web/src/features/writing/WritingPage.tsx",
+      "original_sha256": "22d5271627058c5241f40329ca8afda12ff0a8b3b5d2d8b99309c4e50e08b1f1",
+      "candidate_sha256": "ef5ee9fd2aaf4720c59e0fd0de902569a07635b984ef595980fdf5f2fbc11b81"
+    },
+    {
+      "from": "apps/web/src/routes/writing/screenState.tsx",
+      "to": "apps/web/src/features/writing/screenState.tsx",
+      "original_sha256": "bc62077b749e5c6dd16cc733bf692978b70e099d54704f90a5f5d847db4ce567",
+      "candidate_sha256": "bc62077b749e5c6dd16cc733bf692978b70e099d54704f90a5f5d847db4ce567"
+    },
+    {
+      "from": "apps/web/src/routes/writing/writingData.ts",
+      "to": "apps/web/src/features/writing/writingData.ts",
+      "original_sha256": "a28cb2a0b152cdf501472ee32b772905f30282e0a88156410976ca3f79bee316",
+      "candidate_sha256": "c5361c9a7a4571c633d0e0381424ca79b7fd08f563659bf6dc7f567f029d9241"
+    }
+  ],
+  "public_demo_restore": [
+    "apps/web/src/demo/blueprint.ts",
+    "apps/web/src/demo/books.ts",
+    "apps/web/src/demo/config.ts",
+    "apps/web/src/demo/covers.ts",
+    "apps/web/src/demo/exportPack.ts",
+    "apps/web/src/demo/index.ts",
+    "apps/web/src/demo/marketing.ts",
+    "apps/web/src/demo/models.ts",
+    "apps/web/src/demo/penNames.ts",
+    "apps/web/src/demo/research.ts",
+    "apps/web/src/demo/titles.ts",
+    "apps/web/src/demo/types.ts",
+    "apps/web/src/demo/workspace.ts",
+    "apps/web/src/demo/writingJob.ts"
+  ]
+}

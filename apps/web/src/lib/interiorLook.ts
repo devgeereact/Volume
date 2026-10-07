@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { getInteriorTheme, type Book, type InteriorTheme } from "../data";
+import { getInteriorTheme, type Book, type InteriorTheme } from "../demo";
 
 /* The book's own interior theme (config/interior-themes.json) as CSS for the screens that show its pages:
    the Editor's galley, the Writing live page and the Export page preview. Each book has its own theme,

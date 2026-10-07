@@ -1,6 +1,6 @@
 ---
 name: volume-phase-gate
-description: Close a Volume phase and prepare the owner review. Use when the last item of a phase in docs/12-ROADMAP.md is done, when the owner asks "is phase N done", "ready for review" or "phase gate", or before starting the next phase. Checks every acceptance item with evidence, updates CHANGELOG.md, DECISIONS.md and the .agent files, writes the owner review message, then stops and waits.
+description: Close a Volume phase and prepare the owner review. Use when the last item of a phase in docs/01-product/ROADMAP.md is done, when the owner asks "is phase N done", "ready for review" or "phase gate", or before starting the next phase. Checks every acceptance item with evidence, updates CHANGELOG.md, docs/08-change-management/DECISIONS.md and the .agent files, writes the owner review message, then stops and waits.
 ---
 
 # Volume phase gate
@@ -9,7 +9,7 @@ The owner reviews at the end of every phase (`.agent/PROJECT.yml`, `review_gate`
 
 ## 1. Collect the acceptance list
 
-1. Read the phase in `docs/12-ROADMAP.md` (acceptance criteria) and `docs/01-PRD.md` for the features it promised. `docs/PLAN.md` "Phases" has the one-line "Done when" for each phase.
+1. Read the phase in `docs/01-product/ROADMAP.md` (acceptance criteria) and `docs/01-product/PRODUCT-SPEC.md` for the features it promised. `docs/08-change-management/plans/legacy-approved-plan.md` "Phases" has the one-line "Done when" for each phase.
 2. Copy every criterion into a checklist. Do not merge or soften them.
 
 ## 2. Gather evidence for each item
@@ -28,7 +28,7 @@ Mark each criterion PASS, FAIL, PARTIAL, NOT TESTED or BLOCKED. Anything not PAS
 ## 3. Update the records
 
 - `CHANGELOG.md`: a section for the phase with the user-visible changes.
-- `DECISIONS.md`: every decision made in the phase has an ADR; mark superseded ones.
+- `docs/08-change-management/DECISIONS.md`: every decision made in the phase has an ADR; mark superseded ones.
 - `KNOWN-ISSUES.md`: anything left open.
 - `.agent/CURRENT-TASK.md`: Status "awaiting owner review of phase N", next step "owner review", blockers.
 - `.agent/HANDOFF.md`: append the gate entry with the evidence summary.

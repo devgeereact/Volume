@@ -16,7 +16,7 @@ Shared zod schemas and the book model live in `packages/core`; propose changes t
 ## Read first
 
 1. `AGENTS.md`, `.agent/CURRENT-TASK.md`, the last entries of `.agent/HANDOFF.md`.
-2. `docs/02-ARCHITECTURE.md`, `docs/03-DATA-MODEL.md`, `docs/10-SECURITY-PRIVACY.md`, and `docs/11-TESTING.md` for test rules.
+2. `docs/02-architecture/ARCHITECTURE.md`, `docs/02-architecture/DATA-MODEL.md`, `docs/05-security/SECURITY.md`, and `docs/06-quality/TEST-STRATEGY.md` for test rules.
 
 ## Rules that matter most here
 

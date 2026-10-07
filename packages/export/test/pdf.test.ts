@@ -60,6 +60,13 @@ describe('print PDF, chapters on any page (compared with the Python build)', () 
     // small caps with letter spacing extract as spaced capitals, so compare letters only
     expect(letters(info.pageParts[left - 1]?.head ?? '')).toBe(letters('Windowsill Herbs'));
     expect(letters(info.pageParts[right - 1]?.head ?? '')).toBe(letters(ch1?.title ?? '?'));
+    // Check rendered glyph case as well as content: global font-synthesis:none
+    // previously suppressed the theme's requested small capitals.
+    for (const n of [left, right]) {
+      const head = info.pageParts[n - 1]?.head ?? '';
+      expect(head).toMatch(/[A-Z]/);
+      expect(head).not.toMatch(/[a-z]/);
+    }
     expect(info.pageParts[opener - 1]?.head).toBe('');
     expect(info.pageParts[0]?.head).toBe('');
     expect(info.pageParts[opener - 1]?.foot).toBe(r.sections[ch1?.id ?? '']?.folio);
@@ -104,17 +111,27 @@ describe('print PDF, chapters on right-hand pages (D-013 default)', () => {
     const opener = r.sections['chapter-1-read-your-windows-before-you-buy-a-plant']?.page ?? 7;
     const pages = [1, r.sections.contents?.page ?? 3, opener, opener + 1];
     const pngs = await renderPdfPages(r.buffer, pages, { browser, scale: 1 });
+    const failures: string[] = [];
     for (const [i, png] of pngs.entries()) {
       const name = `windowsill-page-${i + 1}.png`;
       const p = goldenPath(name);
-      if (!existsSync(p) || process.env.UPDATE_GOLDEN === '1') writeFileSync(p, png);
+      if (process.env.UPDATE_GOLDEN === '1') writeFileSync(p, png);
+      if (!existsSync(p)) {
+        failures.push(`${name}: reference is missing; restore the approved reference before testing.`);
+        continue;
+      }
       const a = await sharp(png).greyscale().raw().toBuffer({ resolveWithObject: true });
       const b = await sharp(readFileSync(p)).greyscale().raw().toBuffer({ resolveWithObject: true });
-      expect([a.info.width, a.info.height]).toEqual([b.info.width, b.info.height]);
+      if (a.info.width !== b.info.width || a.info.height !== b.info.height) {
+        failures.push(`${name}: dimensions differ (${a.info.width}x${a.info.height} versus ${b.info.width}x${b.info.height}).`);
+        continue;
+      }
       let diff = 0;
       for (let k = 0; k < a.data.length; k++) diff += Math.abs((a.data[k] ?? 0) - (b.data[k] ?? 0));
-      expect(diff / a.data.length, name).toBeLessThan(1.5); // mean grey-level difference out of 255
+      const mean = diff / a.data.length;
+      if (mean >= 1.5) failures.push(`${name}: mean grey-level difference ${mean} exceeds the unchanged 1.5 threshold.`);
     }
+    expect(failures, failures.join('\n')).toEqual([]);
   });
 });
 

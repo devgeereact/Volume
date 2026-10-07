@@ -4,7 +4,7 @@ import { exportMarkdown, exportTxt, txtWordCount } from '../src/index.ts';
 import { golden, goldenPath, loadMiniBook, loadWindowsill } from './helpers.ts';
 
 describe('TXT', () => {
-  it('matches the exact example in docs/06-EXPORT-SPEC.md (with the optional SUMMARY block)', () => {
+  it('matches the exact example in docs/book-production/EXPORT-SPEC.md (with the optional SUMMARY block)', () => {
     const book = loadMiniBook();
     expect(txtWordCount(book)).toBe(145);
     expect(exportTxt(book, { includeSummary: true }).toString('utf8')).toBe(readFileSync(goldenPath('mini-book.txt'), 'utf8'));

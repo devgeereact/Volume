@@ -24,7 +24,11 @@
     "test": "npm run test --workspaces --if-present",
     "hooks:test": "bash .claude/hooks/test-hooks.sh",
     "e2e": "node tests/e2e/run.mjs",
-    "test:coverage": "npm run test:coverage --workspaces --if-present"
+    "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "setup": "node scripts/setup.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "test:tooling": "node --test tests/integration/runtime.test.mjs",
+    "docs:check": "node scripts/check-docs.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

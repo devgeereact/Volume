@@ -1,4 +1,4 @@
-// Context packer: turns a stage input into prompt variables, in the block order of docs/04-AI-PIPELINE.md,
+// Context packer: turns a stage input into prompt variables, in the block order of docs/02-architecture/AI-PIPELINE.md,
 // and trims until the rendered request fits 60% of the model's context length. Trimming order: source
 // excerpts first, then older chapter summaries shortened to 40 words, then voice samples drop to one.
 // System rules, voice and the task itself are never trimmed; if it still does not fit the call stops.

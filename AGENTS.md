@@ -2,6 +2,10 @@
 
 Volume is a local-first book production app: author profiles and pen names, research, titles, blueprint, fully automatic writing, editing, covers and a KDP-ready export pack. Owner: Gideon (Gakinz, London). Claude Code, Codex, Gemini CLI and any other assistant follow this file. CLAUDE.md and GEMINI.md only point here.
 
+## GEE OS adoption
+
+This application adopts GEE OS Full Product. Read the project card and current task, then load the shared constitution, one primary mode and the Change Safety workflow through the gee-os skill. Keep project facts here, not in global machine rules. This repository must restore independently on macOS and Linux. Runtime contracts in config/, prompts/, assets/ and the database stay stable during migration.
+
 ## Start of every session
 
 1. Read `.agent/CURRENT-TASK.md` (where the work is and the next step) and the last entries of `.agent/HANDOFF.md`.
@@ -12,32 +16,32 @@ Volume is a local-first book production app: author profiles and pen names, rese
 
 - Update `.agent/CURRENT-TASK.md` (status, next step, blockers).
 - Append a dated entry to `.agent/HANDOFF.md`: who (which AI), what changed, files, checks run with results, what is next.
-- Record decisions in `DECISIONS.md` and user-visible changes in `CHANGELOG.md`.
+- Record decisions in `docs/08-change-management/DECISIONS.md` and user-visible changes in `CHANGELOG.md`.
 
 ## Where things live (one fact, one file)
 
 | What | File |
 |---|---|
-| The approved plan | `docs/PLAN.md` |
-| Product, features, phases and acceptance | `docs/01-PRD.md`, `docs/12-ROADMAP.md` |
-| Architecture, folders, stack | `docs/02-ARCHITECTURE.md` |
-| Database tables | `docs/03-DATA-MODEL.md` |
-| AI stages, models, guardrails | `docs/04-AI-PIPELINE.md`, `config/models.defaults.json` |
-| Prompts | `prompts/<stage>/<name>.v<N>.md`, index `docs/05-PROMPTS.md` |
-| Book structure and templates | `config/book-templates/`, `docs/06-EXPORT-SPEC.md` |
-| KDP facts and limits | `config/kdp-rules/`, `docs/07-KDP-RULES.md` (never from memory) |
-| Look and feel | `docs/08-DESIGN-GUIDE.md`, `packages/ui` |
-| Screens and flows | `docs/09-UX-FLOWS.md` |
+| The approved plan | `docs/08-change-management/plans/GEE-OS-REBUILD.md` |
+| Product, features, phases and acceptance | `docs/01-product/PRODUCT-SPEC.md`, `docs/01-product/ROADMAP.md` |
+| Architecture, folders, stack | `docs/02-architecture/ARCHITECTURE.md` |
+| Database tables | `docs/02-architecture/DATA-MODEL.md` |
+| AI stages, models, guardrails | `docs/02-architecture/AI-PIPELINE.md`, `config/models.defaults.json` |
+| Prompts | `prompts/<stage>/<name>.v<N>.md`, index `docs/book-production/PROMPTS.md` |
+| Book structure and templates | `config/book-templates/`, `docs/book-production/EXPORT-SPEC.md` |
+| KDP facts and limits | `config/kdp-rules/`, `docs/book-production/KDP-RULES.md` (never from memory) |
+| Look and feel | `docs/03-design/DESIGN-SYSTEM.md`, `packages/ui` |
+| Screens and flows | `docs/03-design/UX-SPEC.md` |
 | House writing style for books | `config/house-style.json` |
-| Security and privacy | `docs/10-SECURITY-PRIVACY.md` |
-| Tests | `docs/11-TESTING.md` |
-| Decisions and open issues | `DECISIONS.md`, `KNOWN-ISSUES.md` |
+| Security and privacy | `docs/05-security/SECURITY.md` |
+| Tests | `docs/06-quality/TEST-STRATEGY.md` |
+| Decisions and open issues | `docs/08-change-management/DECISIONS.md`, `KNOWN-ISSUES.md` |
 | AI test fixtures (mock provider) | `tests/fixtures/ai/` |
 | Owner's original drafts, nine notes (source material, not rules) | `docs/source-drafts/` |
 
 If two files disagree, stop and ask which is right, then fix both.
 
-## Stack (do not change without a DECISIONS.md entry and the owner's OK)
+## Stack (do not change without a docs/08-change-management/DECISIONS.md entry and the owner's OK)
 
 - npm workspaces monorepo, Node 26, TypeScript strict everywhere (no `any`, no `@ts-ignore`).
 - `apps/web`: Vite, React, React Router, Tailwind v4, motion/react, TanStack Query, TipTap (free extensions only).
@@ -76,3 +80,7 @@ Avoid: leverage, empower, showcase, transformative, impactful, cutting-edge, rev
 
 - Claude Code: subagents in `.claude/agents/`, skills in `.claude/skills/`, hooks in `.claude/settings.json`.
 - Codex and Gemini CLI: no hooks here, so follow the same rules by hand. The agent roles are: architect, frontend, backend, ai-prompts, export, reviewer, qa. Their scopes are listed in `.claude/agents/*.md`; read the one matching your task and follow it as instructions.
+
+
+## TypeScript requirement
+Application code must use TypeScript (.ts/.tsx), with React and Tailwind. Keep HTML limited to required build entries, generated output and archived design references. Preserve approved behaviour when migrating source.

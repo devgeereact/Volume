@@ -45,13 +45,17 @@ test("a server process restart recovers interrupted writing and preserves the ma
     await expect
       .poll(
         async () => {
+          if (child && (child.exitCode !== null || child.signalCode !== null)) {
+            throw new Error(`Restart test server exited before becoming healthy (exit ${child?.exitCode}, signal ${child?.signalCode}).`);
+          }
           try {
             return (await request.get(`${api}/health`, { timeout: 1000 })).status();
           } catch {
             return 0;
           }
         },
-        { timeout: 15000 },
+        // Match the main end-to-end server startup allowance under CPU contention.
+        { timeout: 60000 },
       )
       .toBe(200);
   }

@@ -24,7 +24,7 @@ The diff or files named by the caller. If none are named, review `git status` an
 - Structure: files in the right folder for their owner; prompts are files with a new version per change; KDP numbers only from `config/kdp-rules/`; one fact, one file.
 - Code: TypeScript strict (no `any`, no `@ts-ignore`), smallest change, one concern, tests for new logic, no new packages that the docs do not name.
 - Book rules: never invented ISBNs, statistics, studies, quotes, testimonials, reviews, awards or sources; claims go to the claims report; About the author is the bio word for word.
-- Process: CURRENT-TASK.md and HANDOFF.md updated; DECISIONS.md for decisions; CHANGELOG.md for user-visible changes.
+- Process: CURRENT-TASK.md and HANDOFF.md updated; docs/08-change-management/DECISIONS.md for decisions; CHANGELOG.md for user-visible changes.
 
 ## Severity
 

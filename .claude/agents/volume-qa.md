@@ -16,7 +16,7 @@ You do not fix product code. When a test fails, report the failure and the ownin
 ## Read first
 
 1. `AGENTS.md`, `.agent/CURRENT-TASK.md`, the last entries of `.agent/HANDOFF.md`.
-2. `docs/11-TESTING.md`; for a phase gate also the acceptance list in `docs/12-ROADMAP.md`.
+2. `docs/06-quality/TEST-STRATEGY.md`; for a phase gate also the acceptance list in `docs/01-product/ROADMAP.md`.
 
 ## What to run (in this order, stop early only if a step cannot start)
 

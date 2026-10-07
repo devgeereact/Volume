@@ -12,7 +12,7 @@ export interface MarginsIn {
   outsideIn: number;
 }
 
-/** House margins from docs/06-EXPORT-SPEC.md (Print PDF, Margins). Not KDP minimums: preflight checks those. */
+/** House margins from docs/book-production/EXPORT-SPEC.md (Print PDF, Margins). Not KDP minimums: preflight checks those. */
 export const HOUSE_MARGINS: Record<string, MarginsIn> = {
   '5x8': { topIn: 0.7, bottomIn: 0.75, insideIn: 0.75, outsideIn: 0.5 },
   '5.5x8.5': { topIn: 0.72, bottomIn: 0.78, insideIn: 0.78, outsideIn: 0.52 },

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router";
 import { Check, Flag } from "lucide-react";
-import { bookSteps, stepState } from "../../data/books";
-import type { Book, BookStepId, StepState } from "../../data/types";
+import { bookSteps, stepState } from "../../demo/books";
+import type { Book, BookStepId, StepState } from "../../demo/types";
 import { cn } from "../../lib/cn";
 
 interface BookStepsProps {

@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
-import type { StageId } from "../../data/types";
-import { stageLabels } from "../../data/books";
+import type { StageId } from "../../demo/types";
+import { stageLabels } from "../../demo/books";
 import { cn } from "../../lib/cn";
 import { LiveDot } from "./LiveDot";
 

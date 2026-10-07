@@ -2,7 +2,7 @@
 
 Exporters for a `BookDoc` from `@volume/core`: print PDF (Paged.js in Playwright Chromium), DOCX, EPUB 3, TXT,
 Markdown, the eBook cover JPEG, the paperback wrap PDF, preflight and the KDP upload pack. Node only. Every KDP number
-comes from the rules object passed in (`loadKdpRules()` from `@volume/core/node`). See `docs/06-EXPORT-SPEC.md`.
+comes from the rules object passed in (`loadKdpRules()` from `@volume/core/node`). See `docs/book-production/EXPORT-SPEC.md`.
 
 ```ts
 import { parseManuscript, DEFAULT_INTERIOR_THEME } from '@volume/core';

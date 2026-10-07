@@ -1,46 +1,35 @@
+## Fix follow-up, 7 October 2026
+
+Test reliability fixes and fresh evidence are in qa/reports/FOLLOW-UP-2026-10-07.md. Core rerun 75 PASS, AI 155 PASS, server 189 PASS, export 86 PASS with PDF visual FAIL. Restart scenario PASS after matching the existing 60-second startup allowance. PDF references/threshold remain unchanged; full acceptance PARTIAL/NO-GO. Actual Mac and owner/external gates remain open.
+
+## Latest: PDF parity investigation
+Added a typed read-only comparison command that reports all four existing PDF references and environment/font hashes. Linux comparison: title PASS, contents/opener/body FAIL. Font-hinting experiments improved the match but none passed all pages, so production rendering, golden files and tolerance are unchanged. Exact cause remains unresolved. Typecheck, diagnostic lint/format and docs checks PASS. See qa/reports/PDF-INVESTIGATION-2026-10-07.md. Actual Mac access was not supplied; use Rebrand/MAC-LINUX.md and run the same diagnostic there.
+
 # Current task
 
-**Phase:** local v1 correction pass, publishing acceptance outstanding.
-**Mode:** build.
-**Status:** local fixes implemented and verified on 6 October 2026. Release status PARTIAL. Owner authorised free-only OpenRouter validation and reading one book’s generated files; cPanel testing is deferred. Free text validation attempts have concluded with partial acceptance. Documentation consistency pass completed; see docs/DOCUMENTATION-AUDIT-2026-10-06.md. Corrections and documentation are included in the owner-authorised local commit; owner authorised pushing the corrections and prompt revisions.
+- Task: approved Volume GEE OS rebuild, local isolated candidate.
+- Mode: Build. Workflow: Change Safety. Profile: Full Product.
+- Status: implementation complete for documentation structure, portable tooling and React/Tailwind application composition. Linux candidate validation finished, with the preserved PDF failure. Feature-by-feature full reconstruction/acceptance remains outstanding; current features are ported implementations. Release acceptance remains PARTIAL.
+- Plan: docs/08-change-management/plans/GEE-OS-REBUILD.md.
+- Evidence: qa/reports/GEE-REBUILD-2026-10-07.md.
 
-## Completed in this pass
+## Implemented
 
-- Atomic project imports, manifest/row/reference checks and bounded ZIP expansion; author portrait round trips.
-- Budget checks before internal AI attempts and adapter tasks, shared allowance reservations, prior paid usage retained on errors.
-- Markdown manuscript import, API blueprint comparison/restoration, approved free TipTap editor, author photo upload/export, higher-cost writing confirmation and prices before publication.
-- Dated official KDP trim/page/margin/cover facts. Cream-paper page limits and large-trim printing costs corrected. Automatic barcode placement stays partial.
-- Heavy route splitting, local GitHub CI workflow, unknown migration column types, redirect default off, reconciled project/backup documentation.
-- Expanded browser tests, process restart recovery, EPUBCheck and the long-book benchmark.
+GEE document hierarchy and move manifest; standalone Mise/npm clean restore and runtime doctor; guarded process launcher; React providers/router under src/app and feature slices under src/features. Public demo fixtures are now included under src/demo: the old unanchored data/ ignore excluded them from fresh Git checkouts. Private root data remains ignored and untouched. Existing backends, schemas, prompts, assets, design and user workflows are retained.
 
-## Evidence
+## Boundaries and remaining work
 
-- PASS: `npm run typecheck`, `npm run lint`, `npm run format:check`, `git diff --check`.
-- PASS: `npm run test:coverage`, all four documented line targets met, all source files included. CI now enforces them. Exact measurements: docs/LOCAL-VALIDATION-2026-10-06.md.
-- PASS: `npm test`, 499 tests (core 75, AI 148, export 87, server 189). Two default skips: MySQL and optional EPUBCheck.
-- PASS separately: EPUBCheck 5.4.0 using the official temporary jar; all four EPUB tests pass when explicitly enabled.
-- PASS: `npm run e2e`, all five scenarios, full book/19-file pack, interrupted server restart, import/undo/paste/reload, blueprint restore/cost confirmation/prices, photo persistence.
-- PASS: web build. Main index about 373 kB, shared UI 423 kB; heavier routes load on demand.
-- PASS: synthetic long book, 83,815 words, 326 pages, 7.18 seconds including PDF inspection, embedded fonts, no export warnings. Node peak RSS 612.5 MiB excludes Chromium. Reproduce with packages/export/scripts/benchmark.ts.
-- Details: docs/PROJECT-REVIEW-2026-10-06.md, docs/LOCAL-VALIDATION-2026-10-06.md and KNOWN-ISSUES.md.
+No environment file or private root data read or copied. No original checkout cutover, commit, push, deployment, live AI call or destructive retirement. Mac execution and remote CI require a real Mac/authorised remote run. Linux PDF visual reference discrepancy remains unresolved, with golden and tolerance unchanged. Existing publishing and live AI acceptance blockers remain in KNOWN-ISSUES.md.
 
-## Next steps and blockers
+Use npm run setup, npm run doctor and npm run dev through Mise. Volume remains owner-only on loopback, web 5180 and API 5181. Safe LAN access requires a separately designed authentication/origin change.
 
-1. Free AI: live titles PASS (10 options) and blueprint PASS (three chapters, schema valid) on nvidia/nemotron-3-super-120b-a12b:free through the existing server. Synthetic book 01M48Z6TSDY9CCWT62HSDDSVNA, Windowsill Herbs: Free Model Test. First full-writing job 01M48ZPZJ929Q4A11JJSFZY80M failed when chapter two summarise exceeded its output limit after retry. No partial section saved. Retry 01M490V24JVYTJ6QJXDDTFVQ80 also failed on summary truncation with verified free Lightning. Both owner-selected Gemma models failed with an upstream Google AI Studio invalid-key error. Full writing acceptance FAIL; saved draft has flagged style/word-count defects. All text stages overridden on this book only; no search or image calls. Budget remains 0.000001 USD as an additional gate, not permission for paid models. Recorded cost is zero. The initial missing summarise override was stopped by the budget gate and then corrected.
-2. cPanel MySQL: deferred at the owner's explicit request. No connection or remote database mutation attempted.
-3. Publishing review: user granted access to one book, but current SQLite project list and app library were empty. Selected the Windowsill Herbs fixture and created the separate labelled free-test book. Fresh sample DOCX opened in Word; title, copyright, contents, chapter, table pagination/repeated header and final-page layouts visibly checked. Kindle Previewer 4 downloaded from the official help-page link; complete 489,948,921-byte package passes signing and notarisation checks outside the sandbox. The earlier sandboxed verification error is resolved. Installer not run; explicit licence acceptance question pending. Browser surfaces unavailable, so KDP draft upload and generated template comparison remain NOT TESTED. Barcode placement stays partial.
-4. Owner decisions: Gideon's imprint/credentials, Harni's personal line and proposed decisions. D-020 remains proposed with redirect resolution now default off.
-5. .env.example remains owner-edited as previously recorded. No environment files read. Only authorised book-list metadata and the labelled synthetic test book were accessed in data/ during this free validation.
-6. Commit/push only on the owner's request. Initial private devgeereact/Volume repository is already published; the corrections and prompt revisions are included in the owner-authorised push to origin/main. Remote CI results require separate verification.
+Prior task history: qa/reports/TASK-BEFORE-GEE-REBUILD-2026-10-07.md.
 
-Later roadmap phases (fiction/workbooks, picture books, batches/accounts) are outside this v1 correction pass.
 
-## Active follow-up: humanizer prompt revision completed locally
+## 7 October 2026: running-header correction
 
-Owner approved the prompt/dead-code plan. Created new versions of all 32 prompt IDs using humanizer 3.0.0 principles; updated prompt index, guides, tests, changelog, D-031 and known issues. Old versions remain unchanged. No runtime dependency on the owner's skill path, new AI call or model-default change.
+Corrected suppressed small capitals in PDF running headers and added a rendered-PDF regression. Full visual parity remains FAIL; reference images and tolerance remain unchanged. Ornament rendering is intact, correcting the initial diagnostic suspicion. See qa/reports/PDF-SMALLCAPS-2026-10-07.md. Release remains PARTIAL/NO-GO; actual Mac execution is NOT TESTED.
 
-Removed only the verified unused null BookHeader component and its documentation references. Static audit examined 377 JS/TS files; unreferenced-looking CLI/manual/design tools have explicit entry points and were retained. No blanket claim that all exported or dynamically referenced code is dead.
 
-PASS: typecheck, lint, formatting, AI 155 tests, server 189 tests (MySQL skipped), five browser scenarios and git diff --check. House-style PARTIAL: 66 existing detector findings, same counts as the original prompts, from rule examples/contracts. No new banned-phrase or dash findings. See local validation.
-
-Next: owner-controlled restart/reload of the existing server to load prompt revisions, then fresh authorised live quality validation. No existing server restarted; no live calls, environment/data reads, dependencies, commits or pushes. This follow-up is included in the owner-authorised commit/push to origin/main; cPanel stays deferred.
+## Active promotion, 7 October 2026
+Owner requested promotion and push. Current directory: /home/mr-gee/Work/Projects/active/volume. Original preserved at /home/mr-gee/Work/Projects/archive/pre-rebrand-2026-10-07/volume. Branch: rebrand/gee-os-typescript-20261007. See qa/reports/ACTIVE-PROMOTION-2026-10-07.md. Earlier release gates remain open; no production merge/deployment performed.

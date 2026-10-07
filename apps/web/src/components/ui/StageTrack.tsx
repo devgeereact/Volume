@@ -1,8 +1,8 @@
 import { useRef, type KeyboardEvent } from "react";
 import { Link } from "react-router";
 import { Check } from "lucide-react";
-import type { StageId } from "../../data/types";
-import { stageLabels } from "../../data/books";
+import type { StageId } from "../../demo/types";
+import { stageLabels } from "../../demo/books";
 import { cn } from "../../lib/cn";
 
 export const trackStages: StageId[] = ["research", "title", "blueprint", "writing", "editing", "cover", "export", "published"];
