@@ -37,6 +37,14 @@ npm install
 npm run dev        # server on 127.0.0.1:5181, app on http://127.0.0.1:5180
 ```
 
+If another process, including an SSH tunnel, owns port 5180, leave it running and explicitly choose a free web port:
+
+```bash
+VOLUME_WEB_PORT=5182 npm run dev
+```
+
+The launcher forwards this port to Vite and allows its loopback origin on the local API. If you set `WEB_ORIGINS` yourself, include the chosen origin there. The API port remains unchanged. This resolves a port collision only; missing frontend source must be recovered from the original working copy before the app can load.
+
 Checks before you hand work on:
 
 ```bash

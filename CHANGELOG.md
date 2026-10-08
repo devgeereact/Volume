@@ -2,6 +2,12 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 8 October 2026
+
+### Fixed
+- The local launcher checks the requested web port before starting the API and supports `VOLUME_WEB_PORT` when an existing process owns port 5180. The chosen loopback origin is forwarded to the API unless explicitly configured.
+- Frontend source under `apps/web/src/data/` is no longer excluded by the runtime `data/` ignore rule. Missing original source still needs recovery; no replacement data was generated.
+
 ## 6 October 2026
 
 ### Added

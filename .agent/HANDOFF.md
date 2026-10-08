@@ -220,3 +220,10 @@ Newest at the bottom. Every AI appends one entry per session: date, assistant, w
 - Owner requested committing and pushing all current changes. Target confirmed: main at origin, https://github.com/devgeereact/Volume.git. Includes the earlier local correction commit and the new humanizer prompt/cleanup commit. No force push.
 - Verified changed-path scope, protected environment/data exclusion and git diff --check. Existing prompt checks: AI 155 tests, server 189 tests, five browser scenarios, typecheck, lint and formatting PASS. No new product changes during this Git operation.
 - Commit hashes and remote synchronisation are verifiable in Git history. Remote CI outcome is separate from local checks; live prose quality remains NOT TESTED and the existing server still needs owner-controlled restart. No live calls, dependencies, publication or cPanel changes.
+
+## 8 October 2026: Mac launcher repair (Codex)
+
+- Fixed scripts/dev.mjs to reject an occupied web port before API startup and accept VOLUME_WEB_PORT, forwarding the chosen port to Vite and its loopback origin to the API. Existing SSH tunnel left running.
+- Updated README, CHANGELOG and .gitignore to document the option and protect future frontend-source recovery from the broad data/ exclusion. Existing package-lock.json and .idea work preserved.
+- PASS: stub-child port/origin checks, occupied-port check, launcher syntax and formatting. FAIL: repository typecheck/lint, with absent original frontend data modules and existing backlog. No full application readiness claim.
+- Next: owner supplies original source location. Recover source only, retain private runtime data exclusions, then run full build/browser checks.

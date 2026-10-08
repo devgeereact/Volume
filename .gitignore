@@ -6,6 +6,9 @@ coverage/
 .env.*
 !.env.example
 data/
+# Frontend source is not private runtime data. Preserve it in future source commits.
+!apps/web/src/data/
+!apps/web/src/data/**
 *.log
 .DS_Store
 Icon?

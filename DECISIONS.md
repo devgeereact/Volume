@@ -211,3 +211,10 @@ Use the existing authenticated server without reading or exposing its key. Selec
 - Status: Accepted scope, owner approved the implementation plan.
 - Decision: store adapted humanizer 3.0.0 principles in new prompt versions, with no home-directory skill dependency, extra automatic editing call or change to model defaults. Preserve exact task contracts, source evidence, historical versions, owner voice, house style and AI disclosure.
 - Consequence: active prompts select the latest versions when a new loader starts; explicit older pins remain valid. Mock tests establish integration/contract behaviour, not live prose quality. Only proven unused source was deleted; tools and history remain.
+
+## D-032 Explicit alternative development web port
+
+- **Date:** 8 October 2026. **Status:** Accepted within the owner's focused launch-error repair request.
+- **Context:** An existing SSH tunnel owns the default web port 5180. Existing processes must be preserved.
+- **Decision:** Keep 5180 as the default, allow an explicit VOLUME_WEB_PORT, and reject occupied ports before starting the API. Forward the selected loopback origin unless WEB_ORIGINS is explicitly configured.
+- **Consequences:** No tunnel is stopped or silently replaced. API port and architecture stay unchanged. This does not repair absent frontend source.

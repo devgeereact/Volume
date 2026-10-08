@@ -44,3 +44,9 @@ Removed only the verified unused null BookHeader component and its documentation
 PASS: typecheck, lint, formatting, AI 155 tests, server 189 tests (MySQL skipped), five browser scenarios and git diff --check. House-style PARTIAL: 66 existing detector findings, same counts as the original prompts, from rule examples/contracts. No new banned-phrase or dash findings. See local validation.
 
 Next: owner-controlled restart/reload of the existing server to load prompt revisions, then fresh authorised live quality validation. No existing server restarted; no live calls, environment/data reads, dependencies, commits or pushes. This follow-up is included in the owner-authorised commit/push to origin/main; cPanel stays deferred.
+
+## 8 October 2026: Mac launcher repair
+
+Owner requested fixing Volume and MimmyCare launch errors. Volume's default web port is owned by an existing SSH tunnel, which was preserved. Added explicit VOLUME_WEB_PORT support and a web-port preflight before API startup. Kept existing defaults and configuration. Exempted apps/web/src/data/ source from the broad runtime-data ignore rule.
+
+PASS: occupied-port rejection without API spawn; alternate-port forwarding and loopback origin using stub children; node --check scripts/dev.mjs; launcher formatting. FAIL: full typecheck and lint, including missing original frontend modules under apps/web/src/data/. Original source folder absent and not in Git history. No live API, AI, private runtime data or environment values accessed. Next: obtain original source location from owner and recover reviewed source only, then rerun build and browser checks.
