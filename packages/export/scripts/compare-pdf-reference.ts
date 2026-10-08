@@ -4,10 +4,11 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 import { DEFAULT_INTERIOR_THEME } from '@volume/core';
-import { acquireBrowser, exportPrintPdf, loadFontLibrary, releaseBrowser, renderPdfPages } from '../src/index.ts';
-import { goldenPath, loadWindowsill } from '../test/helpers.ts';
+import { acquireBrowser, BROWSER_ARGS, exportPrintPdf, loadFontLibrary, releaseBrowser, renderPdfPages } from '../src/index.ts';
+import { goldenPath, layoutMismatch, loadWindowsill, meanGreyDifference, VISUAL_REFERENCE_PLATFORM, visualReferencePath } from '../test/helpers.ts';
 
-const threshold = 1.5; // Same acceptance rule as test/pdf.test.ts, never write references here.
+const threshold = 1.5; // Same acceptance rules as test/pdf.test.ts, never write references here.
+const layoutLimit = 0.01;
 const sha256 = (bytes: Buffer): string => createHash('sha256').update(bytes).digest('hex');
 async function main(): Promise<void> {
   const browser = await acquireBrowser();
@@ -25,23 +26,25 @@ async function main(): Promise<void> {
     const comparisons = [];
     for (const [index, png] of pngs.entries()) {
       const reference = `windowsill-page-${index + 1}.png`;
-      const bytes = readFileSync(goldenPath(reference));
+      const bytes = readFileSync(visualReferencePath(reference));
       const actual = await sharp(png).greyscale().raw().toBuffer({ resolveWithObject: true });
       const expected = await sharp(bytes).greyscale().raw().toBuffer({ resolveWithObject: true });
+      const original = await sharp(readFileSync(goldenPath(reference)))
+        .greyscale()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
       const dimensionsMatch = actual.info.width === expected.info.width && actual.info.height === expected.info.height;
-      let meanDifference: number | null = null;
-      if (dimensionsMatch) {
-        let sum = 0;
-        for (let pixel = 0; pixel < actual.data.length; pixel++) sum += Math.abs((actual.data[pixel] ?? 0) - (expected.data[pixel] ?? 0));
-        meanDifference = sum / actual.data.length;
-      }
+      const meanDifference = dimensionsMatch ? meanGreyDifference(actual.data, expected.data) : null;
+      const sameSizeAsOriginal = actual.info.width === original.info.width && actual.info.height === original.info.height;
+      const layoutMismatchAgainstMacOs = sameSizeAsOriginal ? layoutMismatch(actual.data, original.data, actual.info.width, actual.info.height) : null;
       comparisons.push({
         reference,
         page: pages[index],
         referenceSha256: sha256(bytes),
         dimensionsMatch,
         meanDifference,
-        pass: dimensionsMatch && meanDifference !== null && meanDifference < threshold,
+        layoutMismatchAgainstMacOs,
+        pass: meanDifference !== null && meanDifference < threshold && layoutMismatchAgainstMacOs !== null && layoutMismatchAgainstMacOs <= layoutLimit,
       });
     }
     const pass = comparisons.every((comparison) => comparison.pass);
@@ -53,7 +56,10 @@ async function main(): Promise<void> {
           architecture: process.arch,
           node: process.versions.node,
           chromium: browser.version(),
+          browserArgs: BROWSER_ARGS,
+          referencePlatform: VISUAL_REFERENCE_PLATFORM,
           threshold,
+          layoutLimit,
           comparisons,
           fonts: loadFontLibrary()
             .files.filter((font) => font.source === 'assets')

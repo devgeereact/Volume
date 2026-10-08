@@ -10,6 +10,9 @@ User-visible changes, newest first. Dates in British format.
 - Linux/macOS CI matrix and launcher integration checks.
 
 ### Fixed
+- Print PDFs made on Linux now wrap lines like those made on macOS (font hinting turned off in the export browser).
+- Book writing no longer stops when a reasoning model runs out of room while summarising a chapter: more room, a shorter summary prompt (v4) and a tested retry.
+- Documentation link checks pass on a fresh clone where the separate reports folder is absent.
 - Offline new-profile entry no longer repeats failed health requests when feature consumers mount.
 - Design generation handles spaces in project paths; screenshot checks are isolated from working APIs.
 - Public frontend fixtures are included in fresh checkouts under src/demo. The private-data ignore now applies only to root /data/.
@@ -102,13 +105,13 @@ PASS: all five mock end-to-end scenarios completed on Linux (2.2 minutes). Expor
 
 
 ## 7 October 2026: complete PDF reference diagnostics
-Added the export workspace compare:pdf command to report every reference-page mismatch and public font/environment hashes without changing render settings or golden files. Linux visual acceptance remains FAIL. Added a shared Mac/Linux transfer and validation guide under Rebrand/MAC-LINUX.md. Evidence: qa/reports/PDF-INVESTIGATION-2026-10-07.md.
+Added the export workspace compare:pdf command to report every reference-page mismatch and public font/environment hashes without changing render settings or golden files. Linux visual acceptance remains FAIL. Added a shared Mac/Linux transfer and validation guide under Rebrand/MAC-LINUX.md. Evidence: ../reports/volume/qa/reports/PDF-INVESTIGATION-2026-10-07.md.
 
 ## 7 October 2026, Codex fix follow-up
 
-PDF test reports all mismatches and refuses missing references; restart startup budget matches main server and targeted recovery PASS. PDF visual acceptance remains FAIL. See qa/reports/FOLLOW-UP-2026-10-07.md.
+PDF test reports all mismatches and refuses missing references; restart startup budget matches main server and targeted recovery PASS. PDF visual acceptance remains FAIL. See ../reports/volume/qa/reports/FOLLOW-UP-2026-10-07.md.
 
 
 ## 7 October 2026: running-header correction
 
-Corrected suppressed small capitals in PDF running headers and added a rendered-PDF regression. Full visual parity remains FAIL; reference images and tolerance remain unchanged. Ornament rendering is intact, correcting the initial diagnostic suspicion. See qa/reports/PDF-SMALLCAPS-2026-10-07.md. Release remains PARTIAL/NO-GO; actual Mac execution is NOT TESTED.
+Corrected suppressed small capitals in PDF running headers and added a rendered-PDF regression. Full visual parity remains FAIL; reference images and tolerance remain unchanged. Ornament rendering is intact, correcting the initial diagnostic suspicion. See ../reports/volume/qa/reports/PDF-SMALLCAPS-2026-10-07.md. Release remains PARTIAL/NO-GO; actual Mac execution is NOT TESTED.

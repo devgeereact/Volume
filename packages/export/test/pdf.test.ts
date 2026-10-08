@@ -1,10 +1,10 @@
 import sharp from 'sharp';
 import type { Browser } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { blockTexts, DEFAULT_INTERIOR_THEME, stripInline } from '@volume/core';
 import { acquireBrowser, exportPrintPdf, inspectPdf, releaseBrowser, renderPdfPages, type PdfInspection, type PrintPdfResult } from '../src/index.ts';
-import { goldenPath, loadMiniBook, loadWindowsill } from './helpers.ts';
+import { goldenPath, layoutMismatch, loadMiniBook, loadWindowsill, meanGreyDifference, VISUAL_REFERENCE_PLATFORM, visualReferencePath } from './helpers.ts';
 
 const PYTHON_PAGES = 29; // windowsill-herbs-interior-6x9.pdf from the P02 Python build
 const letters = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -114,10 +114,13 @@ describe('print PDF, chapters on right-hand pages (D-013 default)', () => {
     const failures: string[] = [];
     for (const [i, png] of pngs.entries()) {
       const name = `windowsill-page-${i + 1}.png`;
-      const p = goldenPath(name);
-      if (process.env.UPDATE_GOLDEN === '1') writeFileSync(p, png);
+      const p = visualReferencePath(name);
+      if (process.env.UPDATE_GOLDEN === '1') {
+        mkdirSync(new URL('.', p), { recursive: true });
+        writeFileSync(p, png);
+      }
       if (!existsSync(p)) {
-        failures.push(`${name}: reference is missing; restore the approved reference before testing.`);
+        failures.push(`${name}: ${VISUAL_REFERENCE_PLATFORM} reference is missing; restore the approved reference before testing.`);
         continue;
       }
       const a = await sharp(png).greyscale().raw().toBuffer({ resolveWithObject: true });
@@ -126,10 +129,23 @@ describe('print PDF, chapters on right-hand pages (D-013 default)', () => {
         failures.push(`${name}: dimensions differ (${a.info.width}x${a.info.height} versus ${b.info.width}x${b.info.height}).`);
         continue;
       }
-      let diff = 0;
-      for (let k = 0; k < a.data.length; k++) diff += Math.abs((a.data[k] ?? 0) - (b.data[k] ?? 0));
-      const mean = diff / a.data.length;
+      const mean = meanGreyDifference(a.data, b.data);
       if (mean >= 1.5) failures.push(`${name}: mean grey-level difference ${mean} exceeds the unchanged 1.5 threshold.`);
+      // Every platform must also lay out like the approved macOS originals (same lines, words and page breaks).
+      const original = await sharp(readFileSync(goldenPath(name)))
+        .greyscale()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      if (original.info.width !== a.info.width || original.info.height !== a.info.height) {
+        failures.push(
+          `${name}: dimensions differ from the approved macOS reference (${a.info.width}x${a.info.height} versus ${original.info.width}x${original.info.height}).`,
+        );
+        continue;
+      }
+      // One way only: macOS text is heavier, so light grey macOS ink has no Linux counterpart at the same
+      // threshold. Missing text is caught by the mean grey check against this platform's own reference.
+      const moved = layoutMismatch(a.data, original.data, a.info.width, a.info.height);
+      if (moved > 0.01) failures.push(`${name}: ${(moved * 100).toFixed(2)}% of the text ink has moved against the approved macOS reference.`);
     }
     expect(failures, failures.join('\n')).toEqual([]);
   });

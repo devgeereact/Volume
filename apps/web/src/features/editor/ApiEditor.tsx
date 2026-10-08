@@ -55,6 +55,7 @@ import { formatNumber, formatTime } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
 import { interiorLook } from "../../lib/interiorLook";
 import { ErrorPanel, LoadingBlock } from "../writing/screenState";
+import { SummaryMissingNotice } from "../writing/SummaryMissingNotice";
 import { ApiCompare } from "./ApiCompare";
 import { EditorCanvas } from "./EditorCanvas";
 import { EditorInspector, type InspectorTab } from "./EditorInspector";
@@ -1079,6 +1080,9 @@ function Body({
           )}
           <div className="mt-4">
             {notice}
+            {detail?.section.id === sectionId && (
+              <SummaryMissingNotice key={sectionId} bookId={bookId} sectionId={sectionId} checks={detail.checks} className="mb-4" />
+            )}
             {!ready ? (
               sectionQ.isError ? (
                 <ErrorPanel title="Could not open this section" body={errorText(sectionQ.error)} onRetry={() => void sectionQ.refetch()} />

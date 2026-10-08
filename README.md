@@ -8,7 +8,7 @@ Owner: Gideon (Gakinz, London). Runs on the owner’s macOS or Linux computer. B
 
 ## Status
 
-GEE OS rebuild approved 7 October 2026, implemented in an isolated checkout. Release acceptance remains PARTIAL. Existing book-production functionality and data contracts are preserved while contracts, portable tooling and the application shell are migrated. macOS execution remains NOT TESTED until an actual Mac/CI run. The Linux PDF reference mismatch and existing live AI/publishing blockers remain visible in [known issues](KNOWN-ISSUES.md).
+GEE OS rebuild approved 7 October 2026 and now the active checkout, a linked Git worktree. Release acceptance remains PARTIAL. Existing book-production functionality and data contracts are preserved while contracts, portable tooling and the application shell are migrated. macOS execution remains NOT TESTED until an actual Mac/CI run. The Linux PDF reference mismatch and existing live AI/publishing blockers remain visible in [known issues](KNOWN-ISSUES.md).
 
 ## Restore and run on macOS or Linux
 
@@ -47,7 +47,7 @@ npm run lint          # ESLint, type-aware, whole repo
 npm run format:check  # Prettier; npm run format rewrites the files
 npm run test          # Vitest in every workspace
 npm run test:coverage # measured core, AI, export and server thresholds
-npm run e2e           # five browser scenarios, mock AI
+npm run e2e           # seven browser tests in four specs, mock AI
 ```
 
 Settings live in `.env` at the root (template in `.env.example`). With no OpenRouter key the app uses the mock AI and spends nothing. The web app falls back to its built-in demo data when the server is not running.
@@ -67,7 +67,7 @@ Settings live in `.env` at the root (template in `.env.example`). With no OpenRo
 | `packages/ai/` | OpenRouter client, mock provider, model registry, prompt loader, guardrails |
 | `packages/export/` | PDF, DOCX, EPUB, TXT, MD, covers, preflight, upload pack |
 | `packages/ui/` | Design tokens and shared components |
-| `design/directions/` | Original design boards; fused direction lives in design/final/ (D-014 remains proposed) |
+| `design/directions/` | Original design boards; fused direction lives in design/final/ (D-014 accepted) |
 | `assets/fonts/` | OFL fonts with their licence files |
 | `tests/` | Unit, golden and end-to-end tests |
 | `scripts/` | Portable setup, runtime checks, development launcher and documentation checks |
@@ -96,9 +96,9 @@ Settings live in `.env` at the root (template in `.env.example`). With no OpenRo
 | `CHANGELOG.md` | User-visible changes |
 | `KNOWN-ISSUES.md` | Open questions and things to verify |
 | `docs/07-operations/BACKUP-RECOVERY.md` | Actual backup retention, restore and rollback procedure |
-| `qa/reports/LOCAL-VALIDATION-2026-10-06.md` | Automated checks, coverage and export evidence |
-| `qa/reports/FREE-AI-VALIDATION-2026-10-06.md` | Free live tests and publishing application checks |
-| `qa/reports/DOCUMENTATION-AUDIT-2026-10-06.md` | Documentation scope, corrections and remaining decisions |
+| `../reports/volume/qa/reports/LOCAL-VALIDATION-2026-10-06.md` | Automated checks, coverage and export evidence |
+| `../reports/volume/qa/reports/FREE-AI-VALIDATION-2026-10-06.md` | Free live tests and publishing application checks |
+| `../reports/volume/qa/reports/DOCUMENTATION-AUDIT-2026-10-06.md` | Documentation scope, corrections and remaining decisions |
 
 ## Owner decisions (4 October 2026)
 
@@ -109,6 +109,6 @@ Settings live in `.env` at the root (template in `.env.example`). With no OpenRo
 - Every book follows the full structure: front matter, body, back matter, publishing package, marketing package.
 - KDP AI disclosure is set automatically when AI wrote the text or made the images.
 - Volume mode (many books at once) comes later, with KDP's weekly title limit built in.
-- The fused Volume direction is implemented; formal D-014 approval remains proposed.
+- The fused Volume direction is implemented and accepted (D-014, 7 October 2026).
 
 The full log is in `docs/08-change-management/DECISIONS.md`.

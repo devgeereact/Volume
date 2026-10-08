@@ -110,7 +110,7 @@ Target: WCAG 2.2 AA everywhere, no exceptions for "internal tools".
 
 ## Visual direction: Volume (D-014)
 
-**Status:** Fused direction is implemented in the app, but formal owner approval remains proposed (D-014). Board: `design/final/volume-direction.html` (open it and use the Light and Dark switch). Screenshots: `design/final/screenshots/`. Research behind it: `design/research/inspiration.md`. Tokens: `packages/ui/tokens.json`, with `tokens.css` and `theme.css` generated from it by `node design/final/src/build.mjs`, which also checks every contrast pair below and rebuilds the board.
+**Status:** Fused direction is implemented in the app and accepted by the owner on 7 October 2026 (D-014). Board: `design/final/volume-direction.html` (open it and use the Light and Dark switch). Screenshots: `design/final/screenshots/`. Research behind it: `design/research/inspiration.md`. Tokens: `packages/ui/tokens.json`, with `tokens.css` and `theme.css` generated from it by `node design/final/src/build.mjs`, which also checks every contrast pair below and rebuilds the board.
 
 ### The idea
 

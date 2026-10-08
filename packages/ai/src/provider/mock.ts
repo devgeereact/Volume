@@ -10,12 +10,14 @@
 //
 // Fault scenarios (options.scenario or request meta.scenario): rate_limit and server_error fail the first
 // call per prompt then succeed; invalid_json returns broken JSON on the first call per prompt;
-// invalid_json_always always does; stream_cut stops a stream half way on the first call; refusal and
+// invalid_json_always always does; stream_cut stops a stream half way on the first call; truncated cuts the
+// first answer per prompt off at the output limit (finish_reason "length", most of the room spent on
+// reasoning, as seen live on 6 October 2026) and truncated_always cuts off every answer; refusal and
 // model_missing always fail; slow waits before answering; no_sources returns no citations.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { AbortedError, ModelUnavailableError, RateLimitError, RefusalError, ServerError, StreamCutError } from '../errors.ts';
+import { AbortedError, ModelUnavailableError, OutputTruncatedError, RateLimitError, RefusalError, ServerError, StreamCutError } from '../errors.ts';
 import type { AiProvider, ChatRequest, ChatResult, ImageRequest, ImageResult, KeyStatus, MockScenario, ModelInfo, Usage } from '../types.ts';
 import { asArray, asObject, asString, estimateTokens } from '../util.ts';
 import { sleep } from './retry.ts';
@@ -168,6 +170,28 @@ export class MockProvider implements AiProvider {
     }
     if (scenario === 'invalid_json_always' || (scenario === 'invalid_json' && call === 1)) {
       text = '{"this is": not valid json';
+    }
+    if (scenario === 'truncated_always' || (scenario === 'truncated' && call === 1)) {
+      // The same error OpenRouterClient raises for finish_reason "length": the cut-off text is never returned.
+      const limit = req.maxTokens ?? null;
+      const completionTokens = limit ?? estimateTokens(text);
+      const reasoningTokens = Math.floor(completionTokens * 0.76);
+      const promptTokens = estimateTokens(req.messages.map((m) => m.content).join('\n'));
+      throw new OutputTruncatedError(
+        `Mock: the answer was cut off at the output limit${limit !== null ? ` of ${limit} tokens` : ''}. Reasoning used ${reasoningTokens} of ${completionTokens} output tokens.`,
+        { partialText: text.slice(0, Math.floor(text.length / 2)), maxTokens: limit, finishReason: 'length', nativeFinishReason: 'max_tokens' },
+        {
+          usage: {
+            promptTokens,
+            completionTokens,
+            totalTokens: promptTokens + completionTokens,
+            reasoningTokens,
+            cachedTokens: 0,
+            costUsd: this.opts.costUsd ?? 0.0001,
+            costSource: 'mock',
+          },
+        },
+      );
     }
 
     const sources =

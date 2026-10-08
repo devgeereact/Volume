@@ -19,7 +19,7 @@ Unit tests sit next to the code (`*.test.ts`) or in `tests/unit/`. Fixtures: `te
 
 Coverage targets: `packages/core` 90% lines, `packages/ai` and `packages/export` 80%, `apps/server` services 80%. Coverage is a floor, not a goal; every bug fix adds a test that failed before the fix.
 
-The coverage command includes every `src/**/*.ts` file in core, AI, export and server, including files not imported by tests. The server threshold covers all server source, a broader scope than services alone. Each workspace writes ignored HTML and JSON reports under `coverage/`. CI runs this command instead of repeating the same tests without coverage. Branch and function coverage are reported but have no enforced target. The measured results are in [local validation](../../qa/reports/LOCAL-VALIDATION-2026-10-06.md). Configuration follows the [official Vitest coverage guide](https://vitest.dev/guide/coverage.html).
+The coverage command includes every `src/**/*.ts` file in core, AI, export and server, including files not imported by tests. The server threshold covers all server source, a broader scope than services alone. Each workspace writes ignored HTML and JSON reports under `coverage/`. CI runs this command instead of repeating the same tests without coverage. Branch and function coverage are reported but have no enforced target. The measured results are in [local validation](../../../reports/volume/qa/reports/LOCAL-VALIDATION-2026-10-06.md). Configuration follows the [official Vitest coverage guide](https://vitest.dev/guide/coverage.html).
 
 ## Unit tests (minimum set)
 
@@ -82,7 +82,7 @@ Screenshots at 1440 and 390 px wide on every screen; no console errors allowed.
 
 ## Latest acceptance evidence
 
-On 6 October, 499 local tests and all measured coverage thresholds passed; five mock browser scenarios passed. See LOCAL-VALIDATION-2026-10-06.md. Free live testing was separately authorised through the existing server with only verified zero-priced models: titles/blueprint pass, full writing fails, and both Gemma routes fail upstream. This does not validate paid defaults, research or covers. See FREE-AI-VALIDATION-2026-10-06.md. MySQL is deferred by the owner.
+On 6 October, 499 local tests and all measured coverage thresholds passed; five mock browser scenarios passed. See LOCAL-VALIDATION-2026-10-06.md. The browser suite has since grown to seven tests in four specs (`npm run e2e`). Free live testing was separately authorised through the existing server with only verified zero-priced models: titles/blueprint pass, full writing fails, and both Gemma routes fail upstream. This does not validate paid defaults, research or covers. See FREE-AI-VALIDATION-2026-10-06.md. MySQL is deferred by the owner.
 
 ## Live AI runs
 

@@ -50,6 +50,22 @@ If two files disagree, stop and ask which is right, then fix both.
 - AI: OpenRouter only, one key `OPENROUTER_API_KEY`, server side only. Model per stage from `config/models.defaults.json`, changeable by the owner in Settings.
 - Tests: Vitest, Playwright, golden files. Lint: ESLint and Prettier (D-023): `npm run lint` (ESLint flat config in `eslint.config.js`), `npm run format` and `npm run format:check` (`.prettierrc.json`, `.prettierignore`).
 
+## Commands
+
+Run each one through Mise (`mise exec -- <command>`) from the repo root. Scripts come from the root `package.json`; there is no root build script, so build per workspace.
+
+```sh
+npm run setup                 # setup
+npm run dev                   # dev: web 127.0.0.1:5180, API 127.0.0.1:5181
+npm run typecheck             # typecheck every workspace
+npm run lint                  # ESLint, whole repo
+npm run test                  # Vitest in every workspace
+npm run e2e                   # builds, then Playwright on 127.0.0.1:5311 and 5312
+npm run build -w apps/server  # build the API
+npm run build -w apps/web     # build the web app
+npm run doctor                # runtime, native modules, pinned Chromium
+```
+
 ## Working rules
 
 1. Plan before large changes; show the plan and wait for the owner's OK. Small fixes may go ahead.
@@ -84,3 +100,7 @@ Avoid: leverage, empower, showcase, transformative, impactful, cutting-edge, rev
 
 ## TypeScript requirement
 Application code must use TypeScript (.ts/.tsx), with React and Tailwind. Keep HTML limited to required build entries, generated output and archived design references. Preserve approved behaviour when migrating source.
+
+## Report location
+
+Keep audit, validation and completion reports in `../reports/volume/`, outside the project. Keep project instructions and setup guides here.

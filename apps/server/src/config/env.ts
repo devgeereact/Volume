@@ -130,7 +130,7 @@ export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
   const e = parsed.data;
 
   if (e.HOST !== '127.0.0.1' && e.HOST !== 'localhost' && e.HOST !== '::1') {
-    throw new ConfigError('HOST must be 127.0.0.1 (Volume only listens on this Mac).');
+    throw new ConfigError('HOST must be 127.0.0.1 (Volume only listens on this computer).');
   }
 
   let db: AppConfig['db'];

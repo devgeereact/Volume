@@ -7,6 +7,6 @@ The project uses the GEE OS Full Product structure. Read AGENTS.md and .agent/CU
 - [Design](03-design/DESIGN-SYSTEM.md) and [screens](03-design/UX-SPEC.md).
 - [Security](05-security/SECURITY.md) and [test strategy](06-quality/TEST-STRATEGY.md).
 - [Setup](07-operations/SETUP.md), [development](07-operations/DEVELOPMENT.md) and [recovery](07-operations/BACKUP-RECOVERY.md).
-- [Approved rebuild](08-change-management/plans/GEE-OS-REBUILD.md), [decisions](08-change-management/DECISIONS.md) and [release status](09-release/RELEASE-REPORT.md).
+- [Approved rebuild](08-change-management/plans/GEE-OS-REBUILD.md), [decisions](08-change-management/DECISIONS.md) and [release status](../../reports/volume/docs/09-release/RELEASE-REPORT.md).
 - [Prompt contracts](book-production/PROMPTS.md), [exports](book-production/EXPORT-SPEC.md), [KDP facts](book-production/KDP-RULES.md).
-- Dated evidence lives in [qa/reports](../qa/reports/). Original drafts remain in source-drafts/. Historical plans are labelled and are not current stack instructions.
+- Dated evidence reports live outside the repository in [reports/volume/qa/reports](../../reports/volume/qa/reports/); machine-readable check outputs remain in qa/reports/. Original drafts remain in source-drafts/. Historical plans are labelled and are not current stack instructions.

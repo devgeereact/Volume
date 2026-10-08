@@ -51,7 +51,7 @@ Round-trip rule: parse then write returns byte-identical Markdown for any file t
 
 ## Print PDF (interior)
 
-- **Engine:** HTML and CSS from the book model, paginated by Paged.js inside Playwright Chromium, printed with `preferCSSPageSize`; pdf-lib sets title, author, subject, creator and producer. No separate fallback engine is implemented. The observed long-book benchmark is recorded in `qa/reports/LOCAL-VALIDATION-2026-10-06.md`.
+- **Engine:** HTML and CSS from the book model, paginated by Paged.js inside Playwright Chromium, printed with `preferCSSPageSize`; pdf-lib sets title, author, subject, creator and producer. No separate fallback engine is implemented. The observed long-book benchmark is recorded in `../reports/volume/qa/reports/LOCAL-VALIDATION-2026-10-06.md`.
 - **Trims:** 5 x 8, 5.5 x 8.5, 6 x 9 (default; FACTS 3.6), 8.5 x 11 in. Page count limits per trim come from the rules file (FACTS 3.6: minimum 24, maximums 590 to 828).
 - **Margins:** mirrored (`@page :left` and `:right`), inside margin larger. House defaults below; preflight raises the inside margin to the KDP minimum for the page count from the rules file.
 

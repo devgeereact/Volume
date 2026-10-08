@@ -26,6 +26,7 @@ import {
   etaWords,
   guardrailsOf,
   type GuardrailItem,
+  isSummaryOnlyJob,
   markdownBlocks,
   plainError,
   useBookJobsLive,
@@ -41,6 +42,7 @@ import { formatNumber, formatUsd } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
 import { useKeyChanged } from "../../lib/useKeyChanged";
+import { SummaryMissingNotice } from "./SummaryMissingNotice";
 
 /* Writing for a book on the server (API mode). Write book starts one job per section in order; the
    text streams in over the event stream and is saved section by section. Pause, resume and stop act on
@@ -84,20 +86,27 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
   const [announce, setAnnounce] = useState("");
 
   const sections = useMemo(() => (tree.data ? flattenSections(tree.data).filter((s) => s.enabled && s.kind !== "part") : []), [tree.data]);
-  const jobBySection = useMemo(() => {
+  // A summary rerun (write_section with summaryOnly) never rewrites the text, so it does not count as the
+  // section's writing job: it shows as Summarising and keeps the saved text on screen.
+  const { jobBySection, summarising } = useMemo(() => {
     const m = new Map<string, StageJob>();
+    const sum = new Set<string>();
     for (const j of jobs) {
       if (j.kind !== "write_section") continue;
       const id = j.payload["sectionId"];
-      if (typeof id === "string" && !m.has(id)) m.set(id, j);
+      if (typeof id !== "string") continue;
+      if (isSummaryOnlyJob(j)) {
+        if (!isTerminalJob(j.status)) sum.add(id);
+      } else if (!m.has(id)) m.set(id, j);
     }
-    return m;
+    return { jobBySection: m, summarising: sum };
   }, [jobs]);
 
   const rows: Row[] = sections.map((s) => {
     const delta = live.data.deltas[s.id] ?? "";
     const job = jobBySection.get(s.id);
-    const status = writeStatusOf(s, job, delta.length > 0 && job?.status === "running");
+    const base = writeStatusOf(s, job, delta.length > 0 && job?.status === "running");
+    const status: WriteRowStatus = summarising.has(s.id) && base !== "writing" && base !== "checking" && base !== "queued" ? "summarising" : base;
     const draft = delta.length > 0 && (status === "writing" || status === "checking" || status === "paused" || status === "stopped");
     return { section: s, status, words: draft ? countWords(delta) : s.wordCount, job, flags: guardrailsOf(s)?.needsAttention ?? [] };
   });
@@ -137,12 +146,14 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
     rows.find((r) => r.section.id === viewing) ??
     current ??
     rows.find((r) => r.status === "failed") ??
-    rows.find((r) => r.status !== "built" && r.status !== "done" && r.status !== "attention") ??
+    rows.find((r) => r.status !== "built" && r.status !== "done" && r.status !== "attention" && r.status !== "summarising") ??
     rows.find((r) => r.status !== "built") ??
     rows[0];
   const written = rows.filter((r) => r.status !== "built");
-  const doneCount = written.filter((r) => r.status === "done" || r.status === "attention").length;
-  const notDone = written.filter((r) => r.status !== "done" && r.status !== "attention");
+  // A section being summarised again already has its text, so it counts as written.
+  const isWritten = (st: WriteRowStatus) => st === "done" || st === "attention" || st === "summarising";
+  const doneCount = written.filter((r) => isWritten(r.status)).length;
+  const notDone = written.filter((r) => !isWritten(r.status));
   const failedRows = rows.filter((r) => r.status === "failed");
   const wordsWritten = written.reduce((n, r) => n + r.words, 0);
   const wordTarget = written.reduce((n, r) => n + (r.section.wordTarget ?? 0), 0);
@@ -401,6 +412,7 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
           shown && (
             <SectionCanvas
               key={shown.section.id}
+              bookId={bookId}
               row={shown}
               delta={live.data.deltas[shown.section.id] ?? ""}
               following={follow && current?.section.id === shown.section.id}
@@ -566,6 +578,7 @@ function StatusMark({ status }: { status: WriteRowStatus }) {
       );
     case "writing":
     case "checking":
+    case "summarising":
       return (
         <span aria-hidden className={cn(base, "border-[1.5px] border-accent")}>
           <span className="size-2 rounded-full bg-accent" />
@@ -634,6 +647,7 @@ function Blocks({ blocks, live }: { blocks: TextBlock[]; live: boolean }) {
 }
 
 function SectionCanvas({
+  bookId,
   row,
   delta,
   following,
@@ -641,6 +655,7 @@ function SectionCanvas({
   onFollow,
   onRetry,
 }: {
+  bookId: string;
   row: Row;
   delta: string;
   following: boolean;
@@ -677,6 +692,9 @@ function SectionCanvas({
           </Button>
         )}
       </div>
+      {!streaming && row.status !== "writing" && row.status !== "checking" && (
+        <SummaryMissingNotice bookId={bookId} sectionId={s.id} checks={detail.data?.checks} className="mb-5" />
+      )}
       {row.flags.length > 0 && row.status !== "writing" && (
         <div className="mb-5 grid gap-1 rounded-md bg-accent-wash px-4 py-3 text-small text-accent-text">
           <p className="font-semibold">Needs a look before export</p>

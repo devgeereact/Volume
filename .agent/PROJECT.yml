@@ -8,6 +8,7 @@ project:
   location: .
   summary: Local-first book production with author profiles, AI stages and export packs.
 gee_os:
+  minimum_version: "0.9.0"
   profile: full-product
   workflow: change-safety
   primary_mode: build
@@ -23,8 +24,9 @@ sources_of_truth:
   architecture: docs/02-architecture/ARCHITECTURE.md
   plan: docs/08-change-management/plans/GEE-OS-REBUILD.md
   decisions: docs/08-change-management/DECISIONS.md
-  release: docs/09-release/RELEASE-REPORT.md
-  evidence: qa/reports/
+  release: ../reports/volume/docs/09-release/RELEASE-REPORT.md
+  evidence: ../reports/volume/qa/reports/
+mcp_profile: "none"
 stack: [node-26, typescript, npm-workspaces, react, tailwind-4, vite, fastify, kysely, sqlite, mysql, playwright, openrouter]
 current_task: .agent/CURRENT-TASK.md
 handoff_log: .agent/HANDOFF.md

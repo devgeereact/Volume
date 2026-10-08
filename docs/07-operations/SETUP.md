@@ -18,4 +18,4 @@ macOS and Linux use the same commands. On Linux, Chromium may require system lib
 
 OpenRouter credentials are optional for mock development. This repository does not read or create a private .env during setup/doctor. Configure secrets privately when needed; the owner-reserved .env.example is not overwritten. Production/live AI checks require separate approval and budget. See [development](DEVELOPMENT.md) for fixture-only startup and [backup recovery](BACKUP-RECOVERY.md) for owner data.
 
-Validation on this workstation is Linux only. A committed macOS CI job is a planned verification path, not proof of execution. Record actual platform results in qa/reports/.
+Validation on this workstation is Linux only. A committed macOS CI job is a planned verification path, not proof of execution. Record actual platform results in ../reports/volume/qa/reports/ (outside the repository).

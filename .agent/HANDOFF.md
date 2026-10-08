@@ -262,3 +262,30 @@ PDF test reports all mismatches and refuses missing references; restart startup 
 
 ## 7 October 2026: active promotion
 Owner authorised moving the rebuild into active and pushing it. Current checkout /home/mr-gee/Work/Projects/active/volume, original /home/mr-gee/Work/Projects/archive/pre-rebrand-2026-10-07/volume. Branch rebrand/gee-os-typescript-20261007. Linked Git metadata repaired; original dirty work retained. Acceptance remains PARTIAL. See qa/reports/ACTIVE-PROMOTION-2026-10-07.md.
+
+
+## 7 October 2026: fix sweep (Claude Code, with export, AI, architect, QA and reviewer subagents)
+
+What changed:
+- PDF: root cause was default font hinting in headless Linux Chromium. `--font-render-hinting=none` in packages/export/src/browser.ts; Linux visual references in packages/export/test/golden/linux/; pdf.test.ts picks the platform reference, keeps the 1.5 threshold, adds a size check and a 1% layout guard against the macOS originals; compare-pdf-reference.ts updated. D-034.
+- AI: summarise maxTokens 4,000 to 16,000 plus expectedOutputTokens 1,500 in config/models.defaults.json; new prompts/checks/summarise-and-ledger.v4.md; mock `truncated` and `truncated_always` scenarios; packages/ai/test/summarise-truncation.test.ts (6 tests). D-035.
+- Docs: stale qa/reports pointers moved to ../reports/volume; scripts/check-docs.mjs skips links into ../reports/volume only when that folder is absent (fresh clone and CI), verified both ways.
+- Records: DECISIONS D-034 and D-035, CHANGELOG, KNOWN-ISSUES, CURRENT-TASK.
+
+Checks (Linux, Mise Node 26.10.0): typecheck PASS, lint PASS, format:check PASS, docs:check PASS, hooks:test 83 PASS, test:tooling PASS, core 75 PASS, AI 161 PASS, export 87 PASS (1 optional skip), server 189 PASS (1 skip), web and server build PASS, e2e 7 of 7 PASS. Reviewer: 0 critical, 0 high.
+
+Not tested: macOS, remote CI, live AI rerun (needs owner authorisation), KDP upload, MySQL. No commit, push, live AI call, env or data file access.
+
+Next: owner authorises a free-model three-chapter writing rerun; run `npm run compare:pdf --workspace @volume/export` and the export tests on a Mac; decide whether to save chapters when the summary fails; later prompt version should exempt quotes from the 15-word ledger cap.
+
+## 8 October 2026, Claude Code: fix pass after the workspace audit
+
+- Lint: dropped the unused `all` from the `writingContext` destructure at `apps/server/src/jobs/handlers/writing.ts:357` (it was only ever used inside `writingContext`). No other line of the in-progress summary-missing work changed.
+- Docs and contract: `apps/web/index.html` title "Volume prototype" to "Volume" (no test or doc asserts it); `.agent/PROJECT.yml` gains `gee_os.minimum_version: "0.9.0"` and `mcp_profile: "none"`; AGENTS.md gains a Commands block; README status no longer says "isolated checkout"; KNOWN-ISSUES header date 8 October after rechecking rows, and its rebuild bullet now says the candidate is the active checkout; TEST-STRATEGY notes the browser suite is now seven tests in four specs (the dated 6 October "five" kept as history).
+- Records: CURRENT-TASK.
+
+Checks (Linux, Mise, Chromium 1243): `npx eslint apps/server` PASS, `npm run lint` PASS, typecheck PASS, format:check PASS, docs:check PASS (80 documents), hooks:test 83 PASS, server 195 PASS (1 skip; summary-missing timed out once under machine load, passed alone), export 87 PASS (1 skip; PDF golden 4 pages PASS), doctor PASS, e2e 7 of 7 PASS.
+
+Not tested: macOS, remote CI, live AI, KDP upload, MySQL, test:tooling, coverage. No commit, push, env or data access.
+
+Next: owner decides on the summary-missing behaviour and the `checks.maxTokens` 8000 to 16000 change, then records a decision and CHANGELOG entry.

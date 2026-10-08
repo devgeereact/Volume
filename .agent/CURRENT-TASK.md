@@ -1,9 +1,21 @@
+## Fix pass, 8 October 2026 (Claude Code)
+
+Supersedes the lint and Chromium lines in the audit status below. Lint now PASSES: the unused `all` was dropped from one destructure at `apps/server/src/jobs/handlers/writing.ts:357`; nothing else in the in-progress summary-missing work changed, and that behaviour is still an owner decision. Chromium 1243 is installed, so export and PDF suites run again: export 87 PASS (1 skip), including the 4-page Linux golden comparison; server 195 PASS (1 MySQL skip); doctor PASS; e2e 7 of 7 PASS. Also: title "Volume" in `apps/web/index.html`, `minimum_version` and `mcp_profile: "none"` in PROJECT.yml, a Commands block in AGENTS.md, and stale wording in README, KNOWN-ISSUES and TEST-STRATEGY. Report: `../reports/volume/FIX-PASS-2026-10-08.md`. Next: owner decides on the summary-missing work and the `checks.maxTokens` change, then record them.
+
+## Workspace audit status, 8 October 2026
+
+Status at this date supersedes the "every local check passes" line below. Lint FAILS on `apps/server/src/jobs/handlers/writing.ts:357` (unused `all`), in uncommitted edits made after the 7 October handoff. Those edits (`writing.ts`, `jobs/book-data.ts`, `routes/manuscript.ts`, `config/models.defaults.json` `checks.maxTokens` 8000 to 16000, untracked `summary-missing.test.ts` and `SummaryMissingNotice.tsx`) look like the "save chapter when summary fails" work, which is still an owner decision. They are unrecorded and were left untouched. Export, PDF and cover rendering are BLOCKED on this computer because Playwright's `chromium_headless_shell-1243` is missing from the shared browser cache. Report: `../reports/volume/AUDIT-AND-POLISH-2026-10-08.md`.
+
+## Fix sweep, 7 October 2026 (Claude Code)
+
+Linux PDF parity fixed (D-034), summary truncation fixed in mock (D-035), docs link check made CI-safe. Every local check passes on Linux: typecheck, lint, format, docs, 83 hook tests, tooling, core 75, AI 161, export 87 (1 optional skip), server 189 (1 skip), web and server builds, e2e 7 of 7. Still open and not fixable locally: macOS run of `npm run compare:pdf` and tests, remote CI, authorised free-model writing rerun, KDP draft upload, cPanel MySQL, owner decisions (D-014, D-020, profile facts, save chapter when summary fails).
+
 ## Fix follow-up, 7 October 2026
 
-Test reliability fixes and fresh evidence are in qa/reports/FOLLOW-UP-2026-10-07.md. Core rerun 75 PASS, AI 155 PASS, server 189 PASS, export 86 PASS with PDF visual FAIL. Restart scenario PASS after matching the existing 60-second startup allowance. PDF references/threshold remain unchanged; full acceptance PARTIAL/NO-GO. Actual Mac and owner/external gates remain open.
+Test reliability fixes and fresh evidence are in ../reports/volume/qa/reports/FOLLOW-UP-2026-10-07.md. Core rerun 75 PASS, AI 155 PASS, server 189 PASS, export 86 PASS with PDF visual FAIL. Restart scenario PASS after matching the existing 60-second startup allowance. PDF references/threshold remain unchanged; full acceptance PARTIAL/NO-GO. Actual Mac and owner/external gates remain open.
 
 ## Latest: PDF parity investigation
-Added a typed read-only comparison command that reports all four existing PDF references and environment/font hashes. Linux comparison: title PASS, contents/opener/body FAIL. Font-hinting experiments improved the match but none passed all pages, so production rendering, golden files and tolerance are unchanged. Exact cause remains unresolved. Typecheck, diagnostic lint/format and docs checks PASS. See qa/reports/PDF-INVESTIGATION-2026-10-07.md. Actual Mac access was not supplied; use Rebrand/MAC-LINUX.md and run the same diagnostic there.
+Added a typed read-only comparison command that reports all four existing PDF references and environment/font hashes. Linux comparison: title PASS, contents/opener/body FAIL. Font-hinting experiments improved the match but none passed all pages, so production rendering, golden files and tolerance are unchanged. Exact cause remains unresolved. Typecheck, diagnostic lint/format and docs checks PASS. See ../reports/volume/qa/reports/PDF-INVESTIGATION-2026-10-07.md. Actual Mac access was not supplied; use ../MAC-LINUX.md (workspace root) and run the same diagnostic there.
 
 # Current task
 
@@ -11,7 +23,7 @@ Added a typed read-only comparison command that reports all four existing PDF re
 - Mode: Build. Workflow: Change Safety. Profile: Full Product.
 - Status: implementation complete for documentation structure, portable tooling and React/Tailwind application composition. Linux candidate validation finished, with the preserved PDF failure. Feature-by-feature full reconstruction/acceptance remains outstanding; current features are ported implementations. Release acceptance remains PARTIAL.
 - Plan: docs/08-change-management/plans/GEE-OS-REBUILD.md.
-- Evidence: qa/reports/GEE-REBUILD-2026-10-07.md.
+- Evidence: ../reports/volume/qa/reports/GEE-REBUILD-2026-10-07.md.
 
 ## Implemented
 
@@ -23,13 +35,13 @@ No environment file or private root data read or copied. No original checkout cu
 
 Use npm run setup, npm run doctor and npm run dev through Mise. Volume remains owner-only on loopback, web 5180 and API 5181. Safe LAN access requires a separately designed authentication/origin change.
 
-Prior task history: qa/reports/TASK-BEFORE-GEE-REBUILD-2026-10-07.md.
+Prior task history: ../reports/volume/qa/reports/TASK-BEFORE-GEE-REBUILD-2026-10-07.md.
 
 
 ## 7 October 2026: running-header correction
 
-Corrected suppressed small capitals in PDF running headers and added a rendered-PDF regression. Full visual parity remains FAIL; reference images and tolerance remain unchanged. Ornament rendering is intact, correcting the initial diagnostic suspicion. See qa/reports/PDF-SMALLCAPS-2026-10-07.md. Release remains PARTIAL/NO-GO; actual Mac execution is NOT TESTED.
+Corrected suppressed small capitals in PDF running headers and added a rendered-PDF regression. Full visual parity remains FAIL; reference images and tolerance remain unchanged. Ornament rendering is intact, correcting the initial diagnostic suspicion. See ../reports/volume/qa/reports/PDF-SMALLCAPS-2026-10-07.md. Release remains PARTIAL/NO-GO; actual Mac execution is NOT TESTED.
 
 
 ## Active promotion, 7 October 2026
-Owner requested promotion and push. Current directory: /home/mr-gee/Work/Projects/active/volume. Original preserved at /home/mr-gee/Work/Projects/archive/pre-rebrand-2026-10-07/volume. Branch: rebrand/gee-os-typescript-20261007. See qa/reports/ACTIVE-PROMOTION-2026-10-07.md. Earlier release gates remain open; no production merge/deployment performed.
+Owner requested promotion and push. Current directory: /home/mr-gee/Work/Projects/active/volume. Original preserved at /home/mr-gee/Work/Projects/archive/pre-rebrand-2026-10-07/volume. Branch: rebrand/gee-os-typescript-20261007. See ../reports/volume/qa/reports/ACTIVE-PROMOTION-2026-10-07.md. Earlier release gates remain open; no production merge/deployment performed.

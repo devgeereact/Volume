@@ -428,6 +428,8 @@ export function toSectionStatus(s: ApiSection): SectionStatus {
 
 const PREFLIGHT_AREAS: Record<string, PreflightItem["area"]> = {
   manuscript: "Manuscript",
+  // Section checks on the body text, for example a chapter whose summary failed (body.summary-missing.<sectionId>).
+  body: "Manuscript",
   claims: "Manuscript",
   listing: "Listing",
   metadata: "Listing",

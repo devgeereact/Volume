@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import type { RequestCtx } from '../auth/context.js';
@@ -164,6 +164,21 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
     await m.setSectionStatus(req.ctx, id, 'queued');
     return accepted(reply, job);
   });
+
+  // Rerun of the post-write steps that failed on a saved section (open summary_missing or checks_missing flags, or no
+  // summary yet). The text is not rewritten. /summarise is the first name of this route and does the same.
+  const rerunMissing = async (req: FastifyRequest, reply: FastifyReply) => {
+    writer(req);
+    const id = idOf(req);
+    parse(z.object({}).strict().optional(), req.body);
+    const section = await m.requireSection(req.ctx, id);
+    if (!section.currentVersionId) throw new AppError('invalid_state', 'This section has no text to summarise or check yet. Write it first.');
+    // The section keeps its status (needs attention) until the rerun ends, so a cancelled rerun cannot hide the flag.
+    const job = await s.queue.enqueue(req.ctx, { kind: 'write_section', projectId: section.projectId, payload: { sectionId: id, rerunMissing: true } });
+    return accepted(reply, job);
+  };
+  app.post('/sections/:id/recheck', rerunMissing);
+  app.post('/sections/:id/summarise', rerunMissing);
 
   app.post('/sections/:id/edit-pass', async (req, reply) => {
     writer(req);

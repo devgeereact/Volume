@@ -225,17 +225,45 @@ export async function profileSummary(
   return out;
 }
 
+/** Checker name of the blocking flag on a saved version whose summary failed (owner decision, 7 October 2026). */
+export const SUMMARY_MISSING_CHECKER = 'summary_missing';
+/** Checker name of the blocking flag on a saved version whose claims and consistency check failed (live run, 7 October 2026). */
+export const CHECKS_MISSING_CHECKER = 'checks_missing';
+
 /** Version source of a page the app saved as a placeholder for the owner to fill (acknowledgements with no names). */
 export const OWNER_PLACEHOLDER_SOURCE = 'app:placeholder';
 
 /**
  * Adds a blocking preflight item for every switched-on section whose text is still the app's placeholder (for
- * example acknowledgements with nobody named to thank). The pack is not built until the owner fills or switches
- * it off. Returns the same report.
+ * example acknowledgements with nobody named to thank), and for every one whose current text carries an open
+ * summary_missing or checks_missing flag (that step failed after the text was saved). The pack is not built until the owner fills,
+ * reruns or switches it off. Returns the same report.
  */
 export async function withOwnerPlaceholders(repos: Repos, ctx: RequestCtx, projectId: string, report: PreflightReport): Promise<PreflightReport> {
   const sections = (await repos.manuscript.listSections(ctx, projectId)).filter((s) => s.enabled && s.currentVersionId);
   for (const s of sections) {
+    // A saved section whose summary or claims and consistency check failed (an open flag on its current text) blocks
+    // until the step is rerun.
+    const open = (await repos.manuscript.listChecks(ctx, { versionId: s.currentVersionId as string })).filter((c) => c.status === 'open');
+    const name = s.title ?? s.kind;
+    const missing = [
+      {
+        checker: SUMMARY_MISSING_CHECKER,
+        id: `body.summary-missing.${s.id}`,
+        message: `${name} has no summary: its text is saved, but the summary failed. Run the summary again for this section.`,
+      },
+      {
+        checker: CHECKS_MISSING_CHECKER,
+        id: `body.checks-missing.${s.id}`,
+        message: `${name} has not been checked: its text is saved, but its claims and consistency check failed. Run the checks again for this section.`,
+      },
+    ];
+    for (const m of missing) {
+      if (!open.some((c) => c.checker === m.checker) || report.items.some((i) => i.id === m.id)) continue;
+      report.items.push({ id: m.id, area: 'body', severity: 'block', message: m.message, fix: { route: 'writing', label: 'Open the section' } });
+      report.blocks += 1;
+      report.ok = false;
+    }
     const v = await repos.manuscript.getVersion(ctx, s.currentVersionId as string);
     if (v?.source !== OWNER_PLACEHOLDER_SOURCE) continue;
     const id = `front.owner-placeholder.${s.kind}`;

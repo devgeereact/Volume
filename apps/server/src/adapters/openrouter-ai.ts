@@ -98,6 +98,8 @@ const MOCK_SCENARIOS: ReadonlySet<string> = new Set<MockScenario>([
   'invalid_json',
   'invalid_json_always',
   'stream_cut',
+  'truncated',
+  'truncated_always',
   'refusal',
   'model_missing',
   'slow',
@@ -617,7 +619,7 @@ export function mapVolumeAiError(e: unknown, ctx: { stage: string; model?: strin
     case 'invalid_output':
       return new JobFailed(`The ${ctx.stage} answer was not valid after one repair: ${a.message} Try again or pick another model.`, 'invalid_output');
     case 'output_truncated':
-      return new JobFailed(`The ${ctx.stage} answer was cut off before it was finished, so nothing was saved. ${a.message}`, 'output_truncated');
+      return new JobFailed(`The ${ctx.stage} answer was cut off before it finished, so it was not used. ${a.message}`, 'output_truncated');
     case 'auth':
       return new JobFailed('OpenRouter did not accept the API key. Check OPENROUTER_API_KEY in .env and restart Volume.', 'ai_auth');
     case 'budget':

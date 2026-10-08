@@ -5,7 +5,7 @@
 const PLAIN_BY_CODE: Readonly<Record<string, string>> = {
   ai_credits: "OpenRouter has no credit left. Top up at openrouter.ai, then retry.",
   output_truncated:
-    "The AI's answer was cut off before it finished, so nothing was saved. Raise max tokens for this step in Settings, or pick another model, then retry.",
+    "The AI's answer was cut off before it finished, so it was not used. Raise max tokens for this step in Settings, or pick another model, then retry.",
 };
 
 /** The plain message for a known error code, otherwise the error text unchanged (null stays null). */

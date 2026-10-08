@@ -619,6 +619,18 @@ export function useWriteSection() {
   });
 }
 
+/** Runs a section's summary again (write_section job with summaryOnly). The text stays as it is. */
+export function useRunSummary() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { bookId: string; sectionId: string }) => manuscriptApi.summarise(v.sectionId),
+    onSuccess: (r, v) => {
+      rememberJob(qc, r);
+      return invalidate(qc, queryKeys.book.sections(v.bookId), queryKeys.section.detail(v.sectionId));
+    },
+  });
+}
+
 export function useEditPass() {
   const qc = useQueryClient();
   return useMutation({
