@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "export-book": "tsx scripts/export-book.ts",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "compare:pdf": "tsx scripts/compare-pdf-reference.ts"
   },
   "dependencies": {
     "@fontsource/atkinson-hyperlegible-next": "5.3.0",

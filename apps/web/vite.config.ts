@@ -8,7 +8,7 @@ import tailwindcss from "@tailwindcss/vite";
 // page's (127.0.0.1:5180), which the server allows as a web origin, so no changeOrigin.
 // scripts/screenshot.mjs starts its own preview on 5182 and stops it when done.
 // "@config" points at the repository's config/ folder, so the prototype reads the same profiles,
-// book types, interior themes and cover styles as the server (src/data/config.ts).
+// book types, interior themes and cover styles as the server (src/demo/config.ts).
 // VOLUME_API_PORT lets a test run point at its own server (default 5181).
 const apiPort = process.env["VOLUME_API_PORT"] ?? "5181";
 const apiProxy = { "/api": { target: `http://127.0.0.1:${apiPort}`, changeOrigin: false } };

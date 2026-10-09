@@ -20,7 +20,7 @@ SANDBOX=$(mktemp -d "${TMPDIR:-/tmp}/volume-hooks-test.XXXXXX") || { echo "BLOCK
 trap 'rm -rf "$SANDBOX"' EXIT
 SB="$SANDBOX/project"
 mkdir -p "$SB/.claude/hooks" "$SB/.claude/skills/volume-house-style/scripts" "$SB/.agent" \
-  "$SB/prompts/writing" "$SB/docs/source-drafts" "$SB/config/book-templates" "$SB/apps/web/src" \
+  "$SB/prompts/writing" "$SB/docs/source-drafts" "$SB/docs/01-product" "$SB/config/book-templates" "$SB/apps/web/src" \
   "$SB/packages/core" "$SB/data" "$SANDBOX/tmp"
 cp "$HOOK_DIR"/*.sh "$SB/.claude/hooks/"
 cp "$CHECKER_SRC" "$SB/.claude/skills/volume-house-style/scripts/"
@@ -137,8 +137,8 @@ printf 'Write the chapter.\nThe garden%sa quiet place.\n' "$EMDASH" > "$SB/promp
 run house-style-warn.sh "$(post Write "$SB/prompts/writing/chapter.v1.md")"; expect "Em dash in prompts/ is warned" 0 "additionalContext" ; case "$OUT" in *chapter.v1.md:2*emdash*) ok "Warning names file and line 2";; *) bad "Warning names file and line 2";; esac
 printf 'Draft%swith em dash.\n' "$EMDASH" > "$SB/docs/source-drafts/BOOK.md"
 run house-style-warn.sh "$(post Write "$SB/docs/source-drafts/BOOK.md")";  expect "docs/source-drafts/ is skipped" 0 EMPTY
-printf '# Clean\n\nPlain British English, no problems here.\n' > "$SB/docs/01-PRD.md"
-run house-style-warn.sh "$(post Edit "$SB/docs/01-PRD.md")";               expect "Clean doc gives no output" 0 EMPTY
+printf '# Clean\n\nPlain British English, no problems here.\n' > "$SB/docs/01-product/PRODUCT-SPEC.md"
+run house-style-warn.sh "$(post Edit "$SB/docs/01-product/PRODUCT-SPEC.md")";               expect "Clean doc gives no output" 0 EMPTY
 printf 'export const t = "A seamless start";\n' > "$SB/apps/web/src/copy.ts"
 run house-style-warn.sh "$(post Edit "$SB/apps/web/src/copy.ts")";          expect "AGENTS.md avoid word in apps/web is warned" 0 "seamless"
 printf '{ "intro": "Let us delve into herbs" }\n' > "$SB/config/book-templates/nonfiction.json"
@@ -165,17 +165,17 @@ OUT=$(node "$CS" --rules=titlecase "$SB/docs/heading.md" 2>"$SANDBOX/stderr"); C
 expect "Title case check flags lower-case words" 1 "title case"
 OUT=$(node "$CS" "$SB/docs/source-drafts/BOOK.md" 2>"$SANDBOX/stderr"); CODE=$?; ERR=$(cat "$SANDBOX/stderr")
 expect "Checker skips docs/source-drafts/" 0 "skipped"
-OUT=$(node "$CS" "$SB/docs/01-PRD.md" 2>"$SANDBOX/stderr"); CODE=$?; ERR=$(cat "$SANDBOX/stderr")
+OUT=$(node "$CS" "$SB/docs/01-product/PRODUCT-SPEC.md" 2>"$SANDBOX/stderr"); CODE=$?; ERR=$(cat "$SANDBOX/stderr")
 expect "Checker exits 0 on a clean file" 0 "0 finding(s)"
 mv "$SB/config/house-style.json" "$SB/config/house-style.json.off"
-OUT=$(node "$CS" "$SB/docs/01-PRD.md" 2>"$SANDBOX/stderr"); CODE=$?; ERR=$(cat "$SANDBOX/stderr")
+OUT=$(node "$CS" "$SB/docs/01-product/PRODUCT-SPEC.md" 2>"$SANDBOX/stderr"); CODE=$?; ERR=$(cat "$SANDBOX/stderr")
 expect "Missing config prints a clear message and exits 2" 2 - "config/house-style.json not found"
 OUT=$(node "$CS" "$SB/prompts/writing/chapter.v1.md" 2>"$SANDBOX/stderr"); CODE=$?; ERR=$(cat "$SANDBOX/stderr")
 expect "Missing config still catches em dashes" 1 "emdash" "not found"
 run house-style-warn.sh "$(post Write "$SB/prompts/writing/chapter.v1.md")"; expect "Hook with missing config still warns and says so" 0 "is missing"
 mv "$SB/config/house-style.json.off" "$SB/config/house-style.json"
 if [ -f "$REAL_ROOT/config/house-style.json" ]; then
-  OUT=$(node "$CHECKER_SRC" --json --root="$REAL_ROOT" "$SB/docs/01-PRD.md" 2>"$SANDBOX/stderr"); CODE=$?; ERR=$(cat "$SANDBOX/stderr")
+  OUT=$(node "$CHECKER_SRC" --json --root="$REAL_ROOT" "$SB/docs/01-product/PRODUCT-SPEC.md" 2>"$SANDBOX/stderr"); CODE=$?; ERR=$(cat "$SANDBOX/stderr")
   case "$OUT" in *'"configMissing": false'*) [ "$CODE" -le 1 ] && ok "Real config/house-style.json loads" || bad "Real config/house-style.json loads";; *) bad "Real config/house-style.json loads";; esac
 else
   echo "NOT TESTED  real config/house-style.json (not written yet)"

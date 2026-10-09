@@ -1,3 +1,3 @@
 # tests
 
-unit/ (Vitest, also co-located in packages), golden/ (fixture manuscripts and expected exports), e2e/ (Playwright, mock AI provider by default). See docs/11-TESTING.md.
+unit/ (Vitest, also co-located in packages), golden/ (fixture manuscripts and expected exports), e2e/ (Playwright, mock AI provider by default). See docs/06-quality/TEST-STRATEGY.md.

@@ -1,4 +1,4 @@
-/* The one QueryClient for the app (main.tsx wraps the app in its provider). */
+/* The one QueryClient for the app (app/Providers.tsx supplies its provider). */
 import { QueryClient } from "@tanstack/react-query";
 import { isApiError } from "./client";
 

@@ -18,7 +18,7 @@ Each file has front matter (`name`, `description`, `tools`, `model`) and a body 
 
 | Agent | Owns | Tools | Model |
 |---|---|---|---|
-| `volume-architect` | `DECISIONS.md`; guards `docs/PLAN.md` and `docs/02-ARCHITECTURE.md` | read, search, Bash, write, WebFetch | opus |
+| `volume-architect` | `docs/08-change-management/DECISIONS.md`; guards `docs/08-change-management/plans/legacy-approved-plan.md` and `docs/02-architecture/ARCHITECTURE.md` | read, search, Bash, write, WebFetch | opus |
 | `volume-frontend` | `apps/web`, `packages/ui` | read, search, Bash, write | inherit |
 | `volume-backend` | `apps/server` | read, search, Bash, write, WebFetch | inherit |
 | `volume-ai-prompts` | `packages/ai`, `prompts/`, `config/models.defaults.json` | read, search, Bash, write, WebFetch | inherit |
@@ -36,13 +36,13 @@ Each file has front matter (`name`, `description`, `tools`, `model`) and a body 
 | `volume-house-style` | Checking book text, prompts, templates, docs or UI copy against `config/house-style.json`. Ships `scripts/check-style.mjs` (no dependencies). |
 | `volume-design-system` | Building or changing any UI: design guide first, tokens only, all states, accessibility floor, motion rules, screenshots at 1440 and 390. |
 | `volume-kdp-rules` | Any KDP number: only from `config/kdp-rules/<latest>.json`; how to add a rule with source and date. |
-| `volume-phase-gate` | Closing a phase: acceptance from `docs/12-ROADMAP.md` with evidence, CHANGELOG, DECISIONS, the owner review message, then stop. |
+| `volume-phase-gate` | Closing a phase: acceptance from `docs/01-product/ROADMAP.md` with evidence, CHANGELOG, DECISIONS, the owner review message, then stop. |
 
 Run the style checker by hand:
 
 ```bash
 node .claude/skills/volume-house-style/scripts/check-style.mjs prompts/writing/
-node .claude/skills/volume-house-style/scripts/check-style.mjs --rules=emdash,banned --json docs/01-PRD.md
+node .claude/skills/volume-house-style/scripts/check-style.mjs --rules=emdash,banned --json docs/01-product/PRODUCT-SPEC.md
 ```
 
 Exit codes: 0 clean, 1 findings, 2 usage error or config missing. It always skips `docs/source-drafts/` and `data/`. Text that quotes a rule on purpose can sit between `house-style:off` and `house-style:on` comments, or carry `house-style: ignore` on the line.

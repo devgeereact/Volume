@@ -1,8 +1,18 @@
 import { findTemplateJunk, findUndatedPrices, tidyGlossaryMarkdown } from '@volume/core';
 import { markdownToPlaintext, wordCount } from '../../lib/text.js';
 import { datedPricesVars, factsUsedIn, plannedBodyCount, writtenSections } from '../book-checks.js';
-import { CODE_WRITTEN_KINDS, loadTemplate, OWNER_PLACEHOLDER_SOURCE, profileSummary, styleChecks } from '../book-data.js';
+import {
+  CHECKS_MISSING_CHECKER,
+  CODE_WRITTEN_KINDS,
+  loadTemplate,
+  OWNER_PLACEHOLDER_SOURCE,
+  profileSummary,
+  styleChecks,
+  SUMMARY_MISSING_CHECKER,
+} from '../book-data.js';
 import { bookRepetitions } from '../repetition.js';
+import { AiModelUnavailableError } from '../../ports/ai.js';
+import type { Section } from '../../repos/manuscript.js';
 import { JobFailed } from '../errors.js';
 import type { JobContext, JobHandler } from '../runner.js';
 
@@ -93,13 +103,227 @@ function glossaryTermsOf(blueprint: Record<string, unknown> | null, ledger: { ki
   return [...new Set([...planned, ...defined].map((t) => t.trim()).filter(Boolean))];
 }
 
+/**
+ * A failure of a post-write step (summary, claims and consistency checks) that leaves the written text worth keeping: a
+ * cut-off or invalid answer after the AI layer's own retry, a refusal, a missing model. Pauses, cancels, budget stops and
+ * retryable provider errors are not caught here: they still end the attempt, as before.
+ */
+function stepFailure(err: unknown): { code: string; detail: string } | null {
+  if (err instanceof JobFailed) return { code: err.code, detail: err.message.slice(0, 500) };
+  if (err instanceof AiModelUnavailableError) return { code: 'model_unavailable', detail: err.message.slice(0, 500) };
+  return null;
+}
+
+function summaryMissingCheck(f: { code: string; detail: string }): { checker: string; severity: 'block'; message: string; location: Record<string, unknown> } {
+  return {
+    checker: SUMMARY_MISSING_CHECKER,
+    severity: 'block',
+    message:
+      'Summary missing: the text is saved, but its summary failed, so later sections were written without its summary and story ledger entries. Run the summary again.',
+    location: { errorCode: f.code, detail: f.detail },
+  };
+}
+
+function checksMissingCheck(f: { code: string; detail: string }): { checker: string; severity: 'block'; message: string; location: Record<string, unknown> } {
+  return {
+    checker: CHECKS_MISSING_CHECKER,
+    severity: 'block',
+    message: 'Checks missing: the text is saved, but its claims and consistency check failed. Run the checks again.',
+    location: { errorCode: f.code, detail: f.detail },
+  };
+}
+
+type CodeCheckItem = { checker: string; severity: 'info' | 'warn' | 'block'; message: string; location?: Record<string, unknown> };
+
+/**
+ * The model's claims and consistency check on saved text. Consistency issues come back as warnings; claims are stored and
+ * announced. A step failure (see stepFailure) comes back as `failed` instead of throwing, so the text is never lost.
+ */
+async function modelChecks(
+  jc: JobContext,
+  projectId: string,
+  sectionId: string,
+  versionId: string,
+  variables: Record<string, unknown>,
+): Promise<{ checks: CodeCheckItem[]; claims: number; failed: { code: string; detail: string } | null }> {
+  const { repos } = jc.services;
+  let model;
+  try {
+    model = await jc.runAi('checks', { promptId: 'checks.claims-and-consistency', variables });
+  } catch (err) {
+    const failed = stepFailure(err);
+    if (!failed) throw err;
+    return { checks: [], claims: 0, failed };
+  }
+  const checks: CodeCheckItem[] = model.output.consistency.map((c) => ({
+    checker: 'consistency',
+    severity: 'warn',
+    message: c.issue,
+    location: { excerpt: c.excerpt },
+  }));
+  const claims = await repos.manuscript.addClaims(
+    jc.ctx,
+    projectId,
+    sectionId,
+    versionId,
+    model.output.claims.map((c) => ({
+      sentence: c.sentence,
+      category: c.category,
+      checkNeeded: c.check_needed,
+      start: c.start,
+      end: c.end,
+      suggestedSoftening: c.softer,
+    })),
+  );
+  for (const c of claims) await jc.emit('claim.added', { claimId: c.id, sectionId, category: c.category });
+  return { checks, claims: claims.length, failed: null };
+}
+
+/** The section variables the writing and summary prompts share. */
+function sectionVarsOf(section: Section, all: readonly Section[]): Record<string, unknown> {
+  const later = all.filter((s) => s.enabled && s.position > section.position && BODY_FLOW.has(s.kind));
+  const isLast = section.kind === 'chapter' && !later.some((s) => s.kind === 'chapter');
+  const partTitle = section.partId ? (all.find((s) => s.id === section.partId)?.title ?? null) : null;
+  return { kind: section.kind, title: section.title, number: section.number, word_target: section.wordTarget, ...section.plan, partTitle, isLast };
+}
+
+type Book = Awaited<ReturnType<JobContext['services']['repos']['books']['require']>>;
+type Source = Awaited<ReturnType<JobContext['services']['repos']['planning']['listSources']>>[number];
+
+/**
+ * Continuity and context for the writing, summary and checks prompts: summaries of earlier sections (the last one is the
+ * previous chapter), the story ledger, the next chapter, dated prices, the blueprint, the template and the profile facts.
+ */
+async function writingContext(jc: JobContext, book: Book, section: Section, profile: Record<string, unknown>, sources: readonly Source[]) {
+  const { repos } = jc.services;
+  const projectId = book.id;
+  const sectionId = section.id;
+  const all = [...(await repos.manuscript.listSections(jc.ctx, projectId))].sort((a, b) => a.position - b.position);
+  const earlier = all.filter((s) => s.enabled && s.position < section.position && s.currentVersionId);
+  const summaries: { number: number; title: string | null; summary: string }[] = [];
+  for (const s of earlier) {
+    const v = await repos.manuscript.getVersion(jc.ctx, s.currentVersionId as string);
+    if (v?.summary) summaries.push({ number: s.number ?? summaries.length + 1, title: s.title, summary: v.summary });
+  }
+  // An earlier section whose summary failed is simply absent here; its open summary_missing flag says so.
+  const later = all.filter((s) => s.enabled && s.position > section.position && BODY_FLOW.has(s.kind));
+  const next = later[0] ?? null;
+  const ledger = await repos.manuscript.listLedger(jc.ctx, projectId);
+  // Dated prices, and where the author's background is already stated (a profile fact goes in the body once).
+  const written = await writtenSections(repos, jc.ctx, projectId);
+  const prices = await datedPricesVars(jc.services.configDir, book, written, await plannedBodyCount(repos, jc.ctx, projectId));
+  const bio = typeof profile['bio'] === 'string' ? profile['bio'] : '';
+  const usedIn = factsUsedIn(written, bio, sectionId);
+  // The approved blueprint version (not a later draft) and the book type's template rules.
+  const blueprint = book.approvedBlueprintId ? await repos.planning.blueprintById(jc.ctx, book.approvedBlueprintId) : null;
+  const template = await loadTemplate(jc.services.configDir, book);
+  const sectionVars = sectionVarsOf(section, all);
+  const common = {
+    book: { title: book.title, subtitle: book.subtitle, summary: blueprint?.data['summary'] ?? null, audience: blueprint?.data['audience'] ?? null },
+    bookTypeId: book.bookTypeId,
+    wordTarget: book.wordTarget,
+    illustrativeStories: book.illustrativeLine,
+    blueprint: blueprint?.data ?? null,
+    template,
+    previousSummaries: summaries,
+    ledger,
+    sources: sources.map((s) => ({ title: s.title, url: s.url, excerpt: s.excerpt })),
+    profile: { ...profile, factsUsedIn: usedIn.length ? usedIn.join('; ') : null },
+    ...prices,
+  };
+
+  return { all, next, ledger, written, prices, blueprint, sectionVars, common };
+}
+
+/**
+ * Rerun of the post-write steps that failed on a saved section (write_section with rerunMissing, or the older summaryOnly):
+ * the summary when the current text has none or carries an open summary_missing flag, and the claims and consistency
+ * checks when it carries an open checks_missing flag. The text is never rewritten. A step that works resolves its flag; a
+ * step that fails again keeps exactly one open flag and the job ends needing attention.
+ */
+async function rerunMissingSteps(jc: JobContext, projectId: string, section: Section): Promise<Awaited<ReturnType<JobHandler>>> {
+  const { repos } = jc.services;
+  const current = section.currentVersionId ? await repos.manuscript.getVersion(jc.ctx, section.currentVersionId) : null;
+  if (!current) throw new JobFailed('This section has no text to summarise or check yet.', 'invalid_state');
+  const sectionId = section.id;
+  const book = await repos.books.require(jc.ctx, projectId);
+  const profile = await profileSummary(repos, jc.ctx, book.profileId, book);
+  const sources = await repos.planning.listSources(jc.ctx, { projectId, useInBook: true });
+  const { ledger, sectionVars, common } = await writingContext(jc, book, section, profile, sources);
+  const openOf = async (checker: string): Promise<boolean> =>
+    (await repos.manuscript.listChecks(jc.ctx, { versionId: current.id })).some((c) => c.checker === checker && c.status === 'open');
+  const flag = async (checker: string, item: CodeCheckItem): Promise<void> => {
+    // One open flag per version and step, never a pile of them.
+    if (!(await openOf(checker))) await repos.manuscript.addCheckResults(jc.ctx, projectId, sectionId, current.id, [item]);
+  };
+  const doSummary = current.summary === null || (await openOf(SUMMARY_MISSING_CHECKER));
+  const doChecks = await openOf(CHECKS_MISSING_CHECKER);
+  // The section status is left alone until the end: a cancelled or crashed rerun must not clear "needs attention".
+  const failed: Record<string, string> = {};
+  let warnings = 0;
+  let claims = 0;
+
+  if (doSummary) {
+    await jc.progress(0.1, 'Summarising');
+    try {
+      const summary = await jc.runAi('summarise', {
+        promptId: 'checks.summarise-and-ledger',
+        variables: { markdown: current.bodyMd, section: sectionVars, bookTypeId: book.bookTypeId, ledger },
+      });
+      await jc.checkpoint();
+      await repos.manuscript.setVersionSummary(jc.ctx, current.id, summary.output.summary);
+      await repos.manuscript.upsertLedger(jc.ctx, projectId, sectionId, current.id, summary.output.ledger);
+      await repos.manuscript.resolveChecks(jc.ctx, current.id, SUMMARY_MISSING_CHECKER);
+      await jc.emit('book.updated', { projectId, part: 'summary', sectionId });
+    } catch (err) {
+      const f = stepFailure(err);
+      if (!f) throw err;
+      failed['summary'] = f.code;
+      await flag(SUMMARY_MISSING_CHECKER, summaryMissingCheck(f));
+    }
+  }
+  if (doChecks) {
+    await jc.progress(0.5, 'Checking');
+    const r = await modelChecks(jc, projectId, sectionId, current.id, { ...common, markdown: current.bodyMd, section: { id: sectionId, ...sectionVars } });
+    if (r.failed) {
+      failed['checks'] = r.failed.code;
+      await flag(CHECKS_MISSING_CHECKER, checksMissingCheck(r.failed));
+    } else {
+      await jc.checkpoint();
+      await repos.manuscript.addCheckResults(jc.ctx, projectId, sectionId, current.id, r.checks);
+      await repos.manuscript.resolveChecks(jc.ctx, current.id, CHECKS_MISSING_CHECKER);
+      warnings = r.checks.length;
+      claims = r.claims;
+    }
+  }
+
+  const blocks = (await repos.manuscript.listChecks(jc.ctx, { versionId: current.id })).filter((c) => c.status === 'open' && c.severity === 'block').length;
+  await repos.manuscript.setSectionStatus(jc.ctx, sectionId, blocks > 0 ? 'needs_attention' : 'done');
+  await jc.emit('check.result', { sectionId, versionId: current.id, blocks, warnings, claims });
+  const reran = [...(doSummary ? ['summary'] : []), ...(doChecks ? ['checks'] : [])];
+  return {
+    status: blocks > 0 ? 'needs_attention' : 'succeeded',
+    result: {
+      sectionId,
+      versionId: current.id,
+      reran,
+      summaryMissing: 'summary' in failed,
+      checksMissing: 'checks' in failed,
+      ...(Object.keys(failed).length ? { errorCodes: failed } : {}),
+      // Kept for callers of the first rerun result shape.
+      ...(failed['summary'] ? { errorCode: failed['summary'] } : failed['checks'] ? { errorCode: failed['checks'] } : {}),
+    },
+  };
+}
+
 export const writeSectionHandler: JobHandler = async (jc) => {
   const { repos } = jc.services;
   const projectId = jc.job.projectId;
   const sectionId = str(jc.payload['sectionId']);
   if (!projectId || !sectionId) throw new JobFailed('Section job is missing its book or section.');
-  const book = await repos.books.require(jc.ctx, projectId);
   const section = await repos.manuscript.requireSection(jc.ctx, sectionId);
+  if (jc.payload['rerunMissing'] === true || jc.payload['summaryOnly'] === true) return rerunMissingSteps(jc, projectId, section);
+  const book = await repos.books.require(jc.ctx, projectId);
   // Every start or restart (retry, recovery after a crash): the UI clears any streamed text it holds for the section.
   await jc.emit('section.started', { bookId: projectId, projectId, sectionId, jobId: jc.job.id, attempt: jc.job.attempts });
   await repos.manuscript.setSectionStatus(jc.ctx, sectionId, 'writing');
@@ -130,41 +354,7 @@ export const writeSectionHandler: JobHandler = async (jc) => {
     return placeholder(RESOURCES_PLACEHOLDER, 'No research sources ticked yet.', `${RESOURCES_NEED_SOURCES}, then write this section again, or switch it off.`);
   }
 
-  // Continuity: summaries of earlier sections (the last one is the previous chapter), the story ledger and the next chapter.
-  const all = [...(await repos.manuscript.listSections(jc.ctx, projectId))].sort((a, b) => a.position - b.position);
-  const earlier = all.filter((s) => s.enabled && s.position < section.position && s.currentVersionId);
-  const summaries: { number: number; title: string | null; summary: string }[] = [];
-  for (const s of earlier) {
-    const v = await repos.manuscript.getVersion(jc.ctx, s.currentVersionId as string);
-    if (v?.summary) summaries.push({ number: s.number ?? summaries.length + 1, title: s.title, summary: v.summary });
-  }
-  const later = all.filter((s) => s.enabled && s.position > section.position && BODY_FLOW.has(s.kind));
-  const next = later[0] ?? null;
-  const isLast = section.kind === 'chapter' && !later.some((s) => s.kind === 'chapter');
-  const partTitle = section.partId ? (all.find((s) => s.id === section.partId)?.title ?? null) : null;
-  const ledger = await repos.manuscript.listLedger(jc.ctx, projectId);
-  // Dated prices, and where the author's background is already stated (a profile fact goes in the body once).
-  const written = await writtenSections(repos, jc.ctx, projectId);
-  const prices = await datedPricesVars(jc.services.configDir, book, written, await plannedBodyCount(repos, jc.ctx, projectId));
-  const bio = typeof profile['bio'] === 'string' ? profile['bio'] : '';
-  const usedIn = factsUsedIn(written, bio, sectionId);
-  // The approved blueprint version (not a later draft) and the book type's template rules.
-  const blueprint = book.approvedBlueprintId ? await repos.planning.blueprintById(jc.ctx, book.approvedBlueprintId) : null;
-  const template = await loadTemplate(jc.services.configDir, book);
-  const sectionVars = { kind: section.kind, title: section.title, number: section.number, word_target: section.wordTarget, ...section.plan, partTitle, isLast };
-  const common = {
-    book: { title: book.title, subtitle: book.subtitle, summary: blueprint?.data['summary'] ?? null, audience: blueprint?.data['audience'] ?? null },
-    bookTypeId: book.bookTypeId,
-    wordTarget: book.wordTarget,
-    illustrativeStories: book.illustrativeLine,
-    blueprint: blueprint?.data ?? null,
-    template,
-    previousSummaries: summaries,
-    ledger,
-    sources: sources.map((s) => ({ title: s.title, url: s.url, excerpt: s.excerpt })),
-    profile: { ...profile, factsUsedIn: usedIn.length ? usedIn.join('; ') : null },
-    ...prices,
-  };
+  const { next, ledger, written, prices, blueprint, sectionVars, common } = await writingContext(jc, book, section, profile, sources);
 
   const delta = deltaThrottle(jc, sectionId);
   const writing = await jc.runAi(
@@ -220,10 +410,21 @@ export const writeSectionHandler: JobHandler = async (jc) => {
   }
   await jc.progress(0.6, 'Summarising');
 
-  const summary = await jc.runAi('summarise', {
-    promptId: 'checks.summarise-and-ledger',
-    variables: { markdown, section: sectionVars, bookTypeId: book.bookTypeId, ledger },
-  });
+  // A failed summary no longer loses the written text (owner decision, 7 October 2026): the text is saved with no
+  // summary and a blocking summary_missing flag, the job ends needing attention, and later sections still run.
+  let summary: { summary: string; ledger: { kind: string; key: string; detail: string }[] } | null = null;
+  let summaryFailed: { code: string; detail: string } | null = null;
+  try {
+    summary = (
+      await jc.runAi('summarise', {
+        promptId: 'checks.summarise-and-ledger',
+        variables: { markdown, section: sectionVars, bookTypeId: book.bookTypeId, ledger },
+      })
+    ).output;
+  } catch (err) {
+    summaryFailed = stepFailure(err);
+    if (!summaryFailed) throw err;
+  }
   await jc.checkpoint();
 
   // Save in one transaction at the end (idempotent: a crash before here leaves no half version).
@@ -231,16 +432,17 @@ export const writeSectionHandler: JobHandler = async (jc) => {
     bodyMd: markdown,
     source: 'ai:writing',
     promptRunId,
-    summary: summary.output.summary,
+    summary: summary?.summary ?? null,
     status: 'checking',
     styleRewrite: writing.guardrails?.styleRewrite ?? null,
   });
   await repos.books.setAiDisclosure(jc.ctx, projectId, 'text', 'ai_generated');
-  await repos.manuscript.upsertLedger(jc.ctx, projectId, sectionId, version.id, summary.output.ledger);
+  if (summary) await repos.manuscript.upsertLedger(jc.ctx, projectId, sectionId, version.id, summary.ledger);
   await jc.emit('section.saved', { sectionId, versionId: version.id, version: version.version, wordCount: version.wordCount, source: version.source });
   await jc.progress(0.8, 'Checking');
 
   const checks = styleChecks(markdown, jc.services.configDir);
+  if (summaryFailed) checks.push(summaryMissingCheck(summaryFailed));
   // Template junk ("- x: x", TBD, [NEEDS ...]) blocks; prices with no month checked warn in dated-prices book types.
   for (const j of findTemplateJunk(markdown)) {
     checks.push({
@@ -279,38 +481,28 @@ export const writeSectionHandler: JobHandler = async (jc) => {
     }
   }
   // The checks get the context they need: the profile facts (personal claims), this section's plan, earlier summaries and the ledger.
-  const model = await jc.runAi('checks', {
-    promptId: 'checks.claims-and-consistency',
-    variables: {
-      ...common,
-      markdown,
-      section: { id: sectionId, ...sectionVars },
-    },
-  });
-  for (const c of model.output.consistency) checks.push({ checker: 'consistency', severity: 'warn', message: c.issue, location: { excerpt: c.excerpt } });
+  // The text is already saved: a failed check call adds a blocking checks_missing flag instead of failing the job (live
+  // run of 7 October 2026: a cut-off checks answer lost chapter 2 and cancelled five later sections).
+  const model = await modelChecks(jc, projectId, sectionId, version.id, { ...common, markdown, section: { id: sectionId, ...sectionVars } });
+  checks.push(...model.checks);
+  if (model.failed) checks.push(checksMissingCheck(model.failed));
   await repos.manuscript.addCheckResults(jc.ctx, projectId, sectionId, version.id, checks);
-  const claims = await repos.manuscript.addClaims(
-    jc.ctx,
-    projectId,
-    sectionId,
-    version.id,
-    model.output.claims.map((c) => ({
-      sentence: c.sentence,
-      category: c.category,
-      checkNeeded: c.check_needed,
-      start: c.start,
-      end: c.end,
-      suggestedSoftening: c.softer,
-    })),
-  );
-  for (const c of claims) await jc.emit('claim.added', { claimId: c.id, sectionId, category: c.category });
   await bookRepetitions(jc, projectId, sectionId);
   const blocking = checks.filter((c) => c.severity === 'block').length;
-  await jc.emit('check.result', { sectionId, versionId: version.id, blocks: blocking, warnings: checks.length - blocking, claims: claims.length });
+  await jc.emit('check.result', { sectionId, versionId: version.id, blocks: blocking, warnings: checks.length - blocking, claims: model.claims });
 
   const status = blocking > 0 ? 'needs_attention' : 'done';
   await repos.manuscript.setSectionStatus(jc.ctx, sectionId, status);
-  return { status: blocking > 0 ? 'needs_attention' : 'succeeded', result: { sectionId, versionId: version.id, wordCount: version.wordCount } };
+  return {
+    status: blocking > 0 ? 'needs_attention' : 'succeeded',
+    result: {
+      sectionId,
+      versionId: version.id,
+      wordCount: version.wordCount,
+      ...(summaryFailed ? { summaryMissing: true } : {}),
+      ...(model.failed ? { checksMissing: true } : {}),
+    },
+  };
 };
 
 /** "Weave in": the author's notes are worked into the section text as a new version. */

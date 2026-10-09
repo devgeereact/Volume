@@ -1,6 +1,6 @@
 /* Volume design tokens, generated from tokens.json. Do not edit by hand; edit tokens.json and regenerate.
    Light is the default. Dark applies with [data-theme="dark"] on <html>, or with the system setting
-   when no data-theme is set. Contrast pairs are listed in docs/08-DESIGN-GUIDE.md (Visual direction). */
+   when no data-theme is set. Contrast pairs are listed in docs/03-design/DESIGN-SYSTEM.md (Visual direction). */
 
 :root,
 [data-theme="light"] {

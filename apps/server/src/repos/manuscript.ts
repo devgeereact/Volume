@@ -843,6 +843,29 @@ export class ManuscriptRepo {
     }
   }
 
+  /** Marks the open results of one checker on a version as resolved (kept for history). Returns how many changed. */
+  async resolveChecks(ctx: RequestCtx, versionId: string, checker: string): Promise<number> {
+    const r = await this.db
+      .updateTable('checkResults')
+      .set({ status: 'resolved', updatedAt: now() })
+      .where('workspaceId', '=', ctx.workspaceId)
+      .where('versionId', '=', versionId)
+      .where('checker', '=', checker)
+      .where('status', '=', 'open')
+      .executeTakeFirst();
+    return Number(r.numUpdatedRows);
+  }
+
+  /** Sets the summary of an existing version (a summary rerun); the text and version number stay as they are. */
+  async setVersionSummary(ctx: RequestCtx, versionId: string, summary: string): Promise<void> {
+    await this.db
+      .updateTable('sectionVersions')
+      .set({ summary, updatedAt: now() })
+      .where('id', '=', versionId)
+      .where('workspaceId', '=', ctx.workspaceId)
+      .execute();
+  }
+
   async listChecks(ctx: RequestCtx, filter: { projectId?: string; sectionId?: string; versionId?: string }): Promise<CheckResult[]> {
     let q = this.db.selectFrom('checkResults').selectAll().where('workspaceId', '=', ctx.workspaceId);
     if (filter.projectId) q = q.where('projectId', '=', filter.projectId);

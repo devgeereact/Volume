@@ -22,7 +22,7 @@ The typed client layer between the screens and the Volume server (`apps/server`,
 
 ```tsx
 import { useBook, useBookEvents, useDataSource, toPrototypeBook } from "../../api";
-import { getBook } from "../../data";
+import { getBook } from "../../demo";
 
 const source = useDataSource();
 const { data } = useBook(source === "api" ? bookId : undefined);
@@ -44,7 +44,7 @@ const book = source === "api" && data ? toPrototypeBook(data) : getBook(bookId);
 |---|---|---|
 | Library (`library/`) | `useBooks`, `useProfiles`, `useWorkspaceEvents`, `useActivity` | `toPrototypeBook`, `toPenName` (`toWiredBook` in wire-a adds word totals) |
 | Published (`published/`) | `useBooks({ status: "published" })`, `useSetPublishedDetails` | `toPrototypeBook` |
-| Profiles (`profiles/`) | `useProfiles`, `useProfile`, `useProfileSamples`, `useProfileMemory`; saves through `profilesApi` (`routes/profiles/profileApi.ts`) | `toPenName`, `toAuthorProfile` |
+| Profiles (`profiles/`) | `useProfiles`, `useProfile`, `useProfileSamples`, `useProfileMemory`; saves through `profilesApi` (`features/profiles/profileApi.ts`) | `toPenName`, `toAuthorProfile` |
 | New book (`new-book/`) | `useProfiles`, `useCreateBook` | |
 | Research (`research/`) | `useResearch`, `useResearchRun`, `useStartResearch`, `useSetSourceUse`, `useBookLive`, `useEstimate` | `toPrototypeSource` |
 | Titles (`titles/`) | `useTitleSets`, `useGenerateTitles` (with a `directionKey`), `useChooseTitle`, `useSetFavourite`, `useEstimate` | `toTitleOptions` |

@@ -108,7 +108,7 @@ describe('3. spend on failed calls reaches the runner', () => {
       .runStage('titles', { promptId: 'titles.title-options', variables: { idea: 'Calm mornings', profile: PROFILE } }, { model: MODEL })
       .catch((e: unknown) => e);
     expect((err as JobFailed).code).toBe('output_truncated');
-    expect((err as Error).message).toMatch(/cut off before it was finished, so nothing was saved/);
+    expect((err as Error).message).toMatch(/cut off before it finished, so it was not used/);
     // 0.002 for the topic directions that worked, plus 0.04 for each cut-off try of the title options
     // (the package retries once with more room).
     expect(partialUsageOf(err)?.usage.costUsd).toBeCloseTo(0.082);

@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import type { CoverDesign, CoverTypeface } from "../../data/types";
+import type { CoverDesign, CoverTypeface } from "../../demo/types";
 import { cn } from "../../lib/cn";
 
 interface CoverProps {

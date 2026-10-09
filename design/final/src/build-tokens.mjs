@@ -1,6 +1,7 @@
+import { fileURLToPath } from 'node:url'
 // Generates packages/ui/tokens.css and packages/ui/theme.css from packages/ui/tokens.json.
 import fs from 'node:fs'
-const ROOT = new URL('../../../packages/ui', import.meta.url).pathname
+const ROOT = fileURLToPath(new URL('../../../packages/ui', import.meta.url))
 const t = JSON.parse(fs.readFileSync(`${ROOT}/tokens.json`, 'utf8'))
 const L = t.color.light, D = t.color.dark
 const colourBlock = (c, ind) => Object.entries(c).map(([k, v]) => `${ind}--vol-${k}: ${v.value};`).join('\n')
@@ -34,7 +35,7 @@ const shared = [
 
 const css = `/* Volume design tokens, generated from tokens.json. Do not edit by hand; edit tokens.json and regenerate.
    Light is the default. Dark applies with [data-theme="dark"] on <html>, or with the system setting
-   when no data-theme is set. Contrast pairs are listed in docs/08-DESIGN-GUIDE.md (Visual direction). */
+   when no data-theme is set. Contrast pairs are listed in docs/03-design/DESIGN-SYSTEM.md (Visual direction). */
 
 :root,
 [data-theme="light"] {

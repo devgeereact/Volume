@@ -52,11 +52,11 @@ Never claim done without evidence. If a check cannot run yet (for example no wor
    - Checks: <command>: PASS | FAIL | NOT TESTED, ...
    - Next: <one line>
    ```
-3. Decisions go to `DECISIONS.md` (ADR format, see `volume-architect`). User-visible changes go to `CHANGELOG.md`.
+3. Decisions go to `docs/08-change-management/DECISIONS.md` (ADR format, see `volume-architect`). User-visible changes go to `CHANGELOG.md`.
 
 ## 6. Stop at phase gates
 
-If this step finishes the last item of a phase in `docs/12-ROADMAP.md`, do not start the next phase. Use the `volume-phase-gate` skill, send the owner the review message and wait.
+If this step finishes the last item of a phase in `docs/01-product/ROADMAP.md`, do not start the next phase. Use the `volume-phase-gate` skill, send the owner the review message and wait.
 
 ## Done means
 

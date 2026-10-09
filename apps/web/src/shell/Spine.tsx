@@ -1,9 +1,9 @@
 import { Link, useLocation } from "react-router";
 import { Check, CircleAlert } from "lucide-react";
 import { usePenNames, useApiSettings, useWireMode } from "../api/wire-a";
-import type { Book } from "../data/types";
-import { penNames } from "../data/penNames";
-import { workspace } from "../data/workspace";
+import type { Book } from "../demo/types";
+import { penNames } from "../demo/penNames";
+import { workspace } from "../demo/workspace";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { Tooltip } from "../components/ui/Tooltip";
 import { cn } from "../lib/cn";

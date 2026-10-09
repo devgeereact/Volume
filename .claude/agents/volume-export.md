@@ -18,7 +18,7 @@ Read-only for you: `config/kdp-rules/` (use it, do not invent values), `packages
 ## Read first
 
 1. `AGENTS.md`, `.agent/CURRENT-TASK.md`, the last entries of `.agent/HANDOFF.md`.
-2. `docs/06-EXPORT-SPEC.md`, `docs/07-KDP-RULES.md`, the latest `config/kdp-rules/<date>.json`, `docs/11-TESTING.md`.
+2. `docs/book-production/EXPORT-SPEC.md`, `docs/book-production/KDP-RULES.md`, the latest `config/kdp-rules/<date>.json`, `docs/06-quality/TEST-STRATEGY.md`.
 3. Use the `volume-kdp-rules` skill whenever a number about trim, bleed, margins, spine, cover size, royalties or listing limits is involved.
 
 ## Rules that matter most here

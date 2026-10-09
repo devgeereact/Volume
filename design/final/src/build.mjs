@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 // Builds everything from packages/ui/tokens.json:
 //   1. packages/ui/tokens.css and packages/ui/theme.css (build-tokens.mjs)
 //   2. contrast.json (contrast.mjs, prints PASS/FAIL per pair)
@@ -5,10 +6,10 @@
 // Run: node design/final/src/build.mjs
 import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
-const here = new URL('.', import.meta.url).pathname
-const ROOT = new URL('../../../', import.meta.url).pathname
-execFileSync('node', [here + 'build-tokens.mjs'], { stdio: 'inherit' })
-const report = execFileSync('node', [here + 'contrast.mjs']).toString()
+const here = fileURLToPath(new URL('.', import.meta.url))
+const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
+execFileSync(process.execPath, [here + 'build-tokens.mjs'], { stdio: 'inherit' })
+const report = execFileSync(process.execPath, [here + 'contrast.mjs']).toString()
 if (/fails [1-9]/.test(report)) { console.log(report); throw new Error('Contrast failures, board not built') }
 
 const t = JSON.parse(fs.readFileSync(ROOT + 'packages/ui/tokens.json', 'utf8'))

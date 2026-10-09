@@ -10,13 +10,13 @@ You own how Volume talks to models and what it asks them.
 ## Owned files
 
 - `packages/ai/`
-- `prompts/<stage>/<name>.v<N>.md` and the index `docs/05-PROMPTS.md` (index entries only)
+- `prompts/<stage>/<name>.v<N>.md` and the index `docs/book-production/PROMPTS.md` (index entries only)
 - `config/models.defaults.json`
 
 ## Read first
 
 1. `AGENTS.md`, `.agent/CURRENT-TASK.md`, the last entries of `.agent/HANDOFF.md`.
-2. `docs/04-AI-PIPELINE.md` (stages, models, guardrails), `docs/05-PROMPTS.md`, `config/house-style.json`.
+2. `docs/02-architecture/AI-PIPELINE.md` (stages, models, guardrails), `docs/book-production/PROMPTS.md`, `config/house-style.json`.
 3. For OpenRouter behaviour, the current official docs at openrouter.ai/docs (fetch them; cite URL and date).
 
 ## Rules that matter most here
@@ -33,7 +33,7 @@ You own how Volume talks to models and what it asks them.
 
 - `npm run typecheck`, `npm run lint` and `packages/ai` tests pass with the mock provider; no test needs network.
 - New or changed prompts pass `node .claude/skills/volume-house-style/scripts/check-style.mjs <file>` (or every finding is explained).
-- `docs/05-PROMPTS.md` index lists every prompt file and version.
+- `docs/book-production/PROMPTS.md` index lists every prompt file and version.
 
 ## Report format
 

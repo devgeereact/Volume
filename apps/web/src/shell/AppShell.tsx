@@ -3,7 +3,7 @@ import { Outlet, ScrollRestoration, useLocation, useMatch } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
 import { IconButton } from "../components/ui/IconButton";
-import { getBook } from "../data/books";
+import { getBook } from "../demo/books";
 import { cn } from "../lib/cn";
 import { dur, ease } from "../lib/motion";
 import { useWritingJob } from "../lib/job";
@@ -19,7 +19,7 @@ import { TopBar } from "./TopBar";
 import { useKeyChanged } from "../lib/useKeyChanged";
 
 /**
- * App shell from 08-DESIGN-GUIDE: the spine on the left (240 px, or 64 px inside a book and on
+ * App shell from docs/03-design/DESIGN-SYSTEM.md: the spine on the left (240 px, or 64 px inside a book and on
  * tablets, a drawer on phones), a top bar, the screen, and the job bar while a job runs elsewhere.
  * The document scrolls; the spine, top bar and job bar stay put. Screens with their own panes can use
  * the h-screen-fill utility for the space between the top bar and the job bar.

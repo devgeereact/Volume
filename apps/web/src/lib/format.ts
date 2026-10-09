@@ -1,4 +1,4 @@
-import { DEMO_NOW } from "../data/books";
+import { DEMO_NOW } from "../demo/books";
 
 /* Formatting in British English: numbers in figures, money with the currency sign,
    dates as "4 October 2026" (08-DESIGN-GUIDE, Writing tone). */

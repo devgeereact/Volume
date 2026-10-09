@@ -3,7 +3,7 @@
 Newest at the bottom. Every AI appends one entry per session: date, assistant, what changed, files, checks and results, next step.
 
 ## 2026-10-04, Claude Code (Opus 5.5)
-- Created the Volume workspace from the approved plan (docs/PLAN.md).
+- Created the Volume workspace from the approved plan (docs/08-change-management/plans/legacy-approved-plan.md).
 - Copied the owner's nine draft notes, the KDP facts file and the OFL fonts.
 - Wrote AGENTS.md, CLAUDE.md, GEMINI.md and the .agent files.
 - Next: docs, config and prompts, Claude tooling and design directions (parallel agents), then the owner's design pick.
@@ -16,7 +16,7 @@ Newest at the bottom. Every AI appends one entry per session: date, assistant, w
 
 ## 2026-10-04, Claude Code (Opus 5.5), fused design direction
 - Owner asked to combine A, B and C into one fresh look, inspired by uiverse, dafont (mood only), Awwwards Sites of the Month, 21st.dev and the getdesign Lovable file.
-- Design lead produced design/final/volume-direction.html (light and dark themes, Covers and Ledger toggle), screenshots in design/final/screenshots/, research notes in design/research/inspiration.md, the Visual direction section of docs/08-DESIGN-GUIDE.md, packages/ui tokens (tokens.json, tokens.css, theme.css) and D-014 (Proposed).
+- Design lead produced design/final/volume-direction.html (light and dark themes, Covers and Ledger toggle), screenshots in design/final/screenshots/, research notes in design/research/inspiration.md, the Visual direction section of docs/03-design/DESIGN-SYSTEM.md, packages/ui tokens (tokens.json, tokens.css, theme.css) and D-014 (Proposed).
 - Fonts: Literata, Schibsted Grotesk, JetBrains Mono (all OFL); icons Lucide (ISC). 21st.dev: two patterns studied (command palette 23522, vertical stepper 29815), licences unknown, no code copied.
 - Checks: board renders with no console errors in both themes PASS; contrast 90 of 90 pairs PASS; theme.css compiles PASS. NOT TESTED: reduced motion, phone width.
 - Next: owner accepts D-014 and approves installing the prototype packages, then the clickable prototype.
@@ -42,7 +42,7 @@ Newest at the bottom. Every AI appends one entry per session: date, assistant, w
 - Next: owner review of phase 0, then phase 1.
 
 ## 2026-10-04 to 05, Claude Code (Opus 5.5), round 2 start
-- Owner feedback round (see docs/PLAN.md "Round 2" and DECISIONS D-015 to D-018): cPanel MySQL holds all work, app on the Mac; one stepper with Back/Next and a Published shelf; about 30 book types, 12 interior themes, 14 cover styles; five profiles (Gideon Akinlotan, Harni Muharami, Romance, Children's, Thriller and mystery pen names); editor weave-in notes; keep going and report.
+- Owner feedback round (see docs/08-change-management/plans/legacy-approved-plan.md "Round 2" and DECISIONS D-015 to D-018): cPanel MySQL holds all work, app on the Mac; one stepper with Back/Next and a Published shelf; about 30 book types, 12 interior themes, 14 cover styles; five profiles (Gideon Akinlotan, Harni Muharami, Romance, Children's, Thriller and mystery pen names); editor weave-in notes; keep going and report.
 - Workspaces now include packages/core, packages/ai, packages/export and apps/server (stub package.json files). .env.example gained DB_CLIENT, SQLITE_PATH and MYSQL_* names.
 - Four parallel agents started (r2-foundation: config and prototype nav; r2-server: apps/server; r2-export: packages/core and packages/export; r2-ai: packages/ai). All four hit the account session limit mid-task on 4 October and were resumed on 5 October from their saved state.
 - Backup of phase 0 files: session scratchpad volume-phase0-backup.tgz.
@@ -135,7 +135,7 @@ Newest at the bottom. Every AI appends one entry per session: date, assistant, w
 - Next: verify GitHub visibility and remote commit, then continue outstanding release validation.
 
 ## 6 October 2026: detailed remaining-work review (Codex)
-- Reviewed implementation against PRD/roadmap, source and tests across web, server, AI, core/export, backups, transfer and auth. Report: docs/PROJECT-REVIEW-2026-10-06.md. Updated CURRENT-TASK.md and this log. No product changes or commits.
+- Reviewed implementation against PRD/roadmap, source and tests across web, server, AI, core/export, backups, transfer and auth. Report: qa/reports/PROJECT-REVIEW-2026-10-06.md. Updated CURRENT-TASK.md and this log. No product changes or commits.
 - Reproduction FAIL: malformed child row in project ZIP caused rejection but increased projects from 1 to 2. Ran /tmp/volume-import-audit.mts against in-memory SQLite with mock providers and dotenv disabled. No real data or .env accessed.
 - Source findings: remaining budget is not passed into AI package internal calls; Markdown-to-book import workflow not found; API blueprint history lacks compare/restore; photo upload is a placeholder; writing starts without the PRD conditional cost confirmation; imports lack full manifest validation/aggregate expansion limits.
 - Earlier today unchanged application checks PASS: typecheck, lint, formatting, web build, 485 tests; 2 skipped (MySQL/EPUBCheck). Live AI, MySQL, long-book benchmark and manual publishing acceptance NOT TESTED.
@@ -144,7 +144,7 @@ Newest at the bottom. Every AI appends one entry per session: date, assistant, w
 ## 6 October 2026: atomic project import fix (Codex)
 - Owner requested the first review fix. Changed apps/server/src/repos/transfer.ts and apps/server/src/files/blob-store.ts so all import writes share one transaction, including BlobStore metadata/chunks. Kept profile matching and configured chunk size. Added apps/server/test/transfer.test.ts.
 - Tests: 3 rollback regressions failed before implementation, then passed. Added successful import/chunk-size test: 4 PASS. Existing transfer/blob tests PASS. Full server suite: 180 PASS, 1 skipped (MySQL). Root typecheck/lint PASS. Original /tmp in-memory reproduction now reports importRejected true and projects 1 to 1.
-- Updated CHANGELOG.md, DECISIONS.md (D-024), detailed review and session records. No real data, .env, live AI, commits or pushes. MySQL rollback NOT TESTED.
+- Updated CHANGELOG.md, docs/08-change-management/DECISIONS.md (D-024), detailed review and session records. No real data, .env, live AI, commits or pushes. MySQL rollback NOT TESTED.
 - Next: carry remaining book/monthly budget into internal AI calls.
 
 ## 6 October 2026: remaining local review corrections (Codex)
@@ -163,7 +163,7 @@ Newest at the bottom. Every AI appends one entry per session: date, assistant, w
 
 - Owner’s “go ahead” approved the pending Vitest V8 development dependency. Installed @vitest/coverage-v8 5.0.3 and updated the lock file. No additional lifecycle scripts approved.
 - Added coverage scripts in root and four workspaces, coverage settings in existing configs and a new AI Vitest config. All src/**/*.ts files included, no exclusions. CI now runs coverage instead of duplicate uninstrumented tests.
-- PASS: npm run test:coverage, 499 tests passed, two default skips. Lines: core 92.46% against 90%; AI 94.35%, export 86.56%, server 91.92%, each against 80%. Reports ignored. Source scope and exact totals recorded in docs/LOCAL-VALIDATION-2026-10-06.md.
+- PASS: npm run test:coverage, 499 tests passed, two default skips. Lines: core 92.46% against 90%; AI 94.35%, export 86.56%, server 91.92%, each against 80%. Reports ignored. Source scope and exact totals recorded in qa/reports/LOCAL-VALIDATION-2026-10-06.md.
 - PASS: root typecheck, lint and formatting. Browser scenarios were not repeated for coverage configuration; the five scenarios passed in the preceding correction pass. Remote CI NOT TESTED. No live AI, owner data, environment files, production mutations, commits or pushes.
 - Updated testing guide, correction ledger, issues, current task, changelog and decision D-028. Remaining: budgeted live AI, cPanel test environment, owner publishing acceptance and personal decisions.
 
@@ -187,7 +187,7 @@ Newest at the bottom. Every AI appends one entry per session: date, assistant, w
 ## 6 October 2026: project documentation consistency audit (Codex)
 
 - Owner requested checking/updating project documentation. Used GEE OS Build mode for authorised local prose corrections; no subagents. Inspected 70-file documentation inventory, manifests/scripts, routes, schema/migrations, budget/import source, CI and dated validation results. Prompt versions and source drafts preserved.
-- Updated README, web/server/export and scripts guides, architecture/data/AI/security/UX/export/KDP specs, PRD/glossary, roadmap, design status, review ledger, validation/testing pointers and current task. Added docs/DOCUMENTATION-AUDIT-2026-10-06.md, changelog notes and D-030. Corrected stale phase 0/no-code status, prototype commands, nonexistent helpers, old KDP revision references, model table/cost/asset descriptions, redirect default and ZIP/CI/logging details.
+- Updated README, web/server/export and scripts guides, architecture/data/AI/security/UX/export/KDP specs, PRD/glossary, roadmap, design status, review ledger, validation/testing pointers and current task. Added qa/reports/DOCUMENTATION-AUDIT-2026-10-06.md, changelog notes and D-030. Corrected stale phase 0/no-code status, prototype commands, nonexistent helpers, old KDP revision references, model table/cost/asset descriptions, redirect default and ZIP/CI/logging details.
 - PASS: local document link check (code example excluded), script names checked against manifests, KDP statuses checked against dated config, git diff --check. House-style PARTIAL: technical links/percentages and quoted prohibited-claim examples trigger the book-content guardrails; no new banned phrases or em dashes.
 - Product tests NOT APPLICABLE to this prose-only pass; existing dated evidence preserved. No product code/defaults/prompts, dependencies, environment files, owner data, servers, live calls, commits or pushes touched. Existing local corrections remain uncommitted.
 - Remaining: free full-writing failure/upstream Gemma errors, production-model/research/cover validation, Kindle licence approval and KDP application checks, owner profile/visual/redirect decisions, deferred cPanel and remote CI. Current known issues are authoritative; roadmap acceptance targets are not claimed complete.
@@ -209,7 +209,7 @@ Newest at the bottom. Every AI appends one entry per session: date, assistant, w
 ## 6 October 2026: approved humanizer prompts and dead-code cleanup (Codex)
 
 - Owner approved the plan. Applied the humanizer skill in file/embedded mode, adapted its source-preservation and prose principles to all 32 prompt IDs as new versions. Historical files, variables, schema keys, stages/tiers and guardrail metadata preserved. Changed chapter/introduction/conclusion formulas and removed a fabricated anecdote suggestion in editing.voice. Guidance is portable in prompts/, with no new provider call or model setting change.
-- Updated docs/05-PROMPTS.md including stale JSON-repair pointer, prompt README, AI guide, validation, current task, issues, changelog and D-031. Added packages/ai/test/humanizer.test.ts and changed one fixed-version expectation to the loader-selected version.
+- Updated docs/book-production/PROMPTS.md including stale JSON-repair pointer, prompt README, AI guide, validation, current task, issues, changelog and D-031. Added packages/ai/test/humanizer.test.ts and changed one fixed-version expectation to the loader-selected version.
 - Removed apps/web/src/shell/BookHeader.tsx only: null-rendering deprecated component with no imports or runtime references. Updated web README references. Import audit of 377 JS/TS files retained explicit CLI/design/manual check entry points, demo code, public exports, fixtures and old prompts.
 - PASS: root typecheck, lint, format:check; AI 155 tests; server 189 tests (one MySQL skip); five browser scenarios, server/web builds; git diff --check. First AI run exposed an obsolete expected version and sandbox local HTTP restriction; corrected the expectation and reran mock tests with loopback access.
 - House-style PARTIAL: 66 detector findings in both previous and revised prompts with identical pattern counts. Findings are inherited prohibition examples, medical/safety rules, percentages and output-contract wording; no new banned words or dash findings. No suppression added.
@@ -221,9 +221,71 @@ Newest at the bottom. Every AI appends one entry per session: date, assistant, w
 - Verified changed-path scope, protected environment/data exclusion and git diff --check. Existing prompt checks: AI 155 tests, server 189 tests, five browser scenarios, typecheck, lint and formatting PASS. No new product changes during this Git operation.
 - Commit hashes and remote synchronisation are verifiable in Git history. Remote CI outcome is separate from local checks; live prose quality remains NOT TESTED and the existing server still needs owner-controlled restart. No live calls, dependencies, publication or cPanel changes.
 
-## 8 October 2026: Mac launcher repair (Codex)
+## 7 October 2026: workspace server setup (Codex)
 
-- Fixed scripts/dev.mjs to reject an occupied web port before API startup and accept VOLUME_WEB_PORT, forwarding the chosen port to Vite and its loopback origin to the API. Existing SSH tunnel left running.
-- Updated README, CHANGELOG and .gitignore to document the option and protect future frontend-source recovery from the broad data/ exclusion. Existing package-lock.json and .idea work preserved.
-- PASS: stub-child port/origin checks, occupied-port check, launcher syntax and formatting. FAIL: repository typecheck/lint, with absent original frontend data modules and existing backlog. No full application readiness claim.
-- Next: owner supplies original source location. Recover source only, retain private runtime data exclusions, then run full build/browser checks.
+Owner requested fixed ports and local startup for all active projects. Preserved Harni 5152, mail 5153, Volume web 5180 and API 5181. Workspace start-projects.mjs provides a foreground launcher; LOCAL-SERVERS.md records commands and evidence. Runtime BLOCKED by sandbox loopback EPERM, Node 24 instead of required 26, unavailable PHP and missing Linux native dependencies. npm registry lookup also fails with EAI_AGAIN. No server running, environment/data files read, live AI call or deployment. Next: restore prerequisites in a normal network-enabled terminal, run the launcher and verify HTTP responses.
+
+## 7 October 2026: Linux runtime restoration (Codex)
+
+Installed project-local Mise Node 26.10.0 and added mise.toml to fulfil the existing Node >=26 requirement. Global Node remains 24.21.0. Clean workspace npm install from unchanged lockfile PASS; typecheck, lint, web/server builds and local HTTP/API SQLite health PASS. API/web stay loopback only because owner-only auth and explicit host/origin guards are part of the existing design. Core 75, AI 155 and server 189 tests PASS; export 86 PASS, one optional skip and one FAIL: PDF contents reference image mean difference 2.94352280521262 exceeds 1.5. The reference was not replaced and tolerance was not weakened. The Linux/reference images were inspected: layout is closely aligned but text rendering differs; exact cause remains unresolved. Mock browser integration results are recorded in the supplied migration report. MySQL and live AI generation NOT TESTED. No env files or private data files inspected, no commit or deployment. Earlier sandbox/network blockers are superseded.
+
+Next: review the PDF reference discrepancy separately; use ../start-projects.mjs for normal local startup. Existing publishing/live AI acceptance items above remain open.
+
+PASS: all five mock end-to-end scenarios completed on Linux (2.2 minutes). Export visual reference mismatch remains FAIL as recorded above.
+
+## 7 October 2026: isolated GEE OS rebuild candidate (Codex)
+
+Owner approved the Volume rebuild plan. Preserved original source-only dirty state and created an isolated detached worktree in the chat work directory. Migrated the Full Product documentation hierarchy and adapters; added standalone clean setup, native/runtime doctor and guarded process-group launcher; composed React providers/router under src/app and ported screens to src/features. Public demo files had been excluded by the old data/ ignore, causing clean-checkout build failures; restored those 14 source files under src/demo and anchored private /data/ ignoring. Private environment/data files were not read or copied.
+
+Reproduced/fixed design generation in a path containing spaces and an offline profile-entry health retry loop. Backend behaviour, dependency lock, schemas, prompts, golden references and Tailwind tokens are preserved. Linux clean setup, typecheck, lint, builds, 3 launcher tests, 83 hook tests, 14-step demo smoke and five existing browser integration checks pass. Coverage run: 505 pass, 1 existing PDF visual fail, 2 optional skips. New keyboard/offline tests and screenshots are recorded in qa/reports/GEE-REBUILD-2026-10-07.md once finished.
+
+Release remains PARTIAL/NO-GO. Mac/remote CI NOT TESTED; PDF mismatch and existing publishing/live AI blockers remain. Screens are ported implementations, not a claim of every feature rewritten from scratch. No original cutover, commit, push, deployment or destructive retirement. Next: complete feature acceptance, investigate PDF rendering and verify the real Mac matrix before owner cutover review.
+
+Final evidence: added offline/reconnection and mobile keyboard/reduced-motion checks PASS (2 scenarios), screenshot matrix PASS (88 captures, 22 entries, both themes/viewports), isolated screenshot API interception PASS (4 of 4 requests). Original Git status and lock bytes match the baseline. Test ports 5182/5311/5312 are released. Candidate report and selected check outputs are saved under qa/reports/. Mac, PDF parity and full feature acceptance remain open; no cutover performed.
+
+## 7 October 2026: project relocation
+
+Owner requested finished project folders under /home/mr-gee/Work/Projects/. Moved the isolated candidate with git worktree move to /home/mr-gee/Work/Projects/volume-gee-rebuild. Original active/volume and its dirty state remain intact. Candidate stays PARTIAL, with Mac/PDF/full acceptance gates unchanged. Historical evidence paths remain historical.
+
+## 7 October 2026: Rebrand folder relocation
+
+Owner requested completed work under /home/mr-gee/Work/Projects/Rebrand with original project names. Moved this candidate with git worktree move to Rebrand/volume, preserving its original name, all existing changes and Git registration. Original active/volume remains in place. No other project has completed a GEE rebuild in this chat. Acceptance is still PARTIAL, as recorded in the rebuild report.
+
+
+## 7 October 2026: PDF comparison follow-up (Codex)
+Reproduced the existing PDF failure (10 pass, 1 fail). Added compare:pdf in packages/export with a TypeScript read-only diagnostic covering all four references. Default Linux differences: 1.268090, 2.943523, 8.613240, 11.101959. Font-hinting experiments do not produce a full pass; no production flags/reference/tolerance changes. Typecheck, scoped lint/format and docs check PASS. Saved evidence in qa/reports/PDF-INVESTIGATION-2026-10-07.md and a shared Rebrand/MAC-LINUX.md transfer guide. Mac, PDF parity and release acceptance remain open.
+
+## 7 October 2026, Codex fix follow-up
+
+PDF test reports all mismatches and refuses missing references; restart startup budget matches main server and targeted recovery PASS. PDF visual acceptance remains FAIL. See qa/reports/FOLLOW-UP-2026-10-07.md.
+
+
+## 7 October 2026: active promotion
+Owner authorised moving the rebuild into active and pushing it. Current checkout /home/mr-gee/Work/Projects/active/volume, original /home/mr-gee/Work/Projects/archive/pre-rebrand-2026-10-07/volume. Branch rebrand/gee-os-typescript-20261007. Linked Git metadata repaired; original dirty work retained. Acceptance remains PARTIAL. See qa/reports/ACTIVE-PROMOTION-2026-10-07.md.
+
+
+## 7 October 2026: fix sweep (Claude Code, with export, AI, architect, QA and reviewer subagents)
+
+What changed:
+- PDF: root cause was default font hinting in headless Linux Chromium. `--font-render-hinting=none` in packages/export/src/browser.ts; Linux visual references in packages/export/test/golden/linux/; pdf.test.ts picks the platform reference, keeps the 1.5 threshold, adds a size check and a 1% layout guard against the macOS originals; compare-pdf-reference.ts updated. D-034.
+- AI: summarise maxTokens 4,000 to 16,000 plus expectedOutputTokens 1,500 in config/models.defaults.json; new prompts/checks/summarise-and-ledger.v4.md; mock `truncated` and `truncated_always` scenarios; packages/ai/test/summarise-truncation.test.ts (6 tests). D-035.
+- Docs: stale qa/reports pointers moved to ../reports/volume; scripts/check-docs.mjs skips links into ../reports/volume only when that folder is absent (fresh clone and CI), verified both ways.
+- Records: DECISIONS D-034 and D-035, CHANGELOG, KNOWN-ISSUES, CURRENT-TASK.
+
+Checks (Linux, Mise Node 26.10.0): typecheck PASS, lint PASS, format:check PASS, docs:check PASS, hooks:test 83 PASS, test:tooling PASS, core 75 PASS, AI 161 PASS, export 87 PASS (1 optional skip), server 189 PASS (1 skip), web and server build PASS, e2e 7 of 7 PASS. Reviewer: 0 critical, 0 high.
+
+Not tested: macOS, remote CI, live AI rerun (needs owner authorisation), KDP upload, MySQL. No commit, push, live AI call, env or data file access.
+
+Next: owner authorises a free-model three-chapter writing rerun; run `npm run compare:pdf --workspace @volume/export` and the export tests on a Mac; decide whether to save chapters when the summary fails; later prompt version should exempt quotes from the 15-word ledger cap.
+
+## 8 October 2026, Claude Code: fix pass after the workspace audit
+
+- Lint: dropped the unused `all` from the `writingContext` destructure at `apps/server/src/jobs/handlers/writing.ts:357` (it was only ever used inside `writingContext`). No other line of the in-progress summary-missing work changed.
+- Docs and contract: `apps/web/index.html` title "Volume prototype" to "Volume" (no test or doc asserts it); `.agent/PROJECT.yml` gains `gee_os.minimum_version: "0.9.0"` and `mcp_profile: "none"`; AGENTS.md gains a Commands block; README status no longer says "isolated checkout"; KNOWN-ISSUES header date 8 October after rechecking rows, and its rebuild bullet now says the candidate is the active checkout; TEST-STRATEGY notes the browser suite is now seven tests in four specs (the dated 6 October "five" kept as history).
+- Records: CURRENT-TASK.
+
+Checks (Linux, Mise, Chromium 1243): `npx eslint apps/server` PASS, `npm run lint` PASS, typecheck PASS, format:check PASS, docs:check PASS (80 documents), hooks:test 83 PASS, server 195 PASS (1 skip; summary-missing timed out once under machine load, passed alone), export 87 PASS (1 skip; PDF golden 4 pages PASS), doctor PASS, e2e 7 of 7 PASS.
+
+Not tested: macOS, remote CI, live AI, KDP upload, MySQL, test:tooling, coverage. No commit, push, env or data access.
+
+Next: owner decides on the summary-missing behaviour and the `checks.maxTokens` 8000 to 16000 change, then records a decision and CHANGELOG entry.

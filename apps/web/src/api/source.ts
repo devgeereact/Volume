@@ -29,6 +29,9 @@ export function useDataSourceState(): DataSourceState {
     queryKey: queryKeys.system.health(),
     queryFn: ({ signal }) => systemApi.health({ signal }),
     retry: false,
+    // A new health observer must not restart an errored initial request. A mode switch
+    // mounts/unmounts feature consumers; retrying on each mount creates a request loop.
+    retryOnMount: false,
     refetchInterval: HEALTH_POLL_MS,
     refetchOnWindowFocus: true,
     staleTime: 10_000,

@@ -4,37 +4,39 @@ Volume is a local-first book production app. It takes a rough idea or a working 
 
 Each book belongs to an author profile (a pen name or a real person), with its own voice, bio, brand and model choices. All AI work goes through one OpenRouter account, and the owner picks the model for every job.
 
-Owner: Gideon (Gakinz, London). Runs on the owner's Mac. Built so other self-publishers can have accounts later.
+Owner: Gideon (Gakinz, London). Runs on the owner’s macOS or Linux computer. Built so other self-publishers can have accounts later.
 
 ## Status
 
-**Phase 5: local v1 corrections and publishing acceptance.** Updated 6 October 2026. Release acceptance is PARTIAL.
+GEE OS rebuild approved 7 October 2026 and now the active checkout, a linked Git worktree. Release acceptance remains PARTIAL. Existing book-production functionality and data contracts are preserved while contracts, portable tooling and the application shell are migrated. macOS execution remains NOT TESTED until an actual Mac/CI run. The Linux PDF reference mismatch and existing live AI/publishing blockers remain visible in [known issues](KNOWN-ISSUES.md).
 
-- Built: local API and app, profiles, research/title/blueprint workflows, automatic writing, versioned editor, cover tools and export packs.
-- Local automated checks pass, including 499 tests, measured coverage targets, five browser scenarios, EPUBCheck and a 326-page export benchmark. See [local validation](docs/LOCAL-VALIDATION-2026-10-06.md) for scope and limitations.
-- Free live titles and blueprint pass; full writing failed on summary truncation and saved-draft defects. Both requested Gemma routes returned upstream errors. Recorded cost was zero. See [free AI validation](docs/FREE-AI-VALIDATION-2026-10-06.md).
-- Sampled Word layouts pass. Kindle/KDP acceptance remains outstanding; cPanel testing is deferred by the owner. Current open work is in [KNOWN-ISSUES.md](KNOWN-ISSUES.md).
-- The initial private GitHub repository exists. Current corrections are committed locally; remote CI has not run.
+## Restore and run on macOS or Linux
 
-See `.agent/CURRENT-TASK.md` for the live status and `docs/12-ROADMAP.md` for every phase.
+```sh
+mise trust mise.toml
+mise install
+mise exec -- npm run setup
+mise exec -- npm run dev
+```
+
+Web: http://127.0.0.1:5180. API: http://127.0.0.1:5181. Ctrl+C stops this launcher's processes. No parent workspace script is required. See [setup](docs/07-operations/SETUP.md), [development](docs/07-operations/DEVELOPMENT.md), [documentation index](docs/README.md) and the [approved rebuild](docs/08-change-management/plans/GEE-OS-REBUILD.md).
 
 ## How to start
 
-**As a person:** read this file, then `docs/00-VISION.md` and `docs/01-PRD.md`. The approved plan is `docs/PLAN.md`.
+**As a person:** read this file, then `docs/00-foundation/PROJECT-CONTEXT.md` and `docs/01-product/PRODUCT-SPEC.md`. The active approved plan is `docs/08-change-management/plans/GEE-OS-REBUILD.md`. The earlier implementation plan is retained as history.
 
 **As an AI assistant (Claude Code, Codex, Gemini CLI or any other):**
 
 1. Read `AGENTS.md`. It holds every rule. `CLAUDE.md` and `GEMINI.md` only point to it.
 2. Read `.agent/CURRENT-TASK.md` and the last entries of `.agent/HANDOFF.md`.
 3. Read only the docs your task needs, using the index below.
-4. At the end of the session, update `.agent/CURRENT-TASK.md`, append to `.agent/HANDOFF.md`, and record decisions in `DECISIONS.md`.
+4. At the end of the session, update `.agent/CURRENT-TASK.md`, append to `.agent/HANDOFF.md`, and record decisions in `docs/08-change-management/DECISIONS.md`.
 
 ## Run Volume
 
 ```bash
-nvm use            # Node 26, from .nvmrc
-npm install
-npm run dev        # server on 127.0.0.1:5181, app on http://127.0.0.1:5180
+mise exec -- npm run doctor
+mise exec -- npm run dev  # API 5181, web 5180, loopback only
 ```
 
 If another process, including an SSH tunnel, owns port 5180, leave it running and explicitly choose a free web port:
@@ -48,12 +50,12 @@ The launcher forwards this port to Vite and allows its loopback origin on the lo
 Checks before you hand work on:
 
 ```bash
-npm run typecheck     # every workspace (tsc 7)
+npm run typecheck     # every workspace
 npm run lint          # ESLint, type-aware, whole repo
 npm run format:check  # Prettier; npm run format rewrites the files
 npm run test          # Vitest in every workspace
 npm run test:coverage # measured core, AI, export and server thresholds
-npm run e2e           # five browser scenarios, mock AI
+npm run e2e           # seven browser tests in four specs, mock AI
 ```
 
 Settings live in `.env` at the root (template in `.env.example`). With no OpenRouter key the app uses the mock AI and spends nothing. The web app falls back to its built-in demo data when the server is not running.
@@ -73,48 +75,48 @@ Settings live in `.env` at the root (template in `.env.example`). With no OpenRo
 | `packages/ai/` | OpenRouter client, mock provider, model registry, prompt loader, guardrails |
 | `packages/export/` | PDF, DOCX, EPUB, TXT, MD, covers, preflight, upload pack |
 | `packages/ui/` | Design tokens and shared components |
-| `design/directions/` | Original design boards; fused direction lives in design/final/ (D-014 remains proposed) |
+| `design/directions/` | Original design boards; fused direction lives in design/final/ (D-014 accepted) |
 | `assets/fonts/` | OFL fonts with their licence files |
 | `tests/` | Unit, golden and end-to-end tests |
-| `scripts/` | Seed, backup and environment check helpers |
+| `scripts/` | Portable setup, runtime checks, development launcher and documentation checks |
 | `data/` | Database, project files, exports and backups (git-ignored, never read by AI) |
 
 ## Documentation index
 
 | Doc | Covers |
 |---|---|
-| `docs/PLAN.md` | The approved plan (source of truth) |
-| `docs/00-VISION.md` | Problem, audience, principles, long-term direction, v1 scope |
-| `docs/01-PRD.md` | Features per module, user stories, acceptance criteria, book structure |
-| `docs/02-ARCHITECTURE.md` | Monorepo, request flow, jobs, SSE, OpenRouter, backups |
-| `docs/03-DATA-MODEL.md` | Every table, column, relation and index |
-| `docs/04-AI-PIPELINE.md` | The nine stages, schemas, models, guardrails, budgets |
-| `docs/05-PROMPTS.md` | Prompt index |
-| `docs/06-EXPORT-SPEC.md` | Book structure, manuscript dialect, every export, preflight, pack |
-| `docs/07-KDP-RULES.md` | KDP facts and limits used by the app |
-| `docs/08-DESIGN-GUIDE.md` | Product feel, layout, accessibility, motion, states, UI copy |
-| `docs/09-UX-FLOWS.md` | Every screen and the main flows |
-| `docs/10-SECURITY-PRIVACY.md` | Threats, key handling, local binding, privacy |
-| `docs/11-TESTING.md` | Unit, golden, end-to-end, live AI and hook tests |
-| `docs/12-ROADMAP.md` | Phases 0 to 8 with deliverables and acceptance |
-| `docs/GLOSSARY.md` | Terms used across the project |
-| `DECISIONS.md` | Decision log |
+| `docs/08-change-management/plans/GEE-OS-REBUILD.md` | The active approved rebuild plan |
+| `docs/00-foundation/PROJECT-CONTEXT.md` | Problem, audience, principles, long-term direction, v1 scope |
+| `docs/01-product/PRODUCT-SPEC.md` | Features per module, user stories, acceptance criteria, book structure |
+| `docs/02-architecture/ARCHITECTURE.md` | Monorepo, request flow, jobs, SSE, OpenRouter, backups |
+| `docs/02-architecture/DATA-MODEL.md` | Every table, column, relation and index |
+| `docs/02-architecture/AI-PIPELINE.md` | The nine stages, schemas, models, guardrails, budgets |
+| `docs/book-production/PROMPTS.md` | Prompt index |
+| `docs/book-production/EXPORT-SPEC.md` | Book structure, manuscript dialect, every export, preflight, pack |
+| `docs/book-production/KDP-RULES.md` | KDP facts and limits used by the app |
+| `docs/03-design/DESIGN-SYSTEM.md` | Product feel, layout, accessibility, motion, states, UI copy |
+| `docs/03-design/UX-SPEC.md` | Every screen and the main flows |
+| `docs/05-security/SECURITY.md` | Threats, key handling, local binding, privacy |
+| `docs/06-quality/TEST-STRATEGY.md` | Unit, golden, end-to-end, live AI and hook tests |
+| `docs/01-product/ROADMAP.md` | Phases 0 to 8 with deliverables and acceptance |
+| `docs/00-foundation/GLOSSARY.md` | Terms used across the project |
+| `docs/08-change-management/DECISIONS.md` | Decision log |
 | `CHANGELOG.md` | User-visible changes |
 | `KNOWN-ISSUES.md` | Open questions and things to verify |
-| `docs/BACKUP-RESTORE.md` | Actual backup retention, restore and rollback procedure |
-| `docs/LOCAL-VALIDATION-2026-10-06.md` | Automated checks, coverage and export evidence |
-| `docs/FREE-AI-VALIDATION-2026-10-06.md` | Free live tests and publishing application checks |
-| `docs/DOCUMENTATION-AUDIT-2026-10-06.md` | Documentation scope, corrections and remaining decisions |
+| `docs/07-operations/BACKUP-RECOVERY.md` | Actual backup retention, restore and rollback procedure |
+| `../reports/volume/qa/reports/LOCAL-VALIDATION-2026-10-06.md` | Automated checks, coverage and export evidence |
+| `../reports/volume/qa/reports/FREE-AI-VALIDATION-2026-10-06.md` | Free live tests and publishing application checks |
+| `../reports/volume/qa/reports/DOCUMENTATION-AUDIT-2026-10-06.md` | Documentation scope, corrections and remaining decisions |
 
 ## Owner decisions (4 October 2026)
 
-- Local first on the owner's Mac; multi-user ready for later accounts.
+- Local first on the owner’s macOS or Linux computer; multi-user ready for later accounts.
 - Several author profiles and pen names, each with its own voice, bio and brand.
 - Fully automatic writing in the first person from the profile, with guardrails: no invented ISBNs, statistics, studies, quotes, testimonials, awards or sources, and a claims-to-verify report.
 - One AI account: OpenRouter, one key. The owner picks the model per job in Settings.
 - Every book follows the full structure: front matter, body, back matter, publishing package, marketing package.
 - KDP AI disclosure is set automatically when AI wrote the text or made the images.
 - Volume mode (many books at once) comes later, with KDP's weekly title limit built in.
-- The fused Volume direction is implemented; formal D-014 approval remains proposed.
+- The fused Volume direction is implemented and accepted (D-014, 7 October 2026).
 
-The full log is in `DECISIONS.md`.
+The full log is in `docs/08-change-management/DECISIONS.md`.

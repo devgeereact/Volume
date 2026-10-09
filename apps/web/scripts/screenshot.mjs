@@ -2,13 +2,13 @@
 /*
  * Screenshot the prototype in light and dark at 1440 x 900 and 390 x 844.
  *
- *   npm run screenshot -w prototype                       # default route list
- *   npm run screenshot -w prototype -- /library /components
- *   npm run screenshot -w prototype -- --no-build /library
+ *   npm run screenshot -w apps/web                       # default route list
+ *   npm run screenshot -w apps/web -- /library /components
+ *   npm run screenshot -w apps/web -- --no-build /library
  *
  * It builds the app (unless --no-build), starts its own `vite preview` on 127.0.0.1:5182 (strict, it
- * never uses another port), visits each route, saves PNGs to prototype/screenshots/, prints console
- * errors and horizontal overflow, then stops the server. Exit code 1 if any route had either.
+ * never uses another port), visits each route, saves PNGs to test-results/screens/, prints console
+ * errors and horizontal overflow, then stops the server. API requests are intercepted with a deliberate demo-only 503, so no working API is contacted. Exit code 1 for application console errors or overflow.
  */
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
@@ -24,13 +24,14 @@ const HOST = "127.0.0.1";
 const BASE = `http://${HOST}:${PORT}`;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
-const outDir = path.join(root, "screenshots");
+const outDir = path.resolve(root, "../../test-results/screens");
 const viteBin = path.resolve(root, "../../node_modules/vite/bin/vite.js");
 
 // Every screen, a few states, the /new-book redirect and a not-found route.
 const DEFAULT_ROUTES = [
   "/library",
   "/library?view=ledger",
+  "/published",
   "/profiles",
   "/profiles/harni-muharami",
   "/profiles/new",
@@ -129,6 +130,8 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
 }
 
 const problems = [];
+let intercepted = 0;
+let expectedOfflineErrors = 0;
 let browser;
 try {
   await waitForServer(`${BASE}/`);
@@ -143,6 +146,15 @@ try {
         colorScheme: theme,
         reducedMotion: "no-preference",
       });
+      // A visual fixture run must never reach an owner API, even if one is already running.
+      await context.route("**/api/**", async (route) => {
+        intercepted++;
+        await route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({ error: { code: "demo_offline", message: "Screenshot fixture mode" } }),
+        });
+      });
       await context.addInitScript((t) => {
         try {
           window.localStorage.setItem("volume.theme", t);
@@ -155,11 +167,26 @@ try {
         const page = await context.newPage();
         const errors = [];
         page.on("console", (msg) => {
-          if (msg.type() === "error") errors.push(msg.text());
+          if (msg.type() !== "error") return;
+          if ((msg.location()?.url ?? "").includes("/api/") && msg.text().includes("503")) {
+            expectedOfflineErrors++;
+            return;
+          }
+          if (errors.length < 5) console.error(`Console on ${route}: ${msg.text()}`);
+          errors.push(msg.text());
         });
-        page.on("pageerror", (err) => errors.push(err.message));
+        page.on("pageerror", (err) => {
+          if (errors.length < 5) console.error(`Page error on ${route}: ${err.message}`);
+          errors.push(err.message);
+        });
 
-        await page.goto(`${BASE}${route}`, { waitUntil: "networkidle" });
+        await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded" });
+        try {
+          await page.getByRole("heading", { level: 1 }).first().waitFor({ timeout: 10000 });
+        } catch (error) {
+          console.error(`Visible body on ${route}: ${(await page.locator("body").innerText({ timeout: 3000 })).slice(0, 1200)}`);
+          throw error;
+        }
         await page.evaluate(() => document.fonts.ready);
         await page.waitForTimeout(900);
 
@@ -225,4 +252,5 @@ try {
 }
 
 console.log(problems.length ? `\n${problems.length} problem(s) found.` : "\nAll screenshots clean: no console errors, no horizontal overflow.");
+console.log(`Demo isolation: ${intercepted} API request(s) intercepted; ${expectedOfflineErrors} expected offline response error(s).`);
 process.exit(problems.length ? 1 : 0);

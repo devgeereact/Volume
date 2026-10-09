@@ -1,4 +1,4 @@
-// Manuscript Markdown dialect (docs/06-EXPORT-SPEC.md): parser and writer.
+// Manuscript Markdown dialect (docs/book-production/EXPORT-SPEC.md): parser and writer.
 // A strict superset of the P02 demo-book format (book.py), so the Windowsill Herbs manuscript
 // imports unchanged and writes back byte-identical.
 

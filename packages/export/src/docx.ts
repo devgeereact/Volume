@@ -1,4 +1,4 @@
-// DOCX export, ported from P02 build_docx.py with the `docx` package (docs/06-EXPORT-SPEC.md, DOCX).
+// DOCX export, ported from P02 build_docx.py with the `docx` package (docs/book-production/EXPORT-SPEC.md, DOCX).
 // Named styles only (no blank paragraphs or tabs for spacing), page break before every Heading 1, linked contents
 // (bookmarks and internal hyperlinks) so Kindle conversion keeps a working table of contents, trim page size,
 // mirrored margins (settings.xml patched after packing), PAGE field in the footer, theme fonts named and embedded.

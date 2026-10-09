@@ -5,12 +5,12 @@ description: How to build or change any Volume user interface (apps/web, package
 
 # Volume design system
 
-`docs/08-DESIGN-GUIDE.md` is the source of truth for look and feel. `docs/09-UX-FLOWS.md` is the source of truth for screens and flows. This skill is the checklist; it does not repeat their values.
+`docs/03-design/DESIGN-SYSTEM.md` is the source of truth for look and feel. `docs/03-design/UX-SPEC.md` is the source of truth for screens and flows. This skill is the checklist; it does not repeat their values.
 
 ## 1. Read before you build
 
-1. `docs/08-DESIGN-GUIDE.md` in full (tokens, type, spacing, components, motion, states, accessibility, do and don't).
-2. The section of `docs/09-UX-FLOWS.md` for the screen you touch.
+1. `docs/03-design/DESIGN-SYSTEM.md` in full (tokens, type, spacing, components, motion, states, accessibility, do and don't).
+2. The section of `docs/03-design/UX-SPEC.md` for the screen you touch.
 3. The existing tokens and components in `packages/ui`. Reuse before you create.
 
 If the guide does not exist yet or does not cover your case, stop and ask; do not invent a new visual direction (phase 0 has the owner pick one of three directions first).

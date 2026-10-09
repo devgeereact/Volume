@@ -2,7 +2,7 @@ import type { Db } from '../db/connect.js';
 import { newId, now, toJson, type OpenString } from '../lib/util.js';
 
 /**
- * Event types sent over SSE (docs/02-ARCHITECTURE.md, Live progress).
+ * Event types sent over SSE (docs/02-architecture/ARCHITECTURE.md, Live progress).
  * Persisted events go to job_events and can be replayed with Last-Event-ID;
  * section.delta is streamed text and is never stored.
  */

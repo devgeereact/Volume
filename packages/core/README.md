@@ -84,7 +84,7 @@ produced (tested byte for byte). Supported: `::: titlepage`, `::: copyright`, `:
 and `1. ` lists, tables, `***`, `**bold**`, `*italic*`, `::: takeaways`, `::: epigraph` (last line `- Name`),
 `::: demo` and any other `::: name` block (kept as a callout), `::: pagebreak`, `> ` quotes, `![alt](src "caption")`.
 `::: titlepage/copyright/contents/halftitle/part` are accepted anywhere between sections, including after the first
-`#` heading, because the template puts Dedication before Contents (docs/06-EXPORT-SPEC.md says so).
+`#` heading, because the template puts Dedication before Contents (docs/book-production/EXPORT-SPEC.md says so).
 
 ## House style (`src/style.ts`)
 
@@ -203,7 +203,7 @@ maximum page count across options with a warning.
 ```ts
 const DEFAULT_INTERIOR_THEME: InteriorTheme;   // the P02 look: Source Sans 3 body, Plus Jakarta Sans headings
 const DEFAULT_COVER_STYLE: CoverStyle;
-const HOUSE_MARGINS: Record<string, MarginsIn>; // docs/06-EXPORT-SPEC.md margins table
+const HOUSE_MARGINS: Record<string, MarginsIn>; // docs/book-production/EXPORT-SPEC.md margins table
 function normaliseInteriorTheme(raw: unknown, base?: InteriorTheme): InteriorTheme;
 function interiorThemesFromConfig(raw: unknown): InteriorTheme[];
 function normaliseCoverStyle(raw: unknown, base?: CoverStyle, paletteId?: string): CoverStyle;

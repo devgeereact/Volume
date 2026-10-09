@@ -8,7 +8,8 @@ import { formatNumber, formatUsd } from "../lib/format";
 import { useWritingJob } from "../lib/job";
 import { cn } from "../lib/cn";
 import { bookStepPath } from "../screens";
-import { useJobControl } from "../api/hooks";
+import { useJob, useJobControl } from "../api/hooks";
+import { isSummaryOnlyJob } from "../api/wire-b";
 import { apiErrorText, dismissFailure, JOB_LABELS, stepForJob, type RunningJob } from "../api/wire-a";
 
 /**
@@ -83,7 +84,11 @@ export function ApiJobBar({ job, more }: { job: RunningJob; more: number }) {
   const control = useJobControl();
   const failed = job.status === "failed";
   const paused = job.status === "paused" || job.status === "paused_budget";
-  const label = failed ? `A job failed on ${job.bookTitle}` : `${JOB_LABELS[job.kind] ?? "Job"}, ${job.bookTitle}`;
+  // A write_section job may only run a section's summary again; the running-job list has no payload, so read it.
+  const record = useJob(job.kind === "write_section" && !failed ? job.jobId : undefined);
+  const summaryOnly = record.data ? isSummaryOnlyJob(record.data) : false;
+  const kindLabel = summaryOnly ? "Summarising a section" : (JOB_LABELS[job.kind] ?? "Job");
+  const label = failed ? `A job failed on ${job.bookTitle}` : `${kindLabel}, ${job.bookTitle}`;
   const [announce, setAnnounce] = useState("");
   const first = useRef(true);
   useEffect(() => {
@@ -101,7 +106,7 @@ export function ApiJobBar({ job, more }: { job: RunningJob; more: number }) {
         ? "stopped at the book's budget"
         : job.done !== null && job.total !== null
           ? `${job.done} of ${job.total} parts`
-          : (job.message ?? (job.status === "queued" || job.status === "waiting" ? "waiting to start" : null));
+          : ((summaryOnly ? null : job.message) ?? (job.status === "queued" || job.status === "waiting" ? "waiting to start" : null));
 
   return (
     <div

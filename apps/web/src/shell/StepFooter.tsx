@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router";
 import { Button, buttonClasses } from "../components/ui/Button";
-import { bookSteps } from "../data/books";
-import type { Book, BookStepId } from "../data/types";
+import { bookSteps } from "../demo/books";
+import type { Book, BookStepId } from "../demo/types";
 import { cn } from "../lib/cn";
 import { useCurrentStepAction } from "../lib/stepAction";
 import { bookStepPath } from "../screens";
