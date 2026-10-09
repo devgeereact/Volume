@@ -15,3 +15,6 @@ Icon?
 test-results/
 playwright-report/
 .vite/
+
+# WebStorm project settings, per machine
+/.idea/
