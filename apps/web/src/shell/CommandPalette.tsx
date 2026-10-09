@@ -8,8 +8,8 @@ import { useBook as useServerBook } from "../api/hooks";
 import { apiErrorText, downloadProjectFile, useWireMode } from "../api/wire-a";
 import { useToast } from "../lib/toast";
 import { Kbd } from "../components/ui/Kbd";
-import { bookSteps, books, currentStep, getBook } from "../data/books";
-import { getPenName } from "../data/penNames";
+import { bookSteps, books, currentStep, getBook } from "../demo/books";
+import { getPenName } from "../demo/penNames";
 import { cn } from "../lib/cn";
 import { useCommandPalette } from "../lib/commandPalette";
 import { useWritingJob } from "../lib/job";
@@ -87,7 +87,7 @@ export function CommandPalette() {
     const go = (to: string) => () => void navigate(to);
     const list: Command[] = [];
     if (onEditor) {
-      // The editor listens for Cmd F and Cmd Shift F on window (routes/editor/EditorPage.tsx); send the same keys.
+      // The editor listens for Cmd F and Cmd Shift F on window (features/editor/EditorPage.tsx); send the same keys.
       // Wait a frame so the menu has closed and handed focus back before the find bar opens.
       const find = (book: boolean) => () =>
         requestAnimationFrame(() =>

@@ -1,6 +1,6 @@
 import { useRef, type KeyboardEvent } from "react";
-import type { ModelInfo } from "../../data/types";
-import { examplePricesNote } from "../../data/models";
+import type { ModelInfo } from "../../demo/types";
+import { examplePricesNote } from "../../demo/models";
 import { cn } from "../../lib/cn";
 import { ModelPickerRow } from "./ModelPickerRow";
 

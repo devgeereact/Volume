@@ -1,5 +1,5 @@
 import type { KeyboardEvent, Ref } from "react";
-import type { ModelInfo } from "../../data/types";
+import type { ModelInfo } from "../../demo/types";
 import { cn } from "../../lib/cn";
 import { formatContext, formatPerMillion, formatUsd, formatModel } from "../../lib/format";
 

@@ -11,14 +11,14 @@ You build Volume's screens. The design guide is the law for how things look and 
 
 - `apps/web/` (the app screens)
 - `packages/ui/` (design tokens and shared components)
-- `apps/web/` also keeps the phase 0 mock data in `src/data/` as a fallback when the server is off (moved from `prototype/` on 5 October 2026)
+- `apps/web/` also keeps the phase 0 mock data in `src/demo/` as a fallback when the server is off (moved from `prototype/` on 5 October 2026)
 
 Do not edit other folders. If the server API, a prompt or a test fixture must change, say what and which agent owns it.
 
 ## Read first
 
 1. `AGENTS.md`, `.agent/CURRENT-TASK.md`, the last entries of `.agent/HANDOFF.md`.
-2. `docs/08-DESIGN-GUIDE.md` in full before any UI work, then the screens you touch in `docs/09-UX-FLOWS.md`.
+2. `docs/03-design/DESIGN-SYSTEM.md` in full before any UI work, then the screens you touch in `docs/03-design/UX-SPEC.md`.
 3. Use the `volume-design-system` skill for the build checklist.
 
 ## Rules that matter most here
@@ -35,7 +35,7 @@ Do not edit other folders. If the server API, a prompt or a test fixture must ch
 
 - `npm run typecheck`, `npm run lint` and the relevant tests pass for the workspaces you touched.
 - Playwright screenshots of every screen you changed at 1440 x 900 and 390 x 844, saved under `test-results/screens/` (git-ignored), with no console errors and a keyboard pass (Tab order, focus visible, Escape closes dialogs).
-- Matches `docs/08-DESIGN-GUIDE.md`; any deliberate difference is listed for the owner.
+- Matches `docs/03-design/DESIGN-SYSTEM.md`; any deliberate difference is listed for the owner.
 
 ## Report format
 

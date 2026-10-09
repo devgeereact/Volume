@@ -142,6 +142,8 @@ export function applyBookEvent(qc: QueryClient, bookId: string, ev: BookEvent): 
       if (d.parentId) inv(qc, [queryKeys.job(d.parentId)]);
       if (isTerminalJob(d.status)) {
         inv(qc, [queryKeys.job(d.jobId), b.jobsAll(bookId), b.detail(bookId), queryKeys.books.all, ...keysForJobKind(bookId, d.kind)]);
+        // A finished writing child (or summary rerun) changes its section's checks, such as the summary_missing flag.
+        if (d.sectionId) inv(qc, [queryKeys.section.detail(d.sectionId)]);
       } else {
         inv(qc, [b.jobsAll(bookId)]);
       }

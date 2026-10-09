@@ -1,0 +1,509 @@
+# Selected Volume rebuild evidence, Ubuntu, 7 October 2026
+All tests use public/disposable fixtures. Private environment/data files are excluded.
+
+## Clean setup
+
+> volume@0.0.0 setup
+> node scripts/setup.mjs
+
+npm warn deprecated @babel/polyfill@7.12.1: 🚨 This package has been deprecated in favor of separate inclusion of a polyfill and regenerator-runtime (when needed). See the @babel/polyfill docs (https://babeljs.io/docs/en/babel-polyfill) for more information.
+npm warn deprecated core-js@2.6.12: core-js@<3.23.3 is no longer maintained and not recommended for usage due to the number of issues. Because of the V8 engine whims, feature detection in old core-js versions could cause a slowdown up to 100x even if nothing is polyfilled. Some versions have web compatibility issues. Please, upgrade your dependencies to the actual version of core-js.
+
+added 426 packages in 9s
+npm warn install-scripts 2 packages have install scripts not yet covered by allowScripts:
+npm warn install-scripts   core-js@2.6.12 (postinstall: node -e "try{require('./postinstall')}catch(e){}")
+npm warn install-scripts   es5-ext@0.10.64 (postinstall:  node -e "try{require('./_postinstall')}catch(e){}" || exit 0)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+PASS: Runtime: Node 26+
+PASS: Vite, in-memory SQLite and image native modules
+PASS: Pinned Chromium executable is installed (launch is checked by browser tests)
+No environment files or owner data were inspected. OpenRouter credentials are optional for mock development.
+
+## Typecheck
+
+> volume@0.0.0 typecheck
+> npm run typecheck --workspaces --if-present
+
+
+> @volume/core@0.0.0 typecheck
+> tsc --noEmit -p tsconfig.json
+
+
+> @volume/ai@0.0.0 typecheck
+> tsc -p tsconfig.json
+
+
+> @volume/export@0.0.0 typecheck
+> tsc --noEmit -p tsconfig.json
+
+
+> @volume/server@0.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @volume/web@0.0.0 typecheck
+> tsc --noEmit -p tsconfig.json
+
+
+## Lint
+
+> volume@0.0.0 lint
+> eslint .
+
+
+## Formatting
+Checking formatting...
+All matched files use Prettier code style!
+
+## Documentation links
+
+> volume@0.0.0 docs:check
+> node scripts/check-docs.mjs
+
+PASS: local Markdown file links in 94 documents (source drafts and examples excluded).
+
+## Tooling tests
+
+> volume@0.0.0 test:tooling
+> node --test tests/integration/runtime.test.mjs
+
+✔ unsupported Node and inconsistent/unsafe bindings fail clearly (2.558476ms)
+✔ occupied ports fail without stopping the unrelated listener (768.223976ms)
+✔ standalone dev starts from another cwd and SIGTERM releases both process trees (4265.625376ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5118.013879
+
+## Hook checks
+
+> volume@0.0.0 hooks:test
+> bash .claude/hooks/test-hooks.sh
+
+== protect-secrets.sh (PreToolUse) ==
+PASS  Read .env is blocked
+PASS  Read .env.example is allowed
+PASS  Read apps/server/.env.local is blocked
+PASS  Read data/volume.db is blocked
+PASS  Read AGENTS.md is allowed
+PASS  Read environment.ts is allowed
+PASS  Read tests/golden/data/ is allowed
+PASS  Read outside the project is allowed
+PASS  Read relative .env is blocked
+PASS  Write .env is blocked
+PASS  Write .env.example is allowed
+PASS  Edit under data/ is blocked
+PASS  MultiEdit list with .env is blocked
+PASS  Grep in data/ is blocked
+PASS  Grep with glob .env* is blocked
+PASS  Grep for the word env is allowed
+PASS  Glob data/** is blocked
+PASS  Glob **/.env is blocked
+PASS  Glob **/*.ts is allowed
+PASS  Glob **/.env.example is allowed
+PASS  Bash blocked: cat .env
+PASS  Bash blocked: cat ./.env
+PASS  Bash blocked: source .env && npm run dev
+PASS  Bash blocked: cp .env.example .env
+PASS  Bash blocked: cat .env*
+PASS  Bash blocked: grep KEY apps/server/.env
+PASS  Bash blocked: node --env-file=.env apps/server/index.js
+PASS  Bash blocked: ls data/
+PASS  Bash blocked: sqlite3 ./data/volume.db .tables
+PASS  Bash blocked: ls -la data
+PASS  Bash blocked: cd data && ls
+PASS  Bash blocked: grep -r token data
+PASS  Bash blocked: cat $CLAUDE_PROJECT_DIR/data/x.json
+PASS  Bash blocked: cat /tmp/volume-hooks-test.sSWAck/project/data/x.json
+PASS  Bash blocked: git add .env
+PASS  Bash allowed: cat .env.example
+PASS  Bash allowed: npm run typecheck
+PASS  Bash allowed: echo $NODE_ENV
+PASS  Bash allowed: grep -rn environment apps/web/src
+PASS  Bash allowed: node -e 'console.log(process.env.HOME)'
+PASS  Bash allowed: cat .envrc
+PASS  Bash allowed: grep -r data src
+PASS  Bash allowed: cat tests/golden/data/sample.md
+PASS  Bash allowed: ls packages/core/data
+PASS  Bash allowed: npx dotenv-cli --help
+PASS  Bash allowed: git status --short
+PASS  Bad input fails open with a visible message
+== house-style-warn.sh (PostToolUse) ==
+PASS  Em dash in prompts/ is warned
+PASS  Warning names file and line 2
+PASS  docs/source-drafts/ is skipped
+PASS  Clean doc gives no output
+PASS  AGENTS.md avoid word in apps/web is warned
+PASS  Banned phrase in book-templates is warned
+PASS  house-style:off block is not warned
+PASS  Files outside the warned folders are ignored
+PASS  Hook never blocks (exit 0)
+== check-style.mjs (skill script) ==
+PASS  Checker exits 1 with line numbers on findings
+PASS  Spelling map is applied
+PASS  Spelling exception is info only
+PASS  UK phrasing map is applied
+PASS  Guardrail pattern is applied
+PASS  En dash rule from config is applied
+PASS  Title case check flags lower-case words
+PASS  Checker skips docs/source-drafts/
+PASS  Checker exits 0 on a clean file
+PASS  Missing config prints a clear message and exits 2
+PASS  Missing config still catches em dashes
+PASS  Hook with missing config still warns and says so
+PASS  Real config/house-style.json loads
+== session-start.sh (SessionStart) ==
+PASS  Session start prints reminder and CURRENT-TASK
+PASS  Session start marker written
+== stop-handoff-reminder.sh (Stop) ==
+PASS  stop_hook_active true gives no output
+PASS  Changed files without HANDOFF update give a reminder
+PASS  Reminder is shown only once per session
+PASS  Updated HANDOFF.md gives no reminder
+PASS  No changed files gives no reminder
+PASS  Bad input fails open silently
+== settings.json ==
+PASS  settings.json parses and wires all four events
+PASS  executable: house-style-warn.sh
+PASS  executable: protect-secrets.sh
+PASS  executable: session-start.sh
+PASS  executable: stop-handoff-reminder.sh
+PASS  executable: test-hooks.sh
+
+Hook tests: 83 passed, 0 failed.
+RESULT: PASS
+
+## Unit/coverage
+
+> volume@0.0.0 test:coverage
+> npm run test:coverage --workspaces --if-present
+
+
+> @volume/core@0.0.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.3 /home/mr-gee/Documents/Codex/2026-10-07/referenced-chatgpt-conversation-this-is-an-6/work/volume-gee-rebuild/packages/core
+      Coverage enabled with v8
+
+
+ Test Files  6 passed (6)
+      Tests  75 passed (75)
+   Start at  11:19:41
+   Duration  2.12s (tests 40%, import 31%, transform 24%, worker 4%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 90.14% ( 1601/1776 )
+Branches     : 77.82% ( 1288/1655 )
+Functions    : 89.71% ( 279/311 )
+Lines        : 92.46% ( 1301/1407 )
+================================================================================
+
+> @volume/ai@0.0.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.3 /home/mr-gee/Documents/Codex/2026-10-07/referenced-chatgpt-conversation-this-is-an-6/work/volume-gee-rebuild/packages/ai
+      Coverage enabled with v8
+
+
+ Test Files  12 passed (12)
+      Tests  155 passed (155)
+   Start at  11:19:46
+   Duration  28.00s (tests 59%, import 32%, transform 8%, worker 1%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 90.35% ( 1676/1855 )
+Branches     : 74.53% ( 1276/1712 )
+Functions    : 93.4% ( 269/288 )
+Lines        : 94.35% ( 1472/1560 )
+================================================================================
+
+> @volume/export@0.0.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.3 /home/mr-gee/Documents/Codex/2026-10-07/referenced-chatgpt-conversation-this-is-an-6/work/volume-gee-rebuild/packages/export
+      Coverage enabled with v8
+
+(node:260324) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:261033) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ test/pdf.test.ts (11 tests | 1 failed) 35108ms
+   ❯ print PDF, chapters on right-hand pages (D-013 default) (2)
+     × looks the same as the golden render on 4 pages (title, contents, chapter opener, body) 6435ms
+(node:261859) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:261969) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:262049) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:262188) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:262365) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:262430) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:263957) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:264070) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/pdf.test.ts > print PDF, chapters on right-hand pages (D-013 default) > looks the same as the golden render on 4 pages (title, contents, chapter opener, body)
+AssertionError: windowsill-page-2.png: expected 2.94352280521262 to be less than 1.5
+ ❯ test/pdf.test.ts:116:42
+    114|       let diff = 0;
+    115|       for (let k = 0; k < a.data.length; k++) diff += Math.abs((a.data…
+    116|       expect(diff / a.data.length, name).toBeLessThan(1.5); // mean gr…
+       |                                          ^
+    117|     }
+    118|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 9 passed (10)
+      Tests  1 failed | 86 passed | 1 skipped (88)
+   Start at  11:20:16
+   Duration  158.01s (tests 77%, import 21%, transform 1%, worker 1%)
+
+npm error Lifecycle script `test:coverage` failed with error:
+npm error code 1
+npm error path /home/mr-gee/Documents/Codex/2026-10-07/referenced-chatgpt-conversation-this-is-an-6/work/volume-gee-rebuild/packages/export
+npm error workspace @volume/export@0.0.0
+npm error location /home/mr-gee/Documents/Codex/2026-10-07/referenced-chatgpt-conversation-this-is-an-6/work/volume-gee-rebuild/packages/export
+npm error command failed
+npm error command sh -c vitest run --coverage
+
+
+> @volume/server@0.0.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.0.3 /home/mr-gee/Documents/Codex/2026-10-07/referenced-chatgpt-conversation-this-is-an-6/work/volume-gee-rebuild/apps/server
+      Coverage enabled with v8
+
+(node:264164) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:264455) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  18 passed | 1 skipped (19)
+      Tests  189 passed | 1 skipped (190)
+   Start at  11:22:55
+   Duration  58.70s (tests 73%, import 22%, transform 4%, worker 1%)
+
+ % Coverage report from v8
+
+=============================== Coverage summary ===============================
+Statements   : 87.33% ( 5404/6188 )
+Branches     : 72.55% ( 3320/4576 )
+Functions    : 91.68% ( 1202/1311 )
+Lines        : 91.92% ( 4828/5252 )
+================================================================================
+
+## Existing browser scenarios
+
+> volume@0.0.0 e2e
+> node tests/e2e/run.mjs
+
+Building the server...
+
+> @volume/server@0.0.0 build
+> tsc -p tsconfig.build.json
+
+Building the web app into /tmp/volume-e2e/web...
+[WebServer] (node:259960) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:259960) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+[WebServer] (node:260032) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+(node:260149) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Sections: 13, with text: 9, without text: title_page:empty, copyright:empty, contents:empty, about_author:empty
+Pack: 19 entries: README.txt, manuscript/, manuscript/e2e-night-shifts-102011-mock-option-1-interior-6x9.pdf, manuscript/e2e-night-shifts-102011-mock-option-1.epub, manuscript/e2e-night-shifts-102011-mock-option-1.docx, manuscript/e2e-night-shifts-102011-mock-option-1.txt, manuscript/e2e-night-shifts-102011-mock-option-1.md, cover/, cover/e2e-night-shifts-102011-mock-option-1-ebook-cover.jpg, cover/e2e-night-shifts-102011-mock-option-1-paperback-wrap-6x9-cream-34p.pdf, listing/, listing/metadata.txt, listing/description.html, listing/ai-disclosure.txt, reports/, reports/preflight.txt, reports/preflight.html, reports/claims-to-verify.csv, reports/kdp-rules-used.txt
+  ✓  1 tests/e2e/full-book.spec.ts:187:1 › a book goes from the wizard to a downloaded pack and marketing (52.6s)
+  ✓  2 tests/e2e/restart.spec.ts:9:1 › a server process restart recovers interrupted writing and preserves the manuscript (24.1s)
+  ✓  3 tests/e2e/review-fixes.spec.ts:23:1 › Markdown import saves edited text after reload and supports undo and plain paste (5.6s)
+  ✓  4 tests/e2e/review-fixes.spec.ts:60:1 › blueprint comparison restores an older version as a new draft (6.7s)
+  ✓  5 tests/e2e/review-fixes.spec.ts:116:1 › author photo upload persists through profile save and reload (2.6s)
+
+  5 passed (1.7m)
+
+## Added browser scenarios
+
+> volume@0.0.0 e2e
+> node tests/e2e/run.mjs shell.spec.ts
+
+Building the server...
+
+> @volume/server@0.0.0 build
+> tsc -p tsconfig.build.json
+
+Building the web app into /tmp/volume-e2e/web...
+[WebServer] (node:275795) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:275795) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+[WebServer] (node:275951) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:276066) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/e2e/shell.spec.ts:3:1 › offline new-profile entry settles without a health request loop and reconnects (32.0s)
+  ✓  2 tests/e2e/shell.spec.ts:30:1 › mobile menu traps keyboard focus and Escape returns focus with reduced motion (2.4s)
+
+  2 passed (41.6s)
+
+## Demo smoke
+
+> @volume/web@0.0.0 smoke
+> node scripts/smoke.mjs --no-build
+
+Demo mode: /api goes to the closed port 43567.
+PASS  Library loads  (1574 ms)
+PASS  Open The Calm Ward from the Library  (166 ms)
+PASS  Research  (736 ms)
+PASS  Titles: choose a title  (981 ms)
+PASS  Blueprint: select chapter 4  (264 ms)
+PASS  Blueprint: Approve dialog, then approve  (1665 ms)
+PASS  Writing: pause and resume  (738 ms)
+PASS  Editor: select text, Expand, Accept  (3613 ms)
+PASS  Editor: command menu opens Find across the book  (526 ms)
+PASS  Cover: page count changes the spine width  (1317 ms)
+PASS  Export: royalty calculator  (1105 ms)
+PASS  Marketing: copy shows a toast  (1035 ms)
+PASS  Settings: theme switches to dark  (947 ms)
+PASS  Command menu: Ctrl K, type, Enter, Escape  (1127 ms)
+(14 expected /api error(s) ignored in demo mode)
+
+Smoke test passed: 14 steps, no console errors.
+
+## Screenshot matrix
+
+> @volume/web@0.0.0 screenshot
+> node scripts/screenshot.mjs --no-build
+
+PASS  /library  light  1440x900  ../../test-results/screens/library-light-1440.png
+PASS  /library?view=ledger  light  1440x900  ../../test-results/screens/library-view-ledger-light-1440.png
+PASS  /published  light  1440x900  ../../test-results/screens/published-light-1440.png
+PASS  /profiles  light  1440x900  ../../test-results/screens/profiles-light-1440.png
+PASS  /profiles/harni-muharami  light  1440x900  ../../test-results/screens/profiles-harni-muharami-light-1440.png
+PASS  /profiles/new  light  1440x900  ../../test-results/screens/profiles-new-light-1440.png
+PASS  /books/new  light  1440x900  ../../test-results/screens/books-new-light-1440.png
+PASS  /new-book  light  1440x900  ../../test-results/screens/new-book-light-1440.png
+PASS  /books/night-shift-survival/research  light  1440x900  ../../test-results/screens/books-night-shift-survival-research-light-1440.png
+PASS  /books/the-calm-ward/research  light  1440x900  ../../test-results/screens/books-the-calm-ward-research-light-1440.png
+PASS  /books/the-calm-ward/titles  light  1440x900  ../../test-results/screens/books-the-calm-ward-titles-light-1440.png
+PASS  /books/the-calm-ward/blueprint  light  1440x900  ../../test-results/screens/books-the-calm-ward-blueprint-light-1440.png
+PASS  /books/handover/writing  light  1440x900  ../../test-results/screens/books-handover-writing-light-1440.png
+PASS  /books/the-new-charge-nurse/editor  light  1440x900  ../../test-results/screens/books-the-new-charge-nurse-editor-light-1440.png
+PASS  /books/speaking-up-safely/cover  light  1440x900  ../../test-results/screens/books-speaking-up-safely-cover-light-1440.png
+PASS  /books/sourdough-on-a-weeknight/export  light  1440x900  ../../test-results/screens/books-sourdough-on-a-weeknight-export-light-1440.png
+PASS  /books/handover/marketing  light  1440x900  ../../test-results/screens/books-handover-marketing-light-1440.png
+PASS  /settings  light  1440x900  ../../test-results/screens/settings-light-1440.png
+PASS  /settings/models  light  1440x900  ../../test-results/screens/settings-models-light-1440.png
+PASS  /archive  light  1440x900  ../../test-results/screens/archive-light-1440.png
+PASS  /components  light  1440x900  ../../test-results/screens/components-light-1440.png
+PASS  /nope  light  1440x900  ../../test-results/screens/nope-light-1440.png
+PASS  /library  light  390x844  ../../test-results/screens/library-light-390.png
+PASS  /library?view=ledger  light  390x844  ../../test-results/screens/library-view-ledger-light-390.png
+PASS  /published  light  390x844  ../../test-results/screens/published-light-390.png
+PASS  /profiles  light  390x844  ../../test-results/screens/profiles-light-390.png
+PASS  /profiles/harni-muharami  light  390x844  ../../test-results/screens/profiles-harni-muharami-light-390.png
+PASS  /profiles/new  light  390x844  ../../test-results/screens/profiles-new-light-390.png
+PASS  /books/new  light  390x844  ../../test-results/screens/books-new-light-390.png
+PASS  /new-book  light  390x844  ../../test-results/screens/new-book-light-390.png
+PASS  /books/night-shift-survival/research  light  390x844  ../../test-results/screens/books-night-shift-survival-research-light-390.png
+PASS  /books/the-calm-ward/research  light  390x844  ../../test-results/screens/books-the-calm-ward-research-light-390.png
+PASS  /books/the-calm-ward/titles  light  390x844  ../../test-results/screens/books-the-calm-ward-titles-light-390.png
+PASS  /books/the-calm-ward/blueprint  light  390x844  ../../test-results/screens/books-the-calm-ward-blueprint-light-390.png
+PASS  /books/handover/writing  light  390x844  ../../test-results/screens/books-handover-writing-light-390.png
+PASS  /books/the-new-charge-nurse/editor  light  390x844  ../../test-results/screens/books-the-new-charge-nurse-editor-light-390.png
+PASS  /books/speaking-up-safely/cover  light  390x844  ../../test-results/screens/books-speaking-up-safely-cover-light-390.png
+PASS  /books/sourdough-on-a-weeknight/export  light  390x844  ../../test-results/screens/books-sourdough-on-a-weeknight-export-light-390.png
+PASS  /books/handover/marketing  light  390x844  ../../test-results/screens/books-handover-marketing-light-390.png
+PASS  /settings  light  390x844  ../../test-results/screens/settings-light-390.png
+PASS  /settings/models  light  390x844  ../../test-results/screens/settings-models-light-390.png
+PASS  /archive  light  390x844  ../../test-results/screens/archive-light-390.png
+PASS  /components  light  390x844  ../../test-results/screens/components-light-390.png
+PASS  /nope  light  390x844  ../../test-results/screens/nope-light-390.png
+PASS  /library  dark  1440x900  ../../test-results/screens/library-dark-1440.png
+PASS  /library?view=ledger  dark  1440x900  ../../test-results/screens/library-view-ledger-dark-1440.png
+PASS  /published  dark  1440x900  ../../test-results/screens/published-dark-1440.png
+PASS  /profiles  dark  1440x900  ../../test-results/screens/profiles-dark-1440.png
+PASS  /profiles/harni-muharami  dark  1440x900  ../../test-results/screens/profiles-harni-muharami-dark-1440.png
+PASS  /profiles/new  dark  1440x900  ../../test-results/screens/profiles-new-dark-1440.png
+PASS  /books/new  dark  1440x900  ../../test-results/screens/books-new-dark-1440.png
+PASS  /new-book  dark  1440x900  ../../test-results/screens/new-book-dark-1440.png
+PASS  /books/night-shift-survival/research  dark  1440x900  ../../test-results/screens/books-night-shift-survival-research-dark-1440.png
+PASS  /books/the-calm-ward/research  dark  1440x900  ../../test-results/screens/books-the-calm-ward-research-dark-1440.png
+PASS  /books/the-calm-ward/titles  dark  1440x900  ../../test-results/screens/books-the-calm-ward-titles-dark-1440.png
+PASS  /books/the-calm-ward/blueprint  dark  1440x900  ../../test-results/screens/books-the-calm-ward-blueprint-dark-1440.png
+PASS  /books/handover/writing  dark  1440x900  ../../test-results/screens/books-handover-writing-dark-1440.png
+PASS  /books/the-new-charge-nurse/editor  dark  1440x900  ../../test-results/screens/books-the-new-charge-nurse-editor-dark-1440.png
+PASS  /books/speaking-up-safely/cover  dark  1440x900  ../../test-results/screens/books-speaking-up-safely-cover-dark-1440.png
+PASS  /books/sourdough-on-a-weeknight/export  dark  1440x900  ../../test-results/screens/books-sourdough-on-a-weeknight-export-dark-1440.png
+PASS  /books/handover/marketing  dark  1440x900  ../../test-results/screens/books-handover-marketing-dark-1440.png
+PASS  /settings  dark  1440x900  ../../test-results/screens/settings-dark-1440.png
+PASS  /settings/models  dark  1440x900  ../../test-results/screens/settings-models-dark-1440.png
+PASS  /archive  dark  1440x900  ../../test-results/screens/archive-dark-1440.png
+PASS  /components  dark  1440x900  ../../test-results/screens/components-dark-1440.png
+PASS  /nope  dark  1440x900  ../../test-results/screens/nope-dark-1440.png
+PASS  /library  dark  390x844  ../../test-results/screens/library-dark-390.png
+PASS  /library?view=ledger  dark  390x844  ../../test-results/screens/library-view-ledger-dark-390.png
+PASS  /published  dark  390x844  ../../test-results/screens/published-dark-390.png
+PASS  /profiles  dark  390x844  ../../test-results/screens/profiles-dark-390.png
+PASS  /profiles/harni-muharami  dark  390x844  ../../test-results/screens/profiles-harni-muharami-dark-390.png
+PASS  /profiles/new  dark  390x844  ../../test-results/screens/profiles-new-dark-390.png
+PASS  /books/new  dark  390x844  ../../test-results/screens/books-new-dark-390.png
+PASS  /new-book  dark  390x844  ../../test-results/screens/new-book-dark-390.png
+PASS  /books/night-shift-survival/research  dark  390x844  ../../test-results/screens/books-night-shift-survival-research-dark-390.png
+PASS  /books/the-calm-ward/research  dark  390x844  ../../test-results/screens/books-the-calm-ward-research-dark-390.png
+PASS  /books/the-calm-ward/titles  dark  390x844  ../../test-results/screens/books-the-calm-ward-titles-dark-390.png
+PASS  /books/the-calm-ward/blueprint  dark  390x844  ../../test-results/screens/books-the-calm-ward-blueprint-dark-390.png
+PASS  /books/handover/writing  dark  390x844  ../../test-results/screens/books-handover-writing-dark-390.png
+PASS  /books/the-new-charge-nurse/editor  dark  390x844  ../../test-results/screens/books-the-new-charge-nurse-editor-dark-390.png
+PASS  /books/speaking-up-safely/cover  dark  390x844  ../../test-results/screens/books-speaking-up-safely-cover-dark-390.png
+PASS  /books/sourdough-on-a-weeknight/export  dark  390x844  ../../test-results/screens/books-sourdough-on-a-weeknight-export-dark-390.png
+PASS  /books/handover/marketing  dark  390x844  ../../test-results/screens/books-handover-marketing-dark-390.png
+PASS  /settings  dark  390x844  ../../test-results/screens/settings-dark-390.png
+PASS  /settings/models  dark  390x844  ../../test-results/screens/settings-models-dark-390.png
+PASS  /archive  dark  390x844  ../../test-results/screens/archive-dark-390.png
+PASS  /components  dark  390x844  ../../test-results/screens/components-dark-390.png
+PASS  /nope  dark  390x844  ../../test-results/screens/nope-dark-390.png
+
+All screenshots clean: no console errors, no horizontal overflow.
+
+## Screenshot isolation
+
+> @volume/web@0.0.0 screenshot
+> node scripts/screenshot.mjs --no-build /profiles/new
+
+PASS  /profiles/new  light  1440x900  ../../test-results/screens/profiles-new-light-1440.png
+PASS  /profiles/new  light  390x844  ../../test-results/screens/profiles-new-light-390.png
+PASS  /profiles/new  dark  1440x900  ../../test-results/screens/profiles-new-dark-1440.png
+PASS  /profiles/new  dark  390x844  ../../test-results/screens/profiles-new-dark-390.png
+
+All screenshots clean: no console errors, no horizontal overflow.
+Demo isolation: 4 API request(s) intercepted; 4 expected offline response error(s).
+
+## Path containing spaces after fix
+wrote tokens.css 7630 theme.css 6616
+fails 0  | board written 139229 bytes

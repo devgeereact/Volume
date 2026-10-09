@@ -1,7 +1,7 @@
 // OpenRouter client. Chat completions go through the official OpenAI SDK with the OpenRouter base URL
-// (docs/02-ARCHITECTURE.md). Images, models and key status use plain fetch, because those endpoints are
+// (docs/02-architecture/ARCHITECTURE.md). Images, models and key status use plain fetch, because those endpoints are
 // OpenRouter-only. The SDK's own retries are off; this client retries with the schedule in
-// docs/04-AI-PIPELINE.md and maps every failure to a typed AiError.
+// docs/02-architecture/AI-PIPELINE.md and maps every failure to a typed AiError.
 
 import OpenAI, { APIConnectionError, APIConnectionTimeoutError, APIError, APIUserAbortError } from 'openai';
 import {

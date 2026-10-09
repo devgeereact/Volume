@@ -7,9 +7,9 @@
 
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { getPenName as demoPenName } from "../data/penNames";
+import { getPenName as demoPenName } from "../demo/penNames";
 import { useNow } from "../lib/useNow";
-import type { Book, PenName } from "../data/types";
+import type { Book, PenName } from "../demo/types";
 import { isoFromMs, toPenName, toPrototypeBook } from "./adapters";
 import { booksApi } from "./books";
 import { isApiError } from "./client";

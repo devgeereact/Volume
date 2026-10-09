@@ -1,0 +1,76 @@
+{
+  "status": "FAIL",
+  "platform": "linux",
+  "architecture": "x64",
+  "node": "26.10.0",
+  "chromium": "153.0.8010.12",
+  "threshold": 1.5,
+  "comparisons": [
+    {
+      "reference": "windowsill-page-1.png",
+      "page": 1,
+      "referenceSha256": "da9bf72253f422ed6b8c09343760d1f2559aebcf0ca7d28d83fbc7dff9881407",
+      "dimensionsMatch": true,
+      "meanDifference": 1.2680898491083676,
+      "pass": true
+    },
+    {
+      "reference": "windowsill-page-2.png",
+      "page": 3,
+      "referenceSha256": "aaf865c01d8afffa7a3b04944ae291d315bd8e491938109ed79d9fe61afa979d",
+      "dimensionsMatch": true,
+      "meanDifference": 2.94352280521262,
+      "pass": false
+    },
+    {
+      "reference": "windowsill-page-3.png",
+      "page": 7,
+      "referenceSha256": "f52baf74ca6e1250c2c7ef501b22b1e1af1edfa6d27027f0ad01f9ab60cf87bd",
+      "dimensionsMatch": true,
+      "meanDifference": 8.613240169181527,
+      "pass": false
+    },
+    {
+      "reference": "windowsill-page-4.png",
+      "page": 8,
+      "referenceSha256": "8fabc2a196fb43817c47f13aa55f3bb1dd83172e80afde7c2c91eda788c5b3cc",
+      "dimensionsMatch": true,
+      "meanDifference": 11.10195901920439,
+      "pass": false
+    }
+  ],
+  "fonts": [
+    {
+      "file": "ibm-plex-mono-400-normal.ttf",
+      "sha256": "5c6be3be05cc075aa0c353d818a8eb22a1f06b7f3d25a537b22c4c7751d7ae0e"
+    },
+    {
+      "file": "ibm-plex-mono-600-normal.ttf",
+      "sha256": "aa6a6a54da1c0d5104b31b45550fd27eb493e4a0d44c85195555bae332eff2e0"
+    },
+    {
+      "file": "plus-jakarta-sans-600-normal.ttf",
+      "sha256": "b91182886c83d924716e8b901a42fc29b9c84b6b6f35065498e510761f0dec2f"
+    },
+    {
+      "file": "plus-jakarta-sans-800-normal.ttf",
+      "sha256": "0b7b8f06d2410046110900040091a0fb78dba2720b4b276e575e8fbf1ae03135"
+    },
+    {
+      "file": "source-sans-3-400-italic.ttf",
+      "sha256": "2e8643c90010133c659533fa9e7da722d4e344d55e5a1769ca53863b291e823c"
+    },
+    {
+      "file": "source-sans-3-400-normal.ttf",
+      "sha256": "a79607c58a37e2db32ad1df45acaec8462b112293b90ce282a2942292f887fef"
+    },
+    {
+      "file": "source-sans-3-600-normal.ttf",
+      "sha256": "bf14de60affa7155b0893fa5bbb052e5328dafeabf60b5b1d06ada7a0f6b88eb"
+    },
+    {
+      "file": "source-sans-3-700-normal.ttf",
+      "sha256": "9b5700ba845d485b99f512526753536d2e384a44d6d6ca546b2fc1b669d40d19"
+    }
+  ]
+}

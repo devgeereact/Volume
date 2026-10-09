@@ -1,4 +1,4 @@
-// KDP upload pack zip (docs/06-EXPORT-SPEC.md, Upload pack).
+// KDP upload pack zip (docs/book-production/EXPORT-SPEC.md, Upload pack).
 import JSZip from 'jszip';
 import { describeRules, slugify, type BookDoc, type KdpRules, type Paper, type TrimKey } from '@volume/core';
 import type { ClaimItem, PreflightReport } from './preflight.ts';

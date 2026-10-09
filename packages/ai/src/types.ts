@@ -59,7 +59,17 @@ export interface RequestMeta {
 }
 
 export type MockScenario =
-  'rate_limit' | 'server_error' | 'invalid_json' | 'invalid_json_always' | 'stream_cut' | 'refusal' | 'model_missing' | 'slow' | 'no_sources';
+  | 'rate_limit'
+  | 'server_error'
+  | 'invalid_json'
+  | 'invalid_json_always'
+  | 'stream_cut'
+  | 'truncated'
+  | 'truncated_always'
+  | 'refusal'
+  | 'model_missing'
+  | 'slow'
+  | 'no_sources';
 
 /** OpenRouter's `reasoning` request object (https://openrouter.ai/docs/guides/best-practices/reasoning-tokens). */
 export interface ReasoningOptions {

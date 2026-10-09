@@ -2,6 +2,10 @@
 
 Volume is a local-first book production app: author profiles and pen names, research, titles, blueprint, fully automatic writing, editing, covers and a KDP-ready export pack. Owner: Gideon (Gakinz, London). Claude Code, Codex, Gemini CLI and any other assistant follow this file. CLAUDE.md and GEMINI.md only point here.
 
+## GEE OS adoption
+
+This application adopts GEE OS Full Product. Read the project card and current task, then load the shared constitution, one primary mode and the Change Safety workflow through the gee-os skill. Keep project facts here, not in global machine rules. This repository must restore independently on macOS and Linux. Runtime contracts in config/, prompts/, assets/ and the database stay stable during migration.
+
 ## Start of every session
 
 1. Read `.agent/CURRENT-TASK.md` (where the work is and the next step) and the last entries of `.agent/HANDOFF.md`.
@@ -12,32 +16,32 @@ Volume is a local-first book production app: author profiles and pen names, rese
 
 - Update `.agent/CURRENT-TASK.md` (status, next step, blockers).
 - Append a dated entry to `.agent/HANDOFF.md`: who (which AI), what changed, files, checks run with results, what is next.
-- Record decisions in `DECISIONS.md` and user-visible changes in `CHANGELOG.md`.
+- Record decisions in `docs/08-change-management/DECISIONS.md` and user-visible changes in `CHANGELOG.md`.
 
 ## Where things live (one fact, one file)
 
 | What | File |
 |---|---|
-| The approved plan | `docs/PLAN.md` |
-| Product, features, phases and acceptance | `docs/01-PRD.md`, `docs/12-ROADMAP.md` |
-| Architecture, folders, stack | `docs/02-ARCHITECTURE.md` |
-| Database tables | `docs/03-DATA-MODEL.md` |
-| AI stages, models, guardrails | `docs/04-AI-PIPELINE.md`, `config/models.defaults.json` |
-| Prompts | `prompts/<stage>/<name>.v<N>.md`, index `docs/05-PROMPTS.md` |
-| Book structure and templates | `config/book-templates/`, `docs/06-EXPORT-SPEC.md` |
-| KDP facts and limits | `config/kdp-rules/`, `docs/07-KDP-RULES.md` (never from memory) |
-| Look and feel | `docs/08-DESIGN-GUIDE.md`, `packages/ui` |
-| Screens and flows | `docs/09-UX-FLOWS.md` |
+| The approved plan | `docs/08-change-management/plans/GEE-OS-REBUILD.md` |
+| Product, features, phases and acceptance | `docs/01-product/PRODUCT-SPEC.md`, `docs/01-product/ROADMAP.md` |
+| Architecture, folders, stack | `docs/02-architecture/ARCHITECTURE.md` |
+| Database tables | `docs/02-architecture/DATA-MODEL.md` |
+| AI stages, models, guardrails | `docs/02-architecture/AI-PIPELINE.md`, `config/models.defaults.json` |
+| Prompts | `prompts/<stage>/<name>.v<N>.md`, index `docs/book-production/PROMPTS.md` |
+| Book structure and templates | `config/book-templates/`, `docs/book-production/EXPORT-SPEC.md` |
+| KDP facts and limits | `config/kdp-rules/`, `docs/book-production/KDP-RULES.md` (never from memory) |
+| Look and feel | `docs/03-design/DESIGN-SYSTEM.md`, `packages/ui` |
+| Screens and flows | `docs/03-design/UX-SPEC.md` |
 | House writing style for books | `config/house-style.json` |
-| Security and privacy | `docs/10-SECURITY-PRIVACY.md` |
-| Tests | `docs/11-TESTING.md` |
-| Decisions and open issues | `DECISIONS.md`, `KNOWN-ISSUES.md` |
+| Security and privacy | `docs/05-security/SECURITY.md` |
+| Tests | `docs/06-quality/TEST-STRATEGY.md` |
+| Decisions and open issues | `docs/08-change-management/DECISIONS.md`, `KNOWN-ISSUES.md` |
 | AI test fixtures (mock provider) | `tests/fixtures/ai/` |
 | Owner's original drafts, nine notes (source material, not rules) | `docs/source-drafts/` |
 
 If two files disagree, stop and ask which is right, then fix both.
 
-## Stack (do not change without a DECISIONS.md entry and the owner's OK)
+## Stack (do not change without a docs/08-change-management/DECISIONS.md entry and the owner's OK)
 
 - npm workspaces monorepo, Node 26, TypeScript strict everywhere (no `any`, no `@ts-ignore`).
 - `apps/web`: Vite, React, React Router, Tailwind v4, motion/react, TanStack Query, TipTap (free extensions only).
@@ -45,6 +49,22 @@ If two files disagree, stop and ask which is right, then fix both.
 - `packages/core` (book model, parser, rules, checkers, KDP maths), `packages/ai` (OpenRouter client, registry, prompt loader), `packages/export` (PDF via Paged.js in Playwright, DOCX, EPUB, TXT, MD, covers, preflight, pack), `packages/ui` (design tokens and components).
 - AI: OpenRouter only, one key `OPENROUTER_API_KEY`, server side only. Model per stage from `config/models.defaults.json`, changeable by the owner in Settings.
 - Tests: Vitest, Playwright, golden files. Lint: ESLint and Prettier (D-023): `npm run lint` (ESLint flat config in `eslint.config.js`), `npm run format` and `npm run format:check` (`.prettierrc.json`, `.prettierignore`).
+
+## Commands
+
+Run each one through Mise (`mise exec -- <command>`) from the repo root. Scripts come from the root `package.json`; there is no root build script, so build per workspace.
+
+```sh
+npm run setup                 # setup
+npm run dev                   # dev: web 127.0.0.1:5180, API 127.0.0.1:5181
+npm run typecheck             # typecheck every workspace
+npm run lint                  # ESLint, whole repo
+npm run test                  # Vitest in every workspace
+npm run e2e                   # builds, then Playwright on 127.0.0.1:5311 and 5312
+npm run build -w apps/server  # build the API
+npm run build -w apps/web     # build the web app
+npm run doctor                # runtime, native modules, pinned Chromium
+```
 
 ## Working rules
 
@@ -76,3 +96,11 @@ Avoid: leverage, empower, showcase, transformative, impactful, cutting-edge, rev
 
 - Claude Code: subagents in `.claude/agents/`, skills in `.claude/skills/`, hooks in `.claude/settings.json`.
 - Codex and Gemini CLI: no hooks here, so follow the same rules by hand. The agent roles are: architect, frontend, backend, ai-prompts, export, reviewer, qa. Their scopes are listed in `.claude/agents/*.md`; read the one matching your task and follow it as instructions.
+
+
+## TypeScript requirement
+Application code must use TypeScript (.ts/.tsx), with React and Tailwind. Keep HTML limited to required build entries, generated output and archived design references. Preserve approved behaviour when migrating source.
+
+## Report location
+
+Keep audit, validation and completion reports in `../reports/volume/`, outside the project. Keep project instructions and setup guides here.

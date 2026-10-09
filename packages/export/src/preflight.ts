@@ -1,4 +1,4 @@
-// Preflight (docs/06-EXPORT-SPEC.md, Preflight): pass / warn / fail items before the upload pack is built.
+// Preflight (docs/book-production/EXPORT-SPEC.md, Preflight): pass / warn / fail items before the upload pack is built.
 import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import sharp from 'sharp';
 import {

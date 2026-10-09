@@ -25,7 +25,7 @@ describe('versioned humanizer guidance', () => {
   });
 
   it('indexes the selected version of every prompt, including JSON repair', () => {
-    const index = readFileSync(join(ROOT, 'docs/05-PROMPTS.md'), 'utf8');
+    const index = readFileSync(join(ROOT, 'docs/book-production/PROMPTS.md'), 'utf8');
     for (const latest of loader.latest()) {
       const relative = `../prompts/${latest.meta.id.replace('.', '/')}.v${latest.meta.version}.md`;
       expect(index, latest.meta.id).toContain(relative);

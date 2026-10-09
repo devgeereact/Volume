@@ -2,6 +2,24 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 7 October 2026
+
+### Added
+- GEE OS Full Product document hierarchy, preserved document history and explicit release gates.
+- Project-local Mise configuration, clean setup, runtime doctor and guarded standalone development launcher.
+- Linux/macOS CI matrix and launcher integration checks.
+
+### Fixed
+- Print PDFs made on Linux now wrap lines like those made on macOS (font hinting turned off in the export browser).
+- Book writing no longer stops when a reasoning model runs out of room while summarising a chapter: more room, a shorter summary prompt (v4) and a tested retry.
+- Documentation link checks pass on a fresh clone where the separate reports folder is absent.
+- Offline new-profile entry no longer repeats failed health requests when feature consumers mount.
+- Design generation handles spaces in project paths; screenshot checks are isolated from working APIs.
+- Public frontend fixtures are included in fresh checkouts under src/demo. The private-data ignore now applies only to root /data/.
+- React application composition now lives under src/app, with existing screen implementations organised under src/features. Product workflows and Tailwind styling are preserved.
+
+Rebuild candidate remains isolated. Mac execution and the existing Linux PDF reference discrepancy remain open.
+
 ## 6 October 2026
 
 ### Added
@@ -57,12 +75,12 @@ User-visible changes, newest first. Dates in British format.
 ## 4 October 2026
 
 ### Added
-- Volume workspace created at `~/Projects/volume` from the approved plan (`docs/PLAN.md`).
+- Volume workspace created at `~/Projects/volume` from the approved plan (`docs/08-change-management/plans/legacy-approved-plan.md`).
 - Rules for every AI assistant (`AGENTS.md`, with `CLAUDE.md` and `GEMINI.md` pointing to it) and the `.agent/` project card, current task and handoff log.
 - The owner's original drafts saved in `docs/source-drafts/` as source material.
-- KDP facts reference (`docs/reference-kdp-facts-2026-10-03.md`) and OFL fonts in `assets/fonts/`.
+- KDP facts reference (`docs/reference/reference-kdp-facts-2026-10-03.md`) and OFL fonts in `assets/fonts/`.
 - Specification docs: vision, product requirements, architecture, data model, AI pipeline, export spec, design guide foundations, screens and flows, security and privacy, testing, roadmap and glossary.
-- `README.md`, `DECISIONS.md` (D-001 to D-013) and `KNOWN-ISSUES.md`.
+- `README.md`, `docs/08-change-management/DECISIONS.md` (D-001 to D-013) and `KNOWN-ISSUES.md`.
 - Phase 0 build: specs in docs/, config and 27 prompts, Claude agents, skills and hooks, three design direction boards in design/directions/. Waiting for the owner's design choice.
 - Fused design direction "Volume" accepted (D-014): tokens in packages/ui, full design guide.
 - Clickable prototype of every screen in prototype/ (light and dark, mock data), with screenshot and smoke scripts. Phase 0 ready for owner review.
@@ -76,3 +94,24 @@ User-visible changes, newest first. Dates in British format.
 - Add dated KDP trim/page/margin/cover checks, correct cream-paper limits and large-trim cost selection, and retain barcode placement warnings.
 - Load heavy screens on demand, prepare mock-only GitHub checks and reconcile backup and project status documents.
 - Add regression/browser checks, verify EPUBCheck and record the synthetic long-book benchmark. Live AI, MySQL and manual publishing acceptance remain outstanding.
+
+## 7 October 2026: Linux runtime restoration (Codex)
+
+Installed project-local Mise Node 26.10.0 and added mise.toml to fulfil the existing Node >=26 requirement. Global Node remains 24.21.0. Clean workspace npm install from unchanged lockfile PASS; typecheck, lint, web/server builds and local HTTP/API SQLite health PASS. API/web stay loopback only because owner-only auth and explicit host/origin guards are part of the existing design. Core 75, AI 155 and server 189 tests PASS; export 86 PASS, one optional skip and one FAIL: PDF contents reference image mean difference 2.94352280521262 exceeds 1.5. The reference was not replaced and tolerance was not weakened. The Linux/reference images were inspected: layout is closely aligned but text rendering differs; exact cause remains unresolved. Mock browser integration results are recorded in the supplied migration report. MySQL and live AI generation NOT TESTED. No env files or private data files inspected, no commit or deployment. Earlier sandbox/network blockers are superseded.
+
+Next: review the PDF reference discrepancy separately; use ../start-projects.mjs for normal local startup. Existing publishing/live AI acceptance items above remain open.
+
+PASS: all five mock end-to-end scenarios completed on Linux (2.2 minutes). Export visual reference mismatch remains FAIL as recorded above.
+
+
+## 7 October 2026: complete PDF reference diagnostics
+Added the export workspace compare:pdf command to report every reference-page mismatch and public font/environment hashes without changing render settings or golden files. Linux visual acceptance remains FAIL. Added a shared Mac/Linux transfer and validation guide under Rebrand/MAC-LINUX.md. Evidence: ../reports/volume/qa/reports/PDF-INVESTIGATION-2026-10-07.md.
+
+## 7 October 2026, Codex fix follow-up
+
+PDF test reports all mismatches and refuses missing references; restart startup budget matches main server and targeted recovery PASS. PDF visual acceptance remains FAIL. See ../reports/volume/qa/reports/FOLLOW-UP-2026-10-07.md.
+
+
+## 7 October 2026: running-header correction
+
+Corrected suppressed small capitals in PDF running headers and added a rendered-PDF regression. Full visual parity remains FAIL; reference images and tolerance remain unchanged. Ornament rendering is intact, correcting the initial diagnostic suspicion. See ../reports/volume/qa/reports/PDF-SMALLCAPS-2026-10-07.md. Release remains PARTIAL/NO-GO; actual Mac execution is NOT TESTED.

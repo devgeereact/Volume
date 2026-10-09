@@ -5,7 +5,7 @@ description: Get any Amazon KDP number for Volume (trim sizes, bleed, margins, s
 
 # Volume KDP rules
 
-KDP facts come from one place: `config/kdp-rules/`. Not from memory, not from a blog, not from an old doc. `docs/07-KDP-RULES.md` explains them in prose and must agree with the config.
+KDP facts come from one place: `config/kdp-rules/`. Not from memory, not from a blog, not from an old doc. `docs/book-production/KDP-RULES.md` explains them in prose and must agree with the config.
 
 ## Find the current file
 
@@ -32,9 +32,9 @@ The procedure is in `config/kdp-rules/README.md` ("How to update"); follow it ex
 3. Change `value` or `values`, `unit`, `source`, `verifiedOn` and `status` (`confirmed`, `partial` or `unverified`, as defined in the file's `statusKey`). New facts go into a dated facts file in `docs/` with numbered entries, and `factId` points at them.
 4. If you cannot confirm a value on an official page, keep or set `status: "unverified"` with a `note` saying what is uncertain, and tell the owner. Unverified values are never printed as fact or used for a final calculation.
 5. Set `version`, `verifiedOn` and `recheckDue` (90 days after `verifiedOn`) at the top of the new file.
-6. Update `docs/07-KDP-RULES.md`, add a `CHANGELOG.md` line, and run the KDP maths tests (spine, wrap, royalty, printing cost worked examples). Report PASS or FAIL.
+6. Update `docs/book-production/KDP-RULES.md`, add a `CHANGELOG.md` line, and run the KDP maths tests (spine, wrap, royalty, printing cost worked examples). Report PASS or FAIL.
 
 ## Never
 
 - Never invent a number, round one differently, or "remember" a royalty rate or cover size.
-- Never take a number from `docs/reference-kdp-facts-2026-10-03.md` straight into code; it is the source material the config was built from. If the config lacks a fact that the reference has, add it through the steps above.
+- Never take a number from `docs/reference/reference-kdp-facts-2026-10-03.md` straight into code; it is the source material the config was built from. If the config lacks a fact that the reference has, add it through the steps above.

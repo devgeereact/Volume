@@ -1,4 +1,4 @@
-// TXT export in the owner's "====" format (docs/06-EXPORT-SPEC.md, TXT).
+// TXT export in the owner's "====" format (docs/book-production/EXPORT-SPEC.md, TXT).
 import { countWords, enabledSections, stripInline, wrapText, type Block, type BookDoc, type Section } from '@volume/core';
 
 export interface TxtOptions {

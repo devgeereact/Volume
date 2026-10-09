@@ -37,6 +37,21 @@ export function plainError(e: unknown): string {
   return "Something went wrong. Try again.";
 }
 
+/* ---------- Summary missing (owner decision, 7 October 2026) ---------- */
+
+/** Checker name of the blocking flag on saved text whose summary failed (apps/server/src/jobs/book-data.ts). */
+export const SUMMARY_MISSING_CHECKER = "summary_missing";
+
+/** A write_section job that only runs the summary again (payload.summaryOnly). It never rewrites the text. */
+export function isSummaryOnlyJob(j: { kind: string; payload: Record<string, unknown> }): boolean {
+  return j.kind === "write_section" && j.payload["summaryOnly"] === true;
+}
+
+/** The open summary_missing flag among a section's checks, or null. Resolved flags are ignored. */
+export function openSummaryFlag<C extends { checker: string; status: string }>(checks: readonly C[] | undefined): C | null {
+  return checks?.find((c) => c.checker === SUMMARY_MISSING_CHECKER && c.status === "open") ?? null;
+}
+
 /* ---------- Model, cost and guardrails (ApiRunInfo, ApiSection.guardrails) ---------- */
 
 /** Model and cost a research run, title set or blueprint version carries (null for owner edits). */
@@ -217,7 +232,8 @@ export function toSourceView(s: ApiResearchSource): SourceView {
 
 /* ---------- Writing ---------- */
 
-export type WriteRowStatus = "built" | "not-written" | "queued" | "writing" | "checking" | "paused" | "done" | "attention" | "failed" | "stopped";
+export type WriteRowStatus =
+  "built" | "not-written" | "queued" | "writing" | "checking" | "summarising" | "paused" | "done" | "attention" | "failed" | "stopped";
 
 /** Who writes a section: the app builds title pages, copyright, contents and About the author. */
 export function writtenByOf(section: ApiSection): WrittenBy | null {
@@ -271,6 +287,7 @@ export const writeStatusWords: Record<WriteRowStatus, string> = {
   queued: "Queued",
   writing: "Writing",
   checking: "Checking",
+  summarising: "Summarising",
   paused: "Paused",
   done: "Done",
   attention: "Needs a look",

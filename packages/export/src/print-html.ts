@@ -1,4 +1,4 @@
-// Book model -> print HTML and CSS for Paged.js (docs/06-EXPORT-SPEC.md, Print PDF).
+// Book model -> print HTML and CSS for Paged.js (docs/book-production/EXPORT-SPEC.md, Print PDF).
 import {
   DEFAULT_INTERIOR_THEME,
   enabledSections,
@@ -227,7 +227,7 @@ export function buildPrintHtml(book: BookDoc, theme: InteriorTheme, lib: FontLib
   const rightHeadCss = headFor(theme.runningHeads.right);
   const rhStyle =
     theme.runningHeads.style === 'small-caps'
-      ? 'font-variant: small-caps; letter-spacing: 0.06em;'
+      ? 'font-variant: small-caps; font-synthesis: small-caps; letter-spacing: 0.06em;'
       : theme.runningHeads.style === 'italic'
         ? 'font-style: italic;'
         : theme.runningHeads.style === 'caps'

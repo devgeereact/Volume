@@ -51,6 +51,8 @@ export const manuscriptApi = {
   writeBook: (bookId: string, input: { onlyEmpty?: boolean } = {}, o?: Opts) => api.post<AcceptedJob>(`/books/${seg(bookId)}/write`, input, o),
   writeSection: (sectionId: string, input: { instruction?: string } = {}, o?: Opts) => api.post<AcceptedJob>(`/sections/${seg(sectionId)}/write`, input, o),
   editPass: (sectionId: string, input: EditPassInput, o?: Opts) => api.post<AcceptedJob>(`/sections/${seg(sectionId)}/edit-pass`, input, o),
+  /** Summary rerun for a saved section whose summary failed (open summary_missing flag). The text is not rewritten. */
+  summarise: (sectionId: string, o?: Opts) => api.post<AcceptedJob>(`/sections/${seg(sectionId)}/summarise`, {}, o),
 
   /* author notes */
   addNote: (sectionId: string, input: NoteInput, o?: Opts) => api.post<ApiAuthorNote>(`/sections/${seg(sectionId)}/notes`, input, o),

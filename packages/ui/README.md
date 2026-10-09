@@ -1,6 +1,6 @@
 # packages/ui
 
-Design tokens for Volume, from the fused Volume direction (D-014, proposed). The rules behind every value are in `docs/08-DESIGN-GUIDE.md`, section "Visual direction". Shared React components come later; the prototype proves them first.
+Design tokens for Volume, from the fused Volume direction (D-014, accepted). The rules behind every value are in `docs/03-design/DESIGN-SYSTEM.md`, section "Visual direction". Shared React components come later; the prototype proves them first.
 
 ## Files
 

@@ -1,4 +1,4 @@
-// EPUB 3 export (docs/06-EXPORT-SPEC.md, EPUB 3): mimetype first and stored, container, OPF, nav with contents and
+// EPUB 3 export (docs/book-production/EXPORT-SPEC.md, EPUB 3): mimetype first and stored, container, OPF, nav with contents and
 // landmarks, one XHTML file per section, one reflowable CSS file, optional cover image and embedded fonts.
 
 import { createHash } from 'node:crypto';

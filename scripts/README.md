@@ -1,5 +1,9 @@
-# scripts
+# Portable development scripts
 
-`dev.mjs` starts the server on 127.0.0.1:5181 and web app on 127.0.0.1:5180; `npm run dev` invokes it. Ctrl C stops both processes it started.
+- setup.mjs: clean npm lockfile install, pinned Playwright browser installation and prerequisite checks.
+- doctor.mjs: runtime/native/browser prerequisites; --ports checks explicit loopback sockets. Never reads .env or data/.
+- runtime.mjs: shared root, runtime and port validation.
+- dev.mjs: standalone web/API startup with process-group shutdown and failure propagation.
+- check-docs.mjs: local Markdown file-link validation, excluding protected paths and source drafts. Links into ../reports/volume are checked only when that folder exists, so fresh clones and CI still pass.
 
-There are no root seed, backup or verify-env helper scripts. Use server workspace commands for migration and profile seeding, and the Settings backup controls. See [server commands](../apps/server/README.md) and [backup/restore](../docs/BACKUP-RESTORE.md). Do not print environment values.
+Use the root npm scripts through Mise. See [setup](../docs/07-operations/SETUP.md), [development](../docs/07-operations/DEVELOPMENT.md) and [recovery](../docs/07-operations/BACKUP-RECOVERY.md). No new root seed/backup command is introduced; use existing server workspace migrations and Settings recovery controls.

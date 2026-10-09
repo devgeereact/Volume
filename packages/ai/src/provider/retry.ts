@@ -3,7 +3,7 @@ import { AbortedError, AiError } from '../errors.ts';
 export interface RetryOptions {
   /** Retries after the first attempt (default 3). */
   maxRetries?: number | undefined;
-  /** Delay before each retry in ms (default 2 s, 10 s, 60 s, per docs/04-AI-PIPELINE.md). */
+  /** Delay before each retry in ms (default 2 s, 10 s, 60 s, per docs/02-architecture/AI-PIPELINE.md). */
   delaysMs?: number[] | undefined;
   /** Random extra delay as a fraction of the delay (default 0.2). */
   jitter?: number | undefined;

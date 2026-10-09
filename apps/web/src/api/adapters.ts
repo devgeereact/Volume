@@ -8,7 +8,7 @@
    list, null, 0) and never invents content. Those fields are listed in api/README.md under
    "Gaps". Times arrive as epoch milliseconds and leave as ISO strings. */
 
-import { getProfile, STAGE_IDS, type AuthorProfile, type ModelStageId, type ProfileBioStatus, type ProfilePublishing, type ProfileVoice } from "../data/config";
+import { getProfile, STAGE_IDS, type AuthorProfile, type ModelStageId, type ProfileBioStatus, type ProfilePublishing, type ProfileVoice } from "../demo/config";
 import type {
   Book,
   ClaimToVerify,
@@ -20,7 +20,7 @@ import type {
   StageId,
   TemplateId,
   TitleOption,
-} from "../data/types";
+} from "../demo/types";
 import type {
   ApiBlueprintVersion,
   ApiBook,
@@ -428,6 +428,8 @@ export function toSectionStatus(s: ApiSection): SectionStatus {
 
 const PREFLIGHT_AREAS: Record<string, PreflightItem["area"]> = {
   manuscript: "Manuscript",
+  // Section checks on the body text, for example a chapter whose summary failed (body.summary-missing.<sectionId>).
+  body: "Manuscript",
   claims: "Manuscript",
   listing: "Listing",
   metadata: "Listing",

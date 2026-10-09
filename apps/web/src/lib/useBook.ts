@@ -5,9 +5,9 @@ import type { ApiBookDetail } from "../api/types";
 import { queryKeys, useBook as useApiBook, useProfile } from "../api/hooks";
 import { toPenName, toPrototypeBook } from "../api/adapters";
 import { useDataSourceState } from "../api/source";
-import { getBook } from "../data/books";
-import { getPenName } from "../data/penNames";
-import type { Book, PenName } from "../data/types";
+import { getBook } from "../demo/books";
+import { getPenName } from "../demo/penNames";
+import type { Book, PenName } from "../demo/types";
 
 export interface BookLookup {
   /** The book in the URL, from the demo data or (in API mode) mapped from the server. */

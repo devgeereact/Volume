@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { handoverJob } from "../data/writingJob";
-import type { WritingJob } from "../data/types";
+import { handoverJob } from "../demo/writingJob";
+import type { WritingJob } from "../demo/types";
 
 /* Mock of the one live writing job (Handover). It streams the current paragraph chunk by chunk
    (at most every 250 ms in the real app; slower here so it reads calmly), and counts words and cost.

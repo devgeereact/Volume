@@ -2,8 +2,8 @@ import { Link, useLocation } from "react-router";
 import { useBook as useServerBook, useProfile } from "../api/hooks";
 import { useWireMode } from "../api/wire-a";
 import { ChevronRight } from "lucide-react";
-import { getBook } from "../data/books";
-import { getPenName } from "../data/penNames";
+import { getBook } from "../demo/books";
+import { getPenName } from "../demo/penNames";
 import { screens, settingsTabs } from "../screens";
 
 interface Crumb {

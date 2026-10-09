@@ -1,10 +1,10 @@
 # apps/web: the Volume app screens
 
-Vite, React, TypeScript strict, React Router, Tailwind v4, motion/react and TanStack Query. Moved here from `prototype/` on 5 October 2026. Talks only to `apps/server` over `/api/v1` (client in `src/api/`, see its README); never holds an API key. When the server is off, screens fall back to the demo data in `src/data/`. Dev and preview both run on 127.0.0.1:5180; the server owns 5181.
+Vite, React, TypeScript strict, React Router, Tailwind v4, motion/react and TanStack Query. Moved here from `prototype/` on 5 October 2026. Talks only to `apps/server` over `/api/v1` (client in `src/api/`, see its README); never holds an API key. When the server is off, screens fall back to the demo data in `src/demo/`. Dev and preview both run on 127.0.0.1:5180; the server owns 5181.
 
 ## Live and demo modes
 
-The app has API-backed screens and a demo fallback. It began as the phase 0 prototype. It follows the fused Volume direction (D-014): `docs/08-DESIGN-GUIDE.md`, the tokens in `packages/ui`, and the board at `design/final/volume-direction.html`. Its shared components now support the built application.
+The app has API-backed screens and a demo fallback. It began as the phase 0 prototype. It follows the fused Volume direction (D-014): `docs/03-design/DESIGN-SYSTEM.md`, the tokens in `packages/ui`, and the board at `design/final/volume-direction.html`. Its shared components now support the built application.
 
 The shell shows a "Demo data" badge in fallback mode. API mode uses the local server for stored books, jobs and exports. The browser never reads the key or calls OpenRouter directly.
 
@@ -69,49 +69,49 @@ apps/web/
     data/                  typed mock data (index.ts re-exports everything)
     lib/                   hooks and providers: theme, toast, job, pen name, command menu, focus trap, format, motion
     shell/                 app shell: Spine, TopBar, CommandPalette, JobBar, BookLayout, ScreenPlaceholder, NotFound
-    routes/<screen>/       one folder per screen (see ownership)
+    features/<screen>/       one folder per screen (see ownership)
 ```
 
 ## Historical screen ownership
 
 The three screen agents have finished. Since the integration pass (4 October 2026) one owner holds the whole of `apps/web/`; the table below is kept for the next time screens are built in parallel.
 
-| Owner | Folders under `src/routes/` | Screens |
+| Owner | Folders under `src/features/` | Screens |
 |---|---|---|
 | Agent A | `library/`, `profiles/`, `settings/`, `archive/` | Library, Profiles, Profile editor, Settings, Archive |
 | Agent B | `new-book/`, `research/`, `titles/`, `blueprint/` | New book wizard, Research, Titles, Blueprint |
 | Agent C | `writing/`, `editor/`, `cover/`, `export/`, `marketing/` | Writing, Editor, Cover studio, Export, Marketing |
-| Foundation | everything else in `src/` (`components/ui`, `shell`, `lib`, `data`, `styles`, `App.tsx`, `screens.ts`), `scripts/` | Shell, shared components, mock data, style guide (`routes/components/`) |
+| Foundation | everything else in `src/` (`components/ui`, `shell`, `lib`, `demo`, `styles`, `App.tsx`, `screens.ts`), `scripts/` | Shell, shared components, mock data, style guide (`features/components/`) |
 
 Rules:
 
-- Each screen agent edits only its own route folders. Screen-only components go in that folder (for example `routes/blueprint/OutlineRail.tsx`).
+- Each screen agent edits only its own route folders. Screen-only components go in that folder (for example `features/blueprint/OutlineRail.tsx`).
 - Keep the default export of each page file; `App.tsx` imports it.
 - Need a change to a shared component, the shell or the data? Ask the foundation owner, or add a new file in your folder and say so in your report. Do not fork a shared component.
-- New mock data that only one screen needs can live in that screen's folder; data two screens share belongs in `src/data/`.
+- New mock data that only one screen needs can live in that screen's folder; data two screens share belongs in `src/demo/`.
 
 ## Routes
 
 | Route | Screen | File |
 |---|---|---|
-| `/` and `/library` | Library (covers view; `?view=ledger` for the ledger table) | `routes/library/LibraryPage.tsx` |
-| `/published` | Published shelf: books live on Amazon, grouped by month, with formats, list prices and dates | `routes/published/PublishedPage.tsx` (foundation) |
-| `/profiles` | Profiles | `routes/profiles/ProfilesPage.tsx` |
-| `/profiles/:profileId` (`/profiles/new` to add) | Profile editor (tabs Identity, Voice DNA, Publishing defaults, Models, Memory) | `routes/profiles/ProfileEditorPage.tsx` |
-| `/books/new` | New book wizard | `routes/new-book/NewBookPage.tsx` |
+| `/` and `/library` | Library (covers view; `?view=ledger` for the ledger table) | `features/library/LibraryPage.tsx` |
+| `/published` | Published shelf: books live on Amazon, grouped by month, with formats, list prices and dates | `features/published/PublishedPage.tsx` (foundation) |
+| `/profiles` | Profiles | `features/profiles/ProfilesPage.tsx` |
+| `/profiles/:profileId` (`/profiles/new` to add) | Profile editor (tabs Identity, Voice DNA, Publishing defaults, Models, Memory) | `features/profiles/ProfileEditorPage.tsx` |
+| `/books/new` | New book wizard | `features/new-book/NewBookPage.tsx` |
 | `/new-book` | Redirects to `/books/new` | `App.tsx` |
-| `/books/:bookId` | Opens the book at its current step | `routes/books/BookIndexRedirect.tsx` |
-| `/books/:bookId/research` | Research | `routes/research/ResearchPage.tsx` |
-| `/books/:bookId/titles` | Titles | `routes/titles/TitlesPage.tsx` |
-| `/books/:bookId/blueprint` | Blueprint | `routes/blueprint/BlueprintPage.tsx` |
-| `/books/:bookId/writing` | Writing | `routes/writing/WritingPage.tsx` |
-| `/books/:bookId/editor/:sectionId?` | Editor | `routes/editor/EditorPage.tsx` |
-| `/books/:bookId/cover` | Cover studio | `routes/cover/CoverPage.tsx` |
-| `/books/:bookId/export` | Export | `routes/export/ExportPage.tsx` |
-| `/books/:bookId/marketing` | Marketing | `routes/marketing/MarketingPage.tsx` |
-| `/settings/:tab?` | Settings, see the tabs below | `routes/settings/SettingsPage.tsx` |
-| `/archive` | Archive | `routes/archive/ArchivePage.tsx` |
-| `/components` | Living style guide, both themes | `routes/components/ComponentsPage.tsx` |
+| `/books/:bookId` | Opens the book at its current step | `features/books/BookIndexRedirect.tsx` |
+| `/books/:bookId/research` | Research | `features/research/ResearchPage.tsx` |
+| `/books/:bookId/titles` | Titles | `features/titles/TitlesPage.tsx` |
+| `/books/:bookId/blueprint` | Blueprint | `features/blueprint/BlueprintPage.tsx` |
+| `/books/:bookId/writing` | Writing | `features/writing/WritingPage.tsx` |
+| `/books/:bookId/editor/:sectionId?` | Editor | `features/editor/EditorPage.tsx` |
+| `/books/:bookId/cover` | Cover studio | `features/cover/CoverPage.tsx` |
+| `/books/:bookId/export` | Export | `features/export/ExportPage.tsx` |
+| `/books/:bookId/marketing` | Marketing | `features/marketing/MarketingPage.tsx` |
+| `/settings/:tab?` | Settings, see the tabs below | `features/settings/SettingsPage.tsx` |
+| `/archive` | Archive | `features/archive/ArchivePage.tsx` |
+| `/components` | Living style guide, both themes | `features/components/ComponentsPage.tsx` |
 | anything else | Page not found | `shell/NotFound.tsx` |
 
 Settings tabs, in screen order (`settingsTabs` in `screens.ts`; Settings, the breadcrumbs and this table read it). `/settings` opens the first one; the others are `/settings/<id>`, and an unknown id redirects to `/settings`.
@@ -228,7 +228,7 @@ See every one in both themes at `/components`.
 - `useBreakpoint()`: phone, tablet or laptop (640 and 1024 px).
 - `lib/format.ts`: `formatModel(slug)` ("Claude Sonnet (latest)") and `describeModel(slug)` (`name`, `provider`, `slug`, `latestAlias`), `formatGbp` ("£8.99", KDP prices), `formatMonthYear`, `formatNumber`, `formatUsd`, `formatDate`, `formatDayMonth`, `formatTime`, `formatRelative` (relative to the demo's today, 4 October 2026), `formatDuration`, `formatWordsOf`, `formatPerMillion`, `formatContext`.
 
-## Mock data (`src/data`, import from `../../data`)
+## Mock data (`src/demo`, import from `../../demo`)
 
 | Module | Exports |
 |---|---|
@@ -244,7 +244,7 @@ See every one in both themes at `/components`.
 | `models.ts` | `models` with example prices, `stageDefaults` (from `config/models.defaults.json`), `getModel`, `examplePricesNote` |
 | `exportPack.ts` | `sourdoughExport`: preflight (2 warnings), formats, royalty lines with `config/kdp-rules` rule ids |
 | `marketing.ts` | `handoverMarketing`: 3 TikTok scripts with hooks, 2 Instagram captions, 1 launch email |
-| `workspace.ts` | `workspace` (OpenRouter status, October spend $4.82 of $40, backups in `~/Projects/volume/data/backups` as in `docs/02-ARCHITECTURE.md`, house style, KDP rules), `archivedItems` |
+| `workspace.ts` | `workspace` (OpenRouter status, October spend $4.82 of $40, backups in `~/Projects/volume/data/backups` as in `docs/02-architecture/ARCHITECTURE.md`, house style, KDP rules), `archivedItems` |
 
 Rules for mock data: realistic, British English, no lorem ipsum, no invented statistics, studies, quotes or reviews; sources are example.org placeholders marked mock; prices are labelled example prices.
 
