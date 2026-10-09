@@ -2,6 +2,12 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 9 October 2026
+
+### Fixed
+- The local launcher forwards a non-default `VOLUME_WEB_PORT` loopback origin to the API as `WEB_ORIGINS`, unless `WEB_ORIGINS` is already set, so an alternative web port is accepted by the API.
+- WebStorm `.idea/` project settings are ignored.
+
 ## 7 October 2026
 
 ### Added

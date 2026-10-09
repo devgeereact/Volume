@@ -32,6 +32,8 @@ try {
   const { ports } = await doctor({ ports: true });
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   const env = { ...process.env, PORT: String(ports.api), HOST: '127.0.0.1', VOLUME_API_PORT: String(ports.api) };
+  // A non-default web port needs its loopback origin allowed by the API, unless the caller set WEB_ORIGINS.
+  if (ports.web !== 5180 && !env.WEB_ORIGINS) env.WEB_ORIGINS = `http://127.0.0.1:${ports.web},http://localhost:${ports.web}`;
   const parts = [
     { name: 'server', args: ['run', 'dev', '-w', 'apps/server'] },
     { name: 'web', args: ['run', 'dev', '-w', 'apps/web', '--', '--host', '127.0.0.1', '--port', String(ports.web), '--strictPort'] },

@@ -238,3 +238,8 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
 - Root cause of the free-run writing failure: the summarise stage had 4,000 output tokens (8,000 on retry) and reasoning models spent most of it thinking. The v3 prompt also let the answer grow with every chapter.
 - Decision: summarise `maxTokens` 16,000 (32,000 on the single retry) with `expectedOutputTokens` 1,500 so budget estimates stay as before. Prompt `checks.summarise-and-ledger.v4` caps item counts and length; v3 remains for pinned books.
 - Open for the owner: whether the server should save a chapter when its summary still fails, rather than failing the job. Live confirmation needs an authorised free-model run.
+
+## D-036, 9 October 2026: forward an alternative web origin to the API
+
+- Context: an existing SSH tunnel can own the default web port 5180, so the launcher accepts `VOLUME_WEB_PORT` (from D-032). The API only allowed the 5180 origins by default.
+- Decision: when the selected web port is not 5180 and `WEB_ORIGINS` is not set, the launcher passes `http://127.0.0.1:<port>,http://localhost:<port>` to the API. An explicit `WEB_ORIGINS` always wins. No running process is stopped.

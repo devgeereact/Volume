@@ -39,6 +39,14 @@ mise exec -- npm run doctor
 mise exec -- npm run dev  # API 5181, web 5180, loopback only
 ```
 
+If another process, including an SSH tunnel, owns port 5180, leave it running and explicitly choose a free web port:
+
+```bash
+VOLUME_WEB_PORT=5182 npm run dev
+```
+
+The launcher forwards this port to Vite and allows its loopback origin on the local API. If you set `WEB_ORIGINS` yourself, include the chosen origin there. The API port remains unchanged.
+
 Checks before you hand work on:
 
 ```bash
