@@ -289,3 +289,10 @@ Checks (Linux, Mise, Chromium 1243): `npx eslint apps/server` PASS, `npm run lin
 Not tested: macOS, remote CI, live AI, KDP upload, MySQL, test:tooling, coverage. No commit, push, env or data access.
 
 Next: owner decides on the summary-missing behaviour and the `checks.maxTokens` 8000 to 16000 change, then records a decision and CHANGELOG entry.
+
+## 2026-10-14, Claude Code (claude-opus-5-5)
+- What changed: ran the macOS verification gate on the owner's Mac and confirmed remote CI; records only, no source change.
+- Files: KNOWN-ISSUES.md, .agent/CURRENT-TASK.md, .agent/HANDOFF.md.
+- Checks (Homebrew Node 26.8.1, no Mise): doctor PASS, typecheck PASS, lint PASS, format:check PASS, docs:check PASS, hooks:test 83 PASS, test PASS (core 75, AI 161, export 87 + 1 skip, server 195 + 1 skip), compare:pdf PASS 4 of 4 (darwin), server and web build PASS, e2e 7 of 7 PASS. gh run 37995263944 (main): macos-latest and ubuntu-latest success.
+- Not tested: live AI, KDP upload, MySQL. Owner dev server on 5180/5181 left untouched.
+- Next: owner decision record for summary-missing behaviour, then authorised free-model live writing run.
