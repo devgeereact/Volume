@@ -21,8 +21,10 @@ jobs:
       OPENROUTER_API_KEY: ""
       RESOLVE_SOURCE_REDIRECTS: "false"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "26.10.0"
           cache: npm
@@ -40,3 +42,62 @@ jobs:
       - run: npm run test:coverage
       - run: npm run build -w apps/web
       - run: npm run e2e
+
+  # The cPanel host runs Passenger on Node 24.21 with MariaDB (D-037, D-038). This job proves the code, the MySQL
+  # path and the release folder on that runtime. Development and the matrix above stay on Node 26.
+  node24-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci-root-only
+          MARIADB_DATABASE: volume_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      VOLUME_LOAD_ENV: "false"
+      AI_PROVIDER: mock
+      OPENROUTER_API_KEY: ""
+      RESOLVE_SOURCE_REDIRECTS: "false"
+      MYSQL_TEST_URL: mysql://root:ci-root-only@127.0.0.1:3306/volume_test?ssl=off
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.21.0"
+          cache: npm
+      - run: npm ci --include=optional
+      - run: node node_modules/playwright/cli.js install --with-deps chromium
+      - run: npm run doctor
+      - run: npm run test:tooling
+      - run: npm run typecheck
+      - run: npm run test
+      - name: Release folder installs without dev dependencies and boots on MariaDB
+        run: |
+          npm run build:release
+          cd build/release
+          npm ci --omit=dev --no-audit --no-fund
+          test ! -e node_modules/better-sqlite3
+          sudo apt-get install -y -qq mariadb-client >/dev/null
+          mariadb -h127.0.0.1 -uroot -pci-root-only -e "CREATE DATABASE volume_prod; CREATE USER 'vol_app'@'%' IDENTIFIED BY 'ci-app'; GRANT SELECT, INSERT, UPDATE, DELETE ON volume_prod.* TO 'vol_app'@'%';"
+          export NODE_ENV=production DB_CLIENT=mysql MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_DATABASE=volume_prod
+          export MYSQL_USER=vol_app MYSQL_PASSWORD=ci-app MYSQL_MIGRATE_USER=root MYSQL_MIGRATE_PASSWORD=ci-root-only
+          export AUTH_MODE=clerk APP_ORIGIN=https://volume.example.com CLERK_ALLOWED_USER_IDS=user_ci
+          export CLERK_PUBLISHABLE_KEY="pk_test_$(printf 'clerk.example.com$' | base64)" CLERK_SECRET_KEY=sk_test_ci_placeholder
+          export DATA_DIR="$RUNNER_TEMP/volume-data" PORT=5400 LOG_LEVEL=warn
+          node server/migrate.mjs
+          node app.cjs &
+          pid=$!
+          for i in $(seq 1 40); do curl -fs -H 'host: volume.example.com' http://127.0.0.1:5400/api/health && break; sleep 0.5; done
+          test "$(curl -s -H 'host: volume.example.com' http://127.0.0.1:5400/api/health)" = '{"status":"ok"}'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'host: volume.example.com' http://127.0.0.1:5400/api/v1/books)" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'host: volume.example.com' http://127.0.0.1:5400/)" = 200
+          kill -TERM "$pid"
+          wait "$pid"
