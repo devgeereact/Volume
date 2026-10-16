@@ -12,7 +12,7 @@ mise exec -- npm run doctor
 mise exec -- npm run dev
 ```
 
-Node is pinned locally to 26.10.0. The global runtime is unchanged. Setup runs npm ci with optional native dependencies and installs the project's pinned Playwright Chromium, then checks runtime/native modules. The lockfile is not rewritten. Do not substitute Yarn or pnpm. An existing dependency folder is replaced by npm ci; keep source edits outside node_modules.
+Node is pinned locally to 26.10.0 for development. The code also runs on Node 24.11 or later, which the cPanel host uses (24.21, D-037). The global runtime is unchanged. Setup runs npm ci with optional native dependencies and installs the project's pinned Playwright Chromium, then checks runtime/native modules. The lockfile is not rewritten. Do not substitute Yarn or pnpm. An existing dependency folder is replaced by npm ci; keep source edits outside node_modules.
 
 macOS and Linux use the same commands. On Linux, Chromium may require system libraries. The script does not install system packages or run sudo. If browser launch fails, follow Playwright's current Linux prerequisites or have the administrator provision those libraries, then rerun the browser tests. On macOS, use the supported Chromium package for that machine's architecture.
 

@@ -1,3 +1,3 @@
 # Production check
 
-NOT TESTED. No production environment was modified or deployed by this task. Host, credentials, MySQL, backup destination, monitoring and public authentication require separate confirmation before production work.
+NOT TESTED on the host. The code, release folder and settings for https://volume.gakinz.com are ready (D-037 to D-039) and proven locally: the release installs with `npm ci --omit=dev` on Node 24.21, boots against MariaDB with a runtime-only user, answers `/api/health`, refuses unsigned API calls and serves the web app with its security headers. Deploying, the Clerk application, database users, Chromium on the host and the cron keep-alive are the lead agent's steps, with the owner's approval. Use the post-deploy checks in [deployment](../07-operations/DEPLOYMENT.md) and record the results here.

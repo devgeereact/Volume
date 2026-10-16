@@ -12,22 +12,25 @@ npm run build -w apps/server      # tsc to dist/
 npm run start -w apps/server      # node dist/index.js
 npm run typecheck -w apps/server
 npm run test -w apps/server       # vitest, SQLite in memory
-npm run migrate -w apps/server    # apply migrations to the configured database
+npm run migrate -w apps/server    # apply migrations (as MYSQL_MIGRATE_USER on MySQL when set)
+npm run migrate:status -w apps/server   # list pending migrations, change nothing
+npm run db:copy-to-mysql -w apps/server -- --from <file.sqlite>   # one-off library copy (docs/07-operations/DEPLOYMENT.md)
 npm run seed -w apps/server       # copy config/profiles/*.json into the database (new ones only)
 ```
 
-On start the server migrates the database (`AUTO_MIGRATE`), creates the single owner user and workspace if missing, seeds profiles from `config/profiles/` and starts the job runner.
+On start the server migrates the database (`AUTO_MIGRATE`; off in production, where it refuses to start while migrations are pending), creates the single owner user and workspace if missing, seeds profiles from `config/profiles/` and starts the job runner.
 
 ## Environment
 
-Read from the root `.env` with dotenv (quietly, never printed). A blank line such as `MYSQL_HOST=` counts as unset. Names only:
+Read from the root `.env` (or the file named by `VOLUME_ENV_FILE`) with dotenv (quietly, never printed); values already in the environment win. Full list of names: the root `.env.example`. A blank line such as `MYSQL_HOST=` counts as unset. Names only:
 
 | Name | Default | Meaning |
 |---|---|---|
 | `DB_CLIENT` | `sqlite` | `sqlite` or `mysql` |
 | `SQLITE_PATH` | `data/volume.sqlite` | Relative to the repo root |
-| `MYSQL_HOST`, `MYSQL_PORT` (3306), `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` | | cPanel database |
-| `MYSQL_SSL` | `verify` | `verify` (TLS, certificate checked) or `off` |
+| `MYSQL_HOST`, `MYSQL_PORT` (3306), `MYSQL_SOCKET`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` | | cPanel database, runtime user (SELECT, INSERT, UPDATE, DELETE) |
+| `MYSQL_MIGRATE_USER`, `MYSQL_MIGRATE_PASSWORD` | | Migration user, read only by the migrate and copy commands |
+| `MYSQL_SSL` | `off` for localhost or a socket, else `verify` | `verify` (TLS, certificate checked) or `off` |
 | `MYSQL_SSL_CA` | | Optional path to a CA certificate (PEM) when the host uses a private CA |
 | `MYSQL_CONNECTION_LIMIT` | `5` | Pool size |
 | `HOST`, `PORT` | `127.0.0.1`, `5181` | Any other host is refused at start-up |
@@ -35,7 +38,15 @@ Read from the root `.env` with dotenv (quietly, never printed). A blank line suc
 | `LOG_LEVEL` | `info` | `silent` turns logging off |
 | `MAX_JSON_BYTES` | 2 MB | JSON body limit |
 | `MAX_UPLOAD_BYTES` | 50 MB | Upload limit |
-| `JOBS_ENABLED`, `AUTO_MIGRATE` | `true` | |
+| `JOBS_ENABLED`, `AUTO_MIGRATE` | `true` (`AUTO_MIGRATE` false in production) | |
+| `NODE_ENV` | | `production` on the host: needs `APP_ORIGIN` and Clerk, refuses `AUTH_MODE=local` |
+| `AUTH_MODE` | `local` (`clerk` in production) | `local` stub or Clerk sessions (D-039) |
+| `APP_ORIGIN`, `ALLOWED_HOSTS` | | Public origin; Host values answered (default the origin's host) |
+| `TRUST_PROXY` | on in production | Proxy headers and `CF-Connecting-IP` for the visitor IP |
+| `RATE_LIMIT_MAX`, `RATE_LIMIT_WRITE_MAX`, `RATE_LIMIT_HEALTH_MAX` | 600, 120, 30 | Per visitor IP per minute |
+| `WEB_DIST_DIR` | `web/` when present | Built web app served with an SPA fallback |
+| `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_JWT_KEY` | | Clerk keys; the secret and JWT key stay inside the verifier |
+| `OWNER_EMAILS`, `CLERK_ALLOWED_USER_IDS` | | Allowlist (at least one in Clerk mode) |
 | `AI_PROVIDER` | `auto` | `mock`, `openrouter` or `auto`. See AI provider below |
 | `OPENROUTER_API_KEY` | | Passed to `@volume/ai` only. Never logged, never returned. A blank value counts as no key |
 | `EXPORT_PROVIDER` | `volume` | `volume` (real files from `@volume/export`) or `mock` (placeholders marked MOCK). See Export provider below |
@@ -86,14 +97,14 @@ How the real adapter works:
 
 ## Workspace packages
 
-`@volume/ai`, `@volume/core` and `@volume/export` ship TypeScript sources with `.ts` import paths. The server imports them statically and type-checks them: `tsconfig.json` sets `allowImportingTsExtensions` with `rewriteRelativeImportExtensions` (TypeScript 5.7 and later, including 7). The package files are resolved through `node_modules` symlinks, so `tsc` checks them but does not emit them into `dist/`. At run time plain `node dist/index.js` loads them as `.ts` files: their real paths are outside `node_modules`, so Node 26 strips their types. That only works while the packages use erasable syntax (no enums, no parameter properties); `packages/core` and `packages/export` set `erasableSyntaxOnly` for that reason.
+`@volume/ai`, `@volume/core` and `@volume/export` ship TypeScript sources with `.ts` import paths. The server imports them statically and type-checks them: `tsconfig.json` sets `allowImportingTsExtensions` with `rewriteRelativeImportExtensions` (TypeScript 5.7 and later, including 7). The package files are resolved through `node_modules` symlinks, so `tsc` checks them but does not emit them into `dist/`. At run time plain `node dist/index.js` loads them as `.ts` files: their real paths are outside `node_modules`, so Node (24.11 and later) strips their types. The release build bundles them with esbuild instead (`scripts/build-release.mjs`). That only works while the packages use erasable syntax (no enums, no parameter properties); `packages/core` and `packages/export` set `erasableSyntaxOnly` for that reason.
 
 ## Layout
 
 ```
 src/
   index.ts            start-up: config, migrate, owner, seed, listen
-  app.ts              Fastify instance, Host and Origin guards, auth stub, routes, runner
+  app.ts              Fastify instance, rate limit, Host and Origin guards, auth, public health, web app, routes, runner
   config/             env (zod), repo root, read-only catalogues from ROOT/config
   db/                 Kysely per dialect, typed Database interface, migrations, migrate CLI
   repos/              one repository per aggregate; every query filters by workspace_id
@@ -101,7 +112,7 @@ src/
   jobs/               queue (claim, heartbeat, retry, parent and child, resume, cancel, pause), runner, handlers
   sse/                event bus (job_events) and the text/event-stream writer with Last-Event-ID replay
   files/              blob store: assets plus asset_chunks (1 MB, sha256), streamed in and out
-  auth/               request context and the stub provider (one owner, one workspace)
+  auth/               request context, the local stub provider and the Clerk provider (clerk.ts)
   ports/              AiPort and ExportPort, plus the zod schemas the server checks AI output against
   adapters/           OpenRouter AI (@volume/ai), Volume export (@volume/export), mock AI and mock export
   seed/               profile seeding from config/profiles
@@ -110,7 +121,7 @@ test/                 vitest suites (SQLite in memory; MySQL only with MYSQL_TES
 
 ## Request flow
 
-1. `onRequest`: the Host header must be `127.0.0.1:5181`, `localhost:5181` or a web origin host (DNS rebinding guard, 421 otherwise). Writes with an `Origin` header must come from an allowed origin (403). The auth stub attaches `ctx = { workspaceId, userId, role }`.
+1. `onRequest`: rate limit per visitor IP (429). The Host header must be an allowed host: `127.0.0.1:5181`, `localhost:5181` or a web origin host in development, the `APP_ORIGIN` host in production (DNS rebinding guard, 421 otherwise). Writes with an `Origin` header must come from an allowed origin (403). For `/api` paths except `/api/health`, the auth provider attaches `ctx = { workspaceId, userId, role }`: the stub locally, Clerk in production (401 without a session, 403 off the allowlist).
 2. Bodies are JSON only (the `text/plain` parser is removed, so cross-site form posts get 415). Uploads take a raw body on `POST /assets` only.
 3. Routes validate params, query and body with zod and call repositories with `ctx`.
 4. Long work (any AI call, covers, exports) enqueues a job and returns `202 { jobId, job }`. Progress arrives over SSE.

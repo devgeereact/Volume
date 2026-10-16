@@ -1,12 +1,14 @@
 # Known issues and open questions
 
-Updated 14 October 2026 (rows rechecked; first written 6 October after the local correction pass). Evidence and original findings: [project review](../reports/volume/qa/reports/PROJECT-REVIEW-2026-10-06.md).
+Updated 16 October 2026 (rows rechecked; first written 6 October after the local correction pass). Evidence and original findings: [project review](../reports/volume/qa/reports/PROJECT-REVIEW-2026-10-06.md).
 
 | Item | Remaining work | Status |
 |---|---|---|
 | Humanizer live acceptance | New versions of all 32 prompts pass mock integration, server and browser checks. Actual prose quality needs a fresh authorised live run after the owner reloads/restarts the existing server. Earlier free-route errors remain unresolved. | NOT TESTED live |
 | Live AI acceptance | Owner approved free-only testing. Live titles and three-chapter blueprint pass on Nvidia; full writing failed on summary truncation with both tested Nvidia summary models (fix in D-035: larger summary budget and prompt v4, mock tests PASS, live rerun NOT TESTED). Both requested Gemma routes returned upstream invalid-key errors. Recorded cost zero. Production-model quality, research citations and AI covers remain unverified. [Free validation](../reports/volume/qa/reports/FREE-AI-VALIDATION-2026-10-06.md). | PARTIAL |
-| MySQL on cPanel | Deferred by owner. When resumed, supply a disposable test environment and verify TLS, complete migrations, jobs/files and restore before production migration. | NOT TESTED, deferred |
+| MySQL on cPanel | Production database from 16 October 2026 (D-038). Migrations, repos, a 3.5 MB blob copy and the release on a runtime-only user PASS against a local throwaway MariaDB 12.3; CI repeats this on MariaDB 11.4. The host database, its users and a restore drill are NOT TESTED until the lead deploys. | PARTIAL |
+| Hosted deploy (volume.gakinz.com) | Release folder, Passenger startup file and settings are ready ([deployment](docs/07-operations/DEPLOYMENT.md)). Not deployed: Clerk application, host database, Chromium on the host, cron keep-alive and the post-deploy checks are the lead agent's steps. Passenger behaviour (listen hook, idle stop) is not tested locally. | NOT TESTED |
+| Library move to MySQL | `npm run db:copy-to-mysql -w apps/server` is ready and tested on scratch data only. Owner runs it once, before the hosted app first starts. | Owner task |
 | Publishing acceptance | Sampled Windowsill Herbs DOCX layouts pass in Word. Kindle installer verification passes outside the sandbox; licence approval pending. Browser surfaces unavailable for template/draft interaction. Owner-book and KDP acceptance remain unverified. [Free validation](../reports/volume/qa/reports/FREE-AI-VALIDATION-2026-10-06.md). | PARTIAL |
 | Barcode placement | Dimensions and supplied-barcode clearance are checked; automatic position still needs the generated cover template. Dated rules retain a partial warning. | PARTIAL |
 | KDP wording | Spine text at 79 pages and the printing-cost overlap at 110 remain ambiguous in official guidance. Safe defaults and warnings remain. | PARTIAL |
@@ -14,7 +16,7 @@ Updated 14 October 2026 (rows rechecked; first written 6 October after the local
 | Visual direction, D-014 | Accepted by the owner on 7 October 2026. | Closed |
 | Profile facts | Owner confirms Gideon's imprint/credentials and Harni's personal details. Do not invent or silently amend them. | Owner decision |
 | Redirect lookups, D-020 | Default is now off. Explicit approval is still needed before enabling non-OpenRouter lookups for book research. | Owner decision |
-| Environment examples | The current task reserves .env.example for owner edits. Configuration defaults are documented in server source; no environment files were read or edited. | Owner task |
+| Environment examples | `.env.example` rewritten on 16 October 2026 at the lead's request with every setting name (names only). The agent guard blocks reading it, so earlier comments in that file were not carried over; Git history holds the previous version. Owner to review. | Owner review |
 | TypeScript lint compatibility, D-023 | Root TypeScript 6 alias remains necessary for the current ESLint parser. Workspaces use TypeScript 7. | Existing workaround |
 
 Fiction/workbooks, picture books, batch scheduling and accounts remain later roadmap phases. They are not part of the v1 correction pass.
