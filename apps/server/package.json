@@ -17,7 +17,8 @@
     "migrate": "tsx src/db/migrate-cli.ts",
     "seed": "tsx src/seed/seed-cli.ts",
     "test:coverage": "vitest run --coverage",
-    "migrate:status": "tsx src/db/migrate-cli.ts status"
+    "migrate:status": "tsx src/db/migrate-cli.ts status",
+    "db:copy-to-mysql": "tsx src/db/copy-sqlite-to-mysql.ts"
   },
   "dependencies": {
     "@clerk/backend": "3.24.0",
