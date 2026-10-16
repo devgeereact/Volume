@@ -81,6 +81,12 @@ export default defineConfig([
     languageOptions: { globals: globals.node },
   },
 
+  // Passenger startup file: CommonJS, loaded with require() on the host.
+  {
+    files: ["deploy/**/*.cjs"],
+    languageOptions: { sourceType: "commonjs", globals: globals.node },
+  },
+
   // Playwright drivers: callbacks passed to page.evaluate run in the browser.
   {
     files: ["apps/web/scripts/**/*.{js,mjs}", "tests/e2e/**/*.{ts,mts,js,mjs}"],
