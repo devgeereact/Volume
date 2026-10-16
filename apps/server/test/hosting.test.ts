@@ -199,7 +199,7 @@ describe('public hosting', () => {
     expect(csp).toContain("connect-src 'self' https://clerk.example.com https://*.protect.clerk.com:*");
     expect(csp).toContain("img-src 'self' data: blob: https://img.clerk.com");
     expect(csp).toContain("worker-src 'self' blob:");
-    expect(csp).toContain('frame-src \'self\' https://challenges.cloudflare.com https://*.protect.clerk.com');
+    expect(csp).toContain("frame-src 'self' https://challenges.cloudflare.com https://*.protect.clerk.com");
     expect(csp).toContain("frame-ancestors 'none'");
     const root = await t.call('GET', '/', undefined, as(null));
     expect(root.status).toBe(200);
