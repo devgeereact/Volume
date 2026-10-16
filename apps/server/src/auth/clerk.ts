@@ -37,6 +37,7 @@ function toFetchRequest(req: FastifyRequest, origin: string): Request {
 export function createClerkVerifier(keys: ClerkKeys, settings: ClerkSettings, origin: string): ClerkVerifier {
   const client = createClerkClient({
     publishableKey: keys.publishableKey,
+    telemetry: { disabled: true },
     ...(keys.secretKey ? { secretKey: keys.secretKey } : {}),
     ...(keys.jwtKey ? { jwtKey: keys.jwtKey } : {}),
   });
@@ -56,7 +57,7 @@ export function createClerkVerifier(keys: ClerkKeys, settings: ClerkSettings, or
 
 /** The real email lookup through the Clerk Backend API (needs CLERK_SECRET_KEY). */
 export function createClerkUserLookup(keys: { publishableKey: string; secretKey: string }): ClerkUserLookup {
-  const client = createClerkClient({ publishableKey: keys.publishableKey, secretKey: keys.secretKey });
+  const client = createClerkClient({ publishableKey: keys.publishableKey, secretKey: keys.secretKey, telemetry: { disabled: true } });
   return {
     async verifiedEmails(userId) {
       const user = await client.users.getUser(userId);

@@ -274,9 +274,9 @@ export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
   if (authMode === 'clerk') {
     const problems: string[] = [];
     if (!clerk.publishableKey) problems.push('CLERK_PUBLISHABLE_KEY');
-    if (!clerk.secretKeyPresent && !clerk.jwtKeyPresent) problems.push('CLERK_JWT_KEY or CLERK_SECRET_KEY');
+    // The SDK needs the secret key for signed-out and cookie checks; CLERK_JWT_KEY (optional) makes token checks networkless.
+    if (!clerk.secretKeyPresent) problems.push('CLERK_SECRET_KEY');
     if (clerk.allowedUserIds.length === 0 && clerk.ownerEmails.length === 0) problems.push('OWNER_EMAILS or CLERK_ALLOWED_USER_IDS');
-    if (clerk.ownerEmails.length > 0 && !clerk.secretKeyPresent) problems.push('CLERK_SECRET_KEY (OWNER_EMAILS looks up each address)');
     if (problems.length > 0) throw new ConfigError(`AUTH_MODE=clerk needs ${problems.join(', ')}.`);
   }
 

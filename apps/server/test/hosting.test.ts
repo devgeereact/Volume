@@ -77,7 +77,7 @@ describe('production settings', () => {
     expect(() => loadConfig({ dotenv: false, env: { ...prodEnv(webDir), CLERK_ALLOWED_USER_IDS: '', OWNER_EMAILS: '' } })).toThrow(
       /OWNER_EMAILS or CLERK_ALLOWED_USER_IDS/,
     );
-    expect(() => loadConfig({ dotenv: false, env: { ...prodEnv(webDir), CLERK_SECRET_KEY: '' } })).toThrow(/CLERK_SECRET_KEY \(OWNER_EMAILS/);
+    expect(() => loadConfig({ dotenv: false, env: { ...prodEnv(webDir), CLERK_SECRET_KEY: '' } })).toThrow(/CLERK_SECRET_KEY/);
     expect(() => loadConfig({ dotenv: false, env: { ...prodEnv(webDir), APP_ORIGIN: 'https://volume.example.com/app' } })).toThrow(/no path/);
   });
 
