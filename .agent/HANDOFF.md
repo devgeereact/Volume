@@ -296,3 +296,10 @@ Next: owner decides on the summary-missing behaviour and the `checks.maxTokens` 
 - Checks (Homebrew Node 26.8.1, no Mise): doctor PASS, typecheck PASS, lint PASS, format:check PASS, docs:check PASS, hooks:test 83 PASS, test PASS (core 75, AI 161, export 87 + 1 skip, server 195 + 1 skip), compare:pdf PASS 4 of 4 (darwin), server and web build PASS, e2e 7 of 7 PASS. gh run 37995263944 (main): macos-latest and ubuntu-latest success.
 - Not tested: live AI, KDP upload, MySQL. Owner dev server on 5180/5181 left untouched.
 - Next: owner decision record for summary-missing behaviour, then authorised free-model live writing run.
+
+## 2026-10-16, Claude Code (claude-opus-5-5), project agent for the cPanel move
+- What changed: Node 24.11+ support (D-037); production MySQL on localhost with a migration user, startup migration check, lazy better-sqlite3 as a dev dependency (D-038); Clerk sign-in on web and server with an owner allowlist and `users.clerk_user_id` (migration 0005, D-039); hosting hardening (allowed hosts, APP_ORIGIN, proxy trust, CF-Connecting-IP, rate limits, security headers, CSP, static web app with SPA fallback, public `/api/health`); Passenger `app.cjs`, graceful shutdown; Chromium library path; release build script; SQLite to MySQL copy command; CI Node 24 job with MariaDB and SHA-pinned actions; GEE OS 1.4.5 guards and docs (D-040).
+- Files: apps/server (config, auth/clerk.ts, http/hosting.ts, db, migrations, tests), apps/web (auth/, api/client.ts, TopBar), packages/export/src/browser.ts, scripts/build-release.mjs, deploy/, .github/workflows/check.yml, docs and contract files.
+- Checks: see CURRENT-TASK.md (all local gates PASS on Node 26; Node 24.21 suites PASS; release boot on MariaDB PASS). e2e first FAILED on the 120 writes per minute limit; fixed by making limits production-only (300 writes per minute), then 7 of 7 PASS.
+- Not tested: real host, real Clerk, host Chromium, remote CI run of the new job. `.env.example` was rewritten without reading the old one (guard blocks reads).
+- Next: lead deploys per docs/07-operations/DEPLOYMENT.md with owner approval.
