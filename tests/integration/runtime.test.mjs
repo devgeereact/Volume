@@ -31,7 +31,9 @@ function launch(env) {
 const safeEnv = { VOLUME_LOAD_ENV: "false", AI_PROVIDER: "mock", EXPORT_PROVIDER: "mock", JOBS_ENABLED: "false", OPENROUTER_API_KEY: "", HOST: "127.0.0.1" };
 
 test("unsupported Node and inconsistent/unsafe bindings fail clearly", () => {
-  assert.throws(() => requireRuntime("24.21.0"), /Node 26/);
+  assert.throws(() => requireRuntime("22.18.0"), /Node 24\.11/);
+  assert.throws(() => requireRuntime("24.10.0"), /Node 24\.11/);
+  requireRuntime("24.21.0");
   requireRuntime("26.10.0");
   assert.deepEqual(developmentPorts({}), { api: 5181, web: 5180 });
   for (const env of [{ PORT: "invalid" }, { PORT: "0" }, { PORT: "65536" }, { PORT: "5180" }, { PORT: "5181", VOLUME_API_PORT: "5182" }, { HOST: "0.0.0.0" }]) {

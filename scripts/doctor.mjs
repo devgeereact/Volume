@@ -7,7 +7,7 @@ const require = createRequire(new URL('../package.json', import.meta.url));
 
 export async function doctor({ ports = false } = {}) {
   requireRuntime();
-  const checks = ['Runtime: Node 26+'];
+  const checks = [`Runtime: Node ${process.versions.node} (24.11+ supported, 26 for development)`];
   if (!existsSync(root + 'node_modules')) throw new Error('Dependencies missing. Run mise exec -- npm run setup.');
   try {
     await import('vite');

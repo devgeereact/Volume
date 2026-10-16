@@ -3,9 +3,13 @@ import { fileURLToPath } from 'node:url';
 
 export const root = fileURLToPath(new URL('../', import.meta.url));
 
+/** Oldest Node Volume runs on: the cPanel host's Passenger offers 24.21 (D-037). Development uses 26 through Mise. */
+export const MIN_NODE = [24, 11];
+
 export function requireRuntime(version = process.versions.node) {
-  if (Number(version.split('.')[0]) < 26) {
-    throw new Error('Volume requires Node 26+. Run mise install, then mise exec -- npm run dev.');
+  const [major, minor] = version.split('.').map(Number);
+  if (major < MIN_NODE[0] || (major === MIN_NODE[0] && minor < MIN_NODE[1])) {
+    throw new Error('Volume requires Node 24.11+ (development uses Node 26). Run mise install, then mise exec -- npm run dev.');
   }
 }
 
