@@ -30,6 +30,11 @@
             "type": "command",
             "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-secrets.sh\"",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/scripts/agent_guard.py\"",
+            "timeout": 15
           }
         ]
       }
