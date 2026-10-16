@@ -48,20 +48,25 @@ export function inlineScriptHashes(html: string): string[] {
   return out;
 }
 
-/** Content Security Policy for the web app's pages. Clerk needs its Frontend API host, its image host and Turnstile. */
+/**
+ * Content Security Policy for the web app's pages. Clerk (docs: guides/secure/best-practices/csp-headers) needs its
+ * Frontend API host (decoded from the publishable key, e.g. clerk.volume.gakinz.com), img.clerk.com, blob workers,
+ * Cloudflare Turnstile and its abuse and fraud protection hosts (*.protect.clerk.com, on ports other than 443).
+ */
 export function contentSecurityPolicy(config: AppConfig, scriptHashes: string[]): string {
   const fapi = config.clerk.frontendApiHost ? `https://${config.clerk.frontendApiHost}` : null;
   const clerkOn = config.authMode === 'clerk';
   const turnstile = 'https://challenges.cloudflare.com';
+  const protect = 'https://*.protect.clerk.com';
   const src = (...parts: (string | null | false)[]) => parts.filter((p): p is string => typeof p === 'string' && p.length > 0).join(' ');
   return [
     `default-src 'self'`,
-    `script-src ${src(`'self'`, ...scriptHashes, clerkOn && fapi, clerkOn && turnstile)}`,
-    `connect-src ${src(`'self'`, clerkOn && fapi)}`,
+    `script-src ${src(`'self'`, ...scriptHashes, clerkOn && fapi, clerkOn && turnstile, clerkOn && protect)}`,
+    `connect-src ${src(`'self'`, clerkOn && fapi, clerkOn && `${protect}:*`)}`,
     `img-src ${src(`'self'`, 'data:', 'blob:', clerkOn && 'https://img.clerk.com')}`,
     `style-src 'self' 'unsafe-inline'`,
     `font-src 'self' data:`,
-    `frame-src ${src(`'self'`, clerkOn && turnstile)}`,
+    `frame-src ${src(`'self'`, clerkOn && turnstile, clerkOn && protect)}`,
     `worker-src 'self' blob:`,
     `object-src 'none'`,
     `base-uri 'self'`,

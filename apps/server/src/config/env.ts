@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { config as loadDotenv } from 'dotenv';
 import { z } from 'zod';
@@ -191,6 +192,11 @@ export function clerkFrontendApiHost(publishableKey: string | undefined): string
   return /^[a-z0-9.-]+$/i.test(host) ? host.toLowerCase() : null;
 }
 
+/** Settings files cannot expand "~"; a path such as ~/apps/volume/shared/data means the home folder. */
+function expandHome(p: string): string {
+  return p === '~' ? homedir() : p.startsWith('~/') ? join(homedir(), p.slice(2)) : p;
+}
+
 const LOOPBACK = new Set(['localhost', '127.0.0.1', '::1']);
 
 /** Development and tests run on loopback only; the limiter stays on but cannot get in the way of fast UI tests. */
@@ -238,17 +244,17 @@ export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
       mysql: {
         host,
         port: e.MYSQL_PORT,
-        socketPath: e.MYSQL_SOCKET ?? null,
+        socketPath: e.MYSQL_SOCKET ? expandHome(e.MYSQL_SOCKET) : null,
         database: e.MYSQL_DATABASE ?? '',
         user: e.MYSQL_USER ?? '',
         password: e.MYSQL_PASSWORD ?? '',
         ssl: e.MYSQL_SSL ?? (e.MYSQL_SOCKET || LOOPBACK.has(host.toLowerCase()) ? 'off' : 'verify'),
-        sslCaPath: e.MYSQL_SSL_CA ? resolve(root, e.MYSQL_SSL_CA) : null,
+        sslCaPath: e.MYSQL_SSL_CA ? resolve(root, expandHome(e.MYSQL_SSL_CA)) : null,
         connectionLimit: e.MYSQL_CONNECTION_LIMIT,
       },
     };
   } else {
-    db = { client: 'sqlite', sqlitePath: resolve(root, e.SQLITE_PATH ?? join('data', 'volume.sqlite')) };
+    db = { client: 'sqlite', sqlitePath: resolve(root, expandHome(e.SQLITE_PATH ?? join('data', 'volume.sqlite'))) };
   }
 
   const appOrigin = e.APP_ORIGIN ? parseOrigin('APP_ORIGIN', e.APP_ORIGIN) : null;
@@ -283,11 +289,11 @@ export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
     if (problems.length > 0) throw new ConfigError(`AUTH_MODE=clerk needs ${problems.join(', ')}.`);
   }
 
-  const webDistDir = e.WEB_DIST_DIR ? resolve(root, e.WEB_DIST_DIR) : existsSync(join(root, 'web', 'index.html')) ? join(root, 'web') : null;
+  const webDistDir = e.WEB_DIST_DIR ? resolve(root, expandHome(e.WEB_DIST_DIR)) : existsSync(join(root, 'web', 'index.html')) ? join(root, 'web') : null;
 
   const keyPresent = openRouterKeyIsSet(env);
 
-  const dataDir = resolve(root, e.DATA_DIR ?? 'data');
+  const dataDir = resolve(root, expandHome(e.DATA_DIR ?? 'data'));
   const inRepo = relative(root, dataDir);
   if (!inRepo.startsWith('..') && !isAbsolute(inRepo)) {
     const inData = relative(join(root, 'data'), dataDir);

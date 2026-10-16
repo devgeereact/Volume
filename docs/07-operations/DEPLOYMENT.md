@@ -28,6 +28,8 @@ Fastify answers everything: the built web app (files and the SPA fallback), `/ap
 | Application startup file | `app.cjs` |
 | Environment variables | `NODE_ENV=production`, `VOLUME_ENV_FILE=/home/devgeereact/apps/volume/shared/.env` (every other setting lives in that file) |
 
+`app.cjs` loads that file before the server starts (Playwright reads `PLAYWRIGHT_BROWSERS_PATH` at import), and path settings may start with `~/`. Values set in the selector win over the file. `CLERK_PUBLISHABLE_KEY` on the server must be the same key the web build used; the server decodes its Frontend API host (`clerk.volume.gakinz.com`) for the Content Security Policy.
+
 Do not press "Run NPM Install" in the selector: each release installs its own `node_modules` with `npm ci`. Restart with `touch ~/apps/volume/current/tmp/restart.txt` (or `cloudlinux-selector restart --json --interpreter nodejs --app-root apps/volume/current`).
 
 ## Build on the Mac

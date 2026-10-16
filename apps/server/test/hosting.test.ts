@@ -1,5 +1,5 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ClerkAuthProvider, type ClerkUserLookup, type ClerkVerifier } from '../src/auth/clerk.js';
@@ -112,8 +112,15 @@ describe('production settings', () => {
     expect(socket.db.client === 'mysql' && socket.db.mysql.socketPath).toBe('/var/lib/mysql/mysql.sock');
   });
 
+  it('expand ~ in path settings', () => {
+    const c = loadConfig({ dotenv: false, env: { DATA_DIR: '~/apps/volume/shared/data' } });
+    expect(c.dataDir).toBe(join(homedir(), 'apps/volume/shared/data'));
+  });
+
   it('read the Frontend API host from a publishable key', () => {
     expect(clerkFrontendApiHost(PK)).toBe('clerk.example.com');
+    // The shape of the live key for the hosted app (pk_live_ + base64 of "clerk.volume.gakinz.com$").
+    expect(clerkFrontendApiHost(`pk_live_${Buffer.from('clerk.volume.gakinz.com$').toString('base64')}`)).toBe('clerk.volume.gakinz.com');
     expect(clerkFrontendApiHost('nonsense')).toBeNull();
     expect(clerkFrontendApiHost(undefined)).toBeNull();
   });
@@ -189,7 +196,10 @@ describe('public hosting', () => {
     expect(page.headers['x-frame-options']).toBe('DENY');
     const csp = String(page.headers['content-security-policy']);
     expect(csp).toContain(inlineScriptHashes(`<script>${THEME_SCRIPT}</script>`)[0]);
-    expect(csp).toContain('https://clerk.example.com');
+    expect(csp).toContain("connect-src 'self' https://clerk.example.com https://*.protect.clerk.com:*");
+    expect(csp).toContain("img-src 'self' data: blob: https://img.clerk.com");
+    expect(csp).toContain("worker-src 'self' blob:");
+    expect(csp).toContain('frame-src \'self\' https://challenges.cloudflare.com https://*.protect.clerk.com');
     expect(csp).toContain("frame-ancestors 'none'");
     const root = await t.call('GET', '/', undefined, as(null));
     expect(root.status).toBe(200);
