@@ -41,10 +41,10 @@ const EnvSchema = z.object({
   ALLOWED_HOSTS: z.string().optional(),
   /** Trust the proxy in front (Passenger, Cloudflare): X-Forwarded-* and CF-Connecting-IP. Default: on in production only. */
   TRUST_PROXY: boolish.optional(),
-  /** Requests per minute per client IP for /api (reads), writes and the public health check. */
-  RATE_LIMIT_MAX: z.coerce.number().int().min(1).max(100000).default(600),
-  RATE_LIMIT_WRITE_MAX: z.coerce.number().int().min(1).max(100000).default(120),
-  RATE_LIMIT_HEALTH_MAX: z.coerce.number().int().min(1).max(100000).default(30),
+  /** Requests per minute per client IP for reads, writes and the public health check. Production 600, 300, 30; development has no practical limit. */
+  RATE_LIMIT_MAX: z.coerce.number().int().min(1).max(1000000).optional(),
+  RATE_LIMIT_WRITE_MAX: z.coerce.number().int().min(1).max(1000000).optional(),
+  RATE_LIMIT_HEALTH_MAX: z.coerce.number().int().min(1).max(1000000).optional(),
   /** Folder with the built web app (index.html and assets/). Default: <root>/web when it exists (the release layout). */
   WEB_DIST_DIR: z.string().min(1).optional(),
   /** Clerk publishable key (public). Its Frontend API host goes into the Content Security Policy. */
@@ -193,6 +193,9 @@ export function clerkFrontendApiHost(publishableKey: string | undefined): string
 
 const LOOPBACK = new Set(['localhost', '127.0.0.1', '::1']);
 
+/** Development and tests run on loopback only; the limiter stays on but cannot get in the way of fast UI tests. */
+const DEV_RATE_LIMIT = 1_000_000;
+
 export interface LoadConfigOptions {
   env?: NodeJS.ProcessEnv;
   /** Load ROOT/.env with dotenv first (default true for the real server, false in tests). */
@@ -298,7 +301,11 @@ export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
     clerk,
     appOrigin,
     trustProxy: e.TRUST_PROXY ?? production,
-    rateLimit: { max: e.RATE_LIMIT_MAX, writeMax: e.RATE_LIMIT_WRITE_MAX, healthMax: e.RATE_LIMIT_HEALTH_MAX },
+    rateLimit: {
+      max: e.RATE_LIMIT_MAX ?? (production ? 600 : DEV_RATE_LIMIT),
+      writeMax: e.RATE_LIMIT_WRITE_MAX ?? (production ? 300 : DEV_RATE_LIMIT),
+      healthMax: e.RATE_LIMIT_HEALTH_MAX ?? (production ? 30 : DEV_RATE_LIMIT),
+    },
     webDistDir,
     configDir: join(root, 'config'),
     db,

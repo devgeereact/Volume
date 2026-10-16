@@ -88,6 +88,7 @@ describe('production settings', () => {
     expect(c.authMode).toBe('clerk');
     expect(c.autoMigrate).toBe(false);
     expect(c.trustProxy).toBe(true);
+    expect(c.rateLimit).toEqual({ max: 600, writeMax: 300, healthMax: 30 });
     expect(c.allowedOrigins).toEqual([ORIGIN]);
     expect(c.allowedHosts).toEqual([SITE]);
     expect(c.clerk.authorizedParties).toEqual([ORIGIN]);
@@ -102,6 +103,7 @@ describe('production settings', () => {
     expect(dev.authMode).toBe('local');
     expect(dev.production).toBe(false);
     expect(dev.trustProxy).toBe(false);
+    expect(dev.rateLimit.writeMax).toBeGreaterThan(100000);
     const local = loadConfig({ dotenv: false, env: { DB_CLIENT: 'mysql', MYSQL_HOST: 'localhost', MYSQL_DATABASE: 'd', MYSQL_USER: 'u' } });
     expect(local.db.client === 'mysql' && local.db.mysql.ssl).toBe('off');
     const remote = loadConfig({ dotenv: false, env: { DB_CLIENT: 'mysql', MYSQL_HOST: 'db.example.com', MYSQL_DATABASE: 'd', MYSQL_USER: 'u' } });

@@ -43,7 +43,7 @@ Read from the root `.env` (or the file named by `VOLUME_ENV_FILE`) with dotenv (
 | `AUTH_MODE` | `local` (`clerk` in production) | `local` stub or Clerk sessions (D-039) |
 | `APP_ORIGIN`, `ALLOWED_HOSTS` | | Public origin; Host values answered (default the origin's host) |
 | `TRUST_PROXY` | on in production | Proxy headers and `CF-Connecting-IP` for the visitor IP |
-| `RATE_LIMIT_MAX`, `RATE_LIMIT_WRITE_MAX`, `RATE_LIMIT_HEALTH_MAX` | 600, 120, 30 | Per visitor IP per minute |
+| `RATE_LIMIT_MAX`, `RATE_LIMIT_WRITE_MAX`, `RATE_LIMIT_HEALTH_MAX` | 600, 300, 30 in production; no practical limit in development | Per visitor IP per minute |
 | `WEB_DIST_DIR` | `web/` when present | Built web app served with an SPA fallback |
 | `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_JWT_KEY` | | Clerk keys; the secret and JWT key stay inside the verifier |
 | `OWNER_EMAILS`, `CLERK_ALLOWED_USER_IDS` | | Allowlist (at least one in Clerk mode) |
