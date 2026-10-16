@@ -62,6 +62,7 @@ export async function ensureOwner(db: Db, slug = DEFAULT_WORKSPACE_SLUG, name = 
         authProvider: 'local',
         passwordHash: null,
         lastSeenAt: null,
+        clerkUserId: null,
         createdAt: t,
         updatedAt: t,
       })

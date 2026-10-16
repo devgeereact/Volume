@@ -1,12 +1,14 @@
+import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { MockAiAdapter } from './adapters/mock-ai.js';
 import { MockExportAdapter } from './adapters/mock-export.js';
 import { ensureOwner, StubAuthProvider, type AuthProvider, type RequestCtx } from './auth/context.js';
 import { BackupService } from './backups/backup.js';
 import type { AppConfig } from './config/env.js';
-import type { DbHandle } from './db/connect.js';
+import type { Db, DbHandle } from './db/connect.js';
 import { BlobStore, DEFAULT_CHUNK_BYTES } from './files/blob-store.js';
 import { AppError, errorBody, registerErrorHandling } from './http/errors.js';
+import { applySecurityHeaders, clientIp, isApiPath, isPublicHealth, PUBLIC_HEALTH_PATH, registerWebApp, sendSpaIndex } from './http/hosting.js';
 import { defaultHandlers } from './jobs/handlers/index.js';
 import { JobQueue } from './jobs/queue.js';
 import { JobRunner, type HandlerMap, type JobServices, type RunnerOptions } from './jobs/runner.js';
@@ -41,8 +43,8 @@ export interface BuildAppOptions {
   handle: DbHandle;
   ai?: AiPort;
   exporter?: ExportPort;
-  /** Replace the stub (tests use this for a second workspace; phase 8 for sessions). */
-  auth?: (owner: RequestCtx) => AuthProvider;
+  /** Who is calling. AUTH_MODE=local uses the stub; AUTH_MODE=clerk must pass the Clerk provider (index.ts does). */
+  auth?: (owner: RequestCtx, db: Db) => AuthProvider;
   handlers?: HandlerMap;
   runner?: RunnerOptions;
   /** Start the polling job runner (default: config.jobsEnabled). Tests drive it by hand. */
@@ -76,7 +78,8 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
   const app = Fastify({
     logger: opts.logger ?? defaultLogger(config),
     bodyLimit: config.maxJsonBytes,
-    trustProxy: false,
+    // Behind Passenger and Cloudflare (TRUST_PROXY, on in production) the visitor's IP and protocol come from proxy headers.
+    trustProxy: config.trustProxy,
   });
 
   const db = handle.db;
@@ -126,18 +129,32 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
     backups,
     openRouterKeyCheck: opts.openRouterKeyCheck ?? null,
   };
-  const auth = opts.auth ? opts.auth(ownerCtx) : new StubAuthProvider(ownerCtx);
+  if (config.authMode === 'clerk' && !opts.auth) throw new Error('AUTH_MODE=clerk needs the Clerk auth provider.');
+  const auth = opts.auth ? opts.auth(ownerCtx, db) : new StubAuthProvider(ownerCtx);
 
   // JSON only. The default text/plain parser is removed so simple cross-site form posts cannot reach handlers.
   app.removeContentTypeParser('text/plain');
 
   app.decorateRequest('ctx', null as unknown as RequestCtx);
 
-  // Host (DNS rebinding) and Origin (CSRF) guards, then the auth stub.
+  // Rate limit per visitor IP, before anything else runs: reads, writes (the expensive AI, export and import starts)
+  // and the public health check each have their own allowance per minute.
+  await app.register(rateLimit, {
+    global: true,
+    timeWindow: 60_000,
+    keyGenerator: (req) => clientIp(req, config.trustProxy),
+    max: (req) => {
+      if (isPublicHealth(req.url)) return config.rateLimit.healthMax;
+      const m = req.method.toUpperCase();
+      return m === 'GET' || m === 'HEAD' || m === 'OPTIONS' ? config.rateLimit.max : config.rateLimit.writeMax;
+    },
+  });
+
+  // Host (DNS rebinding) and Origin (CSRF) guards, then sign-in for /api (the public health check excepted).
   app.addHook('onRequest', async (req, reply) => {
     const host = (req.headers.host ?? '').toLowerCase();
     if (!config.allowedHosts.includes(host)) {
-      return reply.code(421).send(errorBody('bad_host', 'This server only answers on 127.0.0.1.'));
+      return reply.code(421).send(errorBody('bad_host', 'This server does not answer for that address.'));
     }
     const method = req.method.toUpperCase();
     if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
@@ -146,23 +163,33 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
         return reply.code(403).send(errorBody('bad_origin', 'Requests from this page are not allowed.'));
       }
     }
+    // The web app's pages and files are public (the sign-in screen is part of them); its data is not.
+    if (!isApiPath(req.url) || isPublicHealth(req.url)) return undefined;
     const ctx = await auth.resolve(req);
-    if (!ctx) return reply.code(401).send(errorBody('forbidden', 'Sign in to continue.'));
+    if (!ctx) return reply.code(401).send(errorBody('unauthorized', 'Sign in to continue.'));
     req.ctx = ctx;
     return undefined;
   });
 
+  const pageCsp = await registerWebApp(app, config);
+
   app.addHook('onSend', async (req, reply, payload) => {
-    void reply.header('X-Content-Type-Options', 'nosniff');
-    void reply.header('Referrer-Policy', 'no-referrer');
-    void reply.header('X-Frame-Options', 'DENY');
-    if (!reply.hasHeader('Cache-Control')) void reply.header('Cache-Control', 'no-store');
+    applySecurityHeaders(req, reply, config, pageCsp);
     // CORS is off: no Access-Control-Allow-Origin header is ever sent.
-    void req;
     return payload;
   });
 
-  registerErrorHandling(app);
+  // Keep-alive and uptime check (cron, Passenger warm-up). Public, so it says nothing beyond up or down.
+  app.get(PUBLIC_HEALTH_PATH, async (_req, reply) => {
+    try {
+      await db.selectFrom('workspaces').select('id').limit(1).execute();
+      return { status: 'ok' };
+    } catch {
+      return reply.code(503).send({ status: 'unavailable' });
+    }
+  });
+
+  registerErrorHandling(app, pageCsp ? (req, reply) => sendSpaIndex(req, reply, config) : undefined);
   await app.register((api) => Promise.resolve(registerRoutes(api, services)), { prefix: '/api/v1' });
 
   app.addHook('onClose', async () => {

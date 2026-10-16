@@ -1,6 +1,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
-import SqliteDatabase from 'better-sqlite3';
+import type SqliteDatabase from 'better-sqlite3';
 import { CamelCasePlugin, Kysely, MysqlDialect, SqliteDialect } from 'kysely';
 import { Migrator, type MigrationResultSet } from 'kysely/migration';
 import { createPool, type PoolOptions } from 'mysql2';
@@ -21,8 +22,24 @@ function withPlugins(db: Kysely<Database>): Kysely<Database> {
   return db.withPlugin(new CamelCasePlugin());
 }
 
+/**
+ * better-sqlite3 is loaded only when SQLite is used. It is a development dependency: the production host runs MySQL
+ * and cannot load its prebuilt binary (glibc 2.28), and a production install leaves it out.
+ */
+function loadSqlite(): typeof SqliteDatabase {
+  const require = createRequire(import.meta.url);
+  try {
+    return require('better-sqlite3') as typeof SqliteDatabase;
+  } catch (err) {
+    throw new Error('DB_CLIENT=sqlite needs better-sqlite3, a development dependency. Install with npm run setup, or use DB_CLIENT=mysql.', {
+      cause: err,
+    });
+  }
+}
+
 /** Opens SQLite (file or ':memory:'), WAL mode, foreign keys on. */
 export function openSqlite(path: string): DbHandle {
+  const SqliteDatabase = loadSqlite();
   if (path !== ':memory:') {
     const dir = dirname(path);
     if (!existsSync(dir)) {
@@ -46,8 +63,7 @@ export function openSqlite(path: string): DbHandle {
 
 export function mysqlPoolOptions(cfg: MysqlConfig): PoolOptions {
   const opts: PoolOptions = {
-    host: cfg.host,
-    port: cfg.port,
+    ...(cfg.socketPath ? { socketPath: cfg.socketPath } : { host: cfg.host, port: cfg.port }),
     database: cfg.database,
     user: cfg.user,
     password: cfg.password,
@@ -78,14 +94,20 @@ export function openDatabase(config: AppConfig): DbHandle {
 }
 
 export async function migrateToLatest(handle: DbHandle): Promise<MigrationResultSet> {
-  const migrator = new Migrator({
-    db: handle.db.withoutPlugins(),
-    provider: new VolumeMigrationProvider(handle.dialect),
-  });
-  const result = await migrator.migrateToLatest();
+  const result = await migrator(handle).migrateToLatest();
   if (result.error) {
     const err = result.error instanceof Error ? result.error : new Error('Kysely reported a migration error that is not an Error.', { cause: result.error });
     throw Object.assign(new Error(`Migration failed: ${err.message}`), { cause: err, results: result.results });
   }
   return result;
+}
+
+function migrator(handle: DbHandle): Migrator {
+  return new Migrator({ db: handle.db.withoutPlugins(), provider: new VolumeMigrationProvider(handle.dialect) });
+}
+
+/** Names of migrations not yet applied. Needs SELECT only, so the runtime database user can call it. */
+export async function pendingMigrations(handle: DbHandle): Promise<string[]> {
+  const all = await migrator(handle).getMigrations();
+  return all.filter((m) => m.executedAt === undefined).map((m) => m.name);
 }

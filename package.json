@@ -5,7 +5,7 @@
   "description": "Local-first book production app: profiles, research, blueprint, automatic writing, covers and KDP export pack.",
   "type": "module",
   "engines": {
-    "node": ">=26"
+    "node": ">=24.11 <27"
   },
   "workspaces": [
     "packages/ui",
@@ -33,6 +33,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@vitest/coverage-v8": "^5.0.3",
+    "esbuild": "0.28.2",
     "eslint": "10.12.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-react-hooks": "7.1.1",

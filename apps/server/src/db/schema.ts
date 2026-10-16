@@ -36,6 +36,8 @@ export interface UsersTable extends Base {
   authProvider: string;
   passwordHash: string | null;
   lastSeenAt: Ms | null;
+  /** Clerk user id (user_...) once that user has signed in; null for local-only users. */
+  clerkUserId: string | null;
 }
 
 export interface MembershipsTable extends Tenant {

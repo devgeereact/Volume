@@ -21,6 +21,7 @@ describe.skipIf(!url)('MySQL dialect (MYSQL_TEST_URL)', () => {
       user: decodeURIComponent(u.username),
       password: decodeURIComponent(u.password),
       ssl: u.searchParams.get('ssl') === 'off' ? 'off' : 'verify',
+      socketPath: null,
       sslCaPath: null,
       connectionLimit: 2,
     });
