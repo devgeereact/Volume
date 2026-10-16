@@ -46,7 +46,7 @@ The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `m
 1. Rsync `build/release/` to `~/apps/volume/releases/<utc>/`.
 2. On the host, inside that folder, with Node 24 (`source ~/nodevenv/apps/volume/current/24/bin/activate` or the alt-nodejs24 binary): `npm ci --omit=dev --no-audit --no-fund`.
 3. Link shared config: `ln -s ../../shared/.env .env` (optional when `VOLUME_ENV_FILE` is set).
-4. Back up the database (cPanel Backup or `mariadb-dump --defaults-file=<private temp file>`), then migrate as the migration user: `node server/migrate.mjs status`, then `node server/migrate.mjs`. The app refuses to start while migrations are pending.
+4. Back up the database (cPanel Backup or `mariadb-dump --defaults-file=<private temp file> --single-transaction --no-tablespaces`, run with `set -o pipefail` so a failed dump stops the step; the migration user has no `LOCK TABLES` grant), then migrate as the migration user: `node server/migrate.mjs status`, then `node server/migrate.mjs`. The app refuses to start while migrations are pending.
 5. Flip the link: `ln -sfn releases/<utc> ~/apps/volume/current`, then `touch ~/apps/volume/current/tmp/restart.txt`.
 6. Run the post-deploy checks below. Rollback: point `current` back at the previous release and touch `tmp/restart.txt`. Migrations are additive, so the previous release still runs on the newer schema.
 
