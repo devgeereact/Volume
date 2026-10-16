@@ -303,3 +303,9 @@ Next: owner decides on the summary-missing behaviour and the `checks.maxTokens` 
 - Checks: see CURRENT-TASK.md (all local gates PASS on Node 26; Node 24.21 suites PASS; release boot on MariaDB PASS). e2e first FAILED on the 120 writes per minute limit; fixed by making limits production-only (300 writes per minute), then 7 of 7 PASS.
 - Not tested: real host, real Clerk, host Chromium, remote CI run of the new job. `.env.example` was rewritten without reading the old one (guard blocks reads).
 - Next: lead deploys per docs/07-operations/DEPLOYMENT.md with owner approval.
+
+## 2026-10-16 (later), Claude Code (claude-opus-5-5), resume after a network drop
+- CI run 38950204638 on the branch: checks (macos-latest, ubuntu-latest) and node24-host all succeeded.
+- Fixed: `app.cjs` loads the settings file before importing the server (Playwright reads PLAYWRIGHT_BROWSERS_PATH at import); `~/` path settings are expanded; CSP adds Clerk's `*.protect.clerk.com` hosts (from Clerk's CSP guide).
+- Rechecked: Node 26 gates all PASS (server 211 with MySQL, e2e 7 of 7); Node 24.21 suites PASS; release with a test Clerk key installs without better-sqlite3 and boots on MariaDB (health 200, unsigned API 401, page 200) and on SQLite.
+- Lead's host settings names match the code. Next: lead builds the release with the live publishable key and deploys.
