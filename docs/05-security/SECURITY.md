@@ -17,7 +17,7 @@ Volume holds unpublished books, author identities, possibly real people's storie
 | Threat | Control |
 |---|---|
 | Key leaks into the browser, logs, prompts or git | Key read only by `apps/server` from `.env`; never sent to the web app (not even partly masked); a test scans the built web bundle for key patterns (`sk-or-`) and the variable name; the logger redacts `Authorization` headers and any value matching key patterns; `.env` and `data/` are git-ignored; Claude Code hooks block AI tools from reading `.env` and `data/`, and other AI tools follow the same rule from `AGENTS.md` |
-| A stranger reaches the hosted app | Clerk session required on every `/api` request (401 without one); allowlist by user id or verified email (403 otherwise); only `GET /api/health` is public and returns `{"status":"ok"}` only; the origin `.htaccess` refuses requests that did not come through Cloudflare; the server binds to `127.0.0.1` behind Passenger |
+| A stranger reaches the hosted app | Clerk session required on every `/api` request (401 without one), checked on the decoded path and again inside the `/api/v1` scope so percent-encoded paths cannot skip it; allowlist by user id or verified email (403 otherwise); only `GET /api/health` is public and returns `{"status":"ok"}` only; the origin `.htaccess` refuses requests that did not come through Cloudflare; the server binds to `127.0.0.1` behind Passenger |
 | Brute force or flooding | Rate limit per visitor IP (`CF-Connecting-IP`): reads, writes and the health check have separate allowances per minute; JSON and upload body limits |
 | Error details leak | One JSON error shape; 500 answers carry a fixed message, never the stack or the error text; logs redact `Authorization` and cookies |
 | A web page in the owner's browser calls the API (DNS rebinding, CSRF) | Host header must be an allowed host (`ALLOWED_HOSTS`, default the `APP_ORIGIN` host; loopback in development); Origin must match on every non-GET request; Clerk's `authorizedParties` is `APP_ORIGIN`; CORS disabled; JSON-only bodies; SSE is read-only; pages carry a Content Security Policy, `X-Frame-Options: DENY` and HSTS |
@@ -39,17 +39,17 @@ Volume holds unpublished books, author identities, possibly real people's storie
 
 ## Network policy
 
-- Outbound: OpenRouter only.
+- Outbound from the server: OpenRouter, plus Clerk (JWKS or user lookups) when hosted.
 - Research link checking (opening cited URLs to see if they still work) would contact other sites, so it is off by default and needs a `docs/08-change-management/DECISIONS.md` entry and the owner's OK before it is built (`KNOWN-ISSUES.md`).
-- The web app loads nothing from the internet: fonts, icons and scripts are bundled. No analytics, no telemetry, no error reporting service.
+- Fonts, icons and the app's own scripts are bundled. The hosted build also loads Clerk's sign-in script and Cloudflare Turnstile on sign-in (allowed in the CSP). No analytics, no telemetry, no error reporting service. Pages and API answers carry `X-Robots-Tag: noindex, nofollow` and `robots.txt` disallows everything.
 - Links to sources open in the system browser, outside the app.
 
 ## Privacy of book content
 
 - Text sent to OpenRouter is processed by the chosen model provider. Settings shows a short notice on the Models tab: what is sent (the packed context for that stage) and that provider data policies apply.
-- Where OpenRouter offers provider routing preferences that exclude providers who keep or train on data, Volume sets them by default (re-verify the exact option before phase 2).
+- Intended: where OpenRouter offers provider routing preferences that exclude providers who keep or train on data, Volume sets them by default. Not implemented yet: the client sends only `provider.ignore` (checked 17 October 2026, `packages/ai/src/provider/openrouter.ts`). Owner decision open, see [privacy inventory](PRIVACY-INVENTORY.md).
 - Nothing is sent for deterministic checks, exports or KDP maths; those run locally.
-- Prompt runs store the raw response for audit inside `data/`; they can be purged per book (Settings, Data).
+- Prompt runs store the raw response for audit in the database. No purge exists yet: deleting a book unlinks its prompt runs but keeps their output (checked 17 October 2026). See [privacy inventory](PRIVACY-INVENTORY.md).
 
 ## Real people and sensitive topics
 
