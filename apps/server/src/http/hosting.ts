@@ -24,17 +24,30 @@ export function clientIp(req: FastifyRequest, trustProxy: boolean): string {
   return req.ip || 'unknown';
 }
 
+/**
+ * The path the router will match: query dropped, percent-encoding decoded and lower-cased. The router decodes
+ * `%61pi` to `api` before matching, so sign-in and other path checks must look at the same decoded form.
+ */
+export function requestPath(url: string): string {
+  const raw = url.split('?')[0] ?? url;
+  try {
+    return decodeURIComponent(raw).toLowerCase();
+  } catch {
+    return raw.toLowerCase();
+  }
+}
+
 /** True for /api paths (the JSON API), as opposed to the web app's pages and files. */
 export function isApiPath(url: string): boolean {
-  return url === '/api' || url.startsWith('/api/') || url.startsWith('/api?');
+  const path = requestPath(url);
+  return path === '/api' || path.startsWith('/api/');
 }
 
 /** The public keep-alive health check: no sign-in, no details. */
 export const PUBLIC_HEALTH_PATH = '/api/health';
 
 export function isPublicHealth(url: string): boolean {
-  const path = url.split('?')[0] ?? url;
-  return path === PUBLIC_HEALTH_PATH;
+  return requestPath(url) === PUBLIC_HEALTH_PATH;
 }
 
 /** sha256 sources for the inline scripts in index.html (the theme script that runs before first paint). */
@@ -83,6 +96,8 @@ export function applySecurityHeaders(req: FastifyRequest, reply: FastifyReply, c
   void reply.header('Referrer-Policy', api ? 'no-referrer' : 'strict-origin-when-cross-origin');
   void reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   void reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  // Private app: keep every page, file and API answer out of search results.
+  void reply.header('X-Robots-Tag', 'noindex, nofollow');
   if (config.production) void reply.header('Strict-Transport-Security', 'max-age=31536000');
   if (!reply.hasHeader('Cache-Control')) {
     // Hashed bundles never change; pages and everything else are checked on every load. The API is never cached.

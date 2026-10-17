@@ -27,7 +27,7 @@ import {
 /** One plain sentence for any error a mutation or query can throw. */
 export function plainError(e: unknown): string {
   if (isApiError(e)) {
-    if (e.code === "network_error") return "The Volume server is not answering. Start it, then try again.";
+    if (e.code === "network_error") return "The Volume server is not answering. Check your connection, then try again.";
     if (e.code === "conflict") return "Someone saved a newer version while you were working. Reload to see it, then make your change again.";
     if (e.code === "budget_exceeded") return "This book has reached its budget. Raise the budget in the book's settings, then try again.";
     const issues = e.fieldIssues;

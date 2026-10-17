@@ -191,7 +191,18 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
   });
 
   registerErrorHandling(app, pageCsp ? (req, reply) => sendSpaIndex(req, reply, config) : undefined);
-  await app.register((api) => Promise.resolve(registerRoutes(api, services)), { prefix: '/api/v1' });
+  await app.register(
+    (api) => {
+      // Second lock: every /api/v1 route needs the context set by sign-in above, whatever form the URL took.
+      api.addHook('onRequest', async (req, reply) => {
+        if (!req.ctx) return reply.code(401).send(errorBody('unauthorized', 'Sign in to continue.'));
+        return undefined;
+      });
+      registerRoutes(api, services);
+      return Promise.resolve();
+    },
+    { prefix: '/api/v1' },
+  );
 
   app.addHook('onClose', async () => {
     backups.stop();

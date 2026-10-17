@@ -1,6 +1,6 @@
 ## Phases 6 to 8 built, 17 October 2026 (Claude Code, lead with subagents)
 
-Branch `feat/phases-6-8` (pushed; worktree `../Volume-phases` on the owner's Mac). Plan: `docs/08-change-management/plans/PHASES-6-8.md`. Decisions D-041 to D-047 are Proposed, built to their recommended defaults.
+Branch `feat/phases-6-8` (pushed; worktree `../Volume-phases` on the owner's Mac). Plan: `docs/08-change-management/plans/PHASES-6-8.md`. Decisions D-041 to D-047 accepted by the owner as built (17 October 2026). The audit branch (auth fix 11e848b) is merged to main (54a788a) and merged into this branch.
 
 Done: fiction and workbook templates (P6-1 to P6-6), picture books (P7-1 to P7-6), Volume mode and accounts (P8-1 to P8-4), reviewer findings (1 high, 7 medium, 9 low) fixed. Migrations 0006 picture books, 0008 volume mode, 0009 invitations ship together (0007 unused).
 
@@ -9,11 +9,16 @@ Proven (Node 26.8.1, no Mise): doctor, typecheck, lint, format, docs (88), hooks
 Not tested: live AI per template, MySQL concurrency races, EPUBCheck, Linux goldens for new samples, real host, printed proof, KDP upload.
 
 Next:
-1. Owner ships the separate auth-bypass fix (uncommitted in the main checkout, by the audit session) on its own, then rebase this branch onto it and resolve overlaps (`apps/server/src/app.ts`, `apps/web/src/api/{client,wire-c}.ts`, `app/router.tsx`, `shell/{Breadcrumbs,CommandPalette}.tsx`, CHANGELOG, KNOWN-ISSUES, `.agent/`). Rerun the full gate.
-2. Owner accepts or changes D-041 to D-047 and holds the phase 6, 7, 8 gates.
+1. Deploy main (auth fix) to the host, then this branch after its PR merges; the owner authorised both on 17 October 2026. The agent auto-mode check blocked the release build, so the owner runs the deploy commands or allows them.
+2. Owner holds the phase 6, 7, 8 gates (try each book type).
 3. Owner adds `ACCOUNTS_MODE=owner-only` to `.env.example`.
-4. Owner authorises one free live run per template (`LIVE_AI=1`).
-5. Open a PR from `feat/phases-6-8` when the owner asks.
+4. One free live run per template (`LIVE_AI=1`, budget zero): authorised 17 October 2026, not yet run.
+5. PR from `feat/phases-6-8` to main: authorised; merge after checks pass.
+## Production, privacy and hub audit, 17 October 2026 (Claude Code)
+
+Saved on branch `fix/hosted-auth-privacy-audit` (pushed, not merged, not deployed). Live auth bypass found: `https://volume.gakinz.com/%61pi/v1/health` answered 200 without sign-in. Fixed locally with a regression test (decoded path check plus a context guard in the `/api/v1` scope). The hosted web app no longer falls back to demo data; noindex, robots.txt and `X-Robots-Tag` added; tab titles; style guide local only; command menu uses server books. Privacy inventory and a draft privacy notice in `docs/05-security/`. Report: `../reports/volume/PRODUCTION-PRIVACY-AUDIT-2026-10-17.md`.
+
+Next: (1) owner merges the branch to main and approves a deploy of the auth fix (urgent), or splits the first commit out if the rest needs more review; (2) owner decisions: OpenRouter `data_collection`, prompt run output on book delete, `job_events` retention, legal name in project zips, privacy contact facts; (3) owner OK for the production hub plan in the report (publish and archive from the web, stage advances, marketing gate and counts, AI disclosure preflight, blurb in the pack). The phases 6-8 lead works in `../Volume-phases` on `feat/phases-6-8` and will rebase onto the auth fix.
 
 ## cPanel hosting restructure, 16 October 2026 (Claude Code)
 
