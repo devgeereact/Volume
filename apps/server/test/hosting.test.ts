@@ -182,6 +182,15 @@ describe('public hosting', () => {
     expect((await t.call('GET', '/api/v1/health', undefined, as(null))).status).toBe(401);
   });
 
+  it('keeps sign-in on percent-encoded and upper-case API paths', async () => {
+    for (const url of ['/%61pi/v1/health', '/%61%70%69/v1/books', '/api/%761/books', '/API/v1/books', '/%41PI/v1/health']) {
+      const res = await t.call('GET', url, undefined, as(null));
+      expect(res.status, url).not.toBe(200);
+      expect([401, 404], url).toContain(res.status);
+    }
+    expect((await t.call('GET', '/%61pi/v1/health', undefined, as(null))).status).toBe(401);
+  });
+
   it('answers only the configured host, including loopback', async () => {
     expect((await t.call('GET', '/api/health', undefined, { host: 'evil.example' })).status).toBe(421);
     expect((await t.call('GET', '/api/health', undefined, { host: '127.0.0.1:5181' })).status).toBe(421);
