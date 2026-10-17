@@ -8,12 +8,15 @@ import {
   DEFAULT_INTERIOR_THEME,
   enabledSections,
   escapeHtml,
+  exerciseHeading,
   inlineToHtml,
+  inContents,
   sectionHeading,
   stripInline,
   type Block,
   type BookDoc,
   type InteriorTheme,
+  WRITING_SPACE_TEXT,
   type Section,
 } from '@volume/core';
 import { loadFontLibrary, type FontLibrary } from './fonts.ts';
@@ -141,6 +144,17 @@ export async function exportEpub(book: BookDoc, theme: InteriorTheme = DEFAULT_I
       }
       case 'pageBreak':
         return '';
+      // D-042: a reflowable screen gets the exercise text and one "Space to write" line, never fake ruled lines.
+      case 'exercise':
+        return `<aside class="exercise"><p class="xh">${inlineToHtml(exerciseHeading(b))}</p>${b.blocks
+          .map((x) => (x.type === 'heading2' ? `<h3>${inlineToHtml(x.text)}</h3>` : blockXhtml(s, x, k, true)))
+          .join('')}</aside>`;
+      case 'lines':
+        return `<p class="write-space">${escapeHtml(WRITING_SPACE_TEXT)}</p>`;
+      case 'checklist':
+        return `<ul class="checklist">${b.items.map((it) => `<li>${inlineToHtml(it)}</li>`).join('')}</ul>`;
+      case 'fillIn':
+        return `<div class="fill-in">${b.prompts.map((p) => `<p class="fi">${inlineToHtml(p)}</p>`).join('')}<p class="write-space">${escapeHtml(WRITING_SPACE_TEXT)}</p></div>`;
     }
   };
 
@@ -176,18 +190,19 @@ export async function exportEpub(book: BookDoc, theme: InteriorTheme = DEFAULT_I
       tocFile = fileOf(s);
       const items = secs
         .slice(idx + 1)
-        .filter((x) => !FENCED.has(x.subtype))
+        .filter((x) => !FENCED.has(x.subtype) && inContents(book, x))
         .map((x) => `<li><a href="${x.id}.xhtml">${escapeHtml(sectionHeading(x))}</a></li>`);
       body = `<section epub:type="toc" class="contents"><h1>Contents</h1><ol class="toc">${items.join('')}</ol></section>`;
     } else {
-      const kicker = s.kicker ? `<p class="kicker">${escapeHtml(s.kicker)}</p>` : '';
+      // An untitled chapter prints its kicker ("Chapter 1") as the heading.
+      const kicker = s.kicker && s.title ? `<p class="kicker">${escapeHtml(s.kicker)}</p>` : '';
       let afterBreak = true;
       const blocks = s.blocks.map((b, k) => {
         const out = blockXhtml(s, b, k, afterBreak);
         afterBreak = b.type !== 'paragraph';
         return out;
       });
-      body = `<section epub:type="${epubTypeFor(s)}" class="${s.kind}" id="${s.id}"><header>${kicker}<h1>${escapeHtml(s.title)}</h1></header>${blocks.join('\n')}</section>`;
+      body = `<section epub:type="${epubTypeFor(s)}" class="${s.kind}" id="${s.id}"><header>${kicker}<h1>${escapeHtml(s.title || s.kicker || '')}</h1></header>${blocks.join('\n')}</section>`;
     }
     zip.file(`OEBPS/${fileOf(s)}`, xhtml(lang, title, s.kind, body));
     manifest.push(`<item id="x-${s.id}" href="${fileOf(s)}" media-type="application/xhtml+xml"/>`);
@@ -261,6 +276,10 @@ hr.break::after { content: "* * *"; letter-spacing: 0.5em; }
 table { border-collapse: collapse; width: 100%; font-size: 0.85em; margin: 0.8em 0; }
 th, td { border-bottom: 1px solid #999; padding: 0.2em 0.3em; text-align: left; vertical-align: top; }
 .callout { border: 1px solid #333; padding: 0.4em 0.6em; margin: 0.8em 0; text-indent: 0; font-size: 0.9em; }
+.exercise { border-top: 2px solid #333; margin: 1em 0; padding-top: 0.3em; }
+.exercise .xh { font-weight: bold; text-indent: 0; }
+.exercise p, .fill-in p { text-indent: 0; }
+.write-space { font-style: italic; text-indent: 0; }
 .takeaways { border-top: 2px solid #333; border-bottom: 1px solid #333; margin: 1em 0; padding: 0.3em 0; }
 .takeaways .th { font-weight: bold; text-indent: 0; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.85em; }
 blockquote { margin: 1em 1.5em; font-style: italic; }

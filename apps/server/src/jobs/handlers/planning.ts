@@ -97,6 +97,9 @@ export const blueprintHandler: JobHandler = async (jc) => {
       wordTarget,
       illustrativeStories: book.illustrativeLine,
       chapterCount: jc.payload['chapterCount'] ?? null,
+      // Fiction: the owner's point of view and tense (book settings); the adapter falls back to the template's voice.
+      pov: str(book.settings['pov']),
+      tense: str(book.settings['tense']),
       instruction: jc.payload['instruction'] ?? null,
       research,
       sources: sources.map((s) => ({ title: s.title, url: s.url, excerpt: s.excerpt })),

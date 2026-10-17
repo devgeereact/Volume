@@ -45,6 +45,8 @@ export interface SettingValues {
   /** null clears the cap. */
   "budget.monthly_cap_usd"?: number | null;
   "budget.warn_ratio"?: number;
+  /** Instance owner only: the monthly cap for each other workspace on this Volume. 0 stops their AI runs. */
+  "budget.guest_workspaces_monthly_cap_usd"?: number;
   "backup.enabled"?: boolean;
   "backup.time"?: string;
   "links.check_enabled"?: boolean;
@@ -76,6 +78,8 @@ export interface Budgets {
   monthlyCapUsd: number | null;
   warnRatio: number;
   monthSpendUsd: number;
+  /** Sent only to the owner of this Volume: the monthly cap for each other workspace. 0 stops their AI runs. */
+  guestWorkspacesMonthlyCapUsd?: number;
 }
 
 export interface SettingsResponse {
@@ -89,7 +93,8 @@ export interface SettingsResponse {
   /* Read-only workspace status for the Settings screen. */
   /** OpenRouter's key status (cached 5 minutes on the server), or null with no key or no answer. */
   openRouterCredit: ApiCredit | null;
-  backups: ApiBackupStatus;
+  /** Null for everyone but the owner of this Volume: backups hold every workspace's data. */
+  backups: ApiBackupStatus | null;
   houseStyleVersion: number | null;
   /** Newest config/kdp-rules file. */
   kdpRulesVersion: string | null;
@@ -663,6 +668,39 @@ export interface BlueprintChapterData {
   takeaways: boolean;
   bridge_note: string;
   [extra: string]: unknown;
+}
+
+/** One character in a fiction story bible (apps/server/src/ports/ai.ts StoryBibleSchema). */
+export interface StoryCharacter {
+  name: string;
+  role: string;
+  want: string;
+  need: string;
+  flaw: string;
+  voiceNotes: string;
+  appearance: string;
+  [extra: string]: unknown;
+}
+
+/** The fiction story bible (D-043), kept in the blueprint data as `storyBible`. */
+export interface StoryBible {
+  logline: string;
+  themes: string[];
+  characters: StoryCharacter[];
+  settings: { name: string; description: string; [extra: string]: unknown }[];
+  timeline: string[];
+  worldRules: string[];
+  povPlan: string;
+  ending: string;
+  [extra: string]: unknown;
+}
+
+/** Row of GET /books/:id/story-ledger: what the writer recorded as each chapter was saved. */
+export interface ApiLedgerItem {
+  kind: string;
+  key: string;
+  detail: string | null;
+  sectionId: string | null;
 }
 
 /** Blueprint JSON (apps/server/src/ports/ai.ts BlueprintSchema). Extra keys are kept. */
@@ -1419,3 +1457,168 @@ export interface BookEventDataMap {
 export type BookEvent = {
   [K in BookEventType]: { id: string | null; type: K } & ServerEventEnvelope<BookEventDataMap[K]>;
 }[BookEventType];
+
+/* ---------- Volume mode: accounts, batches and the title schedule (P8-2, P8-3) ---------- */
+/* Source: apps/server/src/routes/members.ts, routes/batches.ts, routes/schedule.ts, repos/members.ts,
+   repos/batches.ts, repos/schedule.ts and jobs/quality-gate.ts. */
+
+export type Role = "owner" | "editor" | "viewer";
+export type AccountsMode = "owner-only" | "invite";
+
+/** GET /me: who is calling, so the screens can hide controls the role cannot use. */
+export interface ApiMe {
+  userId: string;
+  workspaceId: string;
+  role: Role;
+  /** True for the owner of this Volume (the only account that can invite another self-publisher). */
+  instanceOwner: boolean;
+  accountsMode: AccountsMode;
+}
+
+export interface ApiMember {
+  userId: string;
+  role: Role;
+  displayName: string;
+  email: string | null;
+  signedIn: boolean;
+  isYou: boolean;
+  joinedAt: EpochMs;
+}
+
+export type InviteRole = "owner" | "editor" | "viewer";
+export type MemberRole = "editor" | "viewer";
+
+export interface ApiInvitation {
+  id: string;
+  email: string;
+  role: InviteRole;
+  status: "pending" | "accepted" | "revoked";
+  createdAt: EpochMs;
+  acceptedAt: EpochMs | null;
+}
+
+/** GET /members (owner only). Invitations are the pending ones. */
+export interface MembersResponse {
+  accountsMode: AccountsMode;
+  items: ApiMember[];
+  invitations: ApiInvitation[];
+}
+
+export interface InvitationInput {
+  email: string;
+  role: InviteRole;
+}
+
+export type TitleFormat = "ebook" | "paperback" | "hardcover";
+export const TITLE_FORMATS: readonly TitleFormat[] = ["ebook", "paperback", "hardcover"];
+
+/** The title limit as the server reports it, from config/kdp-rules (rule titles.creationLimit). */
+export interface ApiTitleLimit {
+  maxNewTitlesPerFormat: number;
+  periodDays: number;
+  ruleId: string;
+  rulesVersion: string;
+}
+
+export interface ApiTitleSlot {
+  id: string;
+  bookId: string;
+  batchId: string | null;
+  format: TitleFormat;
+  plannedAt: EpochMs;
+  status: "planned" | "confirmed";
+  confirmedAt: EpochMs | null;
+  createdAt: EpochMs;
+  book: { title: string | null; idea: string | null; profileId: string; penName: string };
+}
+
+/** GET /schedule?from&to */
+export interface ScheduleResponse {
+  from: EpochMs | null;
+  to: EpochMs | null;
+  limit: ApiTitleLimit;
+  items: ApiTitleSlot[];
+}
+
+export interface SlotInput {
+  bookId: string;
+  format: TitleFormat;
+  plannedAt: EpochMs;
+  batchId?: string | null;
+}
+
+/** details of a 409 title_limit answer. */
+export interface TitleLimitDetails {
+  conflicts: ApiTitleSlot[];
+  nextFreeAt: EpochMs;
+  limit: ApiTitleLimit;
+}
+
+/** details of a 409 quality_gate answer, and one book's gate in GET /batches/:id/gates. */
+export interface QualityGate {
+  ok: boolean;
+  blocks: { id: string; area: string; message: string }[];
+  openClaims: number;
+}
+
+export interface BatchGatesResponse {
+  items: { itemId: string; bookId: string; gate: QualityGate }[];
+}
+
+export type BatchStatus = "draft" | JobStatus;
+
+export interface ApiBatch {
+  id: string;
+  name: string;
+  notes: string | null;
+  jobId: string | null;
+  startedAt: EpochMs | null;
+  createdAt: EpochMs;
+  updatedAt: EpochMs;
+}
+
+export interface ApiBatchSummary extends ApiBatch {
+  status: BatchStatus;
+  /** 0 to 1. */
+  progress: number;
+  itemCount: number;
+  readyCount: number;
+  penNames: string[];
+}
+
+export interface ApiBatchItem {
+  id: string;
+  batchId: string;
+  bookId: string;
+  position: number;
+  status: "planned" | "ready";
+  jobId: string | null;
+  readyAt: EpochMs | null;
+  book: { title: string | null; idea: string | null; stage: string; status: string; profileId: string; penName: string };
+}
+
+export interface ApiBatchItemView extends ApiBatchItem {
+  run: { status: JobStatus; progress: number; error: string | null } | null;
+  slots: ApiTitleSlot[];
+}
+
+export interface ApiBatchDetail extends ApiBatchSummary {
+  items: ApiBatchItemView[];
+  job: ApiJob | null;
+}
+
+export interface BatchInput {
+  name: string;
+  notes?: string | null;
+  bookIds: string[];
+}
+
+export interface BatchPatch {
+  name?: string;
+  notes?: string | null;
+  addBookIds?: string[];
+  removeBookIds?: string[];
+}
+
+/** POST /batches/:id/start answers 202 with the job and the batch. */
+export type BatchStarted = AcceptedJob & { batch: ApiBatchDetail };

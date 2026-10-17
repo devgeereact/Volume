@@ -623,10 +623,10 @@ export function KdpRulesPanel() {
       <PanelHeader title="KDP rules" body="Trim sizes, page limits, cover maths and royalty rules come from one dated file, never from memory." />
       {stale ? (
         <Banner tone="attention" title="Time to check the KDP rules again">
-          The rules file is {ageDays} days old. Check KDP’s help pages and add a new dated file.
+          The oldest check in the rules file was {ageDays} days ago. Check KDP’s help pages and add a new dated file.
         </Banner>
       ) : (
-        <Banner tone="success" title={`Checked ${ageDays === 1 ? "1 day" : `${ageDays} days`} ago`}>
+        <Banner tone="success" title={`Oldest check ${ageDays === 1 ? "1 day" : `${ageDays} days`} ago`}>
           Next check due by {formatDate(`${kr.recheckDue}T09:00:00+00:00`)}.
         </Banner>
       )}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
 import { useBlocker, useNavigate, useParams, useSearchParams } from "react-router";
 import { Save } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -109,6 +110,7 @@ interface EditorEnv {
 
 function ProfileEditor({ initial, isNew, env }: { initial: ProfileDraft; isNew: boolean; env: EditorEnv }) {
   const navigate = useNavigate();
+  const canWrite = useCanWrite();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
   const tabParam = params.get("tab");
@@ -221,17 +223,20 @@ function ProfileEditor({ initial, isNew, env }: { initial: ProfileDraft; isNew: 
               <span role="status" className={cn("text-small", dirty ? "font-semibold text-accent-text" : "text-ink-tertiary")}>
                 {dirty ? "Unsaved changes" : isNew ? "" : "All changes saved"}
               </span>
-              {dirty && !isNew && (
+              {dirty && !isNew && canWrite && (
                 <Button variant="ghost" onClick={() => setDraft(saved)}>
                   Discard changes
                 </Button>
               )}
-              <Button variant="primary" icon={Save} onClick={save} loading={saving} loadingLabel="Saving">
-                {isNew ? "Add profile" : "Save profile"}
-              </Button>
+              {canWrite && (
+                <Button variant="primary" icon={Save} onClick={save} loading={saving} loadingLabel="Saving">
+                  {isNew ? "Add profile" : "Save profile"}
+                </Button>
+              )}
             </>
           }
         />
+        <ReadOnlyBanner />
 
         {saveError && (
           <Banner tone="error" title={isNew ? "Profile not added" : "Profile not saved"}>

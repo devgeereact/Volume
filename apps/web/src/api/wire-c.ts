@@ -13,6 +13,7 @@ import { isApiError } from "./client";
 import { useBookLive } from "./events";
 import { useJob } from "./hooks";
 import { isTerminalJob, type ApiSection, type ApiSectionVersion, type JobStatus } from "./types";
+import { isChecklistText, isSceneBreak, isWorkbookFence, readFence } from "../lib/workbookMarkdown";
 
 /* ---------- Errors ---------- */
 
@@ -110,39 +111,73 @@ export function jobStatusText(status: JobStatus | null): string {
 
 /* ---------- Manuscript text ---------- */
 
+/** Kinds of manuscript block in the Editor: paragraph, subheading, scene break, workbook block (exercise, lines, fill-in, checklist). */
+export type MdBlockKind = "p" | "h" | "scene" | "workbook";
+
 export interface MdBlock {
   id: string;
-  kind: "p" | "h";
+  kind: MdBlockKind;
+  /** The text; for scene and workbook blocks, their Markdown exactly as written. */
   text: string;
   rev: number;
   /** Heading marks as written in the markdown ("## "), kept so a save does not change the level. */
   prefix?: string | undefined;
 }
 
-/** bodyMd to blocks: one block per paragraph, headings ("#" lines) as "h". Ids are stable per position. */
+/**
+ * bodyMd to blocks: one block per paragraph, headings ("#" lines) as "h", `***` or `* * *` as "scene", and
+ * each workbook fence (exercise, lines, fill-in, with any blank lines inside) or checklist as one "workbook"
+ * block holding its Markdown. Ids are stable per position.
+ */
 export function blocksFromMarkdown(md: string, idBase: string): MdBlock[] {
-  const parts = md
-    .replace(/\r\n/g, "\n")
-    .split(/\n{2,}/)
-    .map((p) => p.replace(/^\n+|\n+$/g, ""))
-    .filter((p) => p.trim().length > 0);
-  return parts.map((p, i) => {
+  const lines = md.replace(/\r\n/g, "\n").split("\n");
+  const parts: { text: string; fence: boolean }[] = [];
+  let para: string[] = [];
+  const flush = () => {
+    const text = para.join("\n").replace(/^\n+|\n+$/g, "");
+    if (text.trim()) parts.push({ text, fence: false });
+    para = [];
+  };
+  let i = 0;
+  while (i < lines.length) {
+    const ln = lines[i] ?? "";
+    if (!ln.trim()) {
+      flush();
+      i++;
+      continue;
+    }
+    if (para.length === 0 && isWorkbookFence(ln)) {
+      const f = readFence(lines, i);
+      if (f) {
+        parts.push({ text: lines.slice(i, f.next).join("\n").replace(/\s+$/, ""), fence: true });
+        i = f.next;
+        continue;
+      }
+    }
+    para.push(ln);
+    i++;
+  }
+  flush();
+  return parts.map(({ text: p, fence }, i) => {
+    const id = `${idBase}-${i}`;
+    if (fence || isChecklistText(p)) return { id, kind: "workbook", text: p, rev: 0 };
+    if (isSceneBreak(p)) return { id, kind: "scene", text: p.trim(), rev: 0 };
     const m = /^(#{1,6}\s+)(.*)$/s.exec(p);
-    if (m && !p.includes("\n")) return { id: `${idBase}-${i}`, kind: "h", text: m[2] ?? "", rev: 0, prefix: m[1] };
-    return { id: `${idBase}-${i}`, kind: "p", text: p, rev: 0 };
+    if (m && !p.includes("\n")) return { id, kind: "h", text: m[2] ?? "", rev: 0, prefix: m[1] };
+    return { id, kind: "p", text: p, rev: 0 };
   });
 }
 
-/** Blocks back to bodyMd. Empty paragraphs are dropped. */
-export function markdownFromBlocks(blocks: { kind: "p" | "h"; text: string; prefix?: string | undefined }[]): string {
+/** Blocks back to bodyMd. Empty paragraphs are dropped; scene and workbook blocks keep their Markdown. */
+export function markdownFromBlocks(blocks: { kind: MdBlockKind; text: string; prefix?: string | undefined }[]): string {
   return blocks
     .filter((b) => b.text.trim().length > 0)
-    .map((b) => (b.kind === "h" ? `${b.prefix ?? "## "}${b.text.trim()}` : b.text.trim()))
+    .map((b) => (b.kind === "h" ? `${b.prefix ?? "## "}${b.text.trim()}` : b.kind === "workbook" ? b.text.replace(/^\n+|\s+$/g, "") : b.text.trim()))
     .join("\n\n");
 }
 
 /** Character offset in markdownFromBlocks(blocks) just after block `index` (for a note's position). */
-export function offsetAfterBlock(blocks: { kind: "p" | "h"; text: string; prefix?: string | undefined }[], index: number): number {
+export function offsetAfterBlock(blocks: { kind: MdBlockKind; text: string; prefix?: string | undefined }[], index: number): number {
   return markdownFromBlocks(blocks.slice(0, index + 1)).length;
 }
 

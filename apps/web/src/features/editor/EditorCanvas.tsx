@@ -5,7 +5,7 @@ import { Plugin } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Check, ChevronDown, ClipboardPaste, MessageSquarePlus, PenLine, X } from "lucide-react";
+import { Check, ChevronDown, ClipboardPaste, MessageSquarePlus, PenLine, Plus, X } from "lucide-react";
 import { Banner, Button, EmptyState, GalleySheet, IconButton, Kbd, Loader, modKey } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { fadeOnly, popover } from "../../lib/motion";
@@ -14,6 +14,8 @@ import type { MsBlock, MsClaim, MsNote, MsSection, NoteMode } from "./manuscript
 import { NoteCard, ProposedText } from "./NoteCard";
 import { DiffText } from "./DiffText";
 import { findRanges, mockRewrite, rewriteLabels, type RewriteKind } from "./textTools";
+import { exerciseKindLabels, newBlockMarkdown, type ExerciseKind, type InsertKind } from "../../lib/workbookMarkdown";
+import { SceneBreak, WorkbookBlock } from "./WorkbookBlock";
 
 interface Selection {
   blockId: string;
@@ -67,6 +69,14 @@ interface EditorCanvasProps {
   onPasteOwn: () => void;
   /** False hides the selection rewrite toolbar. */
   rewrites?: boolean | undefined;
+  /** A viewer's role: the text shows, nothing can be typed, noted or inserted. */
+  readOnly?: boolean | undefined;
+  /** Blocks the Insert menu offers for this book's template (scene breaks for fiction, exercises for workbooks). */
+  insertKinds?: InsertKind[] | undefined;
+  /** Adds a scene break or workbook block after a block (null: at the end). */
+  onInsert?: ((afterBlockId: string | null, kind: "scene" | "workbook", text: string) => void) | undefined;
+  /** Removes a scene break or workbook block. */
+  onRemoveBlock?: ((blockId: string) => void) | undefined;
   /**
    * API mode: asks the server for a rewrite of the selection. Resolves with the proposal, or null when
    * it failed (the screen shows why). Without it, the demo's local rewrite is used.
@@ -208,6 +218,10 @@ export function EditorCanvas(props: EditorCanvasProps) {
   }
 
   const empty = section.blocks.length === 0;
+  const readOnly = props.readOnly === true;
+  // The block the caret was last in, so Insert puts the new block after it.
+  const [lastBlock, setLastBlock] = useState<string | null>(null);
+  const insertKinds = !readOnly && props.onInsert ? (props.insertKinds ?? []) : [];
 
   return (
     <div ref={wrapRef} className="relative" onKeyDown={onSheetKey}>
@@ -224,6 +238,8 @@ export function EditorCanvas(props: EditorCanvasProps) {
           <Banner tone="info" title="This page is off" className="mt-6">
             {section.offReason}
           </Banner>
+        ) : empty && readOnly ? (
+          <EmptyState className="mt-8" drawing="page" headingLevel={3} title="This section is empty" body="Nothing has been written here yet." />
         ) : empty ? (
           <EmptyState
             className="mt-8"
@@ -250,85 +266,116 @@ export function EditorCanvas(props: EditorCanvasProps) {
             }
           />
         ) : (
-          <div
-            ref={sheetRef}
-            role="group"
-            aria-label={`${section.title} text. Select words for rewrite options, ${modKey()} J to reach them. ${modKey()} Enter adds a note.`}
-            className="@container/sheet mt-6 font-book text-prose text-ink"
-            style={look.body}
-          >
-            {section.blocks.map((b, i) => {
-              const notesHere = notes.filter((n) => n.afterBlockId === b.id && (n.status === "draft" || n.status === "working" || n.status === "ready"));
-              const ready = notesHere.filter((n) => n.status === "ready");
-              return (
-                <Fragment key={b.id}>
-                  <div className={cn(rowGrid, "group/row relative", b.kind === "h" && "mt-7")}>
-                    <div className="relative min-w-0">
-                      <span className="absolute top-0 -left-12 hidden opacity-0 transition-opacity duration-(--vol-dur-fast) group-hover/row:opacity-100 group-focus-within/row:opacity-100 focus-within:opacity-100 sm:block">
-                        <IconButton
-                          size="sm"
-                          variant="ghost"
-                          icon={MessageSquarePlus}
-                          label="Add a note here"
-                          shortcut={[modKey(), "Enter"]}
-                          onClick={() => props.onAddNote(b.id)}
-                        />
-                      </span>
-                      <EditableBlock
-                        key={`${b.id}:${b.rev}:${findRe?.source ?? ""}:${findRe?.flags ?? ""}:${claims.map((c) => c.id).join(",")}:${currentMatch?.blockId === b.id ? currentMatch.index : -1}`}
-                        block={b}
-                        indent={b.kind === "p" && section.blocks[i - 1]?.kind === "p"}
-                        heading={look.heading}
-                        claims={claims.filter((c) => c.blockId === b.id)}
-                        findRe={findRe}
-                        currentIndex={currentMatch?.blockId === b.id ? currentMatch.index : -1}
-                        onDraft={props.onDraft}
-                        onCommit={props.onCommit}
-                        onSplit={props.onSplit}
-                        onAddNote={props.onAddNote}
-                      />
-                    </div>
-                    {notesHere.length > 0 && (
-                      <div className="mt-3 mb-2 grid min-w-0 content-start gap-2 @min-[880px]/sheet:relative @min-[880px]/sheet:z-10 @min-[880px]/sheet:mt-1 @min-[880px]/sheet:mb-0 @min-[880px]/sheet:h-0">
-                        {notesHere.map((n) => (
-                          <NoteCard
-                            key={n.id}
-                            note={n}
-                            voiceOf={props.voiceOf}
-                            focus={props.focusNoteId === n.id}
-                            onFocused={props.onNoteFocused}
-                            onText={(t) => props.onNoteText(n.id, t)}
-                            onWeave={() => props.onNoteRun(n.id, "weave")}
-                            onExpand={() => props.onNoteRun(n.id, "expand")}
-                            onDiscard={() => props.onNoteDiscard(n.id)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {ready.map((n) => (
-                    <div key={`${n.id}-proposed`} className={rowGrid}>
-                      <ProposedText
-                        note={n}
-                        body={look.body}
-                        heading={look.heading}
-                        onAccept={() => props.onNoteAccept(n.id)}
-                        onReject={() => props.onNoteReject(n.id)}
-                      />
-                    </div>
-                  ))}
-                </Fragment>
-              );
-            })}
-            {section.excerpt && (
-              <div className="mt-6 font-ui text-small text-ink-tertiary italic">Showing the opening pages. Word counts are for the whole section.</div>
+          <>
+            {insertKinds.length > 0 && (
+              <InsertMenu
+                kinds={insertKinds}
+                onPick={(kind, text) => props.onInsert?.(lastBlock && section.blocks.some((b) => b.id === lastBlock) ? lastBlock : null, kind, text)}
+              />
             )}
-          </div>
+            <div
+              ref={sheetRef}
+              onFocusCapture={(e) => {
+                const el = closestBlock(e.target);
+                if (el?.dataset.blockId) setLastBlock(el.dataset.blockId);
+              }}
+              role="group"
+              aria-label={`${section.title} text. Select words for rewrite options, ${modKey()} J to reach them. ${modKey()} Enter adds a note.`}
+              className="@container/sheet mt-6 font-book text-prose text-ink"
+              style={look.body}
+            >
+              {section.blocks.map((b, i) => {
+                if (b.kind === "scene")
+                  return <SceneBreak key={b.id} block={b} onRemove={!readOnly && props.onRemoveBlock ? () => props.onRemoveBlock?.(b.id) : undefined} />;
+                if (b.kind === "workbook")
+                  return (
+                    <div key={b.id} className={rowGrid}>
+                      <div className="min-w-0">
+                        <WorkbookBlock
+                          block={b}
+                          readOnly={readOnly}
+                          onDraft={props.onDraft}
+                          onCommit={props.onCommit}
+                          onRemove={!readOnly && props.onRemoveBlock ? () => props.onRemoveBlock?.(b.id) : undefined}
+                        />
+                      </div>
+                    </div>
+                  );
+                const notesHere = notes.filter((n) => n.afterBlockId === b.id && (n.status === "draft" || n.status === "working" || n.status === "ready"));
+                const ready = notesHere.filter((n) => n.status === "ready");
+                return (
+                  <Fragment key={b.id}>
+                    <div className={cn(rowGrid, "group/row relative", b.kind === "h" && "mt-7")}>
+                      <div className="relative min-w-0">
+                        {!readOnly && (
+                          <span className="absolute top-0 -left-12 hidden opacity-0 transition-opacity duration-(--vol-dur-fast) group-hover/row:opacity-100 group-focus-within/row:opacity-100 focus-within:opacity-100 sm:block">
+                            <IconButton
+                              size="sm"
+                              variant="ghost"
+                              icon={MessageSquarePlus}
+                              label="Add a note here"
+                              shortcut={[modKey(), "Enter"]}
+                              onClick={() => props.onAddNote(b.id)}
+                            />
+                          </span>
+                        )}
+                        <EditableBlock
+                          key={`${b.id}:${b.rev}:${findRe?.source ?? ""}:${findRe?.flags ?? ""}:${claims.map((c) => c.id).join(",")}:${currentMatch?.blockId === b.id ? currentMatch.index : -1}`}
+                          block={b}
+                          indent={b.kind === "p" && section.blocks[i - 1]?.kind === "p"}
+                          readOnly={readOnly}
+                          heading={look.heading}
+                          claims={claims.filter((c) => c.blockId === b.id)}
+                          findRe={findRe}
+                          currentIndex={currentMatch?.blockId === b.id ? currentMatch.index : -1}
+                          onDraft={props.onDraft}
+                          onCommit={props.onCommit}
+                          onSplit={props.onSplit}
+                          onAddNote={props.onAddNote}
+                        />
+                      </div>
+                      {notesHere.length > 0 && (
+                        <div className="mt-3 mb-2 grid min-w-0 content-start gap-2 @min-[880px]/sheet:relative @min-[880px]/sheet:z-10 @min-[880px]/sheet:mt-1 @min-[880px]/sheet:mb-0 @min-[880px]/sheet:h-0">
+                          {notesHere.map((n) => (
+                            <NoteCard
+                              key={n.id}
+                              note={n}
+                              voiceOf={props.voiceOf}
+                              focus={props.focusNoteId === n.id}
+                              onFocused={props.onNoteFocused}
+                              onText={(t) => props.onNoteText(n.id, t)}
+                              onWeave={() => props.onNoteRun(n.id, "weave")}
+                              onExpand={() => props.onNoteRun(n.id, "expand")}
+                              onDiscard={() => props.onNoteDiscard(n.id)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {ready.map((n) => (
+                      <div key={`${n.id}-proposed`} className={rowGrid}>
+                        <ProposedText
+                          note={n}
+                          body={look.body}
+                          heading={look.heading}
+                          onAccept={() => props.onNoteAccept(n.id)}
+                          onReject={() => props.onNoteReject(n.id)}
+                        />
+                      </div>
+                    ))}
+                  </Fragment>
+                );
+              })}
+              {section.excerpt && (
+                <div className="mt-6 font-ui text-small text-ink-tertiary italic">Showing the opening pages. Word counts are for the whole section.</div>
+              )}
+            </div>
+          </>
         )}
       </GalleySheet>
 
       <AnimatePresence>
-        {sel && !rewrite && props.rewrites !== false && (
+        {sel && !rewrite && props.rewrites !== false && !readOnly && (
           <motion.div
             ref={toolbarRef}
             key="toolbar"
@@ -426,6 +473,94 @@ export function EditorCanvas(props: EditorCanvasProps) {
   );
 }
 
+const insertLabels: Record<Exclude<InsertKind, "exercise">, string> = {
+  scene: "Scene break",
+  lines: "Ruled lines",
+  "fill-in": "Fill-in prompts",
+  checklist: "Checklist",
+};
+const exerciseKinds: ExerciseKind[] = ["reflection", "checklist", "fill-in", "tracker", "scenario"];
+
+/** Insert a scene break or a workbook block after the paragraph the caret was last in. */
+function InsertMenu({ kinds, onPick }: { kinds: InsertKind[]; onPick: (kind: "scene" | "workbook", text: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  type Item = { id: string; label: string; kind: "scene" | "workbook"; text: string };
+  const items = kinds.flatMap((k): Item[] =>
+    k === "exercise"
+      ? exerciseKinds.map((e) => ({ id: `exercise-${e}`, label: `${exerciseKindLabels[e]} exercise`, kind: "workbook", text: newBlockMarkdown("exercise", e) }))
+      : [{ id: k, label: insertLabels[k], kind: k === "scene" ? "scene" : "workbook", text: newBlockMarkdown(k) }],
+  );
+  useEffect(() => {
+    if (open) menuRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+  }, [open]);
+  function close() {
+    setOpen(false);
+    buttonRef.current?.focus();
+  }
+  function onMenuKey(e: KeyboardEvent<HTMLDivElement>) {
+    const list = [...(menuRef.current?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
+    const i = list.indexOf(document.activeElement as HTMLButtonElement);
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      list[(i + 1) % list.length]?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      list[(i - 1 + list.length) % list.length]?.focus();
+    }
+  }
+  // A single kind (fiction: scene break) is one button, no menu.
+  if (items.length === 1) {
+    const only = items[0]!;
+    return (
+      <div className="mb-2 flex justify-end">
+        <Button size="sm" variant="ghost" icon={Plus} onClick={() => onPick(only.kind, only.text)}>
+          Insert {only.label.toLowerCase()}
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="relative mb-2 flex justify-end">
+      <Button ref={buttonRef} size="sm" variant="ghost" icon={Plus} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        Insert
+      </Button>
+      {open && (
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label="Insert a block"
+          onKeyDown={onMenuKey}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget) && e.relatedTarget !== buttonRef.current) setOpen(false);
+          }}
+          className="absolute top-full right-0 z-20 mt-1 grid min-w-[220px] rounded-md bg-raised p-1 font-ui shadow-pop"
+        >
+          {items.map((it) => (
+            <button
+              key={it.id}
+              role="menuitem"
+              type="button"
+              onClick={() => {
+                onPick(it.kind, it.text);
+                setOpen(false);
+              }}
+              className="h-10 rounded-sm px-3 text-left text-label text-ink hover:bg-sunken focus-visible:bg-sunken"
+            >
+              {it.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ToolbarButton({ children, onClick, expanded }: { children: ReactNode; onClick: () => void; expanded?: boolean }) {
   return (
     <button
@@ -452,6 +587,7 @@ function closestBlock(node: Node): HTMLElement | null {
 interface EditableBlockProps {
   block: MsBlock;
   indent: boolean;
+  readOnly: boolean;
   heading: CSSProperties | undefined;
   onAddNote: (afterBlockId: string) => void;
   claims: MsClaim[];
@@ -528,6 +664,7 @@ function EditableBlock(props: EditableBlockProps) {
         highlights,
       ],
       content: blockDocument(block),
+      editable: !props.readOnly,
       immediatelyRender: false,
       shouldRerenderOnTransaction: false,
       editorProps: {
@@ -567,7 +704,7 @@ function EditableBlock(props: EditableBlockProps) {
         value.onCommit(value.block.id, current.getText());
       },
     },
-    [block.id],
+    [block.id, props.readOnly],
   );
   useEffect(() => {
     if (editor && editor.getText() !== block.text && !editor.isFocused) editor.commands.setContent(blockDocument(block), { emitUpdate: false });

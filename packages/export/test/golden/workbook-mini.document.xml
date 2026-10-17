@@ -1,0 +1,1045 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document mc:Ignorable="w14 w15 wp14" xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:cx3="http://schemas.microsoft.com/office/drawing/2016/5/9/chartex" xmlns:cx4="http://schemas.microsoft.com/office/drawing/2016/5/10/chartex" xmlns:cx5="http://schemas.microsoft.com/office/drawing/2016/5/11/chartex" xmlns:cx6="http://schemas.microsoft.com/office/drawing/2016/5/12/chartex" xmlns:cx7="http://schemas.microsoft.com/office/drawing/2016/5/13/chartex" xmlns:cx8="http://schemas.microsoft.com/office/drawing/2016/5/14/chartex" xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink" xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex">
+<w:body>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TitlePageTitle"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">The Weekly Reset Workbook</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TitlePageSubtitle"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Small Habits for a Calmer Home</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TitlePageAuthor"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Jo Hartley</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="CopyrightFirst"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Copyright © 2026 Jo Hartley</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Copyright"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">All rights reserved.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Copyright"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">First edition.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsHeading"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Contents</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsEntry"/>
+</w:pPr>
+<w:hyperlink w:history="1" w:anchor="_sec1">
+<w:r>
+<w:t xml:space="preserve">How to Use This Workbook</w:t>
+</w:r>
+</w:hyperlink>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsEntry"/>
+</w:pPr>
+<w:hyperlink w:history="1" w:anchor="_sec2">
+<w:r>
+<w:t xml:space="preserve">Introduction</w:t>
+</w:r>
+</w:hyperlink>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsEntry"/>
+</w:pPr>
+<w:hyperlink w:history="1" w:anchor="_sec3">
+<w:r>
+<w:t xml:space="preserve">Chapter 1: Start Where You Are</w:t>
+</w:r>
+</w:hyperlink>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsSubentry"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Notice Your Week</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsSubentry"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Pick One Small Corner</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsSubentry"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Keep It Short</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsEntry"/>
+</w:pPr>
+<w:hyperlink w:history="1" w:anchor="_sec4">
+<w:r>
+<w:t xml:space="preserve">Chapter 2: Make It a Habit</w:t>
+</w:r>
+</w:hyperlink>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsSubentry"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Choose a Time</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsSubentry"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Track It</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsSubentry"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Plan for Bad Weeks</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsEntry"/>
+</w:pPr>
+<w:hyperlink w:history="1" w:anchor="_sec5">
+<w:r>
+<w:t xml:space="preserve">Conclusion</w:t>
+</w:r>
+</w:hyperlink>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsEntry"/>
+</w:pPr>
+<w:hyperlink w:history="1" w:anchor="_sec6">
+<w:r>
+<w:t xml:space="preserve">About the Author</w:t>
+</w:r>
+</w:hyperlink>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading1"/>
+</w:pPr>
+<w:bookmarkStart w:name="_sec1" w:id="6"/>
+<w:r>
+<w:t xml:space="preserve">How to Use This Workbook</w:t>
+</w:r>
+<w:bookmarkEnd w:id="6"/>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Read one chapter a week. Each chapter ends with exercises: write in the lines, tick the boxes and fill in the blanks. There are no wrong answers.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading1"/>
+</w:pPr>
+<w:bookmarkStart w:name="_sec2" w:id="7"/>
+<w:r>
+<w:t xml:space="preserve">Introduction</w:t>
+</w:r>
+<w:bookmarkEnd w:id="7"/>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">I wrote this workbook for people whose homes feel busy even when nothing is happening. You do not need a free weekend. You need ten minutes and a pen.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading1"/>
+</w:pPr>
+<w:bookmarkStart w:name="_sec3" w:id="8"/>
+<w:r>
+<w:t xml:space="preserve">Chapter 1: Start Where You Are</w:t>
+</w:r>
+<w:bookmarkEnd w:id="8"/>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Before you change anything, look at what you already do.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading2"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Notice Your Week</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Most homes have one day that goes wrong. For me it was Sunday evening, when the week ahead arrived all at once.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading2"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Pick One Small Corner</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">A whole house is too much to think about. A shelf, a drawer or the hall table is not.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading2"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Keep It Short</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Ten minutes is enough. Stop when the timer goes, even if you are halfway through.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysHeading"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Exercise: Your Busiest Day</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Which day of the week feels most crowded at home, and why?</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysHeading"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Exercise: Before You Start</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:sdt>
+<w:sdtPr>
+<w14:checkbox>
+<w14:checked w14:val="0"/>
+<w14:checkedState w14:val="2612" w14:font="MS Gothic"/>
+<w14:uncheckedState w14:val="2610" w14:font="MS Gothic"/>
+</w14:checkbox>
+</w:sdtPr>
+<w:sdtContent>
+<w:r>
+<w:sym w:char="2610" w:font="MS Gothic"/>
+</w:r>
+</w:sdtContent>
+</w:sdt>
+<w:r>
+<w:t xml:space="preserve"> </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">Choose one corner to reset first</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:sdt>
+<w:sdtPr>
+<w14:checkbox>
+<w14:checked w14:val="0"/>
+<w14:checkedState w14:val="2612" w14:font="MS Gothic"/>
+<w14:uncheckedState w14:val="2610" w14:font="MS Gothic"/>
+</w14:checkbox>
+</w:sdtPr>
+<w:sdtContent>
+<w:r>
+<w:sym w:char="2610" w:font="MS Gothic"/>
+</w:r>
+</w:sdtContent>
+</w:sdt>
+<w:r>
+<w:t xml:space="preserve"> </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">Set a ten-minute timer on your phone</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:sdt>
+<w:sdtPr>
+<w14:checkbox>
+<w14:checked w14:val="0"/>
+<w14:checkedState w14:val="2612" w14:font="MS Gothic"/>
+<w14:uncheckedState w14:val="2610" w14:font="MS Gothic"/>
+</w14:checkbox>
+</w:sdtPr>
+<w:sdtContent>
+<w:r>
+<w:sym w:char="2610" w:font="MS Gothic"/>
+</w:r>
+</w:sdtContent>
+</w:sdt>
+<w:r>
+<w:t xml:space="preserve"> </w:t>
+</w:r>
+<w:r>
+<w:t xml:space="preserve">Put a bag for things to give away by the door</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysHeading"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Key Takeaways</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysItem"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Look at your week before you change it.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysItem"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Start with one small corner, not the whole house.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysItem"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Ten minutes, then stop.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading1"/>
+</w:pPr>
+<w:bookmarkStart w:name="_sec4" w:id="9"/>
+<w:r>
+<w:t xml:space="preserve">Chapter 2: Make It a Habit</w:t>
+</w:r>
+<w:bookmarkEnd w:id="9"/>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">A reset only helps if it happens again next week.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading2"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Choose a Time</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Tie the reset to something you already do, such as the moment the kettle goes on after dinner.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading2"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Track It</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Ticking a box is a small reward. It also shows you the weeks that slipped.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading2"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Plan for Bad Weeks</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Some weeks will go wrong. Decide now what the smallest possible reset looks like.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysHeading"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Exercise: Your Reset Plan</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Fill in each line before your first reset.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">My reset day and time:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">The corner I will start with:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">What I will do with things I no longer need:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysHeading"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Exercise: Four-Week Reset Log</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Tick each week you finish a reset and note how long it took.</w:t>
+</w:r>
+</w:p>
+<w:tbl>
+<w:tblPr>
+<w:tblW w:type="pct" w:w="5000"/>
+<w:tblBorders>
+<w:top w:val="single" w:color="auto" w:sz="4"/>
+<w:left w:val="single" w:color="auto" w:sz="4"/>
+<w:bottom w:val="single" w:color="auto" w:sz="4"/>
+<w:right w:val="single" w:color="auto" w:sz="4"/>
+<w:insideH w:val="single" w:color="auto" w:sz="4"/>
+<w:insideV w:val="single" w:color="auto" w:sz="4"/>
+</w:tblBorders>
+</w:tblPr>
+<w:tblGrid>
+<w:gridCol w:w="2232"/>
+<w:gridCol w:w="2232"/>
+<w:gridCol w:w="2232"/>
+</w:tblGrid>
+<w:tr>
+<w:trPr>
+<w:tblHeader/>
+</w:trPr>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+<w:t xml:space="preserve">Week</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+<w:t xml:space="preserve">Done</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+<w:r>
+<w:rPr>
+<w:b/>
+<w:bCs/>
+</w:rPr>
+<w:t xml:space="preserve">Minutes</w:t>
+</w:r>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr>
+<w:trPr>
+<w:tblHeader w:val="off"/>
+</w:trPr>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Week 1</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr>
+<w:trPr>
+<w:tblHeader w:val="off"/>
+</w:trPr>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Week 2</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr>
+<w:trPr>
+<w:tblHeader w:val="off"/>
+</w:trPr>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Week 3</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+</w:p>
+</w:tc>
+</w:tr>
+<w:tr>
+<w:trPr>
+<w:tblHeader w:val="off"/>
+</w:trPr>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Week 4</w:t>
+</w:r>
+</w:p>
+</w:tc>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+</w:p>
+</w:tc>
+<w:tc>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TableText"/>
+</w:pPr>
+</w:p>
+</w:tc>
+</w:tr>
+</w:tbl>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysHeading"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Exercise: A Busy Saturday</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Sam planned a reset for Saturday morning, but friends arrived early and the day filled up.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ListBullet"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">What could Sam do instead of skipping the week?</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ListBullet"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">What would you do in the same place?</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysHeading"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Key Takeaways</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysItem"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Tie the reset to a habit you already have.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysItem"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Tick the log so you can see the pattern.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TakeawaysItem"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Plan the smallest reset for bad weeks.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:br w:type="page"/>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">My goal for the next four weeks:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">The first corner I will reset:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">What I will do when I miss a week:</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+<w:pBdr>
+<w:bottom w:val="single" w:color="888888" w:sz="4" w:space="1"/>
+</w:pBdr>
+<w:spacing w:after="0" w:before="280"/>
+</w:pPr>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading1"/>
+</w:pPr>
+<w:bookmarkStart w:name="_sec5" w:id="10"/>
+<w:r>
+<w:t xml:space="preserve">Conclusion</w:t>
+</w:r>
+<w:bookmarkEnd w:id="10"/>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">You now have a plan, a log and a fallback for bad weeks. Keep this book near the corner you started with.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading1"/>
+</w:pPr>
+<w:bookmarkStart w:name="_sec6" w:id="11"/>
+<w:r>
+<w:t xml:space="preserve">About the Author</w:t>
+</w:r>
+<w:bookmarkEnd w:id="11"/>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Jo Hartley is a home organiser in Leeds who helps busy families keep their homes calm with small weekly habits.</w:t>
+</w:r>
+</w:p>
+<w:sectPr>
+<w:footerReference w:type="default" r:id="rId6"/>
+<w:footerReference w:type="first" r:id="rId7"/>
+<w:footerReference w:type="even" r:id="rId8"/>
+<w:pgSz w:w="8640" w:h="12960" w:orient="portrait"/>
+<w:pgMar w:top="1080" w:right="792" w:bottom="1152" w:left="1152" w:header="576" w:footer="547" w:gutter="0"/>
+<w:pgNumType/>
+<w:titlePg/>
+<w:docGrid w:linePitch="360"/>
+</w:sectPr>
+</w:body>
+</w:document>

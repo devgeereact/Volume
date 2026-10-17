@@ -21,6 +21,10 @@ export const AI_STAGES = [
   'matter_metadata',
   'cover_brief',
   'marketing',
+  // Picture books (phase 7, D-044, D-045): the story, the scene prompts and one reference prompt per main character.
+  'picture_story',
+  'scene_prompts',
+  'character_reference',
 ] as const;
 export type AiStage = (typeof AI_STAGES)[number];
 
@@ -43,6 +47,43 @@ export const TitlesOutputSchema = z.object({
   options: z.array(z.object({ title: z.string(), subtitle: z.string().default(''), direction_key: z.string().default('') })),
 });
 
+/** Exercise kinds of the workbook template (same list as @volume/core EXERCISE_KINDS and config/book-templates/workbook.json). */
+export const EXERCISE_KINDS = ['reflection', 'checklist', 'fill-in', 'tracker', 'scenario'] as const;
+
+/** One planned exercise in a workbook chapter (blueprint.blueprint-workbook). */
+export const ExercisePlanSchema = z.object({
+  kind: z.enum(EXERCISE_KINDS),
+  title: z.string(),
+  purpose: z.string().default(''),
+  lines: z.number().int().nullable().default(null),
+});
+export type ExercisePlan = z.infer<typeof ExercisePlanSchema>;
+
+/** The fiction story bible (D-043), kept in the blueprint data as `storyBible`. No table of its own. */
+export const StoryBibleSchema = z.looseObject({
+  logline: z.string().default(''),
+  themes: z.array(z.string()).default([]),
+  characters: z
+    .array(
+      z.looseObject({
+        name: z.string(),
+        role: z.string().default(''),
+        want: z.string().default(''),
+        need: z.string().default(''),
+        flaw: z.string().default(''),
+        voiceNotes: z.string().default(''),
+        appearance: z.string().default(''),
+      }),
+    )
+    .default([]),
+  settings: z.array(z.looseObject({ name: z.string(), description: z.string().default('') })).default([]),
+  timeline: z.array(z.string()).default([]),
+  worldRules: z.array(z.string()).default([]),
+  povPlan: z.string().default(''),
+  ending: z.string().default(''),
+});
+export type StoryBible = z.infer<typeof StoryBibleSchema>;
+
 export const BlueprintChapterSchema = z.looseObject({
   number: z.number().int(),
   title: z.string(),
@@ -53,6 +94,12 @@ export const BlueprintChapterSchema = z.looseObject({
   key_points: z.array(z.string()).default([]),
   takeaways: z.boolean().default(false),
   bridge_note: z.string().default(''),
+  /** Workbook: 2 to 4 planned exercises (blueprint.blueprint-workbook). */
+  exercises: z.array(ExercisePlanSchema).optional(),
+  /** Fiction: viewpoint character, main setting and scene beats in order (blueprint.blueprint-fiction). */
+  povCharacter: z.string().optional(),
+  setting: z.string().optional(),
+  scenes: z.array(z.string()).optional(),
 });
 
 export const BlueprintSchema = z.looseObject({
@@ -71,6 +118,8 @@ export const BlueprintSchema = z.looseObject({
   description_draft: z.string().default(''),
   categories: z.array(z.string()).default([]),
   keywords: z.array(z.string()).default([]),
+  /** Fiction only (D-043). */
+  storyBible: StoryBibleSchema.optional(),
 });
 export type Blueprint = z.infer<typeof BlueprintSchema>;
 
@@ -85,9 +134,32 @@ export const BlueprintPartOutputSchema = z.object({
 
 export const WritingOutputSchema = z.object({ markdown: z.string().min(1) });
 
+/**
+ * Story ledger kinds. No CHECK constraint exists on story_ledger.kind, so the list is enforced here (plan PHASES-6-8,
+ * P6-4). character and setting are fiction entries (D-043); person, place, anecdote and promise are older names.
+ */
+export const LEDGER_KINDS = [
+  'story',
+  'example',
+  'metaphor',
+  'quote',
+  'phrase',
+  'warning',
+  'fact',
+  'name',
+  'term',
+  'character',
+  'setting',
+  'person',
+  'place',
+  'anecdote',
+  'promise',
+] as const;
+export type LedgerKind = (typeof LEDGER_KINDS)[number];
+
 export const SummariseOutputSchema = z.object({
   summary: z.string(),
-  ledger: z.array(z.object({ kind: z.string(), key: z.string(), detail: z.string().default('') })).default([]),
+  ledger: z.array(z.object({ kind: z.enum(LEDGER_KINDS), key: z.string(), detail: z.string().default('') })).default([]),
 });
 
 /** personal: about the author, not in the profile (preflight warns). regulatory: a named firm or person given a regulatory or safety status (preflight blocks until verified). */
@@ -173,6 +245,32 @@ export const MarketingOutputSchema = z.object({
     .default(null),
 });
 
+/** children.picture-book-story, checked loosely: the AI layer validates the full shape. */
+export const PictureStoryOutputSchema = z.looseObject({
+  title: z.string(),
+  characters: z.array(z.looseObject({ name: z.string() })).default([]),
+  spreads: z.array(z.looseObject({ n: z.number().int(), text: z.string(), sceneSummary: z.string().default('') })),
+  safetyCheck: z.object({ passed: z.boolean(), notes: z.array(z.string()).default([]) }),
+});
+
+export const ScenePromptsOutputSchema = z.looseObject({
+  characterSheets: z.array(z.object({ name: z.string(), prompt: z.string() })).default([]),
+  styleLine: z.string().default(''),
+  scenes: z.array(
+    z.looseObject({
+      spread: z.number().int(),
+      imagePrompt: z.string(),
+      layout: z.enum(['text-left', 'text-right', 'text-top', 'text-bottom']),
+      characters: z.array(z.string()).default([]),
+    }),
+  ),
+  cover: z.looseObject({ imagePrompt: z.string() }).optional(),
+});
+
+export const CharacterReferenceOutputSchema = z.object({
+  references: z.array(z.object({ name: z.string(), imagePrompt: z.string() })),
+});
+
 export interface AiStageOutputMap {
   research: z.infer<typeof ResearchOutputSchema>;
   titles: z.infer<typeof TitlesOutputSchema>;
@@ -186,6 +284,9 @@ export interface AiStageOutputMap {
   matter_metadata: z.infer<typeof MatterOutputSchema>;
   cover_brief: z.infer<typeof CoverBriefOutputSchema>;
   marketing: z.infer<typeof MarketingOutputSchema>;
+  picture_story: z.infer<typeof PictureStoryOutputSchema>;
+  scene_prompts: z.infer<typeof ScenePromptsOutputSchema>;
+  character_reference: z.infer<typeof CharacterReferenceOutputSchema>;
 }
 
 export const AI_OUTPUT_SCHEMAS: { [S in AiStage]: z.ZodType<AiStageOutputMap[S]> } = {
@@ -201,6 +302,9 @@ export const AI_OUTPUT_SCHEMAS: { [S in AiStage]: z.ZodType<AiStageOutputMap[S]>
   matter_metadata: MatterOutputSchema,
   cover_brief: CoverBriefOutputSchema,
   marketing: MarketingOutputSchema,
+  picture_story: PictureStoryOutputSchema,
+  scene_prompts: ScenePromptsOutputSchema,
+  character_reference: CharacterReferenceOutputSchema,
 };
 
 // ---------- port types ----------
@@ -306,8 +410,14 @@ export interface AiStageResult<S extends AiStage = AiStage> {
 export interface GenerateImageOptions {
   beforeCall?: (spentUsd: number, estimateUsd: number | null) => Promise<void>;
   model?: string;
-  /** For example '5:8' or '2:3'. */
+  /** For example '5:8' or '2:3'. Left out: the purpose picks it from config/models.defaults.json. */
   aspectRatio?: string;
+  /** What the image is for (default 'cover'). */
+  purpose?: 'cover' | 'spread' | 'character-reference';
+  /** Reference images (character references on every spread, D-045). Sent only to models that take image input. */
+  inputReferences?: { data: Uint8Array; mediaType: string }[];
+  /** Fixed seed (0 to 2147483647), sent only when the model supports it. */
+  seed?: number;
   signal?: AbortSignal;
   scenario?: string;
 }
@@ -319,11 +429,21 @@ export interface AiImageResult {
   height: number | null;
   usage: AiUsage;
   mock: boolean;
+  /** Why a reference or seed was left out (from the AI layer), for the job log. Empty when nothing was left out. */
+  notes?: string[];
 }
 
 export interface AiCostEstimate {
   lowUsd: number;
   highUsd: number;
+}
+
+/** What one picture would cost before it is made (picture-book estimates). */
+export interface AiImageEstimate extends AiCostEstimate {
+  /** The image model the estimate priced (the chosen one; the high end covers its fallbacks). */
+  model: string | null;
+  /** False when the model list gave no price for any of the models: the caller falls back to its budget reservation. */
+  priced: boolean;
 }
 
 export interface AiPort {
@@ -336,6 +456,8 @@ export interface AiPort {
   generateImage(prompt: string, opts?: GenerateImageOptions): Promise<AiImageResult>;
   /** Cost estimate before a call, for budget checks. */
   estimate(stage: AiStage, input: AiStageInput, opts?: { model?: string }): Promise<AiCostEstimate>;
+  /** Cost of one picture from the model list prices (chosen model low, dearest fallback high). Optional for test doubles. */
+  estimateImage?(opts?: { model?: string }): Promise<AiImageEstimate>;
   /** OpenRouter credit left on the key (USD), or null when unknown or not offered. Never the key itself. */
   credit?(signal?: AbortSignal): Promise<AiCredit | null>;
 }

@@ -1,4 +1,5 @@
 import { PublishedDetailsDialog } from "../published/PublishedDetailsDialog";
+import { useCanWrite } from "../../lib/access";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Download, FileArchive, FileImage, FileText, FileType, Package, Sparkles } from "lucide-react";
 import {
@@ -65,6 +66,7 @@ function toRow(i: ApiPreflightItem, bookId: string): PreflightItem {
 }
 
 export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetail | undefined }) {
+  const canWrite = useCanWrite();
   const bookId = book.id;
   const preflightQ = usePreflight(bookId);
   const exportsQ = useExports(bookId);
@@ -164,9 +166,11 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   return (
     <>
       <PageHeader title="Export" summary="Check, build and download the KDP upload pack." />
-      <Button className="mt-3" variant="secondary" onClick={() => setPricing(true)}>
-        Set list prices
-      </Button>
+      {canWrite && (
+        <Button className="mt-3" variant="secondary" onClick={() => setPricing(true)}>
+          Set list prices
+        </Button>
+      )}
       {pricing && apiBook && (
         <PublishedDetailsDialog
           open

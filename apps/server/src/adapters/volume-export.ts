@@ -1,12 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  contentsEntriesFromTemplate,
   DEFAULT_COVER_STYLE,
   DEFAULT_INTERIOR_THEME,
   kindForSubtype,
   normaliseCoverStyle,
   parseBlocks,
   partLabel,
+  pictureBookToBookDoc,
   slugify,
   titlePageLines,
   type BookDoc,
@@ -16,6 +18,7 @@ import {
   type InteriorTheme,
   type KdpRules,
   type Paper,
+  type PictureBookDoc,
   type Section,
   type SectionSubtype,
 } from '@volume/core';
@@ -29,6 +32,7 @@ import {
   exportEpub,
   exportMarkdown,
   exportPaperbackWrap,
+  exportPictureBookPdf,
   exportPrintPdf,
   exportTxt,
   loadFontLibrary,
@@ -48,6 +52,8 @@ import type {
   ExportOptions,
   ExportPort,
   ExportSection,
+  PictureBookBuild,
+  PictureBookInput,
   PreflightItem,
   PreflightReport,
   WrapCoverInput,
@@ -76,6 +82,9 @@ const MIME = {
   jpeg: 'image/jpeg',
   zip: 'application/zip',
 } as const;
+
+/** Picture books print on 8.5 x 8.5 in by default (D-044). */
+const PICTURE_BOOK_TRIM = '8.5x8.5';
 
 /** Server section kind to the core subtype. Kinds not listed keep their own name. */
 const KIND_TO_SUBTYPE: Readonly<Record<string, SectionSubtype>> = {
@@ -455,7 +464,10 @@ export class VolumeExportAdapter implements ExportPort {
   }
 
   private doc(book: ExportBook, includePhoto = true): BookDoc {
-    const doc = toBookDoc(book, this.template(book));
+    const template = this.template(book);
+    const doc = toBookDoc(book, template);
+    // What the printed contents lists comes from the template's contents rule (fiction: chapters and parts only).
+    doc.meta.contentsEntries = contentsEntriesFromTemplate(template);
     const about = doc.sections.find((section) => section.subtype === 'about_the_author');
     if (about && includePhoto && book.authorPhoto)
       about.blocks.unshift({
@@ -533,11 +545,96 @@ export class VolumeExportAdapter implements ExportPort {
     const browser = await this.getBrowser();
     const o: Parameters<typeof exportPaperbackWrap>[2] = { rules, pages: input.pageCount, paper: paperOf(input.book), trim: input.book.trim, browser, fonts };
     if (input.backBlurb) o.blurb = input.backBlurb;
+    if (input.ink) o.ink = input.ink;
     if (input.book.author.shortBio) o.shortBio = input.book.author.shortBio;
     if (input.artwork) o.background = buf(input.artwork.data);
     const r = await exportPaperbackWrap(this.coverMeta(input), this.styleForCover(input.book, input.coverStyleId, input.typography), o);
     const f = this.file(input.book, 'wrap_pdf', 'pdf', MIME.pdf, r.pdf, 1);
     return { ...f, filename: f.filename.replace(/\.pdf$/, `-${input.pageCount}p.pdf`) };
+  }
+
+  // ----- picture books (D-044) -----
+
+  /**
+   * The picture book as the package's PictureBookDoc: the book's front and back sections become the matter pages (in
+   * their order, built exactly as for any export), and the spreads come from the input. Spread sections in the book
+   * are left out of the matter.
+   */
+  pictureDoc(input: PictureBookInput): PictureBookDoc {
+    const matter = [...input.book.sections].filter((s) => s.kind !== 'spread').sort((a, b) => a.position - b.position);
+    const doc = this.doc({ ...input.book, sections: matter });
+    const front: Section[] = [];
+    const back: Section[] = [];
+    doc.sections.forEach((section, i) => {
+      if (matter[i]?.area === 'back') back.push(section.kind === 'front' ? { ...section, kind: 'back' } : section);
+      else front.push(section);
+    });
+    return {
+      meta: doc.meta,
+      front,
+      back,
+      spreads: [...input.spreads]
+        .sort((a, b) => a.n - b.n)
+        .map((sp) => ({ n: sp.n, text: sp.text, imageKey: sp.imageKey, layout: sp.layout, sceneSummary: sp.sceneSummary })),
+    };
+  }
+
+  /** Full-bleed print PDF, preflight on it, and the pack when nothing blocks. Print only: no EPUB or DOCX (D-044). */
+  async buildPictureBook(input: PictureBookInput, opts: ExportOptions = {}): Promise<PictureBookBuild> {
+    throwIfAborted(opts.signal);
+    const { rules, fonts } = this.config();
+    const book = { ...input.book, trim: PICTURE_BOOK_TRIM };
+    const doc = this.pictureDoc({ ...input, book });
+    const images: Record<string, Buffer> = {};
+    for (const [k, v] of Object.entries(input.images)) images[k] = buf(v);
+    const browser = await this.getBrowser();
+    throwIfAborted(opts.signal);
+    const r = await exportPictureBookPdf(doc, rules, { images, trim: PICTURE_BOOK_TRIM, browser, fonts, creationDate: this.now() });
+    const interior = this.file(book, 'interior_pdf', 'pdf', MIME.pdf, r.buffer, r.pageCount);
+    throwIfAborted(opts.signal);
+
+    const covers = input.covers ?? [];
+    const { pack: coverFiles } = packFilesOf(covers);
+    const pre: PreflightInput = {
+      ...this.preflightInput(book, { ...coverFiles, interiorPdf: r.buffer }, true),
+      book: pictureBookToBookDoc(doc),
+      trim: PICTURE_BOOK_TRIM,
+      pictureBook: { doc, ink: input.ink, layout: r.layout },
+    };
+    const report = await runPreflight(pre);
+    const preflight = toServerReport(report, rules.version);
+    let pack: ExportFile | null = null;
+    if (report.ok) {
+      const ai = aiFlags(book);
+      const packInput: Parameters<typeof buildUploadPack>[0] = {
+        book: pictureBookToBookDoc(doc),
+        files: { ...coverFiles, interiorPdf: r.buffer },
+        trim: PICTURE_BOOK_TRIM,
+        paper: paperOf(book),
+        pages: r.pageCount,
+        rules,
+        ruleIds: r.ruleIds,
+        preflight: report,
+        claims: book.claims ?? [],
+        ai: { aiWroteText: ai.aiWroteText, aiMadeImages: ai.aiMadeImages },
+        pictureBook: true,
+        date: this.now(),
+      };
+      if (book.edition) packInput.metadata = { edition: book.edition };
+      if (book.marketing) packInput.marketing = book.marketing;
+      const { fileName, zip } = await buildUploadPack(packInput);
+      pack = { filename: fileName, mime: MIME.zip, data: bytes(zip), pageCount: null, mock: false, role: 'pack' };
+    }
+    return {
+      interior,
+      preflight,
+      pack,
+      pageSizeIn: { widthIn: r.geometry.page.widthIn, heightIn: r.geometry.page.heightIn },
+      safeAreaFindings: r.safeArea.map((f) => f.message),
+      missingImages: r.layout.missingImages,
+      ruleIds: r.ruleIds,
+      warnings: r.warnings,
+    };
   }
 
   // ----- preflight and pack -----

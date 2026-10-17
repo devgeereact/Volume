@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useCanWrite } from "../../lib/access";
 import { Check, CircleAlert, ExternalLink, Globe, RotateCcw, X } from "lucide-react";
 import {
   Banner,
@@ -88,6 +89,7 @@ function runState(run: ApiResearchRun, job: StageJob | undefined): RunState {
 }
 
 export function ResearchApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetail }) {
+  const canWrite = useCanWrite();
   const bookId = apiBook.id;
   const research = useResearch(bookId);
   const { jobs } = useBookJobsLive(bookId);
@@ -148,7 +150,7 @@ export function ResearchApi({ book, apiBook }: { book: Book; apiBook: ApiBookDet
           title="Research"
           summary="Who the book is for, what they struggle with, and where it fits. Sources are cited, never invented."
           actions={
-            runs.length > 0 && !latestRunning ? (
+            canWrite && runs.length > 0 && !latestRunning ? (
               <Button icon={RotateCcw} estimate={estimateWords(estimate.data)} onClick={() => setAgainOpen(true)}>
                 Run again
               </Button>
@@ -204,7 +206,7 @@ export function ResearchApi({ book, apiBook }: { book: Book; apiBook: ApiBookDet
           <LivePanel
             job={job}
             onCancel={
-              job
+              job && canWrite
                 ? () =>
                     control.mutate(
                       { jobId: job.id, action: "cancel" },
@@ -222,9 +224,11 @@ export function ResearchApi({ book, apiBook }: { book: Book; apiBook: ApiBookDet
             tone="error"
             title="This research run stopped"
             action={
-              <Button size="sm" icon={RotateCcw} onClick={() => runResearch()} loading={start.isPending} loadingLabel="Starting">
-                Run again
-              </Button>
+              canWrite ? (
+                <Button size="sm" icon={RotateCcw} onClick={() => runResearch()} loading={start.isPending} loadingLabel="Starting">
+                  Run again
+                </Button>
+              ) : undefined
             }
           >
             {job?.error ?? "The run did not finish."} Earlier runs are kept.
@@ -591,6 +595,7 @@ function DossierSkeleton() {
 /* ---------- Source card ---------- */
 
 function ApiSourceCard({ bookId, source, number }: { bookId: string; source: SourceView; number: number }) {
+  const canWrite = useCanWrite();
   const setUse = useSetSourceUse();
   const [optimistic, setOptimistic] = useState<boolean | null>(null);
   const checked = optimistic ?? source.useInBook;
@@ -615,7 +620,7 @@ function ApiSourceCard({ bookId, source, number }: { bookId: string; source: Sou
         <Checkbox
           label="Use in book"
           checked={checked}
-          disabled={setUse.isPending}
+          disabled={setUse.isPending || !canWrite}
           onChange={(v) => {
             setOptimistic(v);
             setUse.mutate({ bookId, sourceId: source.id, useInBook: v }, { onSettled: () => setOptimistic(null) });

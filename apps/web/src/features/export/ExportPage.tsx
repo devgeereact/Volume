@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Check, Download, FileArchive, FileImage, FileText, FileType, Package, Sparkles } from "lucide-react";
 import { Banner, Button, EmptyState, Inspector, InspectorSection, KeyValueList, Loader, Modal, PageHeader, ProgressBar } from "../../components/ui";
@@ -25,10 +25,19 @@ import { ApiExport } from "./ApiExport";
 const PACK_DATE = "2026-10-04";
 const BUILD_STEP_MS = 420;
 
+// Picture books export one full-bleed print PDF (D-044); their screen loads in its own chunk with the KDP maths.
+const PictureExportPage = lazy(() => import("../spreads/PictureExportPage"));
+
 export default function ExportPage() {
   const { book, from, apiBook } = useBook();
   const { state, retry } = useScreenState();
   if (!book) return <NotFound what="book" />;
+  if (book.template === "picture-book")
+    return (
+      <Suspense fallback={<LoadingBlock label="Loading the export" rows={8} className="m-4 sm:m-8 lg:m-10" />}>
+        <PictureExportPage book={book} apiBook={apiBook} />
+      </Suspense>
+    );
   if (from === "api")
     return (
       <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">

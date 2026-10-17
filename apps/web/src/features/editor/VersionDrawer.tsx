@@ -19,6 +19,8 @@ interface VersionDrawerProps {
   dirty: boolean;
   initialLeft: number | null;
   onRestore: (version: MsVersion) => void;
+  /** A viewer's role: compare only, no restore. */
+  readOnly?: boolean | undefined;
   restoredNote: string | null;
   /** "Now" for the relative times (the demo's fixed date when left out). */
   now?: string | undefined;
@@ -43,6 +45,7 @@ export function VersionDrawer({
   dirty,
   initialLeft,
   onRestore,
+  readOnly,
   restoredNote,
   now,
   renderCompare,
@@ -149,7 +152,7 @@ export function VersionDrawer({
                 <div className="flex flex-wrap items-end gap-3 border-b border-border px-5 py-3 sm:px-6">
                   <Select className="w-[200px]" label="Compare" value={left} onChange={setLeft} options={options} />
                   <Select className="w-[200px]" label="With" value={right} onChange={setRight} options={options} />
-                  {leftVersion && (
+                  {leftVersion && !readOnly && (
                     <Button icon={RotateCcw} className="sm:ml-auto" loading={restoring} loadingLabel="Restoring" onClick={() => onRestore(leftVersion)}>
                       Restore version {leftVersion.number}
                     </Button>

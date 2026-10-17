@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useCanWrite } from "../../lib/access";
 import { Link } from "react-router";
 import { Check, Download, RotateCw } from "lucide-react";
 import { Banner, Button, buttonClasses, Loader, PageHeader, ProgressBar, SegmentedControl, Skeleton, StatusChip, Switch } from "../../components/ui";
@@ -82,6 +83,7 @@ export function ApiCover({ book, apiBook, penName }: { book: Book; apiBook: ApiB
 }
 
 function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBookDetail | undefined; author: string; cover: ApiCover | null }) {
+  const canWrite = useCanWrite();
   const bookId = book.id;
   const putBrief = usePutCoverBrief();
   const makeConcepts = useCoverConcepts();
@@ -304,7 +306,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
               <h2 id="concepts-title" className="font-book text-heading text-ink">
                 Concepts
               </h2>
-              {concepts.length > 0 && !making && (
+              {concepts.length > 0 && !making && canWrite && (
                 <Button size="sm" variant="ghost" icon={RotateCw} estimate="about $0.16" onClick={() => void startConcepts()}>
                   Make new concepts
                 </Button>

@@ -3,3 +3,5 @@ export const webOutDir: string;
 export const sqlitePath: string;
 export const dataDir: string;
 export const downloadDir: string;
+export const failServerSqlitePath: string;
+export const failServerDataDir: string;

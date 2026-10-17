@@ -1,0 +1,57 @@
+<!-- OEBPS/nav.xhtml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en-GB" xml:lang="en-GB">
+<head><meta charset="UTF-8"/><title>Contents</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
+<body>
+<nav epub:type="toc" id="toc"><h1>Contents</h1>
+<ol>
+<li><a href="text/dedication.xhtml">Dedication</a></li>
+<li><a href="text/chapter-1-the-light-comes-back.xhtml">Chapter 1: The Light Comes Back</a></li>
+<li><a href="text/chapter-2-footprints-in-the-salt.xhtml">Chapter 2: Footprints in the Salt</a></li>
+<li><a href="text/about-the-author.xhtml">About the Author</a></li>
+<li><a href="text/a-small-request.xhtml">A Small Request</a></li>
+</ol>
+</nav>
+<nav epub:type="landmarks" id="landmarks" hidden="hidden"><h2>Landmarks</h2><ol><li><a epub:type="toc" href="text/contents.xhtml">Contents</a></li><li><a epub:type="bodymatter" href="text/chapter-1-the-light-comes-back.xhtml">Start of content</a></li></ol></nav>
+</body>
+</html>
+
+<!-- OEBPS/text/chapter-1-the-light-comes-back.xhtml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en-GB" xml:lang="en-GB">
+<head>
+<meta charset="UTF-8"/>
+<title>Chapter 1: The Light Comes Back</title>
+<link rel="stylesheet" type="text/css" href="../styles.css"/>
+</head>
+<body class="chapter">
+<section epub:type="chapter" class="chapter" id="chapter-1-the-light-comes-back"><header><p class="kicker">Chapter 1</p><h1>The Light Comes Back</h1></header><p class="noindent">The lamp at Gull Point had been dark for eleven years when Morwenna Tregear saw it burning from her kitchen window.</p>
+<p>She set down the kettle and watched. The beam swung once across the bay, slow and yellow, and then it was gone.</p>
+<p>&quot;You saw it too,&quot; said her brother from the doorway. He had his coat on already.</p>
+<hr class="break"/>
+<p class="noindent">The path to the point was slick with rain. Morwenna went first, torch in one hand, the other on the cold iron rail her father had fixed to the rock.</p>
+<p>At the top the door of the lamp room stood open. Someone had swept the floor.</p></section>
+</body>
+</html>
+
+<!-- OEBPS/text/chapter-2-footprints-in-the-salt.xhtml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en-GB" xml:lang="en-GB">
+<head>
+<meta charset="UTF-8"/>
+<title>Chapter 2: Footprints in the Salt</title>
+<link rel="stylesheet" type="text/css" href="../styles.css"/>
+</head>
+<body class="chapter">
+<section epub:type="chapter" class="chapter" id="chapter-2-footprints-in-the-salt"><header><p class="kicker">Chapter 2</p><h1>Footprints in the Salt</h1></header><p class="noindent">By morning the whole village had an opinion. Mrs Kitto at the shop said it was boys from Penzance. The vicar said nothing at all, which Morwenna noticed.</p>
+<p>She went back up alone after lunch. The floor was still clean, but a line of salty footprints led from the stairs to the window and stopped.</p>
+<hr class="break"/>
+<p class="noindent">Her brother was waiting at the bottom of the path when she came down.</p>
+<p>&quot;Well?&quot; he said.</p>
+<p>&quot;Whoever it was,&quot; she said, &quot;they never came back down.&quot;</p></section>
+</body>
+</html>
+

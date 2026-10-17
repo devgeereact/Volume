@@ -39,10 +39,11 @@ function toPrices(json: string | null): ListPrices {
 }
 
 /**
- * Book settings: free-form, with two checked keys.
+ * Book settings: free-form, with these checked keys.
  * - acknowledgements: the people the owner wants to thank (one per line, or a list). Without names the writer saves a
  *   placeholder for the owner instead of inventing family, colleagues or early readers.
  * - coverConcepts: how many cover concepts (one paid image each) the cover brief writes, 1 to 4, default 3.
+ * - pov, tense: fiction point of view and tense, sent to the fiction blueprint and writer.
  */
 export const BookSettingsSchema = z.looseObject({
   acknowledgements: z
@@ -50,6 +51,10 @@ export const BookSettingsSchema = z.looseObject({
     .nullable()
     .optional(),
   coverConcepts: z.number().int().min(1).max(4).nullable().optional(),
+  /** Fiction: point of view, for example "close third, Mara" or "first person". The template default when unset. */
+  pov: z.string().trim().max(200).nullable().optional(),
+  /** Fiction: narration tense. Past when unset (fiction.json voice.tense). */
+  tense: z.enum(['past', 'present']).nullable().optional(),
 });
 
 export const BookInputSchema = z.object({
@@ -368,6 +373,17 @@ export class BooksRepo {
     await this.db
       .updateTable('projects')
       .set({ aiDisclosure: toJson({ ...b.aiDisclosure, [part]: value }), updatedAt: now() })
+      .where('id', '=', id)
+      .where('workspaceId', '=', ctx.workspaceId)
+      .execute();
+  }
+
+  /** Sets one key of the book's settings, keeping the others (jobs use it for picture-book state). */
+  async setSetting(ctx: RequestCtx, id: string, key: string, value: unknown): Promise<void> {
+    const b = await this.require(ctx, id);
+    await this.db
+      .updateTable('projects')
+      .set({ settings: toJson({ ...b.settings, [key]: value }), updatedAt: now() })
       .where('id', '=', id)
       .where('workspaceId', '=', ctx.workspaceId)
       .execute();

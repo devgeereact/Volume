@@ -1,7 +1,7 @@
 {
   "$comment": "Fiction template (phase 6). Same section model as nonfiction.json. No takeaways, scene breaks, chapters without subheadings. source: profile | owner | ai | app (see README.md).",
   "id": "fiction",
-  "version": 2,
+  "version": 4,
   "name": "Fiction",
   "locale": "en-GB",
   "voice": {
@@ -39,15 +39,18 @@
     },
     "subheadings": {
       "min": 0,
-      "max": 0
+      "max": 0,
+      "note": "Checked in code: any ## or ### heading in a chapter fails preflight item structure.template-rules (fiction.subheading)."
     },
     "sceneBreaks": {
       "enabled": true,
       "marker": "* * *",
-      "note": "Marker rendered centred; never a dash."
+      "note": "Marker rendered centred; never a dash.",
+      "syntax": "Write *** on its own line; the parser also accepts * * *. Exports print the theme glyph (default * * *) centred, and the next paragraph is not indented (D-042)."
     },
     "takeaways": {
-      "enabled": false
+      "enabled": false,
+      "note": "Checked in code: a takeaways block or Key Takeaways heading fails preflight item structure.template-rules (fiction.takeaways)."
     },
     "openingHook": {
       "styleOptions": [
@@ -69,7 +72,14 @@
       "enabled": true,
       "rule": "End on a turn, a question or a change, never a summary."
     },
-    "continuity": "Every chapter receives the story bible (characters, places, timeline) and the used-already ledger."
+    "continuity": "Every chapter receives the story bible (characters, places, timeline) and the used-already ledger.",
+    "continuityLedger": {
+      "kinds": [
+        "character",
+        "setting"
+      ],
+      "note": "Ledger entries for characters and settings link back to the story bible (D-043, migration 0006). Kinds person and place stay valid for older books."
+    }
   },
   "storyBible": {
     "fields": [
@@ -177,6 +187,7 @@
       "required": true,
       "defaultOn": true,
       "source": "app",
+      "entries": "chapters",
       "content": "Chapters only (and parts if used)."
     },
     {

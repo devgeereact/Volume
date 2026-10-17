@@ -8,6 +8,7 @@ import { lineDiff } from '../lib/text.js';
 import { NoteInputSchema, NotePatchSchema, SaveVersionSchema, type Section } from '../repos/manuscript.js';
 import { CODE_WRITTEN_KINDS } from '../jobs/book-data.js';
 import { sectionGuardrails } from '../repos/run-info.js';
+import { LEDGER_KINDS } from '../ports/ai.js';
 import { accepted, idOf, writer } from './common.js';
 
 const VersionParams = z.object({ id: z.string().min(1).max(64), versionId: z.string().min(1).max(64) });
@@ -428,6 +429,15 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
   });
 
   // ---------- claims ----------
+
+  /** The story ledger (characters, settings, stories, terms and so on), optionally one kind. Read only. */
+  app.get('/books/:id/story-ledger', async (req) => {
+    const id = idOf(req);
+    await s.repos.books.require(req.ctx, id);
+    const q = parse(z.object({ kind: z.enum(LEDGER_KINDS).optional() }), req.query);
+    const items = await m.listLedger(req.ctx, id);
+    return { items: q.kind ? items.filter((e) => e.kind === q.kind) : items };
+  });
 
   app.get('/books/:id/claims', async (req) => {
     const id = idOf(req);

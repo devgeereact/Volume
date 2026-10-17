@@ -17,6 +17,7 @@ import { planningApi } from "./planning";
 import { productionApi } from "./production";
 import { profilesApi } from "./profiles";
 import { systemApi } from "./system";
+import { volumeApi } from "./volume";
 import {
   isTerminalJob,
   type AcceptedJob,
@@ -52,6 +53,11 @@ import {
   type SaveVersionInput,
   type SettingValues,
   type SuggestionStatus,
+  type BatchInput,
+  type BatchPatch,
+  type InvitationInput,
+  type MemberRole,
+  type SlotInput,
 } from "./types";
 
 /* ---------- Query keys ---------- */
@@ -100,9 +106,13 @@ export const queryKeys = {
     notesAll: (bookId: string) => ["book", bookId, "notes"] as const,
     claims: (bookId: string, f: { status?: ClaimStatus; sectionId?: string } = {}) => ["book", bookId, "claims", f] as const,
     claimsAll: (bookId: string) => ["book", bookId, "claims"] as const,
+    storyLedger: (bookId: string, kind: string | null) => ["book", bookId, "story-ledger", kind] as const,
     cover: (bookId: string) => ["book", bookId, "cover"] as const,
     preflight: (bookId: string) => ["book", bookId, "preflight"] as const,
     exports: (bookId: string) => ["book", bookId, "exports"] as const,
+    /** Picture books (api/picture.ts): the spreads view and the character sheets. */
+    spreads: (bookId: string) => ["book", bookId, "spreads"] as const,
+    characters: (bookId: string) => ["book", bookId, "characters"] as const,
     marketing: (bookId: string, q: MarketingListQuery = {}) => ["book", bookId, "marketing", q] as const,
     marketingAll: (bookId: string) => ["book", bookId, "marketing"] as const,
     jobs: (bookId: string, q: { status?: string; limit?: number } = {}) => ["book", bookId, "jobs", q] as const,
@@ -127,6 +137,18 @@ export const queryKeys = {
     suggestionsAll: (sectionId: string) => ["section", sectionId, "suggestions"] as const,
   },
   job: (jobId: string) => ["job", jobId] as const,
+  /** Volume mode: the caller's role, members (owner only), batches and the title schedule. */
+  volume: {
+    all: ["volume"] as const,
+    me: () => ["volume", "me"] as const,
+    members: () => ["volume", "members"] as const,
+    batchesAll: ["volume", "batches"] as const,
+    batches: () => ["volume", "batches", "list"] as const,
+    batch: (id: string) => ["volume", "batches", "detail", id] as const,
+    gates: (id: string) => ["volume", "batches", "gates", id] as const,
+    scheduleAll: ["volume", "schedule"] as const,
+    schedule: (q: { from?: number; to?: number }) => ["volume", "schedule", q] as const,
+  },
 };
 
 /* ---------- Helpers ---------- */
@@ -740,6 +762,16 @@ export function useClaims(bookId: string | undefined, filter: { status?: ClaimSt
   });
 }
 
+/** The story ledger (characters and settings for fiction). Off until a book id is given. */
+export function useStoryLedger(bookId: string | undefined, kind?: "character" | "setting") {
+  return useQuery({
+    queryKey: queryKeys.book.storyLedger(bookId ?? "", kind ?? null),
+    queryFn: ({ signal }) => manuscriptApi.storyLedger(need(bookId, "Book id"), kind, { signal }),
+    enabled: !!bookId,
+    select: (r) => r.items,
+  });
+}
+
 export type ClaimAction =
   | { action: "verify"; input?: ClaimVerifyInput }
   | { action: "soften"; input: { replacement?: string; note?: string } }
@@ -908,3 +940,144 @@ export function useJobControl() {
 }
 
 /* ---------- Assets ---------- */
+
+/* ---------- Volume mode (P8-2, P8-3) ---------- */
+
+/** GET /me. Kept fresh for a minute: a role change by the owner shows on the next refetch. */
+export function useMe(options: QueryOptions = {}) {
+  return useQuery({ queryKey: queryKeys.volume.me(), queryFn: ({ signal }) => volumeApi.me({ signal }), enabled: options.enabled ?? true, staleTime: 60_000 });
+}
+
+export function useMembers(options: QueryOptions = {}) {
+  return useQuery({ queryKey: queryKeys.volume.members(), queryFn: ({ signal }) => volumeApi.members({ signal }), enabled: options.enabled ?? true });
+}
+
+export function useInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: InvitationInput) => volumeApi.invite(body),
+    onSuccess: () => invalidate(qc, queryKeys.volume.members()),
+  });
+}
+
+export function useRevokeInvitation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => volumeApi.revokeInvitation(id),
+    onSuccess: () => invalidate(qc, queryKeys.volume.members()),
+  });
+}
+
+export function useSetMemberRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { userId: string; role: MemberRole }) => volumeApi.setMemberRole(v.userId, v.role),
+    onSuccess: () => invalidate(qc, queryKeys.volume.members()),
+  });
+}
+
+export function useRemoveMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => volumeApi.removeMember(userId),
+    onSuccess: () => invalidate(qc, queryKeys.volume.members()),
+  });
+}
+
+export function useBatches(options: QueryOptions = {}) {
+  return useQuery({ queryKey: queryKeys.volume.batches(), queryFn: ({ signal }) => volumeApi.batches({ signal }), enabled: options.enabled ?? true });
+}
+
+/** One batch. SSE refreshes it (events.ts applyVolumeEvent); a slow poll covers a reconnecting stream while it runs. */
+export function useBatch(id: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.volume.batch(id ?? ""),
+    queryFn: ({ signal }) => volumeApi.batch(need(id, "Batch id"), { signal }),
+    enabled: !!id,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status && status !== "draft" && !isTerminalJob(status) ? 15_000 : false;
+    },
+  });
+}
+
+export function useBatchGates(id: string | undefined) {
+  return useQuery({ queryKey: queryKeys.volume.gates(id ?? ""), queryFn: ({ signal }) => volumeApi.gates(need(id, "Batch id"), { signal }), enabled: !!id });
+}
+
+export function useCreateBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: BatchInput) => volumeApi.createBatch(body),
+    onSuccess: (b) => {
+      qc.setQueryData(queryKeys.volume.batch(b.id), b);
+      return invalidate(qc, queryKeys.volume.batches());
+    },
+  });
+}
+
+export function usePatchBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; patch: BatchPatch }) => volumeApi.patchBatch(v.id, v.patch),
+    onSuccess: (b) => {
+      qc.setQueryData(queryKeys.volume.batch(b.id), b);
+      return invalidate(qc, queryKeys.volume.batches(), queryKeys.volume.gates(b.id));
+    },
+  });
+}
+
+export function useDeleteBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => volumeApi.deleteBatch(id),
+    onSuccess: (_r, id) => {
+      qc.removeQueries({ queryKey: queryKeys.volume.batch(id) });
+      return invalidate(qc, queryKeys.volume.batches(), queryKeys.volume.scheduleAll);
+    },
+  });
+}
+
+export function useStartBatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: string; chapterCount?: number }) => volumeApi.startBatch(v.id, v.chapterCount === undefined ? {} : { chapterCount: v.chapterCount }),
+    onSuccess: (r) => {
+      rememberJob(qc, r);
+      qc.setQueryData(queryKeys.volume.batch(r.batch.id), r.batch);
+      return invalidate(qc, queryKeys.volume.batches(), queryKeys.books.all);
+    },
+  });
+}
+
+export function useMarkBatchItemReady() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { batchId: string; itemId: string }) => volumeApi.markReady(v.batchId, v.itemId),
+    onSuccess: (_r, v) => invalidate(qc, queryKeys.volume.batch(v.batchId), queryKeys.volume.batches(), queryKeys.volume.gates(v.batchId)),
+  });
+}
+
+export function useSchedule(q: { from?: number; to?: number }, options: QueryOptions = {}) {
+  return useQuery({ queryKey: queryKeys.volume.schedule(q), queryFn: ({ signal }) => volumeApi.schedule(q, { signal }), enabled: options.enabled ?? true });
+}
+
+/** Slots show on the schedule and on their batch, so both refresh. */
+function slotsChanged(qc: QueryClient): Promise<void> {
+  return invalidate(qc, queryKeys.volume.scheduleAll, queryKeys.volume.batchesAll);
+}
+
+export function useAddSlot() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (body: SlotInput) => volumeApi.addSlot(body), onSuccess: () => slotsChanged(qc) });
+}
+
+export function useConfirmSlot() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id: string) => volumeApi.confirmSlot(id), onSuccess: () => slotsChanged(qc) });
+}
+
+export function useRemoveSlot() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id: string) => volumeApi.removeSlot(id), onSuccess: () => slotsChanged(qc) });
+}

@@ -248,6 +248,24 @@ const CASES: { stage: AiStage; input: AiStageInput; expect: string[]; fake?: Fak
     },
     expect: ['marketing.tiktok-scripts', 'marketing.instagram-captions', 'marketing.launch-email'],
   },
+  {
+    stage: 'picture_story',
+    input: { promptId: 'children.picture-book-story', variables: { title: 'Pip', template: 'picture-book', story: {}, profile: PROFILE } },
+    expect: ['children.picture-book-story'],
+  },
+  {
+    stage: 'scene_prompts',
+    input: { promptId: 'children.scene-prompts', variables: { title: 'Pip', template: 'picture-book', story: {}, storyResult: { title: 'Pip' } } },
+    expect: ['children.scene-prompts'],
+  },
+  {
+    stage: 'character_reference',
+    input: {
+      promptId: 'children.character-reference',
+      variables: { title: 'Pip', template: 'picture-book', story: {}, storyResult: { title: 'Pip' }, scenePrompts: { characterSheets: [] } },
+    },
+    expect: ['children.character-reference'],
+  },
 ];
 
 describe('OpenRouter AI adapter: stage mapping', () => {

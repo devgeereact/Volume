@@ -27,6 +27,7 @@ Each file sets the default structure, word targets and rules for one kind of boo
   - `ai`: written by a pipeline prompt; `promptId` names it.
   - `app`: built by code with no AI (contents, title check, AI disclosure note, notes pages).
 - `kdpRuleIds`: rules in `config/kdp-rules/` the section must satisfy.
+- `entries` (contents section only, optional): `chapters` lists chapters and parts only (fiction); `all` (default) lists every section after the contents page. Exporters read it through `book.meta.contentsEntries`, set with `contentsEntriesFromTemplate()` from `@volume/core`.
 - `writesAs` (optional): the section is written like another one (`glossary-of-nhs-terms` is written as a glossary).
 
 ## Book types

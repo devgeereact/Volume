@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useCanWrite } from "../../lib/access";
 import { Link } from "react-router";
 import { Check, Download, RotateCw, Sparkles, X } from "lucide-react";
 import {
@@ -103,6 +104,7 @@ export default function CoverPage() {
 }
 
 function Studio({ book, author, fresh }: { book: Book; author: string; fresh: boolean }) {
+  const canWrite = useCanWrite();
   const allConcepts = useMemo(() => conceptsFor(book), [book]);
   const [brief, setBrief] = useState<CoverBrief>(() => briefFor(book));
   const [briefDone, setBriefDone] = useState(!fresh);
@@ -232,7 +234,7 @@ function Studio({ book, author, fresh }: { book: Book; author: string; fresh: bo
               <h2 id="concepts-title" className="font-book text-heading text-ink">
                 Concepts
               </h2>
-              {madeCount > 0 && !making && (
+              {madeCount > 0 && !making && canWrite && (
                 <Button size="sm" variant="ghost" icon={RotateCw} estimate="about $0.16" onClick={makeConcepts}>
                   Make new concepts
                 </Button>
@@ -498,6 +500,7 @@ function slug(book: Book): string {
 }
 
 export function BriefCard({ brief, onChange, done, onEdit }: { brief: CoverBrief; onChange: (b: CoverBrief) => void; done: boolean; onEdit: () => void }) {
+  const canWrite = useCanWrite();
   const [colourText, setColourText] = useState("");
   const [symbolText, setSymbolText] = useState("");
   const toggle = (key: "genre" | "mood", v: string) =>
@@ -510,9 +513,11 @@ export function BriefCard({ brief, onChange, done, onEdit }: { brief: CoverBrief
           <h2 id="brief-title" className="font-book text-heading text-ink">
             Brief
           </h2>
-          <Button size="sm" variant="ghost" onClick={onEdit}>
-            Edit brief
-          </Button>
+          {canWrite && (
+            <Button size="sm" variant="ghost" onClick={onEdit}>
+              Edit brief
+            </Button>
+          )}
         </div>
         <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-[14px] leading-5 sm:grid-cols-[140px_minmax(0,1fr)]">
           <dt className="text-ink-secondary">Genre signals</dt>

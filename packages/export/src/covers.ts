@@ -15,6 +15,7 @@ import {
   spineTextAllowed,
   wrapSizeIn,
   type BookMeta,
+  type ColourInk,
   type CoverStyle,
   type KdpRules,
   type Paper,
@@ -183,6 +184,8 @@ export interface WrapOptions {
   /** Interior page count, read from the real interior PDF. */
   pages: number;
   paper: Paper;
+  /** Colour ink for a colour interior (picture books): the spine then uses the colour rule. */
+  ink?: ColourInk;
   trim?: TrimKey;
   /** Back cover blurb (plain text, paragraphs split on blank lines). */
   blurb?: string;
@@ -215,7 +218,10 @@ export interface WrapResult {
 export async function exportPaperbackWrap(meta: BookMeta, style: CoverStyle = DEFAULT_COVER_STYLE, opts: WrapOptions): Promise<WrapResult> {
   const trimKey = opts.trim ?? '6x9';
   const trim = parseTrimKey(trimKey);
-  const size = wrapSizeIn(opts.rules, { trim, pages: opts.pages, paper: opts.paper });
+  const size = wrapSizeIn(
+    opts.rules,
+    opts.ink ? { trim, pages: opts.pages, paper: opts.paper, ink: opts.ink } : { trim, pages: opts.pages, paper: opts.paper },
+  );
   const warnings: string[] = [];
   const spineText = spineTextAllowed(opts.rules, opts.pages);
   const safe = coverSafeZone(opts.rules);

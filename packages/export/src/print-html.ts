@@ -1,8 +1,11 @@
 // Book model -> print HTML and CSS for Paged.js (docs/book-production/EXPORT-SPEC.md, Print PDF).
 import {
+  clampLines,
   DEFAULT_INTERIOR_THEME,
   enabledSections,
   escapeHtml,
+  exerciseHeading,
+  inContents,
   inlineToHtml,
   marginsFor,
   parseTrimKey,
@@ -52,6 +55,12 @@ export function imageSrc(src: string, images: Record<string, Buffer> | undefined
   if (src.startsWith('data:')) return src;
   const buf = images?.[src];
   return buf ? `data:${sniffMime(buf)};base64,${buf.toString('base64')}` : undefined;
+}
+
+/** Ruled lines under each fill-in prompt: one inline, three on a fill-in page (room to write by hand). */
+export const FILL_IN_PAGE_LINES = 3;
+export function fillInLines(b: { page?: boolean }): number {
+  return b.page ? FILL_IN_PAGE_LINES : 1;
 }
 
 function blocksHtml(s: Section, theme: InteriorTheme, opts: PrintHtmlOptions, warnings: string[]): string {
@@ -114,17 +123,30 @@ function blocksHtml(s: Section, theme: InteriorTheme, opts: PrintHtmlOptions, wa
       }
       case 'pageBreak':
         return '<div class="pagebreak"></div>';
+      case 'exercise':
+        // A drop cap belongs to the chapter's opening prose, never to an exercise question.
+        first = false;
+        return `<section class="exercise ${b.kind}"><p class="xh">${inlineToHtml(exerciseHeading(b))}</p>${b.blocks.map(blockHtml).join('')}</section>`;
+      case 'lines':
+        return `<div class="writing-lines">${'<div class="wl"></div>'.repeat(clampLines(b.count))}</div>`;
+      case 'checklist':
+        return `<ul class="checklist">${b.items.map((it) => `<li><span class="tick" aria-hidden="true"></span>${inlineToHtml(it)}</li>`).join('')}</ul>`;
+      case 'fillIn': {
+        const wl = '<div class="wl"></div>'.repeat(fillInLines(b));
+        return `<div class="fill-in${b.page ? ' page' : ''}">${b.prompts.map((p) => `<p class="fi">${inlineToHtml(p)}</p>${wl}`).join('')}</div>`;
+      }
     }
   }
 }
 
-function tocHtml(secs: Section[], from: number, withSubs: boolean): string {
+function tocHtml(book: BookDoc, secs: Section[], from: number, withSubs: boolean): string {
   const rows: string[] = [];
   for (const s of secs.slice(from)) {
-    if (FENCED.has(s.subtype)) continue;
-    const k = s.kicker ? `<span class="k">${escapeHtml(s.kicker)}</span>` : '<span class="nk"></span>';
+    if (FENCED.has(s.subtype) || !inContents(book, s)) continue;
+    // An untitled chapter lists its kicker ("Chapter 1") as the entry.
+    const k = s.kicker && s.title ? `<span class="k">${escapeHtml(s.kicker)}</span>` : '<span class="nk"></span>';
     rows.push(
-      `<div class="row ${s.kind}">${k}<span class="n"><a class="t" href="#${s.id}">${escapeHtml(s.title)}</a><span class="dots"></span><a class="pg" href="#${s.id}"></a></span></div>`,
+      `<div class="row ${s.kind}">${k}<span class="n"><a class="t" href="#${s.id}">${escapeHtml(s.title || s.kicker || '')}</a><span class="dots"></span><a class="pg" href="#${s.id}"></a></span></div>`,
     );
     if (withSubs && s.kind === 'chapter') {
       const subs = s.blocks.filter((b) => b.type === 'heading2').map((b) => (b.type === 'heading2' ? b.text : ''));
@@ -145,11 +167,13 @@ export function kickerText(s: Section, theme: InteriorTheme): string {
 
 function openerHtml(s: Section, theme: InteriorTheme): string {
   const orn = theme.opener.style === 'minimal' ? '' : ornamentSvg(theme.opener.ornament, theme.colours.accent, 40);
-  const kicker = s.kicker && theme.opener.numberFormat !== 'none' ? `<div class="kicker">${escapeHtml(kickerText(s, theme))}</div>` : '';
+  // An untitled chapter ("# Chapter 1") prints its kicker as the title.
+  const kicker = s.kicker && s.title && theme.opener.numberFormat !== 'none' ? `<div class="kicker">${escapeHtml(kickerText(s, theme))}</div>` : '';
+  const title = s.title || kickerText(s, theme);
   const numeral = theme.opener.style === 'number' && s.number !== undefined ? `<div class="numeral">${s.number}</div>` : '';
   const rule = theme.opener.rule && theme.opener.style !== 'minimal' ? '<div class="rule"></div>' : '';
   const ruleTop = theme.opener.style === 'rule' ? '<div class="rule top"></div>' : '';
-  return `<div class="opener ${theme.opener.style}" data-opener="${s.id}">${orn ? `<div class="orn">${orn}</div>` : ''}${ruleTop}${numeral}${theme.opener.style === 'number' ? '' : kicker}<h1 class="st">${escapeHtml(s.title)}</h1>${theme.opener.style === 'rule' ? '' : rule}</div>`;
+  return `<div class="opener ${theme.opener.style}" data-opener="${s.id}">${orn ? `<div class="orn">${orn}</div>` : ''}${ruleTop}${numeral}${theme.opener.style === 'number' ? '' : kicker}<h1 class="st">${escapeHtml(title)}</h1>${theme.opener.style === 'rule' ? '' : rule}</div>`;
 }
 
 export function buildPrintHtml(book: BookDoc, theme: InteriorTheme, lib: FontLibrary, opts: PrintHtmlOptions): PrintHtml {
@@ -200,7 +224,7 @@ export function buildPrintHtml(book: BookDoc, theme: InteriorTheme, lib: FontLib
       );
     } else if (s.subtype === 'contents') {
       parts.push(
-        `<section class="contents ${start === 'right' ? 'recto' : 'page'}" id="${s.id}"${front}><h1 class="ch">Contents</h1><nav class="toc">${tocHtml(secs, idx + 1, opts.contentsSubheadings !== false)}</nav></section>`,
+        `<section class="contents ${start === 'right' ? 'recto' : 'page'}" id="${s.id}"${front}><h1 class="ch">Contents</h1><nav class="toc">${tocHtml(book, secs, idx + 1, opts.contentsSubheadings !== false)}</nav></section>`,
       );
     } else if (s.kind === 'part') {
       const paras = s.blocks.map((b) => (b.type === 'paragraph' ? `<p class="noindent">${inlineToHtml(b.text)}</p>` : '')).join('');
@@ -348,6 +372,16 @@ figure { margin: 10pt 0; break-inside: avoid; text-align: center; }
 figure img { max-width: 100%; max-height: 5in; }
 figcaption { font-size: ${theme.sizes.smallPt}pt; margin-top: 4pt; color: ${theme.colours.muted}; }
 .writing-lines .wl { border-bottom: 0.6pt solid #888; height: 22pt; }
+.exercise { border-top: 0.8pt solid ${theme.colours.accent}; padding-top: 6pt; margin: 14pt 0 12pt; break-inside: avoid; }
+.exercise .xh { font-family: '${heading}'; font-weight: ${theme.weights.subheading}; text-indent: 0; margin-bottom: 4pt; color: ${theme.colours.accent}; break-after: avoid; }
+.exercise p { text-indent: 0; }
+.exercise.tracker td { height: 18pt; }
+.checklist { list-style: none; padding-left: 0; }
+.checklist li { margin: 3pt 0; }
+.checklist .tick { display: inline-block; width: 9pt; height: 9pt; border: 0.8pt solid ${theme.colours.text}; margin-right: 6pt; vertical-align: -1pt; }
+.fill-in.page { break-before: page; }
+.fill-in .fi { text-indent: 0; margin: 8pt 0 0; }
+.fill-in .wl { border-bottom: 0.6pt solid #888; height: 22pt; }
 p.dropcap::first-letter { float: left; font-family: '${display}'; font-weight: ${theme.weights.display}; font-size: ${(dc.lines * lineH * 0.98).toFixed(2)}em; line-height: 0.85; margin: 0.06em 0.08em 0 0; color: ${theme.colours.accent}; }
 h1.st { string-set: sectitle content(text); }
 `;

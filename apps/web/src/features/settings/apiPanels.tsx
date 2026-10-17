@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useCanManage } from "../../lib/access";
 import { Link } from "react-router";
 import { HardDriveDownload, PlugZap, RefreshCw, Save, Upload } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -27,6 +28,7 @@ import { formatTime, formatUsd } from "../../lib/format";
 import { useNow } from "../../lib/useNow";
 import { InlineStatus, PanelHeader, SaveAction } from "./PanelHeader";
 import { Block } from "./panels";
+import { canSeeBackups, guestCapError, guestCapOf, parseGuestCap } from "./instanceOnly";
 
 /* Settings panels that read and save through the Volume server (GET and PATCH /settings, the backups
    and the OpenRouter test). Used when the server answers; the demo panels in panels.tsx stay for demo
@@ -190,10 +192,14 @@ interface BudgetValues {
   monthly: string;
   book: string;
   warn: string;
+  /** Instance owner only; empty for everyone else and never sent. */
+  guest: string;
 }
 
 function valuesOf(s: SettingsResponse): BudgetValues {
+  const guest = guestCapOf(s);
   return {
+    guest: guest === null ? "" : String(guest),
     monthly: s.budgets.monthlyCapUsd === null ? "" : String(s.budgets.monthlyCapUsd),
     book: String(s.budgets.bookDefaultUsd),
     warn: String(Math.round(s.budgets.warnRatio * 100)),
@@ -248,6 +254,8 @@ function BudgetsForm({ settings, header }: { settings: SettingsResponse; header:
       : !noCap && monthly !== null && book > monthly
         ? "A book budget cannot be more than the monthly cap."
         : undefined;
+  const isInstanceOwner = guestCapOf(settings) !== null;
+  const guestError = isInstanceOwner ? guestCapError(v.guest) : undefined;
   const dirty = JSON.stringify(v) !== JSON.stringify(saved);
   const cap = settings.budgets.monthlyCapUsd;
   const monthLabel = new Intl.DateTimeFormat("en-GB", { month: "long" }).format(new Date());
@@ -255,10 +263,18 @@ function BudgetsForm({ settings, header }: { settings: SettingsResponse; header:
 
   function save() {
     if ((!noCap && monthly === null) || book === null) return;
+    const guest = isInstanceOwner ? parseGuestCap(v.guest) : null;
+    if (isInstanceOwner && guest === null) return;
     setStatus(null);
     patch.mutate(
-      // An empty cap is sent as null, which clears it on the server.
-      { "budget.monthly_cap_usd": noCap ? null : monthly, "budget.book_default_usd": book, "budget.warn_ratio": Number(v.warn) / 100 },
+      {
+        // An empty cap is sent as null, which clears it on the server.
+        "budget.monthly_cap_usd": noCap ? null : monthly,
+        "budget.book_default_usd": book,
+        "budget.warn_ratio": Number(v.warn) / 100,
+        // Only the owner of this Volume may send this key; the server answers 403 to anyone else.
+        ...(guest !== null ? { "budget.guest_workspaces_monthly_cap_usd": guest } : {}),
+      },
       { onSuccess: () => setStatus(`Saved at ${formatTime(new Date().toISOString())}.`) },
     );
   }
@@ -271,7 +287,12 @@ function BudgetsForm({ settings, header }: { settings: SettingsResponse; header:
             Save budgets
           </Button>
         ) : (
-          <SaveAction dirty={dirty} icon={Save} invalidReason={monthlyError || bookError ? "Fix the fields marked in red first" : undefined} onSave={save}>
+          <SaveAction
+            dirty={dirty}
+            icon={Save}
+            invalidReason={monthlyError || bookError || guestError ? "Fix the fields marked in red first" : undefined}
+            onSave={save}
+          >
             Save budgets
           </SaveAction>
         ),
@@ -323,6 +344,26 @@ function BudgetsForm({ settings, header }: { settings: SettingsResponse; header:
           hint="Applies to the monthly cap and to each book."
         />
       </div>
+      {isInstanceOwner && (
+        <Block title="Other workspaces">
+          <p className="text-small text-ink-secondary">
+            Other workspaces use your OpenRouter key. Set how much they may spend each month. 0 stops their AI runs.
+          </p>
+          <Input
+            label="Monthly cap per workspace, US dollars"
+            inputMode="decimal"
+            value={v.guest}
+            onChange={(e) => setV({ ...v, guest: e.target.value })}
+            error={dirty ? guestError : undefined}
+            hint={
+              saved.guest === "0"
+                ? "Now 0, so other workspaces cannot run AI. Their own caps still apply under this one."
+                : "Each workspace gets this much a month. Their own caps still apply under this one."
+            }
+            className="max-w-xs"
+          />
+        </Block>
+      )}
     </div>
   );
 }
@@ -534,8 +575,11 @@ function sizeText(bytes: number): string {
 }
 
 export function ApiBackupsPanel() {
-  const q = useBackups();
+  const canManage = useCanManage();
   const settings = useApiSettings(true);
+  // The server sends backups as null to everyone but the owner of this Volume; GET /backups would only answer 403.
+  const seeBackups = canSeeBackups(settings.data);
+  const q = useBackups({ enabled: settings.isError || seeBackups === true });
   const make = useMakeBackup();
   const patch = usePatchSettings();
   const [status, setStatus] = useState<string | null>(null);
@@ -544,7 +588,7 @@ export function ApiBackupsPanel() {
       title="Data and backups"
       body="Books save to the Volume database: on this Mac for now, and on your cPanel database once it is connected."
       actions={
-        q.data?.status.supported ? (
+        seeBackups && q.data?.status.supported && canManage ? (
           <Button
             variant="primary"
             icon={HardDriveDownload}
@@ -561,7 +605,17 @@ export function ApiBackupsPanel() {
       }
     />
   );
-  if (q.isPending)
+  if (seeBackups === false)
+    return (
+      <div className="grid gap-6">
+        {header}
+        <Banner tone="info" title="The owner of this Volume looks after backups">
+          Backups hold every workspace on this Volume, so only its owner sees and makes them. Your books are in them.
+        </Banner>
+        <ImportProjectBlock />
+      </div>
+    );
+  if (settings.isPending || q.isPending)
     return (
       <div className="grid gap-6">
         {header}
@@ -706,10 +760,10 @@ export function ApiKdpRulesPanel() {
       {version && ageDays !== null && (
         <Banner
           tone={overdue ? "attention" : "success"}
-          title={overdue ? "Time to check the KDP rules again" : `Checked ${ageDays === 1 ? "1 day" : `${ageDays} days`} ago`}
+          title={overdue ? "Time to check the KDP rules again" : `Oldest check ${ageDays === 1 ? "1 day" : `${ageDays} days`} ago`}
         >
           {overdue
-            ? `The rules were last checked ${ageDays} days ago. Check KDP’s help pages and add a new dated file.`
+            ? `The oldest check in the rules file was ${ageDays} days ago. Check KDP’s help pages and add a new dated file.`
             : due
               ? `Next check due by ${formatDate(due)}.`
               : "Volume asks for a fresh check after 90 days."}
@@ -773,6 +827,7 @@ export function ApiAboutPanel({ fonts }: { fonts: ReactNode }) {
  * when it is not a Volume project.
  */
 function ImportProjectBlock() {
+  const canManage = useCanManage();
   const profiles = useApiProfiles(true);
   const importer = useImportProject();
   const navigate = useNavigate();
@@ -815,26 +870,28 @@ function ImportProjectBlock() {
         <Select label="Put the book under" value={profileId} onChange={setProfileId} options={options} />
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <Button
-          icon={Upload}
-          loading={importer.isPending}
-          loadingLabel="Importing"
-          disabledReason={!file ? "Choose a project file first." : fileError}
-          onClick={() => {
-            if (!file || fileError) return;
-            importer.mutate(
-              { file, profileId: profileId || null },
-              {
-                onSuccess: () => {
-                  setFile(null);
-                  setInputKey((k) => k + 1);
+        {canManage && (
+          <Button
+            icon={Upload}
+            loading={importer.isPending}
+            loadingLabel="Importing"
+            disabledReason={!file ? "Choose a project file first." : fileError}
+            onClick={() => {
+              if (!file || fileError) return;
+              importer.mutate(
+                { file, profileId: profileId || null },
+                {
+                  onSuccess: () => {
+                    setFile(null);
+                    setInputKey((k) => k + 1);
+                  },
                 },
-              },
-            );
-          }}
-        >
-          Import project
-        </Button>
+              );
+            }}
+          >
+            Import project
+          </Button>
+        )}
         {done && (
           <InlineStatus>
             Imported {done.book.title ?? "the book"}

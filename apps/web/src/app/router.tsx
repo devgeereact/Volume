@@ -58,6 +58,9 @@ export const router = createBrowserRouter([
         ],
       },
       { path: screens.settings.path, lazy: async () => ({ Component: (await import("../features/settings/SettingsPage")).default }) },
+      { path: screens.volume.path, lazy: async () => ({ Component: (await import("../features/volume-mode/BatchesPage")).default }) },
+      { path: "/volume/batches/:batchId", lazy: async () => ({ Component: (await import("../features/volume-mode/BatchDetailPage")).default }) },
+      { path: screens.schedule.path, lazy: async () => ({ Component: (await import("../features/volume-mode/SchedulePage")).default }) },
       { path: screens.archive.path, lazy: async () => ({ Component: (await import("../features/archive/ArchivePage")).default }) },
       // The developer style guide is for local builds only; the hosted app answers it with Page not found.
       ...(hostedSignIn ? [] : [{ path: "/components", lazy: async () => ({ Component: (await import("../features/components/ComponentsPage")).default }) }]),

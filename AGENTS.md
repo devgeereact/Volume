@@ -37,7 +37,7 @@ This application adopts GEE OS 1.4.5 on the `cpanel` profile (D-040), keeping th
 | Hosting, deploy contract, Passenger settings | `docs/07-operations/DEPLOYMENT.md`, `deploy/`, `.env.example` (names only) |
 | Tests | `docs/06-quality/TEST-STRATEGY.md` |
 | Decisions and open issues | `docs/08-change-management/DECISIONS.md`, `KNOWN-ISSUES.md` |
-| AI test fixtures (mock provider) | `tests/fixtures/ai/` |
+| AI test fixtures (mock provider) | `packages/ai/test/fixtures/` |
 | Owner's original drafts, nine notes (source material, not rules) | `docs/source-drafts/` |
 
 If two files disagree, stop and ask which is right, then fix both.

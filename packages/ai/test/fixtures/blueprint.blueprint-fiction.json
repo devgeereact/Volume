@@ -1,0 +1,141 @@
+{
+  "content": {
+    "title": "The Twelfth Mooring",
+    "subtitle": "A Hebridean Mystery",
+    "summary": "Mara Quinn comes home to Calder after her father's boat fails to return. She finds a pencilled word in the harbour log and a boatman who will not meet her eye. Each chapter peels back a layer of the island's silence until she learns her father staged his disappearance to protect her from a debt, and she chooses to tell the island the truth.",
+    "bookInfo": {
+      "genre": "Mystery",
+      "tone": "quiet and tense",
+      "writingStyle": "close third person, past tense",
+      "targetAudience": "readers of atmospheric British mysteries",
+      "estimatedWords": 5000
+    },
+    "targetAudience": "Adult readers who like slow-burn island mysteries.",
+    "uniqueSellingPoints": [
+      "a closed island setting",
+      "a missing father, not a body",
+      "a heroine who solves it by listening"
+    ],
+    "toneNotes": "Spare, wind-blown and exact. Short scenes, few adjectives.",
+    "hookStyle": "in-scene",
+    "storyBible": {
+      "logline": "A harbourmaster's daughter must find her missing father before the island decides he chose to leave.",
+      "themes": [
+        "loyalty to family against loyalty to the truth",
+        "a small place keeping its secrets"
+      ],
+      "characters": [
+        {
+          "name": "Mara Quinn",
+          "role": "protagonist",
+          "want": "to find her father",
+          "need": "to trust people outside her family",
+          "flaw": "keeps every worry to herself",
+          "voiceNotes": "short, dry sentences; never says sorry",
+          "appearance": "32, tall, salt-stiff dark hair, her father's old oilskin coat"
+        },
+        {
+          "name": "Tomas Reyes",
+          "role": "boatman and reluctant ally",
+          "want": "to keep the harbour quiet",
+          "need": "to admit what he saw on Sunday",
+          "flaw": "avoids every hard conversation",
+          "voiceNotes": "jokes when cornered, answers questions with questions",
+          "appearance": "50s, broad, grey beard, rope burns on both hands"
+        }
+      ],
+      "settings": [
+        {
+          "name": "Calder Harbour",
+          "description": "a stone harbour on a small Hebridean island, twelve moorings, a slipway and a one-room harbour office"
+        },
+        {
+          "name": "The harbour office",
+          "description": "smells of paraffin and old paper; the logbook lives under the barometer"
+        }
+      ],
+      "timeline": [
+        "Sunday: the Gannet goes out at six",
+        "Sunday night: the Gannet does not come back",
+        "Tuesday: Mara arrives on the morning ferry"
+      ],
+      "worldRules": [],
+      "povPlan": "Close third person, past tense, every chapter from Mara's point of view.",
+      "ending": "Mara learns her father staged his disappearance to protect her from a debt, and chooses to tell the island the truth."
+    },
+    "frontMatter": {
+      "halfTitle": false,
+      "dedicationIdea": "none",
+      "epigraph": "none",
+      "acknowledgementsIdea": "groups only",
+      "prologue": {
+        "include": false,
+        "idea": "",
+        "wordTarget": 0
+      }
+    },
+    "parts": [],
+    "chapters": [
+      {
+        "number": 1,
+        "title": "Eleven",
+        "partNumber": null,
+        "povCharacter": "Mara Quinn",
+        "setting": "Calder Harbour",
+        "summary": "Mara arrives and finds a mooring empty. Tomas is evasive. In the harbour office she finds the pencilled word in the log.",
+        "scenes": [
+          "Mara counts eleven moorings and meets Tomas on the slipway",
+          "Mara finds the word Wait in the logbook"
+        ],
+        "openingHookIdea": "The tide turning and the boat missing",
+        "bridgeToNext": "Who wrote the word in pencil?",
+        "wordTarget": 2500
+      },
+      {
+        "number": 2,
+        "title": "Wait",
+        "partNumber": null,
+        "povCharacter": "Mara Quinn",
+        "setting": "The harbour office",
+        "summary": "Mara compares handwriting and confronts Tomas, who admits he saw the Gannet heading north, not south.",
+        "scenes": [
+          "Mara compares the pencil with old entries",
+          "Tomas admits what he saw"
+        ],
+        "openingHookIdea": "Mara tilting the page to the light again",
+        "bridgeToNext": "North is where nobody fishes.",
+        "wordTarget": 2500
+      }
+    ],
+    "backMatter": {
+      "epilogue": {
+        "include": false,
+        "outline": "",
+        "wordTarget": 0
+      },
+      "glossaryTerms": [],
+      "reviewRequest": true,
+      "alsoBy": "from profile",
+      "aboutTheAuthor": "profile bio verbatim"
+    },
+    "backCoverBlurb": "When her father's boat fails to come home, Mara Quinn takes the first ferry back to Calder. The island says he chose to go. The harbour log says something else.",
+    "amazonDescriptionDraft": "<p>When her father's boat fails to come home, Mara Quinn returns to the island she left.</p>",
+    "categories": [
+      "Fiction > Mystery > Cosy",
+      "Fiction > Mystery > Small Town",
+      "Fiction > Literary > Scottish"
+    ],
+    "keywords": [
+      "island mystery",
+      "missing father",
+      "hebrides novel",
+      "harbour secrets",
+      "slow burn mystery",
+      "scottish island fiction",
+      "family secrets mystery"
+    ],
+    "claimsToWatch": [
+      "sea safety and coastguard procedure in chapter 2"
+    ]
+  }
+}

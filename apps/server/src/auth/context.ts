@@ -27,8 +27,38 @@ export class StubAuthProvider implements AuthProvider {
   }
 }
 
+export const ROLES = ['owner', 'editor', 'viewer'] as const satisfies readonly Role[];
+
+const RANK: Record<Role, number> = { viewer: 0, editor: 1, owner: 2 };
+
+/** True when the caller's role is at least `min` (owner > editor > viewer). Unknown roles count as viewer. */
+export function hasRole(ctx: RequestCtx, min: Role): boolean {
+  return (RANK[ctx.role] ?? 0) >= RANK[min];
+}
+
+/**
+ * Role check for a route (D-047): owner does everything; editor writes books but not settings, budgets, members or
+ * pen name bios; viewer reads only.
+ */
+export function assertRole(ctx: RequestCtx, min: Role): void {
+  if (hasRole(ctx, min)) return;
+  throw new AppError('forbidden', min === 'owner' ? 'Only the workspace owner can do this.' : 'You can view this workspace but not change it.');
+}
+
 export function assertCanWrite(ctx: RequestCtx): void {
-  if (ctx.role === 'viewer') throw new AppError('forbidden', 'You can view this workspace but not change it.');
+  assertRole(ctx, 'editor');
+}
+
+/**
+ * Instance-wide actions (whole-database backups, the owner's OpenRouter key): only an owner of the owner's own
+ * workspace, never the owner of another self-publisher's workspace.
+ */
+export function isInstanceOwner(ctx: RequestCtx, instanceOwner: RequestCtx): boolean {
+  return ctx.role === 'owner' && ctx.workspaceId === instanceOwner.workspaceId;
+}
+
+export function assertInstanceOwner(ctx: RequestCtx, instanceOwner: RequestCtx): void {
+  if (!isInstanceOwner(ctx, instanceOwner)) throw new AppError('forbidden', 'Only the owner of this Volume can do this.');
 }
 
 export const DEFAULT_WORKSPACE_SLUG = 'default';

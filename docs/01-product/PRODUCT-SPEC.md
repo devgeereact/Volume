@@ -62,7 +62,7 @@ AC:
 
 Stories: as the owner, I want to start a book from a rough idea or a working title in under a minute.
 
-Steps: 1 profile; 2 template (non-fiction in v1; others shown as "coming in phase 6/7"); 3 idea or working title, optional notes, audience hint, target length (from the template range); 4 trim size (5 x 8, 5.5 x 8.5, 6 x 9 default, 8.5 x 11), paper (white or cream), book budget (US dollars, default from Settings); 5 review and start research.
+Steps: 1 profile; 2 template (non-fiction, fiction and workbook write end to end from phase 6; picture books show "arrives in phase 7" until that phase; fiction also asks for point of view and tense); 3 idea or working title, optional notes, audience hint, target length (from the template range); 4 trim size (5 x 8, 5.5 x 8.5, 6 x 9 default, 8.5 x 11), paper (white or cream), book budget (US dollars, default from Settings); 5 review and start research.
 
 AC:
 - AC3.1 The wizard creates a project with all template sections in order, status `idea`.

@@ -20,6 +20,8 @@ export const StageConfigSchema = z.looseObject({
   responseFormat: z.string().optional(),
   endpoint: z.string().optional(),
   aspectRatio: z.string().optional(),
+  /** Image stage only: aspect ratio per image purpose (cover, spread, character-reference). */
+  aspectRatios: z.record(z.string(), z.string()).optional(),
   resolution: z.string().optional(),
   outputFormat: z.string().optional(),
   n: z.number().optional(),

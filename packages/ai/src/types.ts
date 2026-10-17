@@ -115,10 +115,22 @@ export interface ChatResult {
   provider: 'openrouter' | 'mock';
 }
 
+/**
+ * A reference image for POST /api/v1/images `input_references`: an http(s) URL or a base64 data URL
+ * (https://openrouter.ai/docs/guides/overview/multimodal/image-generation, read 17 October 2026).
+ */
+export interface ImageReference {
+  url: string;
+}
+
 export interface ImageRequest {
   model: string;
   prompt: string;
   n?: number | undefined;
+  /** Sent as `input_references: [{ type: 'image_url', image_url: { url } }]`. */
+  inputReferences?: ImageReference[] | undefined;
+  /** Sent as `seed`. Only set it when the model supports it (the service checks `supported_parameters`). */
+  seed?: number | undefined;
   aspectRatio?: string | undefined;
   resolution?: string | undefined;
   outputFormat?: 'png' | 'jpeg' | 'webp' | undefined;

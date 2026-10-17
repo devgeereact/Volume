@@ -3,7 +3,7 @@ import { MockAiAdapter } from '../src/adapters/mock-ai.js';
 import { MockExportAdapter } from '../src/adapters/mock-export.js';
 import { ensureOwner } from '../src/auth/context.js';
 import { BlobStore } from '../src/files/blob-store.js';
-import { JobCancelled } from '../src/jobs/errors.js';
+import { JobCancelled, JobFailed } from '../src/jobs/errors.js';
 import { JobQueue } from '../src/jobs/queue.js';
 import { JobRunner, type HandlerMap, type JobServices } from '../src/jobs/runner.js';
 import { AiRetryableError } from '../src/ports/ai.js';
@@ -25,6 +25,7 @@ async function setup(handlers: HandlerMap) {
     ai: new MockAiAdapter(),
     exporter: new MockExportAdapter(),
     configDir: testConfig().configDir,
+    instanceWorkspaceId: ctx.workspaceId,
   };
   const runner = new JobRunner(services, handlers);
   return { handle, ctx, queue, runner, bus, services };
@@ -193,6 +194,32 @@ describe('job queue', () => {
     expect((await queue.require(ctx, job.id)).status).toBe('paused_budget');
     const events = await bus.replay(ctx.workspaceId, book.id, '0');
     expect(events.map((e) => e.type)).toContain('budget.paused');
+    await handle.close();
+  });
+  it('cancels the jobs behind a parent that fails through its children (batch books queued for ever)', async () => {
+    // batch_run -> batch_book A (waits on a child that fails) and batch_book B, which depends on A.
+    const { handle, ctx, queue, runner } = await setup({
+      batch_run: async (jc) => {
+        const a = await jc.enqueueChild({ kind: 'batch_book', payload: { name: 'A' } });
+        await jc.enqueueChild({ kind: 'batch_book', payload: { name: 'B' }, dependsOnJobId: a.id });
+        return { waitForChildren: true };
+      },
+      batch_book: async (jc) => {
+        await jc.enqueueChild({ kind: 'noop' });
+        return { waitForChildren: true };
+      },
+      noop: () => Promise.reject(new JobFailed('The section failed.', 'job_failed')),
+    });
+    const parent = await queue.enqueue(ctx, { kind: 'batch_run' });
+    await runner.runUntilIdle();
+    const kids = await queue.list(ctx, { parentId: parent.id });
+    const a = kids.find((k) => k.payload['name'] === 'A');
+    const b = kids.find((k) => k.payload['name'] === 'B');
+    expect(a?.status).toBe('failed');
+    expect(b).toMatchObject({ status: 'cancelled', errorCode: 'dependency_failed' });
+    const done = await queue.require(ctx, parent.id);
+    expect(done.status).toBe('failed');
+    expect(done.error).toMatch(/1 of 2 books failed\. 1 book after it was not started\./);
     await handle.close();
   });
 });

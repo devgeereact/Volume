@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useCanWrite } from "../../lib/access";
 import { useNavigate } from "react-router";
 import { ChevronDown, ListTree, RefreshCw, Sparkles } from "lucide-react";
 import { Banner, Button, EmptyState, KeyValueList, Modal, PageHeader, ProgressBar, Switch, Textarea } from "../../components/ui";
@@ -57,6 +58,7 @@ function baseEstimate(p: OutlinePart | undefined): number {
 }
 
 function BlueprintScreen({ book }: { book: Book }) {
+  const canWrite = useCanWrite();
   const navigate = useNavigate();
   const pen = getPenName(book.penNameId);
   const [screen, setScreen] = useScreenState("ready");
@@ -434,16 +436,18 @@ function BlueprintScreen({ book }: { book: Book }) {
               title="Build the blueprint"
               body="The planner writes the summary, audience, every chapter with its subheadings, the front and back matter and the listing, using the research and the chosen title."
               action={
-                <Button
-                  icon={Sparkles}
-                  estimate={about(BUILD_COST)}
-                  onClick={() => {
-                    setScreen("loading");
-                    build.start({ durationMs: 5200, costUsd: BUILD_COST, steps: ["Planning"] });
-                  }}
-                >
-                  Build the blueprint
-                </Button>
+                !canWrite ? undefined : (
+                  <Button
+                    icon={Sparkles}
+                    estimate={about(BUILD_COST)}
+                    onClick={() => {
+                      setScreen("loading");
+                      build.start({ durationMs: 5200, costUsd: BUILD_COST, steps: ["Planning"] });
+                    }}
+                  >
+                    Build the blueprint
+                  </Button>
+                )
               }
             />
           ) : (

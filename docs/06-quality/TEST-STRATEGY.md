@@ -15,7 +15,7 @@ Every change is checked with typecheck, lint and the relevant tests before anyon
 | Live AI | Budgeted owner run, separate from automated checks | No root live-test script exists. Agree the budget and set `LIVE_AI=1` before a live run |
 | Hooks | Bash test script | `npm run hooks:test` |
 
-Unit tests sit next to the code (`*.test.ts`) or in `tests/unit/`. Fixtures: `tests/golden/` (manuscripts and expected exports), `tests/fixtures/ai/` (mock provider answers).
+Unit tests sit next to the code (`*.test.ts`) or in `tests/unit/`. Fixtures: `tests/golden/` (manuscripts and expected exports), `packages/ai/test/fixtures/` (mock provider answers).
 
 Coverage targets: `packages/core` 90% lines, `packages/ai` and `packages/export` 80%, `apps/server` services 80%. Coverage is a floor, not a goal; every bug fix adds a test that failed before the fix.
 

@@ -14,6 +14,12 @@ export interface SseOptions {
   projectId: string | null;
   lastEventId: string | null;
   pingMs?: number;
+  /**
+   * Asked every `recheckMs` (60 s by default) whether the caller may still read this workspace. False, or an error,
+   * closes the stream, so a member removed from the workspace stops receiving events within a minute.
+   */
+  stillAllowed?: () => Promise<boolean>;
+  recheckMs?: number;
 }
 
 export function formatEvent(e: BusEvent): string {
@@ -66,10 +72,12 @@ export async function openSseStream(sink: SseSink, opts: SseOptions): Promise<()
   }, opts.pingMs ?? 15000);
   ping.unref();
 
+  let recheck: NodeJS.Timeout | null = null;
   const close = (): void => {
     if (closed) return;
     closed = true;
     clearInterval(ping);
+    if (recheck) clearInterval(recheck);
     unsubscribe();
     try {
       sink.end();
@@ -78,6 +86,23 @@ export async function openSseStream(sink: SseSink, opts: SseOptions): Promise<()
     }
   };
   sink.on('close', close);
+  const stillAllowed = opts.stillAllowed;
+  if (stillAllowed) {
+    let checking = false;
+    recheck = setInterval(() => {
+      if (closed || checking) return;
+      checking = true;
+      void stillAllowed()
+        .catch(() => false)
+        .then((ok) => {
+          if (!ok) close();
+        })
+        .finally(() => {
+          checking = false;
+        });
+    }, opts.recheckMs ?? 60_000);
+    recheck.unref();
+  }
 
   if (lastSent !== null) {
     let after = lastSent;

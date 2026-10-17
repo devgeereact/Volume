@@ -1,0 +1,98 @@
+{
+  "content": {
+    "title": "Hattie and the Shadow",
+    "newWord": "patient",
+    "newWordMeaning": "Patient means waiting kindly, without fussing.",
+    "ageRange": "3 to 5",
+    "emotions": [
+      "excited",
+      "curious",
+      "proud"
+    ],
+    "message": "Waiting kindly can bring lovely things.",
+    "characters": [
+      {
+        "name": "Hattie",
+        "kind": "hedgehog",
+        "look": "A small round hedgehog with soft brown spines, a cream tummy and a pink nose.",
+        "personality": [
+          "eager",
+          "kind"
+        ],
+        "voice": "Bright and quick"
+      },
+      {
+        "name": "Bramble",
+        "kind": "rabbit",
+        "look": "A grey rabbit with long floppy ears and a white tail.",
+        "personality": [
+          "calm",
+          "friendly"
+        ],
+        "voice": "Slow and soft"
+      }
+    ],
+    "setting": "An apple orchard at sunset and dusk.",
+    "spreads": [
+      {
+        "n": 1,
+        "text": "Hattie the hedgehog loved the orchard at sunset. The apples glowed like little lamps, and the grass was soft and warm.",
+        "sceneSummary": "Hattie stands among apple trees in golden evening light."
+      },
+      {
+        "n": 2,
+        "text": "\"I want to see the first star,\" said Hattie. \"Right now!\" Her friend Bramble the rabbit smiled. \"Let's be patient,\" he said. \"Stars come when they are ready.\"",
+        "sceneSummary": "Hattie looks up at a pink sky while Bramble sits beside her."
+      },
+      {
+        "n": 3,
+        "text": "Patient? Hattie scrunched her nose. \"Patient means waiting kindly,\" said Bramble, \"without fussing.\"",
+        "sceneSummary": "Close-up of Hattie wrinkling her nose and Bramble explaining."
+      },
+      {
+        "n": 4,
+        "text": "So they waited. Hattie counted the apples. One, two, three, four. The sky turned peach, then lilac.",
+        "sceneSummary": "Hattie counts apples on a low branch as the sky changes colour."
+      },
+      {
+        "n": 5,
+        "text": "A sleepy bee buzzed home. A blackbird sang a last soft song. \"Is it time yet?\" asked Hattie. \"Not yet,\" said Bramble.",
+        "sceneSummary": "A bee flies past and a blackbird sings on a fence post."
+      },
+      {
+        "n": 6,
+        "text": "Hattie wriggled. Hattie fidgeted. Then she took a slow, deep breath, the way Bramble did. In, and out.",
+        "sceneSummary": "Hattie and Bramble breathe slowly together on the grass."
+      },
+      {
+        "n": 7,
+        "text": "\"I can be patient,\" whispered Hattie. She curled up next to Bramble, warm as a teacup.",
+        "sceneSummary": "Hattie curls up beside Bramble under the apple tree."
+      },
+      {
+        "n": 8,
+        "text": "The lilac sky became deep, soft blue. The orchard went quiet and still.",
+        "sceneSummary": "Wide view of the calm orchard at dusk with the two friends small in the grass."
+      },
+      {
+        "n": 9,
+        "text": "And there it was. One tiny star, twinkling hello. \"You waited so patiently,\" said Bramble. Hattie beamed.",
+        "sceneSummary": "Low angle: the first star shines above the friends, who look up smiling."
+      },
+      {
+        "n": 10,
+        "text": "Hattie yawned a big yawn. \"Goodnight, star. Goodnight, Bramble.\" And she closed her eyes, cosy and happy, under the twinkling sky.",
+        "sceneSummary": "Hattie asleep in a nest of leaves, Bramble tucked beside her, one star above."
+      }
+    ],
+    "goodnightMessage": "Goodnight, little one. Sleep tight.",
+    "cta": null,
+    "wordCount": 186,
+    "safetyCheck": {
+      "passed": false,
+      "notes": [
+        "Spread 4 has Hattie wandering off alone at night; rewrite so Bramble goes with her."
+      ]
+    }
+  }
+}

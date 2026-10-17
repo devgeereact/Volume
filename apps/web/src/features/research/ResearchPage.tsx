@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCanWrite } from "../../lib/access";
 import { useSearchParams } from "react-router";
 import { Check, RotateCcw, Search, X } from "lucide-react";
 import {
@@ -48,6 +49,7 @@ const RUN_MS = 6400;
 const firstRun: RunRecord = { id: BASE.id, number: 1, at: BASE.at, model: BASE.model, costUsd: BASE.costUsd };
 
 function Research({ book }: { book: Book }) {
+  const canWrite = useCanWrite();
   const hasDossier = book.id === "the-calm-ward";
   const isNightShift = book.id === "night-shift-survival";
   const [params] = useSearchParams();
@@ -125,7 +127,7 @@ function Research({ book }: { book: Book }) {
   });
 
   const actions =
-    (shownState === "ready" || shownState === "error") && hasDossier ? (
+    canWrite && (shownState === "ready" || shownState === "error") && hasDossier ? (
       <Button icon={RotateCcw} estimate={about(BASE.costUsd)} onClick={() => setModalOpen(true)}>
         Run again
       </Button>
@@ -160,9 +162,11 @@ function Research({ book }: { book: Book }) {
             title="Research has not run yet"
             body={`The researcher searches the web, reads the sources it cites and writes up the audience, their problems and the gaps. It takes about a minute with ${model ? formatModel(model.slug) : "the research model"}.`}
             action={
-              <Button icon={Search} estimate={about(BASE.costUsd)} onClick={() => startRun(BASE.model)}>
-                Run research
-              </Button>
+              canWrite ? (
+                <Button icon={Search} estimate={about(BASE.costUsd)} onClick={() => startRun(BASE.model)}>
+                  Run research
+                </Button>
+              ) : undefined
             }
           />
         )}

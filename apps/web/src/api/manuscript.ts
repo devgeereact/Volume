@@ -6,6 +6,7 @@ import type {
   AcceptSuggestionResponse,
   ApiAuthorNote,
   ApiClaim,
+  ApiLedgerItem,
   ApiSection,
   ApiSectionVersion,
   ApiSuggestion,
@@ -37,6 +38,9 @@ export const manuscriptApi = {
   /* sections */
   tree: (bookId: string, o?: Opts) => api.get<SectionTree>(`/books/${seg(bookId)}/sections`, o),
   section: (sectionId: string, o?: Opts) => api.get<SectionDetail>(`/sections/${seg(sectionId)}`, o),
+  /** The story ledger, optionally one kind (character, setting and so on). Read only. */
+  storyLedger: (bookId: string, kind?: string, o?: Opts) =>
+    api.get<ListResponse<ApiLedgerItem>>(`/books/${seg(bookId)}/story-ledger`, { ...o, query: { kind } }),
   patchSection: (sectionId: string, patch: SectionPatch, o?: Opts) => api.patch<ApiSection>(`/sections/${seg(sectionId)}`, patch, o),
 
   /* versions */

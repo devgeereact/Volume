@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useCanManage } from "../../lib/access";
 import { RotateCcw, Save } from "lucide-react";
 import { Banner, Button, ModelName, modelPrice, Skeleton } from "../../components/ui";
 import { usePutModelSettings } from "../../api/hooks";
@@ -97,6 +98,7 @@ interface ModelsEditorProps {
 }
 
 function ModelsEditor({ saved, state, onSave, saving = false, saveError = null }: ModelsEditorProps) {
+  const canManage = useCanManage();
   const [draft, setDraft] = useState<Record<string, StageChoice>>(saved);
   const [editing, setEditing] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -111,7 +113,7 @@ function ModelsEditor({ saved, state, onSave, saving = false, saveError = null }
         body="The model each stage uses for every book, unless a profile or a book chooses another. Fallbacks run in order when a model is busy or missing."
         actions={
           <>
-            {!isDefault && (
+            {!isDefault && canManage && (
               <Button
                 variant="ghost"
                 icon={RotateCcw}
@@ -192,9 +194,11 @@ function ModelsEditor({ saved, state, onSave, saving = false, saveError = null }
                   )}
                 </span>
                 <span className="lg:text-right">
-                  <Button size="sm" onClick={() => setEditing(s.stage)}>
-                    Change<span className="sr-only"> {s.label.toLowerCase()} model</span>
-                  </Button>
+                  {canManage && (
+                    <Button size="sm" onClick={() => setEditing(s.stage)}>
+                      Change<span className="sr-only"> {s.label.toLowerCase()} model</span>
+                    </Button>
+                  )}
                 </span>
               </li>
             );

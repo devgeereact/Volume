@@ -7,7 +7,8 @@ import { getPenName, handoverJob } from "../../demo";
 
 export interface MsBlock {
   id: string;
-  kind: "p" | "h";
+  /** Paragraph, subheading, scene break, or workbook block (exercise, lines, fill-in, checklist) holding its Markdown. */
+  kind: "p" | "h" | "scene" | "workbook";
   text: string;
   /** Bumped when the app changes the text, so the editable element remounts with it. */
   rev: number;
@@ -563,9 +564,89 @@ function handover(): Manuscript {
   };
 }
 
+/* ---------- The Ninth Lock (fiction: scene breaks) ---------- */
+
+const scene = (id: string): MsBlock => ({ id, kind: "scene", text: "***", rev: 0 });
+const wb = (text: string, id: string): MsBlock => ({ id, kind: "workbook", text, rev: 0 });
+
+function chapterSection(id: string, number: number, title: string, words: number, target: number, blocks: MsBlock[], excerpt = true): MsSection {
+  return { id, group: "body", number, title, baseWords: words, wordTarget: target, blocks, source: "writer", enabled: true, excerpt };
+}
+
+function ninthLock(): Manuscript {
+  const ch1 = [
+    p("The vault door was older than the bank above it, and it had been built by someone who did not want it opened.", "nl1-1"),
+    p(
+      "Mara Quill knelt on the cold tiles and counted. Forty clicks to the first gate. Eleven back. She heard the train pass over the arch two miles away in her head, the way she always did when she was nervous, and kept counting.",
+      "nl1-2",
+    ),
+    p("DI Okafor stood behind her with his hands in his coat pockets. He did not ask how long it would take. He had learned not to.", "nl1-3"),
+    scene("nl1-s1"),
+    p(
+      "Inside, the vault was empty except for a single steel shelf. Someone had scratched two letters into the paint at eye height, neat and deliberate.",
+      "nl1-4",
+    ),
+    p("M.Q.", "nl1-5"),
+    p("Mara looked at them for a long time. Then she looked at Okafor, and saw that he had already seen them.", "nl1-6"),
+  ];
+  const ch2 = [
+    p("The workshop smelled of oil and brass, and of the fire nobody talked about.", "nl2-1"),
+    p("She did not sleep. She took the Harcourt lock apart on paper instead, gate by gate, until the drawing covered the bench.", "nl2-2"),
+    scene("nl2-s1"),
+    p("At six the phone rang. A second lock had been opened in the night, and whoever did it had used her tools.", "nl2-3"),
+  ];
+  return {
+    bookId: "the-ninth-lock",
+    sections: [chapterSection("nl-ch-1", 1, "The First Gate", 4120, 4000, ch1), chapterSection("nl-ch-2", 2, "Brass and Smoke", 3980, 4000, ch2)],
+    versions: {},
+    claims: [],
+    suggestions: [],
+    passesRun: {},
+    notes: [],
+  };
+}
+
+/* ---------- The Steady Shift Workbook (workbook: exercises, ruled lines, fill-in, checklist) ---------- */
+
+function steadyShift(): Manuscript {
+  const ch1 = [
+    p("Night shifts change how you sleep, eat and think. This chapter helps you notice what your own pattern looks like before you try to change it.", "ss1-1"),
+    h("Notice your pattern", "ss1-h1"),
+    p(
+      "Most nurses can name the hour when a night shift turns heavy. For me it was four in the morning, when the ward was quiet and my body thought it should be asleep.",
+      "ss1-2",
+    ),
+    wb(
+      "::: exercise reflection Your Heaviest Hour\nWhich hour of a night shift feels hardest for you, and what is usually happening on the ward?\n\n::: lines 6\n:::\n:::",
+      "ss1-w1",
+    ),
+    wb(
+      "::: exercise checklist Before Your Next Night\n- [ ] Eat a proper meal before you leave home\n- [ ] Pack a snack for the heavy hour\n- [ ] Tell someone at home when you plan to sleep\n:::",
+      "ss1-w2",
+    ),
+    h("Plan the morning after", "ss1-h2"),
+    p("The shift does not end when you hand over. The drive home and the first hour after it decide how well you sleep.", "ss1-3"),
+    wb(
+      "::: exercise fill-in My Morning Plan\nFill in each line before your next run of nights.\n\n::: fill-in\nWhat I will eat when I get home:\nWhen I will go to sleep:\nWhat I will do if I cannot sleep:\n:::\n:::",
+      "ss1-w3",
+    ),
+  ];
+  return {
+    bookId: "the-steady-shift-workbook",
+    sections: [chapterSection("ss-ch-1", 1, "Know Your Nights", 2480, 2500, ch1, false)],
+    versions: {},
+    claims: [],
+    suggestions: [],
+    passesRun: {},
+    notes: [],
+  };
+}
+
 export function getManuscript(bookId: string): Manuscript | null {
   if (bookId === "the-new-charge-nurse") return chargeNurse();
   if (bookId === "handover") return handover();
+  if (bookId === "the-ninth-lock") return ninthLock();
+  if (bookId === "the-steady-shift-workbook") return steadyShift();
   return null;
 }
 

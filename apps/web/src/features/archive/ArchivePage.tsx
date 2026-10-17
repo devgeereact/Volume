@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
 import { BookOpen, FileArchive, Megaphone, RotateCcw, Trash2, UserRound } from "lucide-react";
 import { Banner, Button, EmptyState, FilterField, IconButton, Input, Modal, PageHeader, Skeleton, Tabs, tabPanelProps } from "../../components/ui";
 import { useArchive, useDeleteArchived, useRestoreArchived } from "../../api/hooks";
@@ -46,6 +47,7 @@ function ArchiveSkeleton() {
  * types its exact title; the server checks it again. Marketing items can only be restored.
  */
 export default function ArchivePage() {
+  const canWrite = useCanWrite();
   const demo = useDemoState();
   const mode = useWireMode();
   const api = mode === "api";
@@ -167,6 +169,7 @@ export default function ArchivePage() {
           ) : undefined
         }
       />
+      <ReadOnlyBanner />
 
       {state === "loading" && <ArchiveSkeleton />}
       {state === "error" && (
@@ -234,9 +237,11 @@ export default function ArchivePage() {
                         Archived <time dateTime={item.archivedAt}>{formatDate(item.archivedAt)}</time>
                       </span>
                       <span className="flex shrink-0 items-center gap-1">
-                        <Button size="sm" icon={RotateCcw} loading={restoring(item.id)} loadingLabel="Restoring" onClick={() => restore(item)}>
-                          Restore<span className="sr-only"> {item.title}</span>
-                        </Button>
+                        {canWrite && (
+                          <Button size="sm" icon={RotateCcw} loading={restoring(item.id)} loadingLabel="Restoring" onClick={() => restore(item)}>
+                            Restore<span className="sr-only"> {item.title}</span>
+                          </Button>
+                        )}
                         {api && item.kind === "book" && (
                           <IconButton
                             icon={FileArchive}
@@ -246,7 +251,7 @@ export default function ArchivePage() {
                             onClick={() => exportProject(item)}
                           />
                         )}
-                        {deletable(item) && <IconButton icon={Trash2} size="sm" label={`Delete ${item.title}`} onClick={() => openDelete(item)} />}
+                        {deletable(item) && canWrite && <IconButton icon={Trash2} size="sm" label={`Delete ${item.title}`} onClick={() => openDelete(item)} />}
                       </span>
                     </li>
                   );

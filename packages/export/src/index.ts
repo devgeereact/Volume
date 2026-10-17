@@ -4,6 +4,7 @@ export * from './fonts.ts';
 export * from './browser.ts';
 export * from './print-html.ts';
 export * from './pdf.ts';
+export * from './picture-book.ts';
 export * from './docx.ts';
 export * from './epub.ts';
 export * from './covers.ts';

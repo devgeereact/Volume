@@ -4,8 +4,38 @@ import type { AppServices } from '../app.js';
 import { parse } from '../http/errors.js';
 import { CODE_WRITTEN_KINDS, profileSummary } from '../jobs/book-data.js';
 import { conceptCount } from '../jobs/handlers/production.js';
+import { assertSpreadCount, matterStartsOn, pictureSettings, picturePlan, requirePictureBook, spreadSections, storyInput } from '../jobs/picture-book.js';
+import { imageReservationUsd } from '../jobs/runner.js';
+import { promptTemplate } from '../config/book-structure.js';
 import { AI_STAGES, type AiStage, type AiStageInput } from '../ports/ai.js';
 import { idOf } from './common.js';
+
+const round = (n: number): number => Math.round(n * 10000) / 10000;
+
+const PictureEstimateBody = z
+  .object({
+    /**
+     * Spreads to price; the book's spreads, else the page plan from the KDP colour rules, when left out. Checked
+     * against the template's range (spreads.count in config/book-templates/picture-book.json).
+     */
+    spreads: z.number().int().min(1).max(100).optional(),
+    /** Main characters (one reference picture each); the book's, else the story input, else the template default. */
+    characters: z.number().int().min(0).max(4).optional(),
+  })
+  .strict();
+
+export interface PictureEstimate {
+  lowUsd: number;
+  highUsd: number;
+  /** Paid calls: three text stages and one picture per spread and per main character. */
+  calls: number;
+  spreads: number;
+  characters: number;
+  /** Story, scene prompts and character reference prompts together. */
+  text: { lowUsd: number; highUsd: number; model: string | null };
+  /** One picture. priced false: the model list gave no price, so both ends are the job's budget reservation. */
+  image: { lowUsd: number; highUsd: number; model: string | null; priced: boolean };
+}
 
 /** Stages that run once per section; the estimate sums over the sections. */
 const PER_SECTION: ReadonlySet<AiStage> = new Set(['writing', 'summarise', 'checks', 'editing', 'weave']);
@@ -106,7 +136,80 @@ export function estimateRoutes(app: FastifyInstance, s: AppServices): void {
       if (body.stage === 'marketing') extra['kinds'] = ['tiktok_script', 'instagram_caption', 'launch_email'];
       await add(body.stage, { variables: { ...base, ...extra }, projectId: id });
     }
-    const round = (n: number): number => Math.round(n * 10000) / 10000;
     return { stage: body.stage, model: await modelFor(body.stage), lowUsd: round(low), highUsd: round(high), calls, sections: sectionCount };
+  });
+
+  /**
+   * POST /books/:id/picture-book/estimate: what a picture-book run would cost (P7-5, D-045): the story, the scene
+   * prompts and the character reference prompts from the AI port's estimate with each stage's model, plus one picture
+   * per spread and one reference picture per main character, priced from the model list for the image model.
+   */
+  app.post('/books/:id/picture-book/estimate', async (req): Promise<PictureEstimate> => {
+    const id = idOf(req);
+    const body = parse(PictureEstimateBody, req.body ?? {});
+    const { book, structure } = await requirePictureBook(s.repos, req.ctx, s.configDir, id);
+    const settings = pictureSettings(book.settings);
+
+    if (body.spreads !== undefined) assertSpreadCount(structure.template, body.spreads);
+    let spreads = body.spreads;
+    if (spreads === undefined) {
+      const have = (await spreadSections(s.repos, req.ctx, id)).length;
+      if (have > 0) spreads = have;
+      else {
+        const all = await s.repos.manuscript.listSections(req.ctx, id);
+        const on = all.filter((x) => x.enabled);
+        const front = all.length ? on.filter((x) => x.area === 'front').length : structure.front.filter((x) => matterStartsOn(x, settings)).length;
+        const back = all.length ? on.filter((x) => x.area === 'back').length : structure.back.filter((x) => matterStartsOn(x, settings)).length;
+        spreads = (await picturePlan(s.configDir, front, back)).plan.spreads;
+      }
+    }
+    let characters = body.characters;
+    if (characters === undefined) {
+      const main = (await s.repos.picture.listCharacters(req.ctx, id)).filter((c) => c.main).length;
+      const rules = (structure.template?.['storyRules'] ?? {}) as Record<string, unknown>;
+      const fallback = (rules['characterCount'] ?? {}) as Record<string, unknown>;
+      characters = main || settings.story?.characterCount || (typeof fallback['default'] === 'number' ? fallback['default'] : 2);
+    }
+
+    const template = promptTemplate(structure);
+    const profile = await profileSummary(s.repos, req.ctx, book.profileId, book);
+    const story = storyInput(settings, structure.template, book.idea, spreads);
+    const stages: { stage: AiStage; promptId: string; extra: Record<string, unknown> }[] = [
+      { stage: 'picture_story', promptId: 'children.picture-book-story', extra: { title: book.title, idea: book.idea, cta: settings.story?.cta ?? null } },
+      { stage: 'scene_prompts', promptId: 'children.scene-prompts', extra: { storyResult: settings.storyResult ?? {} } },
+      { stage: 'character_reference', promptId: 'children.character-reference', extra: { storyResult: settings.storyResult ?? {}, scenePrompts: {} } },
+    ];
+    let textLow = 0;
+    let textHigh = 0;
+    for (const st of stages) {
+      const model = await s.runner.resolveModel(req.ctx, id, st.stage);
+      const e = await s.ai.estimate(
+        st.stage,
+        { promptId: st.promptId, variables: { story, template, profile, ...st.extra }, projectId: id },
+        model ? { model } : {},
+      );
+      textLow += e.lowUsd;
+      textHigh += e.highUsd;
+    }
+
+    const imageModel = await s.runner.resolveModel(req.ctx, id, 'cover_image');
+    const priced = s.ai.estimateImage ? await s.ai.estimateImage(imageModel ? { model: imageModel } : {}) : null;
+    // The high end is what the job reserves against the budget for each picture (imageReservationUsd: the priced
+    // estimate, never below the floor), so the estimate never shows less than the run will hold back.
+    const reserve = round(await imageReservationUsd(s.ai, imageModel));
+    const image =
+      priced && priced.priced
+        ? { lowUsd: round(Math.min(priced.lowUsd, reserve)), highUsd: reserve, model: priced.model, priced: true }
+        : { lowUsd: reserve, highUsd: reserve, model: priced?.model ?? imageModel, priced: false };
+    const pictures = spreads + characters;
+    return {
+      lowUsd: round(textLow + pictures * image.lowUsd),
+      highUsd: round(textHigh + pictures * image.highUsd),
+      calls: stages.length + pictures,
+      spreads,
+      characters,
+      text: { lowUsd: round(textLow), highUsd: round(textHigh), model: await s.runner.resolveModel(req.ctx, id, 'picture_story') },
+      image,
+    };
   });
 }

@@ -1,6 +1,6 @@
 # 06 Export specification
 
-How a book is structured, how it is written down as Markdown, and exactly what each export must produce. All KDP numbers cite fact IDs from `docs/reference/reference-kdp-facts-2026-10-03.md` (FACTS) and are read at run time from the latest dated file in `config/kdp-rules/` (currently `2026-10-06.json`, with the targeted 6 October facts supplement), never typed into code. Section defaults per template are in `config/book-templates/`.
+How a book is structured, how it is written down as Markdown, and exactly what each export must produce. All KDP numbers cite fact IDs from `docs/reference/reference-kdp-facts-2026-10-03.md` (FACTS) and are read at run time from the latest dated file in `config/kdp-rules/` (currently `2026-10-17.json`), never typed into code. Section defaults per template are in `config/book-templates/`.
 
 ## Canonical book structure
 
@@ -39,13 +39,18 @@ A book is an ordered list of sections (`docs/02-architecture/DATA-MODEL.md`, `se
 | Plain line | Paragraph (one line per paragraph) | P02 |
 | `- item` | Bulleted list | P02 |
 | `\| a \| b \|` | Table (separator rows of dashes ignored) | P02 |
-| `***` | Scene break | P02 |
+| `***` (or `* * *`) | Scene break; the writer always writes `***` | P02; `* * *` accepted from phase 6 (D-042) |
 | `**bold**` | Bold inline | P02 |
 | `*italic*` | Italic inline | New |
 | `::: takeaways` with `- ` items | Key Takeaways box (3 to 5 items) | New |
 | `::: epigraph` with quote lines, last line `- Name` | Owner-supplied quote only | New |
 | `::: demo` | Demo note (P02 compatibility) | P02 |
-| `::: exercise`, `::: lines N` | Workbook exercise and N fill-in lines | New, phase 6 |
+| `::: exercise <kind> [title]` ... `:::` | Workbook exercise. `<kind>`: reflection, checklist, fill-in, tracker or scenario. Holds paragraphs, lists, tables and the blocks below. Printed label "Exercise: Title" | Phase 6 (D-042) |
+| `::: lines N` then `:::` | N ruled writing lines, 1 to 30 (exports clamp, preflight warns) | Phase 6 |
+| `- [ ] item` | Tick-box checklist (every item in the list has the box) | Phase 6 |
+| `::: fill-in` (or `::: fill-in page`) | One prompt per line, each followed by a blank; `page` starts a new page | Phase 6 |
+
+An `::: exercise` without a known kind stays a callout, so older manuscripts still parse.
 
 Round-trip rule: parse then write returns byte-identical Markdown for any file the writer produced (golden test).
 
@@ -68,7 +73,19 @@ Round-trip rule: parse then write returns byte-identical Markdown for any file t
 - **Openings:** each `#` section starts on a new page; chapters and parts start on a right-hand page by default (a blank left page is added), with an option to allow any page.
 - **Type:** body in a serif book font (Literata, EB Garamond or Source Serif 4, added in phase 1), 10.5 to 11.5 pt, leading 1.45; headings in the profile's heading font (Plus Jakarta Sans by default). First paragraph after a heading not indented; others indented 1.3 em; no blank lines between paragraphs. Widows and orphans 2.
 - **Fonts:** every font embedded and subset; preflight reads the PDF and fails on any unembedded font.
+- **Fiction:** chapters have no subheadings and no takeaways (preflight fails them). A scene break prints the theme glyph (default `* * *`) centred, never ends a page on its own, and the paragraph after it is not indented. The contents lists chapters (and parts) only: the fiction template's contents section has `"entries": "chapters"`, which the server copies into `book.meta.contentsEntries` with `contentsEntriesFromTemplate()`; PDF, DOCX, EPUB and TXT contents all honour it. A heading `# Chapter 1` with no title is an untitled chapter: it prints "Chapter 1" (in the theme's number style) as the chapter title and in the contents.
+- **Workbook blocks (D-042):** an exercise has a rule above it, its label in the heading font, and is kept on one page where it fits. `lines N` draws N ruled lines 22 pt apart. Checklist items get an empty tick box. A fill-in block puts one ruled line under each prompt; a fill-in page starts on a new page with three ruled lines per prompt. Tracker tables get rows tall enough to write in. Lines are drawn, never typed as underscores.
 - **Contents:** chapter titles with page numbers and dot leaders; subheadings listed under each chapter (as in the drafts) without page numbers.
+
+## Picture-book print PDF (phase 7, D-044)
+
+- **Model** (`packages/core/src/spread.ts`): `PictureBookDoc { meta, front, spreads, back }`, `Spread { n, text, imageKey, layout, sceneSummary }`, layouts `text-left`, `text-right`, `text-top`, `text-bottom` (the same values as `SPREAD_LAYOUTS` in `@volume/ai`). `pictureBookToBookDoc()` turns it into a normal book (one chapter per spread) for house style, the about-the-author check, TXT and MD.
+- **Pages** (`pictureBookPages()`): page 1 is a right-hand page. Front matter one page each, a blank page if needed so spread 1 opens on a left-hand page, each spread as a left and a right page, back matter one page each, a blank page at the end if the count is odd.
+- **Default length** (`defaultPictureBookPlan()`): the colour minimum for the trim and ink (rule `paperback.trimAndPages.colour`), filled with spreads after 3 front pages (title page, copyright, today's new word) and 1 back page (about the author). Premium colour on 8.5 x 8.5 in gives 24 pages = 10 spreads + 4 matter pages (plan PHASES-6-8, section 7). The template default of 12 spreads stays for longer books. Default trim 8.5 x 8.5 in, premium colour ink (D-044).
+- **Geometry** (`pictureBookGeometry()`): every PDF page is trim plus bleed (rule `print.bleed`): the added width on the outside edge, the added height split between top and bottom. The safe area (`safeAreaIn()`, rule `paperback.interiorMargins`) keeps text the with-bleed outside minimum from the top, bottom and outside trim edges and the page-count inside minimum from the gutter, measured from the trim edge (at least as safe whichever edge KDP measures from). The PDF carries matching TrimBox and BleedBox entries.
+- **Rendering** (`exportPictureBookPdf()` in `packages/export/src/picture-book.ts`): every page is a fixed box, so there is nothing to paginate; Chromium prints the HTML directly at the bleed size (no Paged.js). Chromium rounds the page size to 1/300 in, so pdf-lib sets the MediaBox to the exact bleed size from the top-left corner (only a blank sliver of under 0.2 pt is removed). Each 2:1 picture is cropped around its centre to the shape of both pages with bleed, split at the gutter with sharp and placed full-bleed on the two pages. The story text sits in a soft white panel inside the safe area: `text-left` and `text-right` on that page, vertically centred; `text-top` and `text-bottom` on the left-hand page at the top or bottom of the safe area. Fonts: the default theme's body and display fonts from `assets/fonts`, embedded.
+- **Measured layout:** after layout every text box is measured in the page DOM (`layout.textBoxes`, inches from the page's top-left corner) and checked with `checkTextInSafeArea()`; text that does not fit its panel is listed in `layout.overflowing`; spread pages whose picture did not load are in `layout.missingImages`.
+- **Not in phase 7:** EPUB and DOCX for picture books (a fixed-layout eBook is a later format); the upload pack README says so.
 
 ## DOCX
 
@@ -76,13 +93,15 @@ Ported from `build_docx.py` using the `docx` package.
 - Page size per trim, mirror margins (`w:mirrorMargins`), same margins as the PDF.
 - Styles, no direct formatting: Normal, First Paragraph, Heading 1 (page break before), Heading 2, Title Page Title, Title Page Subtitle, Title Page Author, Copyright, Contents Heading, Part Title, Epigraph, Dedication, List Bullet, Takeaways Heading, Takeaways Item, Scene Break.
 - Contents: one linked entry per Heading 1 (bookmarks and internal hyperlinks), subheadings as plain indented lines, so Kindle conversion keeps a working table of contents.
-- Footer with a PAGE field. No blank paragraphs or tabs for spacing.
+- Footer with a PAGE field. No blank paragraphs or tabs for spacing. The only empty paragraphs are workbook ruled lines (a bottom border), which are content, not spacing.
+- Workbook blocks use existing styles only, so `styles.xml` is the same for every template: exercise label in Takeaways Heading, ruled lines as First Paragraph with a bottom border, checklist items with a Word check box (`w14:checkbox`), a fill-in page after a page break with three ruled lines per prompt.
 
 ## EPUB 3
 
 - `mimetype` first and stored uncompressed, `META-INF/container.xml`, `OEBPS/content.opf`, `nav.xhtml` (contents with chapters and subheadings, plus landmarks), one XHTML file per section, one CSS file.
 - Metadata: `dc:title`, `dc:creator` (pen name), `dc:language` (`en-GB`), `dc:identifier` (eBook ISBN if entered, otherwise `urn:uuid:` from the project id), `dc:publisher` (imprint), `dc:date`, `dcterms:modified`.
 - Cover: the eBook cover JPEG with `properties="cover-image"`, plus a cover XHTML page.
+- Workbook blocks: an exercise is an `<aside class="exercise">` with its label; `lines N` and each fill-in block become one line "Space to write your answer." (D-042), because ruled lines look broken on a reflowable screen. Checklists are plain lists. Scene breaks are `<hr class="break"/>`.
 - Reflowable, no fixed font sizes, fonts not embedded by default. EPUBCheck integration tests require Java and an explicit `EPUBCHECK_JAR`; without that jar they skip. Automated validation is separate from Kindle rendering acceptance.
 - EPUB and upload packs use the installed `jszip` dependency in packages/export. Project-transfer ZIP parsing is a separate bounded server implementation.
 
@@ -100,6 +119,7 @@ Rules:
 - Contents: front and back sections by name, chapters as `N. Title`, subheadings indented 3 spaces.
 - Paragraphs separated by one blank line and wrapped at 80 characters on word boundaries. Lines that cannot break (category paths, URLs) stay whole.
 - Subheadings on their own line in title case. Lists as `- ` with continuation lines indented 2 spaces. `KEY TAKEAWAYS` label before takeaways. Scene breaks as `* * *`. Bold and italic markers removed.
+- Workbook blocks: `EXERCISE: TITLE` in capitals, its contents below, checklist items as `[ ] item`, and "Space to write your answer." in place of ruled lines or after a fill-in block's prompts. No underscores.
 - After the last book section: `AMAZON MARKETING PACKAGE` with `PRODUCT DESCRIPTION:` (HTML stripped to paragraphs), `CATEGORIES:` and `KEYWORDS:` numbered.
 - Ends with separator, `END OF BOOK`, `Total Word Count: N`, separator. N counts words (tokens with a letter or digit) in section bodies, including subheadings and list items, excluding headings, labels, the title page, copyright, contents and the marketing package.
 
@@ -243,6 +263,8 @@ height_in = 0.125 + trim_h + 0.125
 | Check | Level | Source |
 |---|---|---|
 | All template sections present or deliberately off; contents matches headings | block | template |
+| Template chapter rules (`structure.template-rules`): fiction chapters have no subheadings and no takeaways; a workbook chapter with no exercises | block | template `chapterRules`, `checkTemplateRules` |
+| Workbook exercises outside the per-chapter range, unknown exercise kinds, `lines N` outside 1 to 30, workbook blocks in a template without exercises, malformed workbook fences | warn | template `chapterRules` |
 | No em dashes, no banned phrases, no US spellings (or waived) | block | house style |
 | No open blocking checks or invented-content flags | block | `docs/02-architecture/AI-PIPELINE.md` |
 | Open claims in the claims report | warn | guardrails |
@@ -255,12 +277,22 @@ height_in = 0.125 + trim_h + 0.125
 | Exactly 7 keywords, 3 categories | block | FACTS 5.1, 5.2 |
 | AI disclosure set to match content | block | FACTS 5.5 |
 | Interior trim size matches, fonts embedded, page count within trim limits | block | FACTS 3.6, 6.6 |
+| Picture books: page size equals trim plus bleed (`interior.bleed`) | block | rule `print.bleed` |
+| Picture books: page count within the colour range for the trim and ink (`picture.page-count`; warns while `paperback.colour.paper` is partial) | block | rule `paperback.trimAndPages.colour` |
+| Picture books: every spread page shows its picture, read from the PDF and the layout (`picture.spread-images`) | block | D-044 |
+| Picture books: every text box inside the safe area and every text fits its panel (`picture.safe-area`) | block | rules `print.bleed`, `paperback.interiorMargins` |
+| Picture books: every spread has text and is numbered in order; words per spread and spread count within the template (`picture.spreads`) | block (text), warn (rest) | template `spreads` |
+| Picture books: the AI disclosure covers images, because the spread pictures come from the image model (`kdp.ai-disclosure`) | block | FACTS 5.5, D-045 |
 | Wrap size matches formula, spine text only at 80 pages or more, images 300 DPI or more | block | FACTS 3.8 to 3.10 |
 | eBook cover 1600 x 2560 JPEG RGB | block | FACTS 10.5 |
 | EPUBCheck passes (when Java present) | warn | FACTS 7.8 |
 | Exports older than the latest manuscript change | warn | `exports.manuscript_hash` |
-| KDP rules file older than 90 days | warn | rules file date |
+| Oldest KDP rule check older than `recheckAfterDays` (`rules.age`, counted from the file's `verifiedOn`, which is the date of its oldest check, not the date of the file) | warn | rules file `verifiedOn` |
 | A third new title this week in one format (phase 8) | block | FACTS 5.7 |
+
+## Golden samples
+
+`packages/export/test/fixtures/` holds four short books, each with goldens in `packages/export/test/golden/`: the Windowsill Herbs manuscript (non-fiction), `fiction-mini.md` (two chapters, scene breaks written both ways) and `workbook-mini.md` (every exercise kind, lines, a checklist, a tracker table and a fill-in page), and `picture-mini.json` (a 24-page picture book: 3 front pages, 10 spreads in all four layouts, 1 back page; deterministic placeholder pictures made in `test/helpers.ts`). For each: TXT and MD exact, DOCX normalised `document.xml` (the fiction and workbook samples must keep the Windowsill `styles.xml`), EPUB chapter and nav XHTML exact (`<name>.epub.txt`), PDF page size, page count (`<name>.pages.txt`), embedded fonts, extracted text and 4 page images. The picture book has its own goldens: page text per page (`picture-mini.pages-text.txt`), TXT and MD of the story, the full preflight report (`picture-mini.preflight.txt`) and the four pages of spreads 1 and 2 (`picture-mini-page-1.png` to `-4.png`); its PDF checks are page count from the rules, page box equal to trim plus bleed, trim boxes, embedded fonts, a picture on every spread page and text boxes inside the safe area. Update with `UPDATE_GOLDEN=1` on one test file at a time and review the diff; PDF images on Linux live in `golden/linux/`; the fiction and workbook samples have none yet, so on Linux they get only the layout check against the macOS images.
 
 ## Upload pack (zip)
 
@@ -285,3 +317,5 @@ marketing/tiktok-scripts.txt
 marketing/instagram-captions.txt
 marketing/launch-email.txt
 ```
+
+A picture-book pack (`buildUploadPack({ ..., pictureBook: true })`) has the interior PDF but no EPUB or DOCX (D-044); its README says to choose colour ink, white paper and bleed in KDP, and `listing/ai-disclosure.txt` says the spread pictures and the cover art came from an image model.

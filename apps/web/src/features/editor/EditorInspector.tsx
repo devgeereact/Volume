@@ -62,6 +62,8 @@ interface EditorInspectorProps {
   notice?: ReactNode;
   /** API mode: what the writer's guardrails flagged in this section's latest AI run (null when none ran). */
   guardrails?: { passed: boolean; items: { message: string; severity: string; match: string | null }[] } | null | undefined;
+  /** A viewer's role: everything reads, no fix, decision or note buttons. */
+  readOnly?: boolean | undefined;
 }
 
 /** Inspector tabs for the Editor: Checks, Claims, Suggestions and Versions. */
@@ -96,7 +98,7 @@ export function EditorInspector(props: EditorInspectorProps) {
   );
 }
 
-function ChecksPanel({ section, words, issues, onFixIssue, claims, guardrails }: EditorInspectorProps) {
+function ChecksPanel({ section, words, issues, onFixIssue, claims, guardrails, readOnly }: EditorInspectorProps) {
   const target = section.wordTarget;
   const over = target !== null ? words - target : 0;
   const inRange = target === null || Math.abs(over) <= target * 0.15;
@@ -135,7 +137,7 @@ function ChecksPanel({ section, words, issues, onFixIssue, claims, guardrails }:
             ok={emDashes.length === 0}
             label={emDashes.length === 0 ? "No em dashes" : `${emDashes.length} em ${emDashes.length === 1 ? "dash" : "dashes"}`}
           >
-            {emDashes.length > 0 && (
+            {emDashes.length > 0 && !readOnly && (
               <Button size="sm" variant="ghost" className="-ml-2" onClick={() => emDashes.forEach(onFixIssue)}>
                 Replace with commas
               </Button>
@@ -148,9 +150,11 @@ function ChecksPanel({ section, words, issues, onFixIssue, claims, guardrails }:
             {spellings.map((s, i) => (
               <span key={i} className="flex flex-wrap items-center gap-x-2 text-small text-ink-secondary">
                 &ldquo;{s.found}&rdquo; to &ldquo;{s.fix}&rdquo;
-                <Button size="sm" variant="ghost" onClick={() => onFixIssue(s)}>
-                  Fix
-                </Button>
+                {!readOnly && (
+                  <Button size="sm" variant="ghost" onClick={() => onFixIssue(s)}>
+                    Fix
+                  </Button>
+                )}
               </span>
             ))}
           </CheckRow>
@@ -208,7 +212,7 @@ function CheckRow({ ok, label, claim, children }: { ok: boolean; label: string; 
 
 const statusText: Record<ClaimStatus, string> = { open: "Open", verified: "Verified", softened: "Softened", removed: "Removed" };
 
-function ClaimsPanel({ bookId, section, claims, onClaim, sectionLabel, canUndo = true, softenEditable = false }: EditorInspectorProps) {
+function ClaimsPanel({ bookId, section, claims, onClaim, sectionLabel, canUndo = true, softenEditable = false, readOnly }: EditorInspectorProps) {
   const sorted = [...claims].sort((a, b) => Number(b.sectionId === section.id) - Number(a.sectionId === section.id));
   if (claims.length === 0)
     return <p className="text-body text-ink-secondary">No claims in this book. The checker found nothing medical, legal or statistical to verify.</p>;
@@ -228,6 +232,7 @@ function ClaimsPanel({ bookId, section, claims, onClaim, sectionLabel, canUndo =
             onClaim={onClaim}
             canUndo={canUndo}
             softenEditable={softenEditable}
+            readOnly={readOnly === true}
           />
         ))}
       </ul>
@@ -243,7 +248,9 @@ function ClaimCard({
   onClaim,
   canUndo,
   softenEditable,
+  readOnly,
 }: {
+  readOnly: boolean;
   claim: MsClaim;
   here: boolean;
   where: string;
@@ -277,7 +284,7 @@ function ClaimCard({
 
       {open && mode === "idle" && (
         <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {here ? (
+          {here && readOnly ? null : here ? (
             <>
               <Button size="sm" onClick={() => setMode("verify")}>
                 Verify
@@ -358,7 +365,7 @@ function ClaimCard({
           </div>
         </div>
       )}
-      {!open && here && canUndo && (
+      {!open && here && canUndo && !readOnly && (
         <Button size="sm" variant="ghost" icon={Undo2} className="mt-1.5 -ml-2" onClick={() => onClaim(claim, "undo")}>
           Undo
         </Button>
@@ -379,6 +386,7 @@ function SuggestionsPanel({
   onAllSuggestions,
   remember,
   canUndo = true,
+  readOnly,
 }: EditorInspectorProps) {
   const list = suggestions.filter((s) => s.pass === pass);
   const pending = list.filter((s) => (suggestionState[s.id] ?? "pending") === "pending");
@@ -410,9 +418,11 @@ function SuggestionsPanel({
       ) : !passRun ? (
         <div className="mt-4 rounded-md border border-dashed border-border-strong p-4">
           <p className="text-label text-ink">{passLabels[pass]} has not run on this section.</p>
-          <Button className="mt-3" icon={Sparkles} estimate={passCosts[pass]} onClick={onRunPass}>
-            Run {pass === "line" ? "line edit" : passLabels[pass].toLowerCase()}
-          </Button>
+          {!readOnly && (
+            <Button className="mt-3" icon={Sparkles} estimate={passCosts[pass]} onClick={onRunPass}>
+              Run {pass === "line" ? "line edit" : passLabels[pass].toLowerCase()}
+            </Button>
+          )}
         </div>
       ) : list.length === 0 ? (
         <p className="mt-4 flex items-center gap-1.5 text-small text-success">
@@ -425,14 +435,23 @@ function SuggestionsPanel({
             <p className="num mr-auto text-small text-ink-secondary">
               {pending.length} of {list.length} waiting
             </p>
-            <Button size="sm" variant="ghost" disabledReason={pending.length === 0 ? "Nothing waiting." : undefined} onClick={() => onAllSuggestions("reject")}>
-              Reject all
-            </Button>
-            <Button size="sm" disabledReason={pending.length === 0 ? "Nothing waiting." : undefined} onClick={() => onAllSuggestions("accept")}>
-              Accept all
-            </Button>
+            {!readOnly && (
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabledReason={pending.length === 0 ? "Nothing waiting." : undefined}
+                  onClick={() => onAllSuggestions("reject")}
+                >
+                  Reject all
+                </Button>
+                <Button size="sm" disabledReason={pending.length === 0 ? "Nothing waiting." : undefined} onClick={() => onAllSuggestions("accept")}>
+                  Accept all
+                </Button>
+              </>
+            )}
           </div>
-          {remember && (
+          {remember && !readOnly && (
             <Checkbox
               className="mt-1"
               label="Remember for this profile"
@@ -450,7 +469,7 @@ function SuggestionsPanel({
                     <DiffText before={s.original} after={s.proposed} />
                   </p>
                   <p className="mt-1.5 text-small text-ink-secondary">{s.reason}</p>
-                  {st === "pending" ? (
+                  {st === "pending" && readOnly ? null : st === "pending" ? (
                     <div className="mt-2 flex gap-1.5">
                       <Button size="sm" icon={Check} onClick={() => onSuggestion(s, "accept")}>
                         Accept
@@ -464,7 +483,7 @@ function SuggestionsPanel({
                       <span className={st === "accepted" ? "text-success" : st === "stale" ? "text-accent-text" : "text-ink-secondary"}>
                         {st === "accepted" ? "Accepted" : st === "stale" ? "Out of date: the text changed after this was suggested" : "Rejected"}
                       </span>
-                      {canUndo && st !== "stale" && (
+                      {canUndo && st !== "stale" && !readOnly && (
                         <Button size="sm" variant="ghost" icon={Undo2} onClick={() => onSuggestion(s, "undo")}>
                           Undo
                         </Button>
@@ -489,7 +508,7 @@ const noteStatusText: Record<NoteStatus, string> = {
   expanded: "Made a section",
 };
 
-function NotesPanel({ notes, section, sectionLabel, onShowNote, onAddNote, canAddNote }: EditorInspectorProps) {
+function NotesPanel({ notes, section, sectionLabel, onShowNote, onAddNote, canAddNote, readOnly }: EditorInspectorProps) {
   const isOpen = (n: MsNote) => n.status === "draft" || n.status === "working" || n.status === "ready";
   const sorted = [...notes].sort((a, b) => Number(isOpen(b)) - Number(isOpen(a)) || Number(b.sectionId === section.id) - Number(a.sectionId === section.id));
   return (
@@ -498,15 +517,17 @@ function NotesPanel({ notes, section, sectionLabel, onShowNote, onAddNote, canAd
         Type anywhere in the page, or leave a note: a few rough words where something belongs. Weave in turns it into finished text in your voice; Expand into a
         section writes a new subsection. Nothing changes until you accept.
       </p>
-      <Button
-        className="mt-3"
-        icon={MessageSquarePlus}
-        fullWidth
-        onClick={onAddNote}
-        disabledReason={canAddNote ? undefined : "Write or paste some text first."}
-      >
-        Add a note
-      </Button>
+      {!readOnly && (
+        <Button
+          className="mt-3"
+          icon={MessageSquarePlus}
+          fullWidth
+          onClick={onAddNote}
+          disabledReason={canAddNote ? undefined : "Write or paste some text first."}
+        >
+          Add a note
+        </Button>
+      )}
       {sorted.length === 0 ? (
         <p className="mt-4 text-small text-ink-secondary">No notes yet. Click in a paragraph and press {modKey()} Enter to add one after it.</p>
       ) : (

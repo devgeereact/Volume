@@ -1,4 +1,6 @@
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { ReadOnlyBanner } from "../../lib/access";
+import { useVolumeMe } from "../../api/wire-d";
 import { Link, useNavigate } from "react-router";
 import { ArrowLeft, Check, Plus, Save } from "lucide-react";
 import {
@@ -51,6 +53,7 @@ import {
   exerciseStyles,
   fieldGroups,
   heatLabels,
+  isPictureBook,
   pageTypes,
   parseNum,
   pipelineExamples,
@@ -61,10 +64,13 @@ import {
   usesClues,
   usesNewWord,
   workingTitle,
+  splitPov,
+  tenseOptions,
   writingArrives,
   type Draft,
 } from "./wizardData";
 import { WizardSteps, type WizardStep } from "./WizardSteps";
+import { GENTLE_PROBLEM_RULE, messageOptions, runEstimate } from "../spreads/model";
 
 /* New book wizard (docs/03-design/UX-SPEC.md, M3). Owner: screen agent B. With the server running, profiles
    come from it, Save draft creates (then updates) the book through POST /books and PATCH /books/:id, and
@@ -118,8 +124,10 @@ function validate(step: number, d: Draft): Errors {
 export function bookInput(d: Draft, type: BookType | undefined, profileId: string): BookInput {
   const groups = type ? fieldGroups(type) : [];
   const genre: Record<string, unknown> = {};
-  if (groups.includes("story")) {
+  const story = groups.includes("story");
+  if (story) {
     genre["pov"] = d.pov;
+    genre["tense"] = d.tense;
     genre["heat"] = d.heat;
     if (type && usesClues(type)) {
       genre["twistPlan"] = d.twistPlan;
@@ -129,6 +137,10 @@ export function bookInput(d: Draft, type: BookType | undefined, profileId: strin
   if (groups.includes("young")) {
     genre["ageRange"] = d.ageRange;
     if (type && usesNewWord(type)) genre["newWord"] = d.newWord ? d.newWordText.trim() || "writer suggests" : null;
+    if (isPictureBook(type)) {
+      genre["problem"] = d.problem.trim().slice(0, 300) || null;
+      genre["message"] = d.message;
+    }
   }
   if (groups.includes("exercises")) genre["exercises"] = d.exercises;
   if (groups.includes("pages")) genre["pages"] = d.pages;
@@ -156,6 +168,8 @@ export function bookInput(d: Draft, type: BookType | undefined, profileId: strin
       trimLabel: d.trim,
       models: { research: d.researchModel, writing: d.writingModel },
       series: d.inSeries ? { name: d.seriesName.trim(), number: parseNum(d.seriesNumber) || 1 } : null,
+      // Fiction: the server sends these to the fiction blueprint and writer (book settings pov and tense).
+      ...(story ? { pov: d.pov.trim().slice(0, 200) || null, tense: d.tense } : {}),
       genre,
     },
   };
@@ -170,7 +184,31 @@ function coverPreview(styleId: string, title: string): CoverDesign | null {
   return coverFromStyle(style.id, palette.id, lines);
 }
 
+/** Starting a book is a write: a viewer gets the read-only note and a way back instead of the wizard. */
 export default function NewBookPage() {
+  const me = useVolumeMe();
+  if (me.state === "loading")
+    return (
+      <div role="status" className="px-4 py-6 text-small text-ink-secondary sm:px-8 lg:px-10">
+        Checking what your account can do
+      </div>
+    );
+  if (!me.canWrite)
+    return (
+      <div className="grid max-w-[760px] content-start gap-5 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
+        <PageHeader title="New book" />
+        <ReadOnlyBanner />
+        <p>
+          <Link to="/" className="text-label text-select underline underline-offset-2">
+            Back to the Library
+          </Link>
+        </p>
+      </div>
+    );
+  return <NewBookWizard />;
+}
+
+function NewBookWizard() {
   const navigate = useNavigate();
   const [demoScreen, setScreen] = useScreenState("ready");
   const mode = useWireMode();
@@ -204,6 +242,7 @@ export default function NewBookPage() {
   const est = useMemo(() => estimate(draft), [draft]);
   const budget = parseNum(draft.budget);
   const title = workingTitle(draft.idea) ?? "Working title";
+  const picture = isPictureBook(type);
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -282,7 +321,7 @@ export default function NewBookPage() {
     setStartMessage(null);
     if (api) {
       saveToServer().then(
-        (id) => navigate(skipResearch ? `/books/${id}/titles` : `/books/${id}/research?run=new`),
+        (id) => navigate(picture ? `/books/${id}/writing` : skipResearch ? `/books/${id}/titles` : `/books/${id}/research?run=new`),
         (e: unknown) => {
           setStarting(false);
           setStartError(true);
@@ -297,7 +336,7 @@ export default function NewBookPage() {
         setStartError(true);
         return;
       }
-      void navigate(skipResearch ? "/books/the-calm-ward/titles" : "/books/the-calm-ward/research?run=new");
+      void navigate(picture ? "/books/milo-and-the-moon-kite/writing" : skipResearch ? "/books/the-calm-ward/titles" : "/books/the-calm-ward/research?run=new");
     }, 1100);
   }
 
@@ -417,10 +456,17 @@ export default function NewBookPage() {
                 <KeyValueList items={reviewItems(draft, type, budget)} />
               </ReviewBlock>
               <div className="grid gap-1 rounded-md border border-border bg-sheet p-4">
-                <p className="text-body text-ink">
-                  Research runs first, {`about $${est.research.toFixed(2)}`}, and takes about a minute. The whole book should cost {formatUsd(est.low)} to{" "}
-                  {formatUsd(est.high)}.
-                </p>
+                {picture ? (
+                  <p className="text-body text-ink">
+                    Next, the Story and spreads step writes the story, paints the character references and one picture for each spread. The pictures cost{" "}
+                    {runEstimate(parseNum(draft.chapters) || 10)}, and you see the cost again before anything runs.
+                  </p>
+                ) : (
+                  <p className="text-body text-ink">
+                    Research runs first, {`about $${est.research.toFixed(2)}`}, and takes about a minute. The whole book should cost {formatUsd(est.low)} to{" "}
+                    {formatUsd(est.high)}.
+                  </p>
+                )}
                 {type && writingArrives(type) && (
                   <p className="text-small text-ink-secondary">
                     Research, titles and the blueprint work for every book type now. Automatic writing for this type arrives in {writingArrives(type)}.
@@ -477,6 +523,10 @@ export default function NewBookPage() {
               {step < steps.length - 1 ? (
                 <Button type="submit" variant="primary" disabledReason={step === 0 && screen !== "ready" ? "Profiles need to load first." : undefined}>
                   Next: {steps[step + 1]?.label}
+                </Button>
+              ) : picture ? (
+                <Button variant="primary" loading={starting} loadingLabel="Creating the book" onClick={() => start(false)}>
+                  Create picture book
                 </Button>
               ) : (
                 <>
@@ -559,7 +609,8 @@ function reviewItems(d: Draft, type: BookType | undefined, budget: number): { la
   ];
   const groups = type ? fieldGroups(type) : [];
   if (groups.includes("story")) {
-    items.push({ label: "Point of view", value: d.pov });
+    items.push({ label: "Point of view", value: d.pov || "Close third person" });
+    items.push({ label: "Tense", value: tenseOptions.find((t) => t.value === d.tense)?.label ?? d.tense });
     items.push({ label: "Heat level", value: heatLabels[d.heat] ?? d.heat });
     items.push({ label: "Series", value: d.inSeries ? `${d.seriesName}, book ${d.seriesNumber}` : "Stand-alone" });
     if (type && usesClues(type))
@@ -568,6 +619,10 @@ function reviewItems(d: Draft, type: BookType | undefined, budget: number): { la
   if (groups.includes("young")) {
     items.push({ label: "Reader age", value: d.ageRange });
     if (type && usesNewWord(type)) items.push({ label: "New word", value: d.newWord ? d.newWordText || "The writer suggests one" : "Off" });
+    if (isPictureBook(type)) {
+      items.push({ label: "Gentle problem", value: d.problem.trim() || "The writer picks one" });
+      items.push({ label: "Message", value: d.message.charAt(0).toUpperCase() + d.message.slice(1) });
+    }
   }
   if (groups.includes("exercises")) items.push({ label: "Exercises", value: d.exercises.join(", ") || "None" });
   if (groups.includes("pages")) items.push({ label: "Pages", value: d.pages.join(", ") || "None" });
@@ -682,12 +737,23 @@ function DetailsStep({ draft, type, profile, errors, set, modelFor, onModelFor, 
       {groups.includes("story") && (
         <Section title="Story">
           <div className="grid gap-5 sm:grid-cols-2">
-            <Textarea
-              label="Point of view and tense"
-              rows={2}
+            <Input
+              label="Point of view"
               value={draft.pov}
+              maxLength={200}
               onChange={(e) => set("pov", e.target.value)}
-              hint={profile?.voice.pov === draft.pov ? `From ${profile.name}'s voice` : "For example: first person, present tense"}
+              hint={
+                profile && splitPov(profile.voice.pov).pov === draft.pov && draft.pov
+                  ? `From ${profile.name}'s voice`
+                  : "For example: close third person, or first person, Mara"
+              }
+            />
+            <Select
+              label="Tense"
+              options={tenseOptions}
+              value={draft.tense}
+              onChange={(v) => set("tense", v === "present" ? "present" : "past")}
+              hint="The writer keeps every chapter in this tense."
             />
             <Select
               label="Heat level"
@@ -764,6 +830,25 @@ function DetailsStep({ draft, type, profile, errors, set, modelFor, onModelFor, 
               checked={draft.newWord}
               onChange={(v) => set("newWord", v)}
             />
+          )}
+          {isPictureBook(type) && (
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Input
+                label="Gentle problem (optional)"
+                value={draft.problem}
+                maxLength={300}
+                onChange={(e) => set("problem", e.target.value)}
+                placeholder="For example: the kite will not fly"
+                hint={`${GENTLE_PROBLEM_RULE} Leave blank and the writer picks one.`}
+              />
+              <Select
+                label="Message"
+                options={messageOptions.map((m) => ({ value: m, label: m.charAt(0).toUpperCase() + m.slice(1) }))}
+                value={draft.message}
+                onChange={(v) => set("message", v)}
+                hint="One positive message for the whole story."
+              />
+            </div>
           )}
         </Section>
       )}

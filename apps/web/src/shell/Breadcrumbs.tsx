@@ -44,6 +44,12 @@ function crumbsFor(pathname: string, server: ServerNames): Crumb[] {
     return list;
   }
   if (parts[0] === "archive") return [{ label: "Archive", to: "/archive" }];
+  if (parts[0] === "volume") {
+    const list: Crumb[] = [{ label: screens.volume.title, to: "/volume" }];
+    if (parts[1] === "schedule") list.push({ label: screens.schedule.title, to: "/volume/schedule" });
+    else if (parts[1] === "batches" && parts[2]) list.push({ label: "Batch", to: `/volume/batches/${parts[2]}` });
+    return list;
+  }
   if (parts[0] === "components") return [{ label: "Components", to: "/components" }];
   return [library];
 }

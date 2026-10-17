@@ -20,6 +20,8 @@ Kysely with two dialects (D-015, D-019, D-038): SQLite through better-sqlite3 lo
 
 **memberships**: `user_id text not null -> users`, `role text` (`owner`, `editor`, `viewer`). Unique `(workspace_id, user_id)`.
 
+**invitations** (migration 0009, D-047): `email text not null` (lower case), `role text` (`editor` or `viewer` join this workspace; `owner` means a separate self-publisher who gets a new workspace at first sign-in), `status text` (`pending`, `accepted`, `revoked`), `invited_by text`, `accepted_user_id text`, `accepted_at integer`. `workspace_id` is the inviting workspace. Indexes `(workspace_id, status)` and `(email, status)`. One pending invitation per address per workspace (enforced in code). Used only when `ACCOUNTS_MODE=invite`.
+
 **settings**: key-value per workspace. `key text not null`, `value json not null`. Unique `(workspace_id, key)`. Keys: `budget.book_default_usd`, `budget.monthly_cap_usd`, `budget.warn_ratio`, `backup.enabled`, `backup.time`, `models.cache` (model list and `fetched_at`), `links.check_enabled`, `ui.theme`, `default_profile_id`. Never stores the API key.
 
 ## Profiles
@@ -43,7 +45,7 @@ Kysely with two dialects (D-015, D-019, D-038): SQLite through better-sqlite3 lo
 | voice_dna | json | `{characteristics[], pov, rhythm, humour, metaphors[], themes[], ending, avoid[], keep[], spelling}` |
 | brand | json | `{colours[], cover_style, fonts{cover, interior}, logo_asset_id}` |
 | templates | json | `{copyright, disclaimer, illustrative_line, review_request, newsletter}` with `{year}` style placeholders |
-| default_template | text | `nonfiction`, `fiction`, `workbook`, `picture_book` |
+| default_template | text | `nonfiction`, `fiction`, `workbook`, `picture-book` (the template file name in `config/book-templates/`) |
 | status | text not null | `active`, `archived` |
 
 Index `(workspace_id, status, pen_name)`.
@@ -63,12 +65,12 @@ The original model_choices table was not migrated. Overrides are stored in autho
 | Column | Type | Notes |
 |---|---|---|
 | profile_id | text not null -> author_profiles | |
-| template | text not null | Book template key |
+| template | text not null | Book template key: `nonfiction` (default), `fiction`, `workbook`, `picture-book`. The book type's `templateFile` wins when the book has a type. |
 | idea | text | Rough idea or working title |
 | notes | text | Owner notes for research |
 | title, subtitle | text | Set from the chosen title option |
 | status | text not null | `idea`, `research`, `titles`, `blueprint`, `writing`, `editing`, `cover`, `export`, `published`, `archived` |
-| trim | text not null default `6x9` | `5x8`, `5.5x8.5`, `6x9`, `8.5x11` |
+| trim | text not null default `6x9` | As built (`TRIMS` in `apps/server/src/repos/books.ts`): `5x8`, `5.25x8`, `5.5x8.5`, `6x9`, `7x10`, `8.5x11`, `8x10`, `8.5x8.5` |
 | paper | text not null default `white` | `white`, `cream` |
 | isbn_paperback, isbn_ebook | text | Owner-entered only; validated checksum, never generated |
 | edition | text default `First edition` | |
@@ -89,7 +91,7 @@ Indexes `(workspace_id, status)`, `(workspace_id, profile_id)`.
 
 **title_sets**: `project_id`, `prompt_run_id`, `directions json` (5 x `{key, label, angle, audience, promise}`), `options json` (10 x `{title, subtitle, direction_key, chars, valid, issues[]}`), `chosen_index integer`. Index `(project_id, created_at)`.
 
-**blueprints**: `project_id`, `version integer not null`, `status text` (`draft`, `approved`, `superseded`), `data json not null` (full blueprint, schema in `docs/02-architecture/AI-PIPELINE.md`), `approved_at integer`, `approved_by -> users`, `prompt_run_id`. Unique `(project_id, version)`.
+**blueprints**: `project_id`, `version integer not null`, `status text` (`draft`, `approved`, `superseded`), `data json not null` (full blueprint, schema in `docs/02-architecture/AI-PIPELINE.md`; fiction books carry the story bible as `data.storyBible` and chapter `povCharacter`, `setting`, `scenes`; workbooks carry chapter `exercises` (D-043, no table of its own)), `approved_at integer`, `approved_by -> users`, `prompt_run_id`. Unique `(project_id, version)`.
 
 ## Manuscript
 
@@ -98,7 +100,7 @@ Indexes `(workspace_id, status)`, `(workspace_id, profile_id)`.
 | Column | Type | Notes |
 |---|---|---|
 | project_id | text not null -> projects | |
-| kind | text not null | `half_title`, `title_page`, `copyright`, `dedication`, `epigraph`, `contents`, `foreword`, `preface`, `acknowledgements`, `introduction`, `part`, `chapter`, `conclusion`, `epilogue`, `appendix`, `resources`, `glossary`, `references`, `about_author`, `also_by`, `review_request`, `newsletter` |
+| kind | text not null | `half_title`, `title_page`, `copyright`, `dedication`, `epigraph`, `contents`, `foreword`, `preface`, `acknowledgements`, `introduction`, `part`, `chapter`, `conclusion`, `epilogue`, `appendix`, `resources`, `glossary`, `references`, `about_author`, `also_by`, `review_request`, `newsletter`, picture-book `spread` (D-044); template matter such as `word_of_the_day` and `goodnight_message` keeps its template id with underscores |
 | area | text not null | `front`, `body`, `back` |
 | position | integer not null | Order in the book, gaps of 1000 for cheap reordering |
 | enabled | bool not null default 1 | |
@@ -109,14 +111,20 @@ Indexes `(workspace_id, status)`, `(workspace_id, profile_id)`.
 | current_version_id | text -> section_versions | |
 | status | text not null | `empty`, `queued`, `writing`, `checking`, `needs_attention`, `done` |
 | blueprint_changed | bool default 0 | Set when the approved blueprint changes after writing |
+| layout | text | Spreads only (migration 0006): `text-left`, `text-right`, `text-top`, `text-bottom`. Null for other kinds |
+| image_asset_id | text -> assets | Spreads only (migration 0006): the 2:1 picture (asset kind `spread_image`). Null until made |
 
 Index `(project_id, position)`.
+
+A spread's text is its current version; its scene (`sceneSummary`, `imagePrompt`, `characters`, `textArea`, `cameraAngle`, `lighting`, `characterPositions`) is in `plan`. A picture book's story inputs and step state live in `projects.settings.pictureBook` (`story`, `storyResult`, `styleLine`).
+
+**picture_characters** (migration 0006, D-045): `project_id text not null -> projects` (on delete cascade), `name text not null`, `position integer not null`, `sheet text not null` (the character sheet, repeated word for word in every scene prompt), `main bool not null` (appears in more than one spread), `reference_prompt text`, `reference_asset_id text -> assets` (asset kind `character_reference`, sent as an input reference with every spread that shows the character). Index `(workspace_id, project_id, position)`.
 
 **section_versions**: `section_id -> sections`, `project_id`, `version integer not null`, `body_md text not null` (Volume Markdown dialect), `word_count integer`, `origin text` (`owner`, `import`, `ai_write`, `ai_rewrite`, `ai_edit`, `checker_fix`, `restore`), `parent_version_id -> section_versions`, `prompt_run_id`, `summary text` (up to 120 words, for later chapters), `note text`, `guardrails json` (the code guardrail report for this version's own text, re-run on every save, including owner edits, replace and restore; added by migration 0004, 5 October 2026). Unique `(section_id, version)`; index `(project_id, created_at)`.
 
 **suggestions**: `project_id`, `section_id`, `base_version_id -> section_versions`, `pass text` (`structure`, `line`, `voice`, `selection`, `checker`), `start integer`, `end integer` (offsets in `body_md`), `original text`, `proposed text`, `reason text`, `status text` (`open`, `accepted`, `rejected`, `stale`), `decided_at integer`, `prompt_run_id`. Index `(section_id, status)`.
 
-**story_ledger**: `project_id`, `section_id`, `kind text` (`example`, `anecdote`, `person`, `place`, `metaphor`, `phrase`, `promise`, `term`), `key text` (normalised, lower case), `detail text`, `version_id`. Unique `(project_id, kind, key)`.
+**story_ledger**: `project_id`, `section_id`, `kind text` (no CHECK constraint; the list is `LEDGER_KINDS` in `apps/server/src/ports/ai.ts`, checked with zod: `story`, `example`, `metaphor`, `quote`, `phrase`, `warning`, `fact`, `name`, `term`, fiction `character` and `setting` (D-043), older `person`, `place`, `anecdote`, `promise`), `key text` (normalised, lower case), `detail text`, `version_id`. Unique `(project_id, kind, key)`.
 
 ## Checks and claims
 
@@ -136,6 +144,18 @@ Index `(project_id, position)`.
 
 **exports**: `project_id`, `kind text` (`pdf_print`, `docx`, `epub`, `txt`, `md`, `ebook_cover`, `paperback_wrap`, `pack`), `trim text`, `paper text`, `status text` (`queued`, `running`, `done`, `failed`), `path text`, `bytes integer`, `page_count integer`, `sha256 text`, `manuscript_hash text` (to spot stale exports), `preflight json`, `job_id -> jobs`. Index `(project_id, kind, created_at)`.
 
+## Volume mode
+
+Migration 0008 (P8-2, D-046). One workspace is one KDP account, so every pen name in it shares one title limit.
+
+**batches**: `name text not null`, `notes text`, `job_id text` (the latest `batch_run` job; the status shown is that job's status, `draft` before the first start), `created_by text`, `started_at integer`. Index `(workspace_id, created_at)`.
+
+**batch_items**: `batch_id text not null -> batches` (on delete cascade), `project_id text not null -> projects` (on delete cascade), `position integer not null`, `status text not null` (`planned`, `ready`; `ready` only after the quality gate), `job_id text` (the latest `batch_book` job), `ready_at integer`. Unique `(workspace_id, project_id)`: a book is in one batch at a time. Index `(workspace_id, batch_id, position)`.
+
+**title_slots**: `project_id text not null -> projects` (on delete cascade), `batch_id text -> batches` (on delete set null), `format text not null` (`ebook`, `paperback`, `hardcover`), `planned_at integer not null` (UTC milliseconds), `status text not null` (`planned`, `confirmed`; `confirmed` only after the quality gate), `confirmed_at integer`, `created_by text`. Unique `(workspace_id, project_id, format)`. Index `(workspace_id, format, planned_at)`. A new slot is refused (409 `title_limit`) when its format already has the rule's maximum inside any rolling window of the rule's period in the workspace (`checkTitleSlot` in `packages/core/src/schedule.ts`; numbers from rule `titles.creationLimit` in `config/kdp-rules/`).
+
+Quality gate: a batch book cannot be marked ready, have a slot confirmed, be packed or be marked published while its preflight has a `block` item or any claim is `open` (409 `quality_gate`).
+
 ## AI runs and jobs
 
 **prompt_runs**: `project_id` (nullable), `job_id`, `stage text`, `prompt_id text` (for example `writing.chapter`), `prompt_version integer`, `prompt_hash text`, `provider text` (`openrouter`, `mock`), `model_slug text` (model that answered), `generation_id text` (OpenRouter id), `input_tokens integer`, `output_tokens integer`, `cost_usd real`, `latency_ms integer`, `status text` (`ok`, `error`, `invalid_output`, `cancelled`), `error text`, `output text` (raw response, kept for audit). Index `(project_id, created_at)`, `(workspace_id, created_at)` for monthly spend.
@@ -147,7 +167,7 @@ Index `(project_id, position)`.
 | project_id | text | Nullable for workspace jobs |
 | parent_id | text -> jobs | |
 | depends_on_job_id | text -> jobs | Runs only after it succeeds |
-| kind | text not null | `research`, `titles`, `blueprint`, `blueprint_part`, `write_book`, `write_section`, `check_section`, `edit_pass`, `selection_rewrite`, `matter`, `cover_brief`, `cover_concepts`, `marketing`, `export`, `pack`, `backup` |
+| kind | text not null | As built (`JOB_KINDS` in `apps/server/src/jobs/queue.ts`): `research`, `titles`, `blueprint`, `blueprint_part`, `write_book`, `write_section`, `weave_notes`, `edit_pass`, `cover_concepts`, `cover_build`, `marketing`, `export_pack`, `rewrite_selection`, `batch_run` (Volume mode parent), `batch_book` (one book of a batch: blueprint, approval, writing), picture books (P7-5): `picture_book` (parent), `picture_story` (story and scene prompts), `picture_characters` (reference prompts and pictures), `spread_image` (one per spread), `picture_export` (full-bleed PDF, preflight, pack), `noop` |
 | status | text not null | `queued`, `running`, `paused_budget`, `succeeded`, `needs_attention`, `failed`, `cancelled` |
 | priority | integer default 100 | Lower runs first |
 | attempts, max_attempts | integer | Default max 3 |
@@ -182,6 +202,7 @@ erDiagram
   projects ||--o{ blueprints : has
   projects ||--o{ sections : contains
   sections ||--o{ section_versions : versions
+  projects ||--o{ picture_characters : draws
   sections ||--o{ suggestions : receives
   projects ||--o{ story_ledger : records
   section_versions ||--o{ check_results : checked
@@ -195,6 +216,10 @@ erDiagram
   jobs ||--o{ job_events : emits
   jobs ||--o{ prompt_runs : calls
   jobs ||--o{ jobs : parent_of
+  workspaces ||--o{ batches : plans
+  batches ||--o{ batch_items : holds
+  projects ||--o| batch_items : joins
+  projects ||--o{ title_slots : scheduled
 ```
 
 ## Derived rules

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useCanManage } from "../../lib/access";
 import { Check, type LucideIcon } from "lucide-react";
 import { Button } from "../../components/ui";
 
@@ -42,6 +43,9 @@ export function SaveAction({
   icon?: LucideIcon | undefined;
   children: ReactNode;
 }) {
+  const canManage = useCanManage();
+  // Only the owner changes settings (D-047); everyone else reads them.
+  if (!canManage) return null;
   if (!dirty)
     return (
       <span className="inline-flex h-11 items-center gap-1.5 text-small text-ink-secondary">

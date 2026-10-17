@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { Check, Lock, Pencil, RefreshCw, RotateCcw } from "lucide-react";
 import {
@@ -31,6 +31,9 @@ import {
   useEstimate,
   usePatchBlueprint,
   useRegenerateBlueprintPart,
+  useSectionTree,
+  useStoryLedger,
+  useUpdateBook,
 } from "../../api/hooks";
 import type { ApiBookDetail, ApiBlueprintVersion, BlueprintChapterData, BlueprintData, BlueprintPartKey } from "../../api/types";
 import { estimateWords, guardrailsOf, plainError, runMeta, useBookJobsLive, usePromptRunFor, useStageJob, whenMs } from "../../api/wire-b";
@@ -40,6 +43,9 @@ import { cn } from "../../lib/cn";
 import { formatNumber } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
+import { useCanWrite } from "../../lib/access";
+import { blueprintCreateInput } from "./blueprintRequest";
+import { NarrationEditor, StoryBibleEditor, StoryBibleView, StoryLedgerPanel, emptyBible, storyBibleOf, type Tense } from "./StoryBible";
 
 /* Blueprint for a book on the server (API mode). Build it, read the latest version, edit a part
    (saved as a new version against the version you opened, so a stale edit is caught), regenerate a
@@ -81,6 +87,14 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
   const patch = usePatchBlueprint();
   const regen = useRegenerateBlueprintPart();
   const approve = useApproveBlueprint();
+  const updateBook = useUpdateBook();
+  const canWrite = useCanWrite();
+  const fiction = apiBook.template === "fiction";
+  const workbook = apiBook.template === "workbook";
+  const ledger = useStoryLedger(fiction ? bookId : undefined);
+  const tree = useSectionTree(fiction ? bookId : undefined);
+  const [bibleOpen, setBibleOpen] = useState(false);
+  const [narrationOpen, setNarrationOpen] = useState(false);
 
   const [history, setHistory] = useState<ApiBlueprintVersion | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -97,6 +111,18 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
 
   const version = bp.data?.blueprint ?? null;
   const d = useMemo(() => (version ? blueprintData(version) : null), [version]);
+  const bible = useMemo(() => (d ? storyBibleOf(d["storyBible"]) : null), [d]);
+  const pov = typeof apiBook.settings["pov"] === "string" ? apiBook.settings["pov"] : null;
+  const tense: Tense | null = apiBook.settings["tense"] === "present" ? "present" : apiBook.settings["tense"] === "past" ? "past" : null;
+  const sectionNames = useMemo(() => {
+    const m = new Map<string, string>();
+    const t = tree.data;
+    if (t)
+      for (const sec of [...t.front, ...t.body.flatMap((n) => [n, ...n.children]), ...t.back])
+        m.set(sec.id, sec.kind === "chapter" && sec.number !== null ? `Chapter ${sec.number}` : (sec.title ?? sec.kind));
+    return m;
+  }, [tree.data]);
+  const sectionName = useCallback((id: string) => sectionNames.get(id) ?? null, [sectionNames]);
   const validation = bp.data?.validation ?? null;
   const approved = version?.status === "approved";
   const failed = job && !active && (job.status === "failed" || job.status === "needs_attention") ? job : null;
@@ -150,6 +176,31 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
         onSuccess: (v) => {
           setSaved(`Version ${v.version} saved. ${edit.part.label} changed.`);
           setEdit(null);
+        },
+      },
+    );
+  }
+
+  function saveBible(next: ReturnType<typeof emptyBible>) {
+    if (!version) return;
+    patch.mutate(
+      { bookId, input: { parts: { storyBible: next }, baseVersion: version.version, note: "Story bible edited by the owner" } },
+      {
+        onSuccess: (v) => {
+          setSaved(`Version ${v.version} saved. Story bible changed.`);
+          setBibleOpen(false);
+        },
+      },
+    );
+  }
+
+  function saveNarration(v: { pov: string; tense: Tense }) {
+    updateBook.mutate(
+      { bookId, patch: { settings: { ...apiBook.settings, pov: v.pov || null, tense: v.tense } } },
+      {
+        onSuccess: () => {
+          setSaved("Point of view saved. Chapters written from now on use it.");
+          setNarrationOpen(false);
         },
       },
     );
@@ -268,7 +319,7 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
         ? {
             label: create.isPending ? "Starting" : "Build the blueprint",
             estimate: estimateWords(buildEstimate.data),
-            onClick: () => create.mutate({ bookId }),
+            onClick: () => create.mutate({ bookId, input: blueprintCreateInput(apiBook.settings) }),
             disabledReason: active
               ? "The blueprint is being built."
               : !apiBook.title
@@ -393,8 +444,14 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
               tone="error"
               title={failed.kind === "blueprint_part" ? "Regenerating the part stopped" : "The blueprint build stopped"}
               action={
-                failed.kind === "blueprint" ? (
-                  <Button size="sm" icon={RefreshCw} onClick={() => create.mutate({ bookId })} loading={create.isPending} loadingLabel="Starting">
+                failed.kind === "blueprint" && canWrite ? (
+                  <Button
+                    size="sm"
+                    icon={RefreshCw}
+                    onClick={() => create.mutate({ bookId, input: blueprintCreateInput(apiBook.settings) })}
+                    loading={create.isPending}
+                    loadingLabel="Starting"
+                  >
                     Try again
                   </Button>
                 ) : undefined
@@ -444,10 +501,14 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
                   busy={busyFor("summary")}
                   selected={selected === "summary"}
                   title="Title, summary and audience"
-                  onEdit={() => {
-                    const t = editSummary();
-                    if (t) openEdit(t);
-                  }}
+                  onEdit={
+                    canWrite
+                      ? () => {
+                          const t = editSummary();
+                          if (t) openEdit(t);
+                        }
+                      : undefined
+                  }
                   onSelect={() => setSelected("summary")}
                 >
                   <p className="opsz-display font-book text-[30px] leading-[36px] font-medium tracking-[-0.02em] text-ink">
@@ -465,6 +526,37 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
                   {d.usps.length > 0 && <List title="What makes it different" items={d.usps} />}
                 </PartBlock>
 
+                {fiction && (
+                  <PartBlock
+                    id="bp-story"
+                    selected={false}
+                    title="Story bible"
+                    onSelect={() => undefined}
+                    onEdit={canWrite && bible ? () => setBibleOpen(true) : undefined}
+                  >
+                    {bible ? (
+                      <StoryBibleView bible={bible} pov={pov} tense={tense} />
+                    ) : (
+                      <p className="text-small text-ink-secondary">
+                        This version has no story bible. The planner writes one with the blueprint
+                        {canWrite ? ", or add your own now." : "."}
+                      </p>
+                    )}
+                    {canWrite && (
+                      <div className="flex flex-wrap gap-2">
+                        {!bible && (
+                          <Button size="sm" icon={Pencil} onClick={() => setBibleOpen(true)}>
+                            Add a story bible
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => setNarrationOpen(true)}>
+                          Change point of view
+                        </Button>
+                      </div>
+                    )}
+                  </PartBlock>
+                )}
+
                 <PartBlock id="bp-front" busy={busyFor("front")} selected={selected === "front"} title="Front matter" onSelect={() => setSelected("front")}>
                   <MatterList m={d.front} />
                 </PartBlock>
@@ -480,13 +572,15 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
                       selected={selected === `chapter:${c.number}`}
                       title={`Chapter ${c.number}`}
                       onSelect={() => setSelected(`chapter:${c.number}`)}
-                      onEdit={() => openEdit(editChapter(c))}
+                      onEdit={canWrite ? () => openEdit(editChapter(c)) : undefined}
                       sub
                     >
                       <p className="font-book text-[21px] leading-7 font-medium text-ink">{c.title || <Empty>Untitled</Empty>}</p>
                       {c.summary && <p className="max-w-[68ch] font-book text-[15.5px] leading-[23px] text-ink">{c.summary}</p>}
                       {c.subheadings.length > 0 && <List title="Subheadings" items={c.subheadings} />}
                       {c.key_points.length > 0 && <List title="Key points" items={c.key_points} />}
+                      {fiction && <FictionPlan chapter={c} />}
+                      {workbook && <ExercisePlanList chapter={c} />}
                       <p className="num text-small text-ink-secondary">
                         {formatNumber(c.word_target)} words{c.takeaways ? ", ends with takeaways" : ""}
                         {c.bridge_note ? `. Bridge: ${c.bridge_note}` : ""}
@@ -505,10 +599,14 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
                   selected={selected === "listing"}
                   title="Listing"
                   onSelect={() => setSelected("listing")}
-                  onEdit={() => {
-                    const t = editListing();
-                    if (t) openEdit(t);
-                  }}
+                  onEdit={
+                    canWrite
+                      ? () => {
+                          const t = editListing();
+                          if (t) openEdit(t);
+                        }
+                      : undefined
+                  }
                 >
                   <Rows
                     items={[
@@ -521,6 +619,16 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
                 </PartBlock>
               </div>
             </GalleySheet>
+          )}
+
+          {fiction && version && (
+            <StoryLedgerPanel
+              state={ledger.isPending ? "loading" : ledger.isError ? "error" : "ready"}
+              items={ledger.data ?? []}
+              bible={bible}
+              sectionName={sectionName}
+              onRetry={() => void ledger.refetch()}
+            />
           )}
         </div>
       </div>
@@ -558,7 +666,7 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
           </InspectorSection>
         )}
 
-        {version && selectedPart && (
+        {version && selectedPart && canWrite && (
           <InspectorSection title="Selected part">
             <Select
               label="Part"
@@ -617,7 +725,7 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
                       {v.note ?? (v.source === "human" ? "Edited by you" : "From the planner")}, {whenMs(v.createdAt)}
                     </span>
                     <Button size="sm" variant="ghost" disabled={historyLoading || active} onClick={() => void compareVersion(v.version)}>
-                      Compare and restore
+                      {canWrite ? "Compare and restore" : "Compare"}
                     </Button>
                   </li>
                 ))}
@@ -642,9 +750,11 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
             <Button variant="ghost" onClick={() => setHistory(null)}>
               Close
             </Button>
-            <Button icon={RotateCcw} loading={patch.isPending} disabled={active || history?.version === version?.version} onClick={restoreHistory}>
-              Restore as a new draft
-            </Button>
+            {canWrite && (
+              <Button icon={RotateCcw} loading={patch.isPending} disabled={active || history?.version === version?.version} onClick={restoreHistory}>
+                Restore as a new draft
+              </Button>
+            )}
           </>
         }
       >
@@ -671,6 +781,56 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
           </Banner>
         )}
       </Modal>
+      {fiction && (
+        <>
+          <StoryBibleEditor
+            open={bibleOpen}
+            initial={bible ?? emptyBible()}
+            description={version ? `Saved as a new version on top of version ${version.version}. Version ${version.version} stays in Versions.` : undefined}
+            saving={patch.isPending}
+            error={
+              patch.isError && bibleOpen ? (
+                <Banner
+                  tone={conflict ? "attention" : "error"}
+                  title={conflict ? "The blueprint changed while you were editing" : "The story bible was not saved"}
+                  action={
+                    conflict ? (
+                      <Button size="sm" icon={RotateCcw} onClick={reloadAfterConflict}>
+                        Reload
+                      </Button>
+                    ) : undefined
+                  }
+                >
+                  {plainError(patch.error)}
+                </Banner>
+              ) : null
+            }
+            onClose={() => {
+              setBibleOpen(false);
+              patch.reset();
+            }}
+            onSave={saveBible}
+          />
+          <NarrationEditor
+            open={narrationOpen}
+            pov={pov ?? ""}
+            tense={tense ?? "past"}
+            saving={updateBook.isPending}
+            error={
+              updateBook.isError ? (
+                <Banner tone="error" title="The point of view was not saved">
+                  {plainError(updateBook.error)}
+                </Banner>
+              ) : null
+            }
+            onClose={() => {
+              setNarrationOpen(false);
+              updateBook.reset();
+            }}
+            onSave={saveNarration}
+          />
+        </>
+      )}
       {/* Edit a part */}
       <Modal
         open={edit !== null}
@@ -846,6 +1006,53 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
       </Modal>
     </div>
   );
+}
+
+const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim().length > 0) : []);
+
+/** Fiction chapter plan: viewpoint character, setting and scene beats (blueprint.blueprint-fiction). */
+function FictionPlan({ chapter }: { chapter: BlueprintChapterData }) {
+  const pov = typeof chapter["povCharacter"] === "string" ? chapter["povCharacter"] : "";
+  const setting = typeof chapter["setting"] === "string" ? chapter["setting"] : "";
+  const scenes = strs(chapter["scenes"]);
+  if (!pov && !setting && scenes.length === 0) return null;
+  return (
+    <>
+      {(pov || setting) && (
+        <Rows
+          items={[
+            { label: "Viewpoint", value: pov },
+            { label: "Setting", value: setting },
+          ]}
+        />
+      )}
+      {scenes.length > 0 && <List title="Scenes" items={scenes} />}
+    </>
+  );
+}
+
+const exerciseKinds: Record<string, string> = {
+  reflection: "Reflection",
+  checklist: "Checklist",
+  "fill-in": "Fill-in",
+  tracker: "Tracker",
+  scenario: "Scenario",
+};
+
+/** Workbook chapter plan: the 2 to 4 exercises the writer must include (blueprint.blueprint-workbook). */
+function ExercisePlanList({ chapter }: { chapter: BlueprintChapterData }) {
+  const raw = Array.isArray(chapter["exercises"]) ? chapter["exercises"] : [];
+  const items = raw.flatMap((e) => {
+    if (typeof e !== "object" || e === null) return [];
+    const r = e as Record<string, unknown>;
+    const kind = typeof r["kind"] === "string" ? r["kind"] : "";
+    const title = typeof r["title"] === "string" ? r["title"] : "";
+    const purpose = typeof r["purpose"] === "string" ? r["purpose"] : "";
+    const lines = typeof r["lines"] === "number" ? r["lines"] : null;
+    return [`${exerciseKinds[kind] ?? "Exercise"}: ${title || "untitled"}${purpose ? `. ${purpose}` : ""}${lines ? ` (${lines} lines to write on)` : ""}`];
+  });
+  if (items.length === 0) return <p className="text-small text-accent-text">No exercises planned. Workbook chapters need 2 to 4.</p>;
+  return <List title={`Exercises (${items.length})`} items={items} />;
 }
 
 function partName(part: unknown, parts: Part[]): string {

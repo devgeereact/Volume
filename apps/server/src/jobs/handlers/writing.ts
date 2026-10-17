@@ -1,6 +1,6 @@
 import { findTemplateJunk, findUndatedPrices, tidyGlossaryMarkdown } from '@volume/core';
 import { markdownToPlaintext, wordCount } from '../../lib/text.js';
-import { datedPricesVars, factsUsedIn, plannedBodyCount, writtenSections } from '../book-checks.js';
+import { datedPricesVars, factsUsedIn, plannedBodyCount, templateChecks, writtenSections } from '../book-checks.js';
 import {
   CHECKS_MISSING_CHECKER,
   CODE_WRITTEN_KINDS,
@@ -17,6 +17,12 @@ import { JobFailed } from '../errors.js';
 import type { JobContext, JobHandler } from '../runner.js';
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.length > 0 ? v : null);
+
+/** The book's template id: the id inside the loaded template rules, else the book's template column. */
+function templateIdOf(template: unknown, book: { template: string }): string {
+  const id = typeof template === 'object' && template !== null ? (template as Record<string, unknown>)['id'] : null;
+  return typeof id === 'string' && id ? id : book.template;
+}
 
 /** Sends streamed text as section.delta events, at most every 250 ms (docs/02, Live progress). */
 function deltaThrottle(jc: JobContext, sectionId: string, intervalMs = 250): { push(t: string): void; flush(): void } {
@@ -218,8 +224,18 @@ async function writingContext(jc: JobContext, book: Book, section: Section, prof
   const blueprint = book.approvedBlueprintId ? await repos.planning.blueprintById(jc.ctx, book.approvedBlueprintId) : null;
   const template = await loadTemplate(jc.services.configDir, book);
   const sectionVars = sectionVarsOf(section, all);
+  const templateId = templateIdOf(template, book);
   const common = {
-    book: { title: book.title, subtitle: book.subtitle, summary: blueprint?.data['summary'] ?? null, audience: blueprint?.data['audience'] ?? null },
+    book: {
+      title: book.title,
+      subtitle: book.subtitle,
+      summary: blueprint?.data['summary'] ?? null,
+      audience: blueprint?.data['audience'] ?? null,
+      // Fiction: the owner's point of view and tense for the book (settings.pov, settings.tense); the template default otherwise.
+      pov: str(book.settings['pov']),
+      tense: str(book.settings['tense']),
+    },
+    templateId,
     bookTypeId: book.bookTypeId,
     wordTarget: book.wordTarget,
     illustrativeStories: book.illustrativeLine,
@@ -232,7 +248,7 @@ async function writingContext(jc: JobContext, book: Book, section: Section, prof
     ...prices,
   };
 
-  return { all, next, ledger, written, prices, blueprint, sectionVars, common };
+  return { all, next, ledger, written, prices, blueprint, sectionVars, common, template, templateId };
 }
 
 /**
@@ -268,7 +284,7 @@ async function rerunMissingSteps(jc: JobContext, projectId: string, section: Sec
     try {
       const summary = await jc.runAi('summarise', {
         promptId: 'checks.summarise-and-ledger',
-        variables: { markdown: current.bodyMd, section: sectionVars, bookTypeId: book.bookTypeId, ledger },
+        variables: { markdown: current.bodyMd, section: sectionVars, bookTypeId: book.bookTypeId, templateId: common.templateId, ledger },
       });
       await jc.checkpoint();
       await repos.manuscript.setVersionSummary(jc.ctx, current.id, summary.output.summary);
@@ -354,7 +370,7 @@ export const writeSectionHandler: JobHandler = async (jc) => {
     return placeholder(RESOURCES_PLACEHOLDER, 'No research sources ticked yet.', `${RESOURCES_NEED_SOURCES}, then write this section again, or switch it off.`);
   }
 
-  const { next, ledger, written, prices, blueprint, sectionVars, common } = await writingContext(jc, book, section, profile, sources);
+  const { next, ledger, written, prices, blueprint, sectionVars, common, template } = await writingContext(jc, book, section, profile, sources);
 
   const delta = deltaThrottle(jc, sectionId);
   const writing = await jc.runAi(
@@ -418,7 +434,7 @@ export const writeSectionHandler: JobHandler = async (jc) => {
     summary = (
       await jc.runAi('summarise', {
         promptId: 'checks.summarise-and-ledger',
-        variables: { markdown, section: sectionVars, bookTypeId: book.bookTypeId, ledger },
+        variables: { markdown, section: sectionVars, bookTypeId: book.bookTypeId, templateId: common.templateId, ledger },
       })
     ).output;
   } catch (err) {
@@ -452,6 +468,8 @@ export const writeSectionHandler: JobHandler = async (jc) => {
       location: { start: j.start, end: j.end, match: j.match },
     });
   }
+  // Template rules in code (fiction: no subheadings or takeaways; workbook: 2 to 4 exercises). Block findings set needs_attention.
+  checks.push(...templateChecks(markdown, section, template));
   if (prices.datedPrices === 'yes') {
     for (const p of findUndatedPrices(markdown)) {
       checks.push({

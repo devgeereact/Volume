@@ -2,8 +2,8 @@
 // A strict superset of the P02 demo-book format (book.py), so the Windowsill Herbs manuscript
 // imports unchanged and writes back byte-identical.
 
-import type { Block, BookDoc, BookMeta, Section, SectionKind, SectionSubtype } from './model.ts';
-import { SECTION_KINDS, SECTION_SUBTYPES } from './model.ts';
+import type { Block, BookDoc, BookMeta, ExerciseKind, Section, SectionKind, SectionSubtype } from './model.ts';
+import { EXERCISE_KINDS, SECTION_KINDS, SECTION_SUBTYPES, sectionHeading } from './model.ts';
 import { slugify, toRoman } from './text.ts';
 
 export interface ParseOptions {
@@ -58,8 +58,15 @@ const BACK_SUBTYPES = new Set<SectionSubtype>([
 
 const FENCE_OPEN = /^:::\s+(\S.*?)\s*$/;
 const isFenceClose = (ln: string) => ln.trim() === ':::';
-const CHAPTER_RE = /^(Chapter\s+(\d+)):\s+(.+)$/i;
+/** `Chapter N: Title`, or `Chapter N` alone (an untitled chapter, common in fiction). */
+const CHAPTER_RE = /^(Chapter\s+(\d+))(?::\s+(.+))?$/i;
 const KIND_MARKER_RE = /\s*\{kind=([a-z_]+)\}\s*$/;
+/** `***` or `* * *` (any spacing): a scene break. The writer always writes `***`. */
+const SCENE_BREAK_RE = /^\*(?:\s*\*){2}$/;
+const LINES_FENCE_RE = /^lines\s+(\d+)$/i;
+const EXERCISE_FENCE_RE = /^exercise\s+(\S+)(?:\s+(.+))?$/i;
+const FILL_IN_FENCE_RE = /^fill-in(?:\s+(page))?$/i;
+const CHECKLIST_ITEM_RE = /^- \[ \]\s+/;
 
 export function kindForSubtype(subtype: SectionSubtype, afterChapters: boolean): SectionKind {
   if (subtype === 'chapter') return 'chapter';
@@ -79,13 +86,42 @@ export function subtypeForHeading(heading: string): SectionSubtype {
   return 'other';
 }
 
+/** Index of the next non-blank line at or after `from`, or -1. */
+function nextNonBlank(lines: string[], from: number): number {
+  for (let j = from; j < lines.length; j++) if ((lines[j] ?? '').trim()) return j;
+  return -1;
+}
+
+/**
+ * `::: lines N` may be written with or without its closing `:::`. It owns a close only when the next
+ * non-blank line is `:::`, so an exercise that ends right after its lines still closes.
+ */
+function linesFenceCloses(lines: string[], start: number): boolean {
+  const k = nextNonBlank(lines, start + 1);
+  return k >= 0 && isFenceClose(lines[k] ?? '');
+}
+
 function readFence(lines: string[], start: number): { name: string; body: string[]; next: number } | null {
   const m = FENCE_OPEN.exec(lines[start] ?? '');
   if (!m || !m[1]) return null;
+  if (LINES_FENCE_RE.test(m[1].trim())) {
+    const k = linesFenceCloses(lines, start) ? nextNonBlank(lines, start + 1) : start;
+    return { name: m[1], body: [], next: k + 1 };
+  }
+  // Fences nest (an exercise holds `::: lines N` and `::: fill-in`): count opens and closes.
   const body: string[] = [];
+  let depth = 0;
   let j = start + 1;
-  while (j < lines.length && !isFenceClose(lines[j] ?? '')) {
-    body.push(lines[j] ?? '');
+  while (j < lines.length) {
+    const ln = lines[j] ?? '';
+    if (isFenceClose(ln)) {
+      if (depth === 0) break;
+      depth--;
+    } else {
+      const inner = FENCE_OPEN.exec(ln);
+      if (inner?.[1] && (!LINES_FENCE_RE.test(inner[1].trim()) || linesFenceCloses(lines, j))) depth++;
+    }
+    body.push(ln);
     j++;
   }
   return { name: m[1], body, next: Math.min(j + 1, lines.length) };
@@ -116,15 +152,19 @@ export function parseBlocks(lines: string[]): Block[] {
       blocks.push({ type: 'heading3', text: ln.slice(4).trim() });
     } else if (ln.startsWith('## ')) {
       blocks.push({ type: 'heading2', text: ln.slice(3).trim() });
-    } else if (ln.trim() === '***') {
+    } else if (SCENE_BREAK_RE.test(ln.trim())) {
       blocks.push({ type: 'sceneBreak' });
     } else if (ln.startsWith('- ')) {
-      const items: string[] = [];
+      const raw: string[] = [];
       while (i < lines.length && (lines[i] ?? '').startsWith('- ')) {
-        items.push((lines[i] ?? '').slice(2).trim());
+        raw.push((lines[i] ?? '').trimEnd());
         i++;
       }
-      blocks.push({ type: 'list', items });
+      if (raw.every((r) => CHECKLIST_ITEM_RE.test(r))) {
+        blocks.push({ type: 'checklist', items: raw.map((r) => r.replace(CHECKLIST_ITEM_RE, '').trim()) });
+      } else {
+        blocks.push({ type: 'list', items: raw.map((r) => r.slice(2).trim()) });
+      }
       continue;
     } else if (/^\d+\.\s/.test(ln)) {
       const items: string[] = [];
@@ -185,7 +225,23 @@ function fenceBlock(name: string, body: string[]): Block {
     return { type: 'quote', variant: 'epigraph', lines: ls };
   }
   if (key === 'pagebreak') return { type: 'pageBreak' };
+  const trimmed = name.trim();
+  const lines = LINES_FENCE_RE.exec(trimmed);
+  if (lines) return { type: 'lines', count: Number(lines[1]) };
+  const fill = FILL_IN_FENCE_RE.exec(trimmed);
+  if (fill) return { type: 'fillIn', prompts: nonEmpty(body), ...(fill[1] ? { page: true } : {}) };
+  const ex = EXERCISE_FENCE_RE.exec(trimmed);
+  const kind = ex?.[1]?.toLowerCase();
+  if (ex && isExerciseKind(kind)) {
+    const title = ex[2]?.trim();
+    return { type: 'exercise', kind, ...(title ? { title } : {}), blocks: parseBlocks(body) };
+  }
+  // Unknown fences (and an `::: exercise` without a known kind) stay callouts, as before phase 6.
   return { type: 'callout', variant: name, text: nonEmpty(body).join(' ') };
+}
+
+function isExerciseKind(k: string | undefined): k is ExerciseKind {
+  return k !== undefined && (EXERCISE_KINDS as readonly string[]).includes(k);
 }
 
 function uniqueId(base: string, used: Set<string>): string {
@@ -256,7 +312,7 @@ export function parseManuscript(markdown: string, opts: ParseOptions = {}): Book
         id: uniqueId(slugify(head), used),
         kind,
         subtype,
-        title: cm && subtype === 'chapter' ? (cm[3] ?? head) : head,
+        title: cm && subtype === 'chapter' ? (cm[3] ?? '') : head,
         blocks: [],
       };
       if (cm && subtype === 'chapter') {
@@ -350,6 +406,16 @@ function writeBlock(b: Block): string {
       return `![${b.alt}](${b.src}${b.caption !== undefined ? ` "${b.caption}"` : ''})`;
     case 'pageBreak':
       return '::: pagebreak\n:::';
+    case 'exercise': {
+      const open = `::: exercise ${b.kind}${b.title ? ` ${b.title}` : ''}`;
+      return b.blocks.length ? `${open}\n${b.blocks.map(writeBlock).join('\n\n')}\n:::` : `${open}\n:::`;
+    }
+    case 'lines':
+      return `::: lines ${b.count}\n:::`;
+    case 'checklist':
+      return b.items.map((it) => `- [ ] ${it}`).join('\n');
+    case 'fillIn':
+      return [`::: fill-in${b.page ? ' page' : ''}`, ...b.prompts, ':::'].join('\n');
   }
 }
 
@@ -368,7 +434,7 @@ function writeSection(s: Section): string {
       return ['::: part', s.kicker ?? 'Part', s.title, ...paras, ':::'].join('\n');
     }
     default: {
-      let head = s.kicker ? `${s.kicker}: ${s.title}` : s.title;
+      let head = sectionHeading(s);
       if (s.explicitKind) head += ` {kind=${s.subtype === 'other' ? s.kind : s.subtype}}`;
       return [`# ${head}`, ...s.blocks.map(writeBlock)].join('\n\n');
     }

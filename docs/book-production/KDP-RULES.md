@@ -1,12 +1,12 @@
 # KDP rules
 
-Volume takes every KDP number from `config/kdp-rules/`, never from memory. This page summarises the current file, `config/kdp-rules/2026-10-06.json`. The original facts are in `docs/reference/reference-kdp-facts-2026-10-03.md`; the targeted trim, margin and cover rechecks are in `docs/reference/reference-kdp-facts-2026-10-06.md`. Rules not rechecked retain their 3 October verification date. Fact ids (for example 3.9) point to numbered entries in that facts file. If this page and the JSON disagree, the JSON wins and this page is fixed.
+Volume takes every KDP number from `config/kdp-rules/`, never from memory. This page summarises the current file, `config/kdp-rules/2026-10-17.json`. The original facts are in `docs/reference/reference-kdp-facts-2026-10-03.md`; the trim, margin and cover rechecks are in `docs/reference/reference-kdp-facts-2026-10-06.md`; the colour facts are in `docs/reference/reference-kdp-facts-2026-10-17.md`. Each rule keeps its own verification date. Fact ids (for example 3.9) point to numbered entries in those facts files. If this page and the JSON disagree, the JSON wins and this page is fixed.
 
 Status: **confirmed** (seen on the official page), **partial** (page found, a detail missing or inconsistent: the app shows a "check before you rely on this" note), **unverified** (not in the facts file: preflight warns and the value is not printed as fact).
 
 ## Re-check rule
 
-- Rules are re-checked every 90 days. The revision retains 3 October 2026 as the oldest verification date, so the re-check is due on **1 January 2027**.
+- Rules are re-checked every 90 days. A file's top-level `verifiedOn` is the date of its oldest rule check, not the release date, so a partial revision cannot hide an old fact. The 2026-10-17 file still holds rules checked on 3 October 2026, so the re-check is due on **1 January 2027**. Preflight counts the age from that date.
 - After that date the Export screen and preflight warn: "KDP rules are more than 90 days old: re-check before you upload". It warns; it does not block.
 - A re-check never edits the old file. It reads every source page again and writes a new dated file (for example `2027-01-02.json`), even if nothing changed. Steps are in `config/kdp-rules/README.md`.
 
@@ -57,6 +57,27 @@ Worked examples: KDP's own 55-page black-ink book costs GBP 1.93. Ours: a 200-pa
 
 Phase 4 acceptance compares Volume's wrap sizes with KDP's cover calculator for three page counts on white and cream.
 
+## Colour printing (amazon.co.uk, picture books)
+
+| Rule id | What | Fact | Status |
+|---|---|---|---|
+| `paperback.printingCost.uk.standardColour` | 72 to 600 pages: GBP 0.85 + GBP 0.020 per page (regular trim) or GBP 0.027 per page (large trim) | 12.1 | confirmed |
+| `paperback.printingCost.uk.premiumColour` | 24 to 40 pages: GBP 2.59 flat (regular) or GBP 3.24 (large); 42 to 828 pages: GBP 0.85 + GBP 0.0435 per page (regular) or GBP 0.0598 (large) | 12.2 | confirmed |
+| `paperback.trimAndPages.colour` | White paper. Standard colour 72 to 600 pages on all seven Volume trims; premium colour 24 to 828 pages, except 24 to 590 on 8.5 x 8.5 and 8.5 x 11. Standard colour is not offered on Amazon.co.jp | 12.3 | confirmed |
+| `paperback.colour.paper` | Colour prints on white paper only. The trim table shows colour only in white-paper columns but does not say so in prose: check the KDP set-up screen | 12.4 | partial |
+
+Large trim means wider than 6.12 in or taller than 9 in. Standard colour cannot print under 72 pages, so a 24-page picture book uses premium colour (D-044). Worked example (ours): a 32-page 8.5 x 8.5 in premium colour book is large trim, so it costs the flat GBP 3.24.
+
+## Colour spine, bleed and safe area
+
+| Rule id | What | Fact | Status |
+|---|---|---|---|
+| `paperback.spine.widthPerPage.colour` | Spine width = pages x 0.002252 in (standard colour) or x 0.002347 in (premium colour). Spine text still needs 80 pages (`paperback.spine.textMinPages`) | 12.5 | confirmed |
+| `print.bleed` | A full-bleed picture-book page is the trim plus 0.125 in on the outside edge and 0.125 in top and bottom (the inside edge has no bleed) | 3.7 | confirmed |
+| `paperback.interiorMargins` | Safe area for picture-book text: the inside minimum for the page count, and the with-bleed outside minimum (0.375 in) on top, bottom and outside, measured from the trim edge | 11.2 | confirmed |
+
+`pictureBookGeometry` in `packages/core/src/spread.ts` builds each page from these rules, and preflight check `picture.safe-area` warns when a text box leaves the safe area. The cover wrap for a colour book uses the colour spine width instead of the paper one.
+
 ## Listing limits
 
 | Rule id | What | Fact | Status |
@@ -85,12 +106,16 @@ Phase 4 acceptance compares Volume's wrap sizes with KDP's cover calculator for 
 - Export and preflight in `packages/export`: bleed, cover sizes and formats, spine text, eBook cover JPEG.
 - Prompts receive limits only through `{{kdp.*}}` variables (see `prompts/README.md`).
 - Book templates point to rule ids instead of copying numbers.
-- Volume mode's scheduler (phase 8) refuses a third new title per format per week.
+- Volume mode's scheduler (phase 8, D-046): `titleCreationLimit` in `packages/core/src/kdp.ts` reads `titles.creationLimit` (`maxNewTitlesPerFormat` 2, `period` week, FACTS 5.7) and `packages/core/src/schedule.ts` refuses a slot that would put a third new title of the same format inside any rolling 7-day window. The window is rolling, so it is never looser than KDP's weekly reset (whose time is partial). All pen names in one workspace share the count, because they share one KDP account.
 
 ## Still to verify
 
-Four rules are unverified because the facts file does not cover them: the trim size list, interior margins, the barcode area and the cover safe zone. Check them on KDP's trim and margin guide (`GVBQ3CMEQW3W2VL6`) and paperback cover guide (`G201953020`) before phase 1 export and phase 4 covers ship, then release a new dated rules file.
+No rule is unverified. Partial rules: `paperback.cover.barcodeArea` (automatic placement), `paperback.colour.paper` (white only is implied, not stated), `listing.description.allowedFormatting`, `legalDeposit.uk`, and the sub-details noted on `paperback.printingCost.uk.blackInk`, `promo.countdownDeal` and `titles.creationLimit`.
 
 ## 6 October 2026 supplement
 
-The current dated configuration is `2026-10-06.json`. Trim options, margin minimums and cover text-safe distances were checked against the official pages and are confirmed. Barcode size is partially confirmed; automatic placement still requires the book-specific template. See [dated facts](../reference/reference-kdp-facts-2026-10-06.md). Older tables above describe the original 3 October review.
+The 6 October file was `2026-10-06.json`. Trim options, margin minimums and cover text-safe distances were checked against the official pages and are confirmed. Barcode size is partially confirmed; automatic placement still requires the book-specific template. See [dated facts](../reference/reference-kdp-facts-2026-10-06.md). Older tables above describe the original 3 October review.
+
+## 17 October 2026 supplement
+
+The current dated configuration is `2026-10-17.json`. It adds the colour rules above, read on the official printing cost, trim and cover pages on 17 October 2026. Four are confirmed and white-only colour paper is partial. See [dated facts](../reference/reference-kdp-facts-2026-10-17.md). Every other rule is unchanged from the 6 October file.

@@ -98,6 +98,8 @@ export interface WrapCoverInput extends CoverInput {
   /** Interior page count from the built print PDF; required for the spine width. */
   pageCount: number;
   backBlurb: string;
+  /** Colour ink for a colour interior (picture books, D-044): the spine uses the colour rule. Unset: black ink on the book's paper. */
+  ink?: 'premium' | 'standard';
 }
 
 export type PreflightSeverity = 'pass' | 'warn' | 'block';
@@ -119,6 +121,45 @@ export interface PreflightReport {
   mock: boolean;
 }
 
+/** One spread for the picture-book exporter (D-044). */
+export interface PictureSpreadInput {
+  n: number;
+  /** Story text (inline Markdown, paragraphs split by a blank line). */
+  text: string;
+  layout: 'text-left' | 'text-right' | 'text-top' | 'text-bottom';
+  sceneSummary: string;
+  /** Key in `images`; null when the spread has no picture yet (preflight blocks). */
+  imageKey: string | null;
+}
+
+export interface PictureBookInput {
+  /** The book as for any export; its front and back sections become the matter pages. Spread sections are ignored here. */
+  book: ExportBook;
+  spreads: PictureSpreadInput[];
+  /** Pictures by imageKey (PNG, JPEG or WebP, ideally 2:1). */
+  images: Record<string, Uint8Array>;
+  /** Colour ink. Picture books print on premium colour (D-044). */
+  ink: 'premium' | 'standard';
+  /** Covers from the cover studio, when built, for the pack's cover folder. */
+  covers?: ExportFile[];
+}
+
+/** What the picture-book export built and found. pack is null while the preflight blocks. */
+export interface PictureBookBuild {
+  interior: ExportFile;
+  preflight: PreflightReport;
+  pack: ExportFile | null;
+  /** Every PDF page, trim plus bleed, in inches. */
+  pageSizeIn: { widthIn: number; heightIn: number };
+  /** Text boxes outside the safe area (empty when all are inside). */
+  safeAreaFindings: string[];
+  /** Spread numbers with no picture on one or both pages. */
+  missingImages: number[];
+  /** KDP rule ids the layout used. */
+  ruleIds: string[];
+  warnings: string[];
+}
+
 export interface ExportPort {
   readonly name: 'mock' | 'volume-export';
   buildDocx(book: ExportBook, opts?: ExportOptions): Promise<ExportFile>;
@@ -134,6 +175,11 @@ export interface ExportPort {
    * runs it before the pack and does not build the pack while it blocks. Pass the same array to buildPack.
    */
   finalPreflight?(book: ExportBook, files: ExportFile[], opts?: ExportOptions): Promise<PreflightReport>;
+  /**
+   * Picture books (D-044): the full-bleed print PDF, the preflight on it and, when nothing blocks, the upload pack.
+   * No EPUB or DOCX for picture books.
+   */
+  buildPictureBook?(input: PictureBookInput, opts?: ExportOptions): Promise<PictureBookBuild>;
   /** Zips the given files into the KDP upload pack. */
   buildPack(book: ExportBook, files: ExportFile[], opts?: ExportOptions): Promise<ExportFile>;
   /** Frees shared resources (the Chromium browser). Called when the app closes. */

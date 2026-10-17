@@ -1,0 +1,54 @@
+{
+  "$comment": "P7-3 sample: a 24-page picture book (premium colour, 8.5 x 8.5 in): 3 front pages, 10 spreads, 1 back page (plan PHASES-6-8 section 7). Pictures are deterministic placeholders made in helpers.ts. Pen name and story are invented for the test.",
+  "meta": {
+    "title": "Mabel and the Moonlit Garden",
+    "author": "Nell Ashby",
+    "language": "en-GB",
+    "year": 2026
+  },
+  "front": [
+    { "id": "title-page", "kind": "front", "subtype": "titlepage", "title": "Title Page", "lines": ["Mabel and the Moonlit Garden", "", "Nell Ashby"], "blocks": [] },
+    {
+      "id": "copyright",
+      "kind": "front",
+      "subtype": "copyright",
+      "title": "Copyright",
+      "blocks": [
+        { "type": "paragraph", "text": "Copyright © 2026 Nell Ashby" },
+        { "type": "paragraph", "text": "All rights reserved. No part of this book may be copied without the written permission of the author." },
+        { "type": "paragraph", "text": "The text and pictures in this book were made with the help of AI and checked by the author." }
+      ]
+    },
+    {
+      "id": "todays-new-word",
+      "kind": "front",
+      "subtype": "other",
+      "title": "Today's New Word",
+      "blocks": [
+        { "type": "paragraph", "text": "**Brave**" },
+        { "type": "paragraph", "text": "Being brave means trying something even when you feel a little bit wobbly inside." }
+      ]
+    }
+  ],
+  "spreads": [
+    { "n": 1, "text": "At the bottom of the garden, under the old apple tree, lived a small grey mouse called Mabel. She had soft round ears and a tail like a curl of string.", "imageKey": "spread-1", "layout": "text-left", "sceneSummary": "Mabel outside her home under the apple tree at sunset." },
+    { "n": 2, "text": "Every evening Mabel watched the moon rise over the garden wall. \"One day,\" she whispered, \"I will see the moonlit garden up close.\"", "imageKey": "spread-2", "layout": "text-right", "sceneSummary": "Mabel looking up at the rising moon." },
+    { "n": 3, "text": "But the garden looked very big at night, and Mabel felt a little bit wobbly inside. Her friend Hedge the hedgehog came snuffling by.", "imageKey": "spread-3", "layout": "text-top", "sceneSummary": "Hedge the hedgehog arrives beside Mabel." },
+    { "n": 4, "text": "\"Being brave means trying, even when you feel wobbly,\" said Hedge kindly. \"Shall we go together?\" Mabel took a deep breath and nodded.", "imageKey": "spread-4", "layout": "text-bottom", "sceneSummary": "Hedge and Mabel decide to explore together." },
+    { "n": 5, "text": "Step by step, paw by paw, they crept along the garden path. The stones were cool and smooth, and the grass smelled sweet.", "imageKey": "spread-5", "layout": "text-left", "sceneSummary": "The two friends walk along the stone path." },
+    { "n": 6, "text": "Pop, pop, pop! Tiny lights blinked on all around them. \"Glow-worms!\" laughed Hedge. Mabel giggled. Being brave felt warm and fizzy.", "imageKey": "spread-6", "layout": "text-right", "sceneSummary": "Glow-worms light up around the friends." },
+    { "n": 7, "text": "By the pond, a frog sang a slow, sleepy song. The water shone like a silver plate, and the moon smiled down at them.", "imageKey": "spread-7", "layout": "text-top", "sceneSummary": "A frog sings by the moonlit pond." },
+    { "n": 8, "text": "Mabel climbed the tallest flowerpot all by herself. From the top she could see the whole garden, soft and silver in the moonlight.", "imageKey": "spread-8", "layout": "text-bottom", "sceneSummary": "Mabel on top of a flowerpot looking out." },
+    { "n": 9, "text": "\"I was brave!\" said Mabel proudly. \"You were,\" said Hedge, \"and I was brave too, because we were brave together.\"", "imageKey": "spread-9", "layout": "text-left", "sceneSummary": "Mabel and Hedge smile at each other." },
+    { "n": 10, "text": "Back under the apple tree, Mabel snuggled into her mossy bed. The moon shone gently through the leaves. Goodnight, brave little Mabel.", "imageKey": "spread-10", "layout": "text-right", "sceneSummary": "Mabel asleep in her mossy bed." }
+  ],
+  "back": [
+    {
+      "id": "about-the-author",
+      "kind": "back",
+      "subtype": "about_the_author",
+      "title": "About the Author",
+      "blocks": [{ "type": "paragraph", "text": "Nell Ashby writes gentle bedtime stories about small animals and big feelings. She lives by the sea with a very sleepy cat." }]
+    }
+  ]
+}

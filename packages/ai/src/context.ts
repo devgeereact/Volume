@@ -84,6 +84,11 @@ const LEDGER_GROUPS: ReadonlyArray<{ kinds: readonly string[]; heading: string }
   { kinds: ['quote'], heading: 'Quotes already used (do not quote them again)' },
   { kinds: ['fact'], heading: 'Facts already stated (do not state them again as if new)' },
   { kinds: ['name'], heading: 'Names already used (keep each person or character in the same role)' },
+  {
+    kinds: ['character'],
+    heading: 'Characters already on the page (they may return; keep each name, look, age, voice and role exactly as set)',
+  },
+  { kinds: ['setting'], heading: 'Settings already on the page (they may return; keep their details exactly as set)' },
   { kinds: ['phrase'], heading: 'Phrases leaned on too often (do not use them again)' },
 ];
 
@@ -104,6 +109,12 @@ export function formatLedger(list: Array<{ kind: string; key: string; detail?: s
   if (other.length)
     blocks.push(`Other things already used (do not repeat):\n${other.map((e) => `- [${e.kind}] ${e.key}${e.detail ? `: ${e.detail}` : ''}`).join('\n')}`);
   return blocks.join('\n\n');
+}
+
+/** A workbook chapter's planned exercises ({{chapter.exercises}}) as numbered lines. */
+export function formatExercisePlan(list: Array<{ kind: string; title: string; purpose: string; lines?: number | null | undefined }>): string {
+  if (list.length === 0) return 'None';
+  return list.map((e, i) => `${i + 1}. ${e.kind}, "${e.title}": ${e.purpose}${typeof e.lines === 'number' ? ` (${e.lines} ruled lines)` : ''}`).join('\n');
 }
 
 function factText(v: unknown): string | null {
@@ -172,6 +183,18 @@ export function formatVoice(voice: string | VoiceDna | null | undefined, accepte
   return parts.length ? parts.join('\n\n') : null;
 }
 
+/** The blueprint as an object, whether it came as an object or as a JSON string. */
+function blueprintObject(v: unknown): Record<string, unknown> | undefined {
+  if (typeof v === 'string' && v.trimStart().startsWith('{')) {
+    try {
+      return asObject(JSON.parse(v));
+    } catch {
+      return undefined;
+    }
+  }
+  return asObject(v);
+}
+
 function compactJson(v: unknown): unknown {
   if (v === undefined || v === null) return v;
   if (typeof v === 'string') return v;
@@ -226,12 +249,24 @@ export function buildVariables(input: Record<string, unknown>, config: ConfigBun
   if (input['ledger'] !== undefined && input['ledger'] !== null) {
     v['ledger'] = formatLedger(input['ledger'] as Array<{ kind: string; key: string; detail?: string | null }>);
   }
-  for (const k of ['blueprint', 'template', 'research', 'direction', 'brief', 'concept']) {
+  for (const k of ['blueprint', 'template', 'research', 'direction', 'brief', 'concept', 'scenePrompts']) {
     if (k in input) v[k] = compactJson(input[k]);
   }
   if ('storyResult' in input) v['story'] = compactJson(input['storyResult']);
+  // Fiction story bible (D-043): given on its own, or read from the blueprint data. It is sent once, as
+  // {{storyBible}}, so {{blueprint}} goes without it.
+  const blueprint = blueprintObject(input['blueprint']);
+  const bible = input['storyBible'] ?? blueprint?.['storyBible'];
+  if (bible !== undefined && bible !== null) v['storyBible'] = compactJson(bible);
+  if (blueprint && 'storyBible' in blueprint) {
+    const { storyBible: _bible, ...rest } = blueprint;
+    v['blueprint'] = compactJson(rest);
+  }
 
   const chapter = asObject(input['chapter']);
+  if (Array.isArray(chapter?.['exercises'])) {
+    v['chapter.exercises'] = formatExercisePlan(chapter['exercises'] as Array<{ kind: string; title: string; purpose: string; lines?: number | null }>);
+  }
   if (chapter?.['isLast'] === true && input['nextChapter'] === undefined) {
     v['nextChapter.title'] = null;
     v['nextChapter.summary'] = null;

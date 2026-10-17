@@ -1,0 +1,24 @@
+Preflight: Mabel and the Moonlit Garden
+=======================================
+19 pass, 1 warn, 0 fail
+
+PASS  Template sections present: Every required section is present or deliberately off.
+PASS  House style (dashes, banned phrases, US spellings): No em dashes, banned phrases or US spellings.
+PASS  Invented-content flags (ISBNs, awards, rankings, reviews, guarantees): None found.
+PASS  Claims to verify: 0 statement(s) match the claims patterns; no claims report was supplied.
+PASS  About the author equals the profile bio: Word for word.
+PASS  Copyright year: Copyright page says 2026; expected 2026.
+PASS  No unfilled placeholders: None.
+PASS  KDP AI disclosure: AI made text and images: disclosure must be AI-generated (set: ai-generated). (FACTS 5.5)
+PASS  Title and subtitle length: 28 characters (limit 199). (FACTS 5.4)
+PASS  Description length (tags count): 114 characters including HTML tags (limit 4000). (FACTS 5.3)
+PASS  Description HTML tags: Only allowed tags used (tag spellings are a partial rule: check KDP before relying on strong or em). (FACTS 10.14)
+PASS  Keywords: 7 of 7 keywords. (FACTS 5.1)
+PASS  Categories: 3 of 3 categories. (FACTS 5.2)
+PASS  Interior page size with bleed: 621 x 630 pt (want 8.5 x 8.5 in plus bleed = 621 x 630 pt). (FACTS 3.7)
+PASS  Fonts embedded, no Type 3: 3 fonts, all embedded: PlusJakartaSans-ExtraBold, SourceSans3ExtraLight-SemiBold, SourceSans3ExtraLight-Regular. (FACTS 6.6)
+WARN  Page count within the colour limits: 24 pages (premium colour on 8.5 x 8.5 in: 24 to 590). Rule paperback.colour.paper is partial: check before you rely on it.
+PASS  Every spread has its picture: 10 spreads, each with a picture across both pages (checked in the PDF).
+PASS  Text inside the safe area: 14 text boxes, all at least 0.375 in from the outside, top and bottom trim edges and 0.375 in from the gutter.
+PASS  Spreads complete: Every spread has text and the spreads are numbered in order.
+PASS  KDP rules last checked: Rules file 2026-10-17; oldest check 2026-10-03 (14 days ago, re-check after 90 days).

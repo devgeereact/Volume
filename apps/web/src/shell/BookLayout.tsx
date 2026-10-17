@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { ReadOnlyBanner } from "../lib/access";
 import { Outlet, useLocation, useParams } from "react-router";
 import { useBookEvents, useBookLive } from "../api/events";
 import { BookSteps } from "../components/ui/BookSteps";
@@ -103,6 +104,8 @@ export function BookLayout() {
   return (
     <StepActionProvider>
       {from === "api" ? <ApiBookBar book={book} penName={penName} current={current} /> : <DemoBookBar book={book} penName={penName} current={current} />}
+      {/* A viewer reads every step; the write buttons are hidden, and this says why (D-047). */}
+      <ReadOnlyBanner className="mx-4 mt-4 sm:mx-6 lg:mx-10" />
       <Outlet />
       <StepFooter book={book} current={current} />
     </StepActionProvider>

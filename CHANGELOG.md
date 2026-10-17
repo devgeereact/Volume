@@ -4,19 +4,36 @@ User-visible changes, newest first. Dates in British format.
 
 ## 17 October 2026
 
-### Fixed
+Security and privacy audit, shipped on its own first.
+
+#### Fixed
 - Security: a percent-encoded address such as `/%61pi/v1/health` reached the API without sign-in on the hosted app. Sign-in is now checked on the decoded path and again for every `/api/v1` route.
 - The hosted app no longer switches to sample books when the server or the connection drops. It keeps real data, shows a "Not connected" badge and the screens show their own errors.
 - Error messages no longer tell you to start a local server; they say to check your connection.
 
-### Changed
+#### Changed
 - Search engines are told to stay away: `noindex` meta tag, `X-Robots-Tag` header and a `robots.txt` that disallows everything.
 - Each screen names itself in the browser tab, for example "Writing · My Book · Volume".
 - The developer style guide (`/components`) is local only; the hosted app answers it with Page not found.
 - The page description no longer says "clickable prototype". The sign-in screen has a proper heading.
 
-### Added
+#### Added
 - Privacy inventory (`docs/05-security/PRIVACY-INVENTORY.md`) and a draft privacy notice for owner and legal review. Not published.
+
+Roadmap phases 6 to 8 follow.
+
+Roadmap phases 6 to 8, built to decisions D-041 to D-047 (accepted by the owner on 17 October 2026).
+
+### Added
+- Fiction books: wizard with point of view and tense, story bible, character and setting ledger, scene breaks, chapters without subheadings or takeaways. Non-fiction prompts are unchanged.
+- Workbooks: exercises, ruled writing lines, fill-in pages and checklists in the editor and every export format. Template checks run in the checker and preflight.
+- Picture books: story, character sheet with reference pictures, one picture per spread with a shared seed and references, a spreads board, and a print-only full-colour PDF with bleed (24 pages: 10 spreads plus 4 pages of matter).
+- Volume mode: batches across pen names with live progress, a release calendar that refuses a third new title per format in any rolling 7 days (limit from the KDP rules file), and a quality gate before publish or pack.
+- Accounts: owner, editor and viewer roles, invitations on a verified email, members screen. Off by default (`ACCOUNTS_MODE=owner-only`). Other workspaces may spend your OpenRouter key only up to a monthly cap you set, starting at 0.
+- KDP rules file 2026-10-17 with colour printing costs, page limits, colour spine and bleed.
+
+### Fixed
+- `* * *` scene breaks, untitled chapters, fiction contents, wizard chapter count, batch failure cancelling waiting books, long Select menus, and acknowledgement names on the Writing screen.
 
 ## 16 October 2026
 

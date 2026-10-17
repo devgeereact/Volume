@@ -11,6 +11,7 @@ import {
   partialUsageOf,
   AiModelUnavailableError,
   AiRetryableError,
+  type AiImageEstimate,
   type AiImageResult,
   type AiPort,
   type AiStage,
@@ -25,8 +26,28 @@ import type { EventBus, EventType } from '../sse/bus.js';
 import { BudgetPaused, JobCancelled, JobFailed, JobPaused } from './errors.js';
 import { JobQueue, type ClaimedJob, type EnqueueInput, type Job, type JobKind } from './queue.js';
 
+/** Setting on the instance owner's workspace: the monthly AI cap for every other workspace (D-047). */
+export const GUEST_CAP_KEY = 'budget.guest_workspaces_monthly_cap_usd';
+
 /** Budget check for one cover image. A 2K image on the default model cost $0.039 live (5 October 2026); this leaves room for the pro fallback. */
 export const IMAGE_HIGH_ESTIMATE_USD = 0.2;
+
+/**
+ * What one picture reserves against the budget: the priced estimate the picture-book estimate route shows (request
+ * price, else image output price times the tokens one image uses at the configured resolution, dearest of the model
+ * and its fallbacks), never below IMAGE_HIGH_ESTIMATE_USD. With no price listed it is that floor. Listed prices can pass
+ * the floor (about $0.24 at 4K), so a flat floor alone could let spend pass the budget.
+ */
+export async function imageReservationUsd(ai: AiPort, model: string | null): Promise<number> {
+  let priced: AiImageEstimate | null;
+  try {
+    priced = ai.estimateImage ? await ai.estimateImage(model ? { model } : {}) : null;
+  } catch {
+    priced = null; // no price known: the floor applies
+  }
+  const high = priced && priced.priced && Number.isFinite(priced.highUsd) ? priced.highUsd : 0;
+  return Math.max(IMAGE_HIGH_ESTIMATE_USD, high);
+}
 
 export interface JobServices {
   db: Db;
@@ -37,6 +58,11 @@ export interface JobServices {
   ai: AiPort;
   exporter: ExportPort;
   configDir: string;
+  /**
+   * The instance owner's workspace (D-047). Every other workspace spends the instance owner's OpenRouter key, so its
+   * AI and image calls are held to budget.guest_workspaces_monthly_cap_usd, set on this workspace by its owner.
+   */
+  instanceWorkspaceId: string;
 }
 
 export type JobOutcome = { status?: 'succeeded' | 'needs_attention'; result?: unknown; waitForChildren?: false } | { waitForChildren: true; result?: unknown };
@@ -81,10 +107,13 @@ const LANES: { name: string; max: number; kinds: JobKind[] }[] = [
       'cover_concepts',
       'marketing',
       'rewrite_selection',
+      'picture_story',
+      'picture_characters',
+      'spread_image',
     ],
   },
-  { name: 'export', max: 1, kinds: ['export_pack', 'cover_build'] },
-  { name: 'control', max: 2, kinds: ['write_book', 'noop'] },
+  { name: 'export', max: 1, kinds: ['export_pack', 'cover_build', 'picture_export'] },
+  { name: 'control', max: 2, kinds: ['write_book', 'batch_run', 'batch_book', 'picture_book', 'noop'] },
 ];
 
 /** Config stage key used to pick the model for each AI stage. */
@@ -101,6 +130,10 @@ const STAGE_TO_CONFIG: Record<AiStage, string> = {
   matter_metadata: 'matter_metadata',
   cover_brief: 'cover_brief',
   marketing: 'marketing',
+  // config/models.defaults.json lists children.picture-book-story under writing and the two prompt stages under cover_brief.
+  picture_story: 'writing',
+  scene_prompts: 'cover_brief',
+  character_reference: 'cover_brief',
 };
 
 const ModelChoice = z.union([z.string().min(1), z.object({ model: z.string().min(1) })]);
@@ -315,13 +348,15 @@ export class JobRunner {
         await checkpoint();
         const model = await this.resolveModel(ctx, job.projectId, 'cover_image');
         // One image, not a text call: the cover_brief text estimate (about $0.48 high) used to pause
-        // books over a $0.04 image. IMAGE_HIGH_ESTIMATE_USD covers the dearest fallback image model.
-        await this.reserveBudget(job.id, ctx, job.projectId, IMAGE_HIGH_ESTIMATE_USD);
+        // books over a $0.04 image. Covers, spreads and character references all reserve the priced estimate for the
+        // dearest image model in the chain at the configured resolution, never below IMAGE_HIGH_ESTIMATE_USD.
+        const reserve = await imageReservationUsd(this.services.ai, model);
+        await this.reserveBudget(job.id, ctx, job.projectId, reserve);
         try {
           const callOpts: GenerateImageOptions = {
             ...opts,
             signal: abort.signal,
-            beforeCall: (spent, quote) => this.reserveBudget(job.id, ctx, job.projectId, spent + (quote ?? IMAGE_HIGH_ESTIMATE_USD)),
+            beforeCall: (spent, quote) => this.reserveBudget(job.id, ctx, job.projectId, spent + Math.max(quote ?? 0, reserve)),
           };
           if (model) callOpts.model = model;
           const img = await this.services.ai.generateImage(prompt, callOpts);
@@ -443,6 +478,7 @@ export class JobRunner {
 
   private async checkBudget(ctx: RequestCtx, projectId: string | null, est: { highUsd: number }, pending = { book: 0, month: 0 }): Promise<void> {
     const { repos } = this.services;
+    if (ctx.workspaceId !== this.services.instanceWorkspaceId) await this.checkGuestCap(ctx, est, pending.month);
     if (projectId) {
       const book = await repos.books.get(ctx, projectId);
       if (book && book.costToDateUsd + pending.book + est.highUsd > book.budgetUsd) {
@@ -465,6 +501,32 @@ export class JobRunner {
           estimateUsd: est.highUsd,
         });
       }
+    }
+  }
+
+  /**
+   * A workspace other than the instance owner's spends the instance owner's key (D-047). The instance owner sets one
+   * monthly cap that applies to each such workspace; 0 or unset refuses every AI and image call. The workspace's own
+   * caps still apply on top, but can never lift this one.
+   */
+  private async checkGuestCap(ctx: RequestCtx, est: { highUsd: number }, pendingMonth: number): Promise<void> {
+    const { repos, instanceWorkspaceId } = this.services;
+    const instance: RequestCtx = { workspaceId: instanceWorkspaceId, userId: 'system', role: 'owner' };
+    const cap = (await repos.settings.get(instance, GUEST_CAP_KEY)) ?? 0;
+    if (!(cap > 0)) {
+      throw new JobFailed(
+        'AI runs are not switched on for this workspace yet. The owner of this Volume needs to set a monthly cap for other workspaces in Settings.',
+        'guest_ai_disabled',
+      );
+    }
+    const spent = await repos.production.monthSpendUsd(ctx);
+    if (spent + pendingMonth + est.highUsd > cap) {
+      throw new BudgetPaused('This workspace has reached the monthly AI cap the owner of this Volume set. Ask them to raise it to continue.', {
+        scope: 'month',
+        limitUsd: cap,
+        spentUsd: spent,
+        estimateUsd: est.highUsd,
+      });
     }
   }
 

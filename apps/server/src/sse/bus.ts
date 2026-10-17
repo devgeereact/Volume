@@ -19,7 +19,8 @@ export type EventType =
   | 'export.ready'
   | 'note.woven'
   | 'cover.updated'
-  | 'book.updated';
+  | 'book.updated'
+  | 'batch.updated';
 
 export interface BusEvent {
   /** ULID from job_events, or null for ephemeral events (no replay). */

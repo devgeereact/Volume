@@ -2,9 +2,11 @@ import type { LucideIcon } from "lucide-react";
 import {
   Archive,
   BookCheck,
+  CalendarDays,
   Compass,
   FilePlus,
   Image,
+  Layers,
   Library,
   ListTree,
   Megaphone,
@@ -39,7 +41,9 @@ export type ScreenId =
   | "export"
   | "marketing"
   | "settings"
-  | "archive";
+  | "archive"
+  | "volume"
+  | "schedule";
 
 export interface ScreenDef {
   id: ScreenId;
@@ -48,7 +52,7 @@ export interface ScreenDef {
   /** Route pattern, as in 09-UX-FLOWS (":bookId" for book screens). */
   path: string;
   folder: string;
-  owner: "A" | "B" | "C" | "F";
+  owner: "A" | "B" | "C" | "F" | "V";
   step: BookStepId | null;
   icon: LucideIcon;
   primaryAction: string;
@@ -67,6 +71,7 @@ export const settingsTabs = [
   { id: "backups", label: "Data and backups" },
   { id: "house-style", label: "House style" },
   { id: "kdp-rules", label: "KDP rules" },
+  { id: "members", label: "Members" },
   { id: "about", label: "About" },
 ] as const;
 export type SettingsTab = (typeof settingsTabs)[number]["id"];
@@ -351,10 +356,56 @@ export const screens: Record<ScreenId, ScreenDef> = {
     },
     prdModule: "M2",
   },
+  volume: {
+    id: "volume",
+    title: "Volume mode",
+    purpose: "Plan and run batches of books across pen names, with a quality gate for each book.",
+    path: "/volume",
+    folder: "features/volume-mode",
+    owner: "V",
+    step: null,
+    icon: Layers,
+    primaryAction: "New batch",
+    empty: {
+      title: "No batches yet",
+      body: "A batch runs several books one at a time with the usual pipeline. Each book still passes preflight and claims review.",
+      action: "New batch",
+      estimate: null,
+      drawing: "books",
+    },
+    prdModule: "Phase 8",
+  },
+  schedule: {
+    id: "schedule",
+    title: "Release schedule",
+    purpose: "Plan release dates per format inside KDP's limit on new titles.",
+    path: "/volume/schedule",
+    folder: "features/volume-mode",
+    owner: "V",
+    step: null,
+    icon: CalendarDays,
+    primaryAction: "Plan a release",
+    empty: {
+      title: "Nothing planned this week",
+      body: "Plan a release to hold a slot for a book and format.",
+      action: "Plan a release",
+      estimate: null,
+      drawing: "page",
+    },
+    prdModule: "Phase 8",
+  },
 };
 
 /** Left nav, in order (D-016). Settings links to "/settings". The command menu reads the same list. */
-export const globalNav: ScreenDef[] = [screens.library, screens.published, screens.profiles, screens["new-book"], screens.archive, screens.settings];
+export const globalNav: ScreenDef[] = [
+  screens.library,
+  screens.published,
+  screens.volume,
+  screens.profiles,
+  screens["new-book"],
+  screens.archive,
+  screens.settings,
+];
 
 /** Book screens in nav order, keyed by step. */
 export const stepScreens: Record<BookStepId, ScreenDef> = {

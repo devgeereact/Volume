@@ -10,11 +10,11 @@
  * Run it from the repo root:   npm run e2e
  *
  * `npm run e2e` (tests/e2e/run.mjs) builds the server and the web app (into the temp folder, not
- * apps/web/dist), then Playwright starts the test server on 127.0.0.1:5311 and a vite preview on
- * 127.0.0.1:5312 (tests/e2e/playwright.config.ts). The server runs with AI_PROVIDER=mock, a blank
+ * apps/web/dist), then Playwright starts this spec's own test server on 127.0.0.1:5315 and a vite preview on
+ * 127.0.0.1:5316 (tests/e2e/playwright.config.ts, project "full-book"); the other specs use 5311 and 5312. The server runs with AI_PROVIDER=mock, a blank
  * OPENROUTER_API_KEY, a fresh SQLite file and DATA_DIR under os.tmpdir()/volume-e2e (set TMPDIR to move
  * it), and MOCK_FAIL_NEXT_WRITING=3 so the third writing call fails once. Everything is stopped and the
- * temp folder removed at the end, pass or fail. Ports 5311 and 5312 must be free.
+ * temp folder removed at the end, pass or fail. Ports 5311, 5312, 5315 and 5316 must be free.
  *
  * Any uncaught page error (pageerror) fails the test.
  */
@@ -24,7 +24,8 @@ import path from "node:path";
 import { expect, test, type APIRequestContext, type Locator } from "@playwright/test";
 import { downloadDir } from "./paths.mjs";
 
-const API = "http://127.0.0.1:5311/api/v1";
+/** This spec has its own server pair (API 5315, web 5316, see playwright.config.ts): the one that injects the writing failure. */
+const API = "http://127.0.0.1:5315/api/v1";
 const PEN_NAME = "Gideon Akinlotan";
 const JOB_WAIT = 60_000;
 
