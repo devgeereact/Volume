@@ -317,3 +317,8 @@ Next: owner decides on the summary-missing behaviour and the `checks.maxTokens` 
 - Not tested: live AI, MySQL races, EPUBCheck, Linux goldens for new samples, host, Clerk invite flow with real accounts, printed proof, KDP upload.
 - Coordination: the audit session (volume-a5) holds an uncommitted production auth-bypass fix in the main checkout; agreed it ships on its own first, then this branch rebases.
 - Next: see CURRENT-TASK.md.
+
+## 2026-10-17 (later), Claude Code (claude-opus-5-5), merge check with the audit branch
+- What changed: test-merged `fix/hosted-auth-privacy-audit` (5 commits, auth fix 11e848b) into a scratch copy of `feat/phases-6-8`. Code merged cleanly; only `.agent/CURRENT-TASK.md`, `.agent/HANDOFF.md` and `CHANGELOG.md` conflicted (both sides appended entries; keep both). Scratch copy removed, nothing merged into either branch.
+- Checks on the merged copy: typecheck PASS, lint PASS, format:check PASS, server tests 300 PASS (1 skip), web tests 81 PASS, e2e 14 of 14 PASS.
+- Next: owner merges `fix/hosted-auth-privacy-audit` to main and deploys it; then merge main into this branch (same three record-file conflicts), rerun the gate, open the PR.
