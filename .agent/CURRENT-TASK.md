@@ -1,3 +1,9 @@
+## Production, privacy and hub audit, 17 October 2026 (Claude Code)
+
+Saved on branch `fix/hosted-auth-privacy-audit` (pushed, not merged, not deployed). Live auth bypass found: `https://volume.gakinz.com/%61pi/v1/health` answered 200 without sign-in. Fixed locally with a regression test (decoded path check plus a context guard in the `/api/v1` scope). The hosted web app no longer falls back to demo data; noindex, robots.txt and `X-Robots-Tag` added; tab titles; style guide local only; command menu uses server books. Privacy inventory and a draft privacy notice in `docs/05-security/`. Report: `../reports/volume/PRODUCTION-PRIVACY-AUDIT-2026-10-17.md`.
+
+Next: (1) owner merges the branch to main and approves a deploy of the auth fix (urgent), or splits the first commit out if the rest needs more review; (2) owner decisions: OpenRouter `data_collection`, prompt run output on book delete, `job_events` retention, legal name in project zips, privacy contact facts; (3) owner OK for the production hub plan in the report (publish and archive from the web, stage advances, marketing gate and counts, AI disclosure preflight, blurb in the pack). The phases 6-8 lead works in `../Volume-phases` on `feat/phases-6-8` and will rebase onto the auth fix.
+
 ## cPanel hosting restructure, 16 October 2026 (Claude Code)
 
 Branch `chore/gee-os-cpanel` (pushed, not merged). Volume is ready to host at https://volume.gakinz.com as one Passenger Node.js app on Node 24.21 with MariaDB on localhost and Clerk sign-in (D-037 to D-040, GEE OS 1.4.5 `cpanel` profile). Release folder: `npm run build:release`; deploy contract, Passenger settings and checks: `docs/07-operations/DEPLOYMENT.md`.

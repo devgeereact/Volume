@@ -2,6 +2,22 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 17 October 2026
+
+### Fixed
+- Security: a percent-encoded address such as `/%61pi/v1/health` reached the API without sign-in on the hosted app. Sign-in is now checked on the decoded path and again for every `/api/v1` route.
+- The hosted app no longer switches to sample books when the server or the connection drops. It keeps real data, shows a "Not connected" badge and the screens show their own errors.
+- Error messages no longer tell you to start a local server; they say to check your connection.
+
+### Changed
+- Search engines are told to stay away: `noindex` meta tag, `X-Robots-Tag` header and a `robots.txt` that disallows everything.
+- Each screen names itself in the browser tab, for example "Writing · My Book · Volume".
+- The developer style guide (`/components`) is local only; the hosted app answers it with Page not found.
+- The page description no longer says "clickable prototype". The sign-in screen has a proper heading.
+
+### Added
+- Privacy inventory (`docs/05-security/PRIVACY-INVENTORY.md`) and a draft privacy notice for owner and legal review. Not published.
+
 ## 16 October 2026
 
 ### Added
