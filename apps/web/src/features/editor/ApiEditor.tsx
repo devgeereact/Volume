@@ -56,6 +56,9 @@ import { useStepAction } from "../../lib/stepAction";
 import { interiorLook } from "../../lib/interiorLook";
 import { ErrorPanel, LoadingBlock } from "../writing/screenState";
 import { SummaryMissingNotice } from "../writing/SummaryMissingNotice";
+import { TemplateRulesNotice } from "../writing/TemplateRulesNotice";
+import { useCanWrite } from "../../lib/access";
+import { workbookPlainText, type InsertKind } from "../../lib/workbookMarkdown";
 import { ApiCompare } from "./ApiCompare";
 import { EditorCanvas } from "./EditorCanvas";
 import { EditorInspector, type InspectorTab } from "./EditorInspector";
@@ -280,6 +283,9 @@ function Body({
   const [review, setReview] = useState<Review | null>(null);
   const [writeJob, setWriteJob] = useState<string | null>(null);
   const look = useMemo(() => interiorLook(book), [book]);
+  const canWrite = useCanWrite();
+  const template = apiBook?.template ?? book.template;
+  const insertKinds: InsertKind[] = template === "fiction" ? ["scene"] : template === "workbook" ? ["exercise", "lines", "fill-in", "checklist"] : [];
   const voiceOf = penName?.name.split(" ")[0] ?? "the author";
   const now = new Date().toISOString();
   const idSeq = useRef(0);
@@ -316,7 +322,15 @@ function Body({
   const committedDirty = ready && markdownFromBlocks(blocks) !== doc.savedMd;
   const stale = ready && serverVersionId !== null && doc.versionId !== serverVersionId;
 
-  const words = useMemo(() => liveBlocks.reduce((n, b) => n + (b.text.trim() ? b.text.trim().split(/\s+/).length : 0), 0), [liveBlocks]);
+  const words = useMemo(
+    () =>
+      liveBlocks.reduce((n, b) => {
+        // Scene breaks are not words; a workbook block counts its prompts and items, not its fence lines.
+        const t = b.kind === "scene" ? "" : b.kind === "workbook" ? workbookPlainText(b.text) : b.text;
+        return n + (t.trim() ? t.trim().split(/\s+/).length : 0);
+      }, 0),
+    [liveBlocks],
+  );
 
   const msSections = useMemo(() => apiSections.map(toMsSection), [apiSections]);
   const section: MsSection = useMemo(() => {
@@ -440,6 +454,25 @@ function Body({
       setPendingFocus(id);
     },
     [setBlocks, sectionId],
+  );
+  const onInsert = useCallback(
+    (afterBlockId: string | null, kind: "scene" | "workbook", text: string) => {
+      const id = `${sectionId.slice(-6)}-n${Date.now().toString(36)}${++idSeq.current}`;
+      setBlocks((list) => {
+        const i = afterBlockId ? list.findIndex((b) => b.id === afterBlockId) : -1;
+        const at = i < 0 ? list.length : i + 1;
+        return [...list.slice(0, at), { id, kind, text, rev: 0 }, ...list.slice(at)];
+      });
+      setAnnounce(kind === "scene" ? "Scene break added." : "Block added.");
+    },
+    [setBlocks, sectionId],
+  );
+  const onRemoveBlock = useCallback(
+    (blockId: string) => {
+      setBlocks((list) => list.filter((b) => b.id !== blockId));
+      setAnnounce("Block removed.");
+    },
+    [setBlocks],
   );
   const onFocused = useCallback(() => setPendingFocus(null), []);
   const onNoteFocused = useCallback(() => setFocusNote(null), []);
@@ -1010,15 +1043,17 @@ function Body({
               {statusLine}
             </p>
             <div className="ml-auto flex flex-wrap items-center gap-1.5">
-              <Button
-                variant="ghost"
-                icon={MessageSquarePlus}
-                onClick={() => addNote()}
-                title={`Add a note after the paragraph you are in (${modKey()} Enter)`}
-                disabledReason={blocks.length === 0 ? "Write or paste some text first." : undefined}
-              >
-                Add note
-              </Button>
+              {canWrite && (
+                <Button
+                  variant="ghost"
+                  icon={MessageSquarePlus}
+                  onClick={() => addNote()}
+                  title={`Add a note after the paragraph you are in (${modKey()} Enter)`}
+                  disabledReason={blocks.length === 0 ? "Write or paste some text first." : undefined}
+                >
+                  Add note
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 icon={History}
@@ -1027,16 +1062,18 @@ function Body({
               >
                 Versions
               </Button>
-              <Button
-                icon={Save}
-                onClick={() => void saveNow()}
-                loading={save.isPending}
-                loadingLabel="Saving"
-                aria-keyshortcuts="Meta+S Control+S"
-                title={`Save version (${modKey()} S)`}
-              >
-                Save version
-              </Button>
+              {canWrite && (
+                <Button
+                  icon={Save}
+                  onClick={() => void saveNow()}
+                  loading={save.isPending}
+                  loadingLabel="Saving"
+                  aria-keyshortcuts="Meta+S Control+S"
+                  title={`Save version (${modKey()} S)`}
+                >
+                  Save version
+                </Button>
+              )}
               <span className="hidden xl:inline-flex">
                 <IconButton
                   icon={panelOpen ? PanelRightClose : PanelRightOpen}
@@ -1081,7 +1118,10 @@ function Body({
           <div className="mt-4">
             {notice}
             {detail?.section.id === sectionId && (
-              <SummaryMissingNotice key={sectionId} bookId={bookId} sectionId={sectionId} checks={detail.checks} className="mb-4" />
+              <>
+                <SummaryMissingNotice key={sectionId} bookId={bookId} sectionId={sectionId} checks={detail.checks} className="mb-4" />
+                <TemplateRulesNotice checks={detail.checks} template={template} className="mb-4" />
+              </>
             )}
             {!ready ? (
               sectionQ.isError ? (
@@ -1092,6 +1132,10 @@ function Body({
             ) : (
               <EditorCanvas
                 section={{ ...section, blocks: shownBlocks }}
+                readOnly={!canWrite}
+                insertKinds={insertKinds}
+                onInsert={onInsert}
+                onRemoveBlock={onRemoveBlock}
                 label={`${look.name} interior`}
                 metaRight={metaRight}
                 look={look}
@@ -1171,6 +1215,7 @@ function Body({
           })()}
           canUndo={false}
           softenEditable
+          readOnly={!canWrite}
         />
       </div>
 
@@ -1202,6 +1247,7 @@ function Body({
       </Modal>
 
       <VersionDrawer
+        readOnly={!canWrite}
         open={drawer.open}
         onClose={() => setDrawer({ open: false, left: null })}
         sectionTitle={section.title}

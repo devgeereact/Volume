@@ -61,11 +61,16 @@ export function usesNewWord(t: BookType): boolean {
   return t.templateFile === "picture-book.json";
 }
 
-/** When automatic writing reaches each template (docs/01-product/PRODUCT-SPEC.md phases). Null means it is in v1. */
+/** Picture books skip research, titles and the blueprint: the story stage writes the title, story and scenes. */
+export function isPictureBook(t: BookType | undefined): boolean {
+  return t?.templateFile === "picture-book.json";
+}
+
+/** When automatic writing reaches each template (docs/01-product/PRODUCT-SPEC.md phases). Null means it works now. */
 export function writingArrives(t: BookType): string | null {
-  if (t.templateFile === "nonfiction.json") return null;
-  if (t.templateFile === "fiction.json" || t.templateFile === "workbook.json") return "phase 6";
-  if (t.templateFile === "picture-book.json") return "phase 7";
+  if (t.templateFile === "nonfiction.json" || t.templateFile === "fiction.json" || t.templateFile === "workbook.json") return null;
+  // Picture books (phase 7): the Writing step writes the story and paints every spread.
+  if (t.templateFile === "picture-book.json") return null;
   return "a later phase";
 }
 
@@ -73,6 +78,20 @@ export function writingArrives(t: BookType): string | null {
 export function unitLabel(t: BookType | undefined): string {
   const u = t?.structure.bodyUnit ?? "chapters";
   return u.charAt(0).toUpperCase() + u.slice(1);
+}
+
+/** Fiction narration tense (book settings `tense` on the server). */
+export type Tense = "past" | "present";
+export const tenseOptions: { value: Tense; label: string }[] = [
+  { value: "past", label: "Past tense" },
+  { value: "present", label: "Present tense" },
+];
+
+/** "Close third person, past tense" as a point of view and a tense. The tense defaults to past (fiction.json). */
+export function splitPov(text: string): { pov: string; tense: Tense } {
+  const tense: Tense = /\bpresent\b/i.test(text) ? "present" : "past";
+  const pov = text.replace(/[,;]?\s*(in\s+)?(the\s+)?(past|present)\s+tense\.?/i, "").trim();
+  return { pov, tense };
 }
 
 export const heatLabels: Record<string, string> = {
@@ -107,6 +126,7 @@ export interface Draft {
   coverStyle: string;
   takeaways: boolean;
   pov: string;
+  tense: Tense;
   heat: string;
   inSeries: boolean;
   seriesName: string;
@@ -116,6 +136,9 @@ export interface Draft {
   ageRange: string;
   newWord: boolean;
   newWordText: string;
+  /** Picture books: the gentle problem in the story (template storyRules.conflict) and its one message. */
+  problem: string;
+  message: string;
   exercises: string[];
   pages: string[];
   poemForm: string;
@@ -138,6 +161,7 @@ export const emptyDraft: Draft = {
   coverStyle: "",
   takeaways: true,
   pov: "",
+  tense: "past",
   heat: "none",
   inSeries: false,
   seriesName: "",
@@ -147,6 +171,8 @@ export const emptyDraft: Draft = {
   ageRange: "3 to 7",
   newWord: false,
   newWordText: "",
+  problem: "",
+  message: "kindness",
   exercises: ["Reflection", "Checklist", "Fill-in", "Tracker"],
   pages: ["Prompts", "Lined pages"],
   poemForm: "free",
@@ -170,7 +196,7 @@ export function applyType(d: Draft, t: BookType, p: AuthorProfile | undefined): 
     interiorTheme: own?.defaultInteriorTheme ?? t.defaultInteriorTheme,
     coverStyle: own?.defaultCoverStyle ?? t.defaultCoverStyle,
     takeaways: t.templateFile === "nonfiction.json",
-    pov: fiction && voice && p?.bookTypes.some((id) => getBookType(id)?.category === "fiction") ? voice.pov : fiction ? "Close third person, past tense" : "",
+    ...splitPov(fiction && voice && p?.bookTypes.some((id) => getBookType(id)?.category === "fiction") ? voice.pov : fiction ? "Close third person" : ""),
     heat: voice?.heatLevel ?? (romanceTypes.has(t.id) ? "sweet" : "none"),
     inSeries: false,
     twistPlan: usesClues(t) ? (voice?.planning?.twistPlan ?? true) : false,

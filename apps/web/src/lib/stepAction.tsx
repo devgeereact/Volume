@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCanWrite } from "./access";
 
 /** A book screen's main action, shown as the Next button in the StepFooter (D-016). */
 export interface StepAction {
@@ -39,9 +40,12 @@ export function useCurrentStepAction(): StepAction | null {
  * Pass null (or nothing) to keep the plain "Next: <step>" link. The footer then shows the only gilt
  * button, so remove the screen's own copy of that button. The click handler can change every render;
  * only label, link, estimate and disabled reason trigger an update. Outside a book it does nothing.
+ * A viewer (read-only role) never gets an action that runs something: the footer keeps its Next link.
  */
-export function useStepAction(action: StepAction | null | undefined): void {
+export function useStepAction(requested: StepAction | null | undefined): void {
   const setAction = useContext(SetActionContext);
+  const canWrite = useCanWrite();
+  const action = requested && (canWrite || (requested.to && !requested.onClick)) ? requested : null;
   const clickRef = useRef<(() => void) | undefined>(action?.onClick);
   useLayoutEffect(() => {
     clickRef.current = action?.onClick;

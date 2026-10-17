@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useCanWrite } from "../../lib/access";
 import { ArrowDown, RefreshCw, Sparkles } from "lucide-react";
 import {
   Banner,
@@ -48,6 +49,7 @@ const steps = ["Reading the research", "Writing 5 directions", "Writing 10 optio
 type Filter = "all" | "favourites" | "valid";
 
 function Titles({ book }: { book: Book }) {
+  const canWrite = useCanWrite();
   const hasData = book.id === "the-calm-ward";
   const titleSet = !["idea", "research", "title"].includes(book.stage);
   const [screen, setScreen] = useScreenState(hasData ? "ready" : "empty");
@@ -160,7 +162,7 @@ function Titles({ book }: { book: Book }) {
           title="Titles"
           summary="Five directions from the research, ten options to compare. Edit any of them."
           actions={
-            shown === "ready" && hasData ? (
+            canWrite && shown === "ready" && hasData ? (
               <Button icon={RefreshCw} estimate={about(RUN_COST)} onClick={() => setModalOpen(true)}>
                 Regenerate all
               </Button>
@@ -174,9 +176,11 @@ function Titles({ book }: { book: Book }) {
             title="Generate title options"
             body="The writer reads the research and your idea, then suggests 5 directions and 10 titles with subtitles. Each one is checked for length, spelling and banned phrases."
             action={
-              <Button icon={Sparkles} estimate={about(RUN_COST)} onClick={() => regenerateAll(model)}>
-                Generate titles
-              </Button>
+              canWrite ? (
+                <Button icon={Sparkles} estimate={about(RUN_COST)} onClick={() => regenerateAll(model)}>
+                  Generate titles
+                </Button>
+              ) : undefined
             }
           />
         )}

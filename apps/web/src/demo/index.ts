@@ -13,3 +13,4 @@ export * from "./marketing";
 export * from "./workspace";
 export * from "./config";
 export * from "./covers";
+export * from "./volume";

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useCanWrite } from "../../lib/access";
 import { RotateCcw } from "lucide-react";
 import { Banner, Button } from "../../components/ui";
 import { useRunSummary } from "../../api/hooks";
@@ -33,6 +34,7 @@ export function SummaryMissingNotice({
   className?: string;
 }) {
   const flag = openSummaryFlag(checks);
+  const canWrite = useCanWrite();
   const { jobs } = useBookJobsLive(bookId);
   const run = useRunSummary();
   const [jobId, setJobId] = useState<string | null>(null);
@@ -77,9 +79,11 @@ export function SummaryMissingNotice({
         tone="attention"
         title={running ? "Summarising this section" : "Summary missing"}
         action={
-          <Button size="sm" icon={RotateCcw} onClick={rerun} loading={running} loadingLabel="Summarising">
-            Run the summary again
-          </Button>
+          canWrite ? (
+            <Button size="sm" icon={RotateCcw} onClick={rerun} loading={running} loadingLabel="Summarising">
+              Run the summary again
+            </Button>
+          ) : undefined
         }
       >
         <p>{running ? "The text stays as it is. Only the summary and its story ledger entries are made again." : flag ? flagBody(flag.message) : FALLBACK}</p>

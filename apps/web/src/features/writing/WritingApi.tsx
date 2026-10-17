@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useCanWrite } from "../../lib/access";
 import { Check, CircleAlert, CircleStop, FileCog, Pause, Play, RotateCcw } from "lucide-react";
 import {
   Banner,
@@ -42,7 +43,9 @@ import { formatNumber, formatUsd } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
 import { useKeyChanged } from "../../lib/useKeyChanged";
+import { AcknowledgementsNotice } from "./AcknowledgementsNotice";
 import { SummaryMissingNotice } from "./SummaryMissingNotice";
+import { TemplateRulesNotice } from "./TemplateRulesNotice";
 
 /* Writing for a book on the server (API mode). Write book starts one job per section in order; the
    text streams in over the event stream and is saved section by section. Pause, resume and stop act on
@@ -66,6 +69,7 @@ function sectionName(s: ApiSection): string {
 }
 
 export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetail }) {
+  const canWrite = useCanWrite();
   const bookId = apiBook.id;
   const tree = useSectionTree(bookId);
   const live = useBookLive(bookId);
@@ -304,7 +308,7 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
                     </span>
                   </span>
                 </button>
-                {r.status === "failed" && (
+                {r.status === "failed" && canWrite && (
                   <Button size="sm" variant="ghost" icon={RotateCcw} onClick={() => setRetryFor(r.section)}>
                     Retry
                   </Button>
@@ -341,7 +345,7 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
               {jobState === "idle" && (rows.length > 0 ? "Not started. Write book writes every section in order." : "")}
             </p>
           </div>
-          {(jobState === "running" || jobState === "pausing" || jobState === "paused") && (
+          {canWrite && (jobState === "running" || jobState === "pausing" || jobState === "paused") && (
             <div className="flex flex-wrap gap-2">
               {(jobState === "running" || jobState === "pausing") && (
                 <Button icon={Pause} onClick={pause} disabledReason={jobState === "pausing" ? "Pausing after the current step." : undefined}>
@@ -387,7 +391,7 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
                 : `${failedRows.length === 1 ? "One section" : `${failedRows.length} sections`} did not finish`
             }
             action={
-              failedRows[0] ? (
+              failedRows[0] && canWrite ? (
                 <Button size="sm" icon={RotateCcw} onClick={() => failedRows[0] && setRetryFor(failedRows[0].section)}>
                   Retry {sectionName(failedRows[0].section).toLowerCase()}
                 </Button>
@@ -413,12 +417,13 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
             <SectionCanvas
               key={shown.section.id}
               bookId={bookId}
+              bookSettings={apiBook.settings}
               row={shown}
               delta={live.data.deltas[shown.section.id] ?? ""}
               following={follow && current?.section.id === shown.section.id}
               onFollow={() => setFollow(true)}
               canFollow={!!current && current.section.id !== shown.section.id}
-              onRetry={() => setRetryFor(shown.section)}
+              onRetry={canWrite ? () => setRetryFor(shown.section) : undefined}
             />
           )
         )}
@@ -628,6 +633,20 @@ function Blocks({ blocks, live }: { blocks: TextBlock[]; live: boolean }) {
               {caret}
             </h3>
           );
+        if (b.kind === "scene")
+          return (
+            <p key={i} role="separator" aria-label="Scene break" className="text-center tracking-[0.6em] text-ink-secondary">
+              {b.text}
+              {caret}
+            </p>
+          );
+        if (b.kind === "note")
+          return (
+            <p key={i} className="font-ui text-small text-ink-tertiary">
+              {b.text}
+              {caret}
+            </p>
+          );
         if (b.kind === "li")
           return (
             <p key={i} className="border-l-2 border-border-strong pl-3">
@@ -648,6 +667,7 @@ function Blocks({ blocks, live }: { blocks: TextBlock[]; live: boolean }) {
 
 function SectionCanvas({
   bookId,
+  bookSettings,
   row,
   delta,
   following,
@@ -656,12 +676,13 @@ function SectionCanvas({
   onRetry,
 }: {
   bookId: string;
+  bookSettings: Record<string, unknown>;
   row: Row;
   delta: string;
   following: boolean;
   canFollow: boolean;
   onFollow: () => void;
-  onRetry: () => void;
+  onRetry: (() => void) | undefined;
 }) {
   const s = row.section;
   const streaming = delta.length > 0 && (row.status === "writing" || row.status === "checking" || row.status === "paused" || row.status === "stopped");
@@ -693,7 +714,13 @@ function SectionCanvas({
         )}
       </div>
       {!streaming && row.status !== "writing" && row.status !== "checking" && (
-        <SummaryMissingNotice bookId={bookId} sectionId={s.id} checks={detail.data?.checks} className="mb-5" />
+        <>
+          <SummaryMissingNotice bookId={bookId} sectionId={s.id} checks={detail.data?.checks} className="mb-5" />
+          <TemplateRulesNotice checks={detail.data?.checks} className="mb-5" />
+          {s.kind === "acknowledgements" && (
+            <AcknowledgementsNotice bookId={bookId} sectionId={s.id} settings={bookSettings} versionSource={detail.data?.current?.source} className="mb-5" />
+          )}
+        </>
       )}
       {row.flags.length > 0 && row.status !== "writing" && (
         <div className="mb-5 grid gap-1 rounded-md bg-accent-wash px-4 py-3 text-small text-accent-text">
@@ -712,11 +739,13 @@ function SectionCanvas({
       {row.status === "failed" ? (
         <div className="grid gap-3">
           <p className="text-body text-ink">{row.job?.error ?? "The writer stopped on this section."}</p>
-          <div>
-            <Button icon={RotateCcw} onClick={onRetry}>
-              Retry {sectionName(s).toLowerCase()}
-            </Button>
-          </div>
+          {onRetry && (
+            <div>
+              <Button icon={RotateCcw} onClick={onRetry}>
+                Retry {sectionName(s).toLowerCase()}
+              </Button>
+            </div>
+          )}
         </div>
       ) : blocks.length > 0 ? (
         <Blocks blocks={blocks} live={streaming && row.status === "writing"} />

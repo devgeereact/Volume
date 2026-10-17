@@ -13,6 +13,7 @@ The typed client layer between the screens and the Volume server (`apps/server`,
 | `events.ts` | `useBookEvents(bookId)`, `useWorkspaceEvents()`, `useBookLive(bookId)` and `applyBookEvent()`: SSE into the query cache, with reconnect and replay. |
 | `adapters.ts` | Server shapes to prototype shapes (`toPrototypeBook`, `toPenName`, `blueprintData`, `toSectionStatus` and others). |
 | `wire-a.ts`, `wire-b.ts`, `wire-c.ts` | Screen glue only, no endpoint calls: API or demo mode, plain error words, pen names and books for the current mode, the job bar, step jobs with live progress, writing row states, editor blocks, job watching. A serves the shell, Library, Published, Archive, Profiles, Settings and New book; B Research, Titles, Blueprint and Writing; C Editor, Cover, Export and Marketing. |
+| `volume.ts`, `wire-d.ts` | Volume mode (phase 8): `/me`, members and invitations, batches, gates and the title schedule; `wire-d.ts` adds the caller's role (`useVolumeMe`, `canWrite`, `membersVisible`) and the members list in both modes. Demo mode takes `?role=editor` or `?role=viewer`. Batch progress arrives through `applyVolumeEvent` on the workspace stream. |
 | `source.ts` | `useDataSource()`: `"api"` when `GET /api/v1/health` answers, `"mock"` otherwise. Rechecks every 30 seconds. |
 | `queryClient.ts` | The app's one `QueryClient` (4xx and network errors are not retried). `main.tsx` wraps the app in its provider. |
 | `index.ts` | Re-exports everything above. |
@@ -55,6 +56,7 @@ const book = source === "api" && data ? toPrototypeBook(data) : getBook(bookId);
 | Export (`export/`) | `usePreflight`, `useExports`, `useStartExports`; files via `productionApi.exportDownloadUrl(id)`; royalties from `listPrices` and the print PDF page count with `@volume/core` | `toPreflightItem` |
 | Marketing (`marketing/`) | `useMarketing`, `useGenerateMarketing`, `usePatchMarketing`, `useMarketingStatus`, `useRememberJob`; `productionApi.regenerateMarketing` | |
 | Settings (`settings/`) | `useSettings`, `usePatchSettings` (budgets, `book.defaults`, backups), `useModelSettings`, `usePutModelSettings`, `useHealth`, `useTestOpenRouter`, `useBackups`, `useMakeBackup`, `useImportProject` | |
+| Volume mode (`volume-mode/`) | `useBatches`, `useBatch`, `useBatchGates`, `useCreateBatch`, `usePatchBatch`, `useDeleteBatch`, `useStartBatch`, `useMarkBatchItemReady`, `useSchedule`, `useAddSlot`, `useConfirmSlot`, `useRemoveSlot`, `useMe`; members in Settings through `useMembers`, `useInvite`, `useRevokeInvitation`, `useSetMemberRole`, `useRemoveMember` | |
 | Archive (`archive/`) | `useArchive`, `useRestoreArchived`, `useDeleteArchived`; project zip via `booksApi.exportProject` | |
 
 ## Gaps: server shapes that do not fill a prototype field

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useCanWrite } from "../../lib/access";
 import { Archive, Check, Copy, PenLine, RotateCcw, RotateCw, ShieldCheck, X } from "lucide-react";
 import {
   Banner,
@@ -90,6 +91,7 @@ function toItem(i: ApiMarketingItem): MarketingItem | null {
 }
 
 export function ApiMarketing({ book }: { book: Book }) {
+  const canWrite = useCanWrite();
   const bookId = book.id;
   const toast = useToast();
   const listQ = useMarketing(bookId, { includeArchived: true });
@@ -261,9 +263,11 @@ export function ApiMarketing({ book }: { book: Book }) {
                           </p>
                           <p className="mt-1 font-book text-prose-sm text-ink">{item ? headline(item) : a.body}</p>
                         </div>
-                        <Button size="sm" icon={RotateCcw} onClick={() => void restore(a.id)}>
-                          Restore
-                        </Button>
+                        {canWrite && (
+                          <Button size="sm" icon={RotateCcw} onClick={() => void restore(a.id)}>
+                            Restore
+                          </Button>
+                        )}
                       </Card>
                     </li>
                   );
@@ -338,33 +342,37 @@ export function ApiMarketing({ book }: { book: Book }) {
                               <Button size="sm" icon={Copy} onClick={() => void copy(itemText(item, subjectIndex(item)), kindLabel[item.kind])}>
                                 Copy
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                icon={RotateCw}
-                                estimate="about $0.01"
-                                loading={regen?.itemId === item.data.id}
-                                loadingLabel="Regenerating"
-                                disabledReason={regen && regen.itemId !== item.data.id ? "Another item is being written again." : undefined}
-                                onClick={() => void regenerate(item.data.id)}
-                              >
-                                Regenerate
-                              </Button>
-                              <Button size="sm" variant="ghost" icon={PenLine} onClick={() => setEditing(item.data.id)}>
-                                Edit
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                icon={Check}
-                                aria-pressed={item.status === "used"}
-                                onClick={() => void save(item.data.id, { status: item.status === "used" ? "draft" : "used" })}
-                              >
-                                {item.status === "used" ? "Mark as draft" : "Mark as used"}
-                              </Button>
-                              <Button size="sm" variant="ghost" icon={Archive} className="sm:ml-auto" onClick={() => void archive(item)}>
-                                Archive
-                              </Button>
+                              {canWrite && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon={RotateCw}
+                                    estimate="about $0.01"
+                                    loading={regen?.itemId === item.data.id}
+                                    loadingLabel="Regenerating"
+                                    disabledReason={regen && regen.itemId !== item.data.id ? "Another item is being written again." : undefined}
+                                    onClick={() => void regenerate(item.data.id)}
+                                  >
+                                    Regenerate
+                                  </Button>
+                                  <Button size="sm" variant="ghost" icon={PenLine} onClick={() => setEditing(item.data.id)}>
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon={Check}
+                                    aria-pressed={item.status === "used"}
+                                    onClick={() => void save(item.data.id, { status: item.status === "used" ? "draft" : "used" })}
+                                  >
+                                    {item.status === "used" ? "Mark as draft" : "Mark as used"}
+                                  </Button>
+                                  <Button size="sm" variant="ghost" icon={Archive} className="sm:ml-auto" onClick={() => void archive(item)}>
+                                    Archive
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </article>
                         )}

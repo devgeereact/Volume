@@ -9,6 +9,7 @@
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
     "screenshot": "node scripts/screenshot.mjs",
     "smoke": "node scripts/smoke.mjs"
   },

@@ -5,6 +5,25 @@ import { cn } from "../../lib/cn";
 import { fadeOnly, popover } from "../../lib/motion";
 import { FieldShell, describedBy, fieldBoxClasses } from "./FieldShell";
 
+/**
+ * Classes of the open list. It is capped at 320 px, or less on a short screen, and scrolls, so every option can be
+ * reached with the mouse when there are many (a Volume mode plan lists every book).
+ */
+export const selectListClasses =
+  "absolute top-full right-0 left-0 z-40 mt-1.5 grid max-h-[min(320px,50dvh)] gap-0.5 overflow-y-auto overscroll-contain rounded-md border border-border bg-raised p-1.5 shadow-pop outline-none";
+
+/**
+ * The scrollTop that brings the active option fully into view inside the list, moving as little as possible
+ * (keyboard moves past the visible edge scroll the list). Offsets are relative to the list's content.
+ */
+export function scrollTopForOption(list: { scrollTop: number; clientHeight: number }, option: { offsetTop: number; offsetHeight: number }): number {
+  const top = option.offsetTop;
+  const bottom = top + option.offsetHeight;
+  if (top < list.scrollTop) return top;
+  if (bottom > list.scrollTop + list.clientHeight) return bottom - list.clientHeight;
+  return list.scrollTop;
+}
+
 export interface SelectOption {
   value: string;
   label: string;
@@ -92,6 +111,16 @@ export function Select({
     });
     return () => cancelAnimationFrame(frame);
   }, [open, options.length]);
+
+  // Keep the active option in view as the arrow keys, Home and End move it.
+  useEffect(() => {
+    if (!open) return;
+    const list = listRef.current;
+    const opt = list?.querySelector<HTMLElement>(`[data-index="${active}"]`);
+    if (!list || !opt) return;
+    const next = scrollTopForOption(list, opt);
+    if (next !== list.scrollTop) list.scrollTop = next;
+  }, [open, active]);
 
   useEffect(() => {
     if (!open) return;
@@ -182,7 +211,7 @@ export function Select({
               initial={preset.initial}
               animate={preset.animate}
               exit={preset.exit}
-              className="absolute top-full right-0 left-0 z-40 mt-1.5 grid gap-0.5 rounded-md border border-border bg-raised p-1.5 shadow-pop outline-none"
+              className={selectListClasses}
             >
               {options.map((o, i) => {
                 const isSelected = o.value === value;
@@ -190,6 +219,7 @@ export function Select({
                   <li
                     key={o.value}
                     id={`${id}-opt-${i}`}
+                    data-index={i}
                     role="option"
                     aria-selected={isSelected}
                     onPointerMove={() => setActive(i)}

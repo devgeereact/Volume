@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Modal, Skeleton, type ChapterSegment } from "../../components/ui";
 import { NotFound } from "../../shell/NotFound";
 import { useBook } from "../../lib/useBook";
@@ -19,6 +19,9 @@ import { useKeyChanged } from "../../lib/useKeyChanged";
 /* Writing (docs/03-design/UX-SPEC.md, M7). Handover is the demo's one live job: it reads useWritingJob, so
    pausing here pauses the job bar and the Library too. Other books show the idle, ready or finished state. */
 
+// Picture books have their own Writing step (story, character sheet, spreads board), in its own chunk with the KDP maths.
+const PictureBookPage = lazy(() => import("../spreads/PictureBookPage"));
+
 type RetryPhase = "rewriting" | "checking" | "done";
 const RETRY_WRITE_MS = 2600;
 const RETRY_CHECK_MS = 1400;
@@ -28,6 +31,12 @@ export default function WritingPage() {
   const { state, retry } = useScreenState();
   const jobCtx = useWritingJob();
   if (!book) return <NotFound what="book" />;
+  if (book.template === "picture-book")
+    return (
+      <Suspense fallback={<WritingSkeleton />}>
+        <PictureBookPage book={book} apiBook={apiBook} />
+      </Suspense>
+    );
   if (apiBook) return <WritingApi key={book.id} book={book} apiBook={apiBook} />;
   if (state === "loading") return <WritingSkeleton />;
   if (state === "error")

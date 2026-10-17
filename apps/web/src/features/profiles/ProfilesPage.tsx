@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router";
+import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
 import { ChevronRight, Plus, UserRound } from "lucide-react";
 import { Banner, Button, Cover, EmptyState, PageHeader, Skeleton, StatusChip } from "../../components/ui";
 import { useMemo } from "react";
@@ -114,6 +115,7 @@ function ProfilesSkeleton() {
  */
 export default function ProfilesPage() {
   const navigate = useNavigate();
+  const canWrite = useCanWrite();
   const demo = useDemoState();
   const mode = useWireMode();
   const api = mode === "api";
@@ -132,11 +134,11 @@ export default function ProfilesPage() {
   const realCount = list.filter((p) => p.realPerson).length;
   const penCount = list.length - realCount;
 
-  const add = (
+  const add = canWrite ? (
     <Button variant="primary" icon={Plus} onClick={() => void navigate("/profiles/new")}>
       Add profile
     </Button>
-  );
+  ) : undefined;
 
   const ready = state === "ready" && list.length > 0;
 
@@ -151,6 +153,7 @@ export default function ProfilesPage() {
         }
         actions={add}
       />
+      <ReadOnlyBanner />
       {state === "loading" && <ProfilesSkeleton />}
       {state === "error" && (
         <Banner

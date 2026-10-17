@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
 import { Link } from "react-router";
 import { Banner, Button, buttonClasses, Cover, EmptyState, FilterField, PageHeader, Skeleton } from "../../components/ui";
 import type { ApiBook, ApiListPrices } from "../../api/types";
@@ -40,6 +41,7 @@ function ShelfBook({
   onSaved?: ((m: string) => void) | undefined;
 }) {
   const [editing, setEditing] = useState(false);
+  const canWrite = useCanWrite();
   const pen = getPenName(book.penNameId);
   const type = getBookType(book.bookTypeId);
   const pub = book.published;
@@ -116,7 +118,7 @@ function ShelfBook({
           <Link to={bookStepPath(book.id, "marketing")} className={buttonClasses("ghost", "sm")}>
             Marketing
           </Link>
-          {server && (
+          {server && canWrite && (
             <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
               Set prices<span className="sr-only"> for {book.title}</span>
             </Button>
@@ -201,6 +203,7 @@ export default function PublishedPage() {
           ) : undefined
         }
       />
+      <ReadOnlyBanner />
       {state === "ready" && all.length > 0 && (
         <p className="mt-2 text-small text-ink-tertiary">
           {mode === "api" && formats === 0

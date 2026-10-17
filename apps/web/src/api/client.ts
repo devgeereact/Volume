@@ -52,6 +52,10 @@ export type ApiErrorCode =
   | "model_unavailable"
   | "provider_error"
   | "invalid_state"
+  /** Volume mode: a release slot over KDP's title limit (details: TitleLimitDetails). */
+  | "title_limit"
+  /** Volume mode: the book has a preflight block or an open claim (details: QualityGate). */
+  | "quality_gate"
   | "internal_error"
   /** The server could not be reached (stopped, wrong port, proxy down). */
   | "network_error"

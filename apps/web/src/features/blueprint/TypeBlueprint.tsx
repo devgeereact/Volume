@@ -1,9 +1,14 @@
-import type { ReactNode } from "react";
-import { Lock, Sparkles } from "lucide-react";
-import { Button, EmptyState, GalleySheet, PageHeader } from "../../components/ui";
+import { useCallback, useState, type ReactNode } from "react";
+import { Lock, Pencil, Sparkles } from "lucide-react";
+import { Banner, Button, EmptyState, GalleySheet, IconButton, PageHeader } from "../../components/ui";
 import { getBookType, getCoverStyle, getInteriorTheme, getPenName, type Book, type BookType } from "../../demo";
 import { formatNumber } from "../../lib/format";
 import { about } from "../research/sim";
+import { ninthLockBible, ninthLockLedger, ninthLockSections } from "../../demo/story";
+import type { StoryBible as StoryBibleData } from "../../api/types";
+import { useCanWrite } from "../../lib/access";
+import { splitPov } from "../new-book/wizardData";
+import { StoryBibleEditor, StoryBibleView, StoryLedgerPanel } from "./StoryBible";
 
 /* Blueprint for any book other than The Calm Ward, drawn from the book type in config/book-types.json
    and the profile in config/profiles/. It shows what the plan holds for that kind of book (fiction,
@@ -46,8 +51,16 @@ const categoryWord: Record<BookType["category"], string> = {
   "workbooks-journals": "Workbooks and journals",
 };
 
+/** Demo story bibles by book id (fiction books past the blueprint). */
+const demoBibles: Record<string, StoryBibleData> = { "the-ninth-lock": ninthLockBible };
+
 export function TypeBlueprint({ book }: { book: Book }) {
   const type = getBookType(book.bookTypeId);
+  const canWrite = useCanWrite();
+  const [bible, setBible] = useState<StoryBibleData | null>(demoBibles[book.id] ?? null);
+  const [bibleOpen, setBibleOpen] = useState(false);
+  const [bibleSaved, setBibleSaved] = useState(false);
+  const sectionName = useCallback((id: string) => ninthLockSections[id] ?? null, []);
   const pen = getPenName(book.penNameId);
   const profile = pen?.profile;
   const theme = getInteriorTheme(book.interiorThemeId);
@@ -122,6 +135,18 @@ export function TypeBlueprint({ book }: { book: Book }) {
         }
       />
 
+      {bibleSaved && (
+        <Banner
+          tone="success"
+          title="Story bible saved as a new draft version."
+          action={
+            <Button size="sm" variant="ghost" onClick={() => setBibleSaved(false)}>
+              Dismiss
+            </Button>
+          }
+        />
+      )}
+
       <GalleySheet className="sm:px-8! sm:py-8! lg:px-10!" label={`Blueprint for ${book.title}`} metaLeft={meta} metaRight={`${type.name}, ${units} ${unit}`}>
         <div className="mt-6 grid gap-8 @container">
           <header className="max-w-[72ch]">
@@ -130,6 +155,16 @@ export function TypeBlueprint({ book }: { book: Book }) {
             <p className="mt-3 font-book text-[17px] text-ink-secondary">{pen?.name}</p>
             <p className="mt-5 font-book text-prose-sm text-ink">{type.description}</p>
           </header>
+
+          {bible && !before && (
+            <section className="grid content-start gap-3">
+              <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
+                <h2 className="text-small font-semibold text-ink-secondary">Story bible</h2>
+                {canWrite && <IconButton icon={Pencil} size="sm" label="Edit story bible" onClick={() => setBibleOpen(true)} />}
+              </div>
+              <StoryBibleView bible={bible} pov={splitPov(voice?.pov ?? "").pov || null} tense={splitPov(voice?.pov ?? "").tense} />
+            </section>
+          )}
 
           <div className="grid gap-8 @min-[760px]:grid-cols-2">
             <Block title="Shape">
@@ -186,6 +221,25 @@ export function TypeBlueprint({ book }: { book: Book }) {
           </div>
         </div>
       </GalleySheet>
+
+      {bible && !before && (
+        <StoryLedgerPanel state="ready" items={book.id === "the-ninth-lock" ? ninthLockLedger : []} bible={bible} sectionName={sectionName} />
+      )}
+
+      {bible && (
+        <StoryBibleEditor
+          open={bibleOpen}
+          initial={bible}
+          description="Demo mode: the change stays on this page until you reload."
+          saving={false}
+          onClose={() => setBibleOpen(false)}
+          onSave={(next) => {
+            setBible(next);
+            setBibleOpen(false);
+            setBibleSaved(true);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -10,6 +10,8 @@ export { manuscriptApi } from "./manuscript";
 export { productionApi } from "./production";
 export { jobsApi } from "./jobs";
 export { assetsApi } from "./assets";
+export { volumeApi } from "./volume";
+export * from "./picture";
 export * from "./hooks";
 export * from "./events";
 export * from "./source";

@@ -1,4 +1,5 @@
 import { ImportManuscriptDialog } from "./ImportManuscriptDialog";
+import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { LayoutGrid, Plus, Rows3 } from "lucide-react";
@@ -56,6 +57,7 @@ function LibrarySkeleton() {
  */
 export default function LibraryPage() {
   const navigate = useNavigate();
+  const canWrite = useCanWrite();
   const demo = useDemoState();
   const mode = useWireMode();
   const api = mode === "api";
@@ -121,7 +123,7 @@ export default function LibraryPage() {
       ? undefined
       : `${byPen.length} ${byPen.length === 1 ? "book" : "books"}${liveInView ? (paused ? ", one paused" : ", one writing now") : ""}`;
 
-  const newBook = (
+  const newBook = !canWrite ? null : (
     <div className="flex flex-wrap gap-2">
       {mode === "api" && (
         <Button variant="secondary" onClick={() => setImportOpen(true)}>
@@ -159,7 +161,7 @@ export default function LibraryPage() {
           body="Start one from an idea or a working title, or show every profile."
           action={
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => void navigate("/books/new")}>New book for {pen?.name ?? "this profile"}</Button>
+              {canWrite && <Button onClick={() => void navigate("/books/new")}>New book for {pen?.name ?? "this profile"}</Button>}
               <Button variant="ghost" onClick={() => setPenId(null)}>
                 Show all profiles
               </Button>
@@ -220,6 +222,7 @@ export default function LibraryPage() {
           </>
         }
       />
+      <ReadOnlyBanner />
 
       {state === "ready" && liveInView && <LivePanel />}
 

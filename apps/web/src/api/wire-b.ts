@@ -295,17 +295,38 @@ export const writeStatusWords: Record<WriteRowStatus, string> = {
   stopped: "Stopped",
 };
 
-/** Markdown from the writer as simple blocks for reading (headings, lists and paragraphs). */
-export type TextBlock = { kind: "h1" | "h2" | "h3" | "p" | "li"; text: string };
+/** Markdown from the writer as simple blocks for reading (headings, lists, paragraphs, scene breaks and workbook blocks). */
+export type TextBlock = { kind: "h1" | "h2" | "h3" | "p" | "li" | "scene" | "note"; text: string };
+
+const EXERCISE_OPEN = /^:::\s+exercise\s+(\S+)(?:\s+(.+))?$/i;
+const LINES_OPEN = /^:::\s+lines\s+(\d+)$/i;
+const FILL_OPEN = /^:::\s+fill-in(?:\s+page)?$/i;
 
 export function markdownBlocks(md: string): TextBlock[] {
   const out: TextBlock[] = [];
   for (const raw of md.split(/\n{2,}/)) {
     const block = raw.trim();
     if (!block) continue;
-    const lines = block.split("\n");
+    if (/^\*(?:\s*\*){2}$/.test(block)) {
+      out.push({ kind: "scene", text: "* * *" });
+      continue;
+    }
+    // Workbook fences read as labels: the exercise name, the ruled lines, the prompts; closing fences drop out.
+    const lines: string[] = [];
+    for (const l of block.split("\n")) {
+      const t = l.trim();
+      const ex = EXERCISE_OPEN.exec(t);
+      const ln = LINES_OPEN.exec(t);
+      if (ex) {
+        const kind = (ex[1] ?? "").toLowerCase();
+        out.push({ kind: "h3", text: `${kind.charAt(0).toUpperCase()}${kind.slice(1)} exercise${ex[2] ? `: ${ex[2].trim()}` : ""}` });
+      } else if (ln) out.push({ kind: "note", text: `${ln[1]} lines to write on` });
+      else if (t === ":::" || FILL_OPEN.test(t)) continue;
+      else lines.push(l);
+    }
+    if (lines.length === 0) continue;
     if (lines.every((l) => /^\s*[-*]\s+/.test(l))) {
-      for (const l of lines) out.push({ kind: "li", text: l.replace(/^\s*[-*]\s+/, "") });
+      for (const l of lines) out.push({ kind: "li", text: l.replace(/^\s*[-*]\s+(\[[ xX]\]\s+)?/, "") });
       continue;
     }
     const h = /^(#{1,6})\s+(.*)$/.exec(lines[0] ?? "");

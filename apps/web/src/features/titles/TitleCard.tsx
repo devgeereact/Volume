@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCanWrite } from "../../lib/access";
 import { Check, CircleAlert, Flag, Pencil, Star } from "lucide-react";
 import { Button, IconButton, Input } from "../../components/ui";
 import { TITLE_SUBTITLE_MAX, titleLength, type TitleOption } from "../../demo";
@@ -36,6 +37,7 @@ export function CharCounter({ length, className }: { length: number; className?:
 
 /** One title option: title and subtitle, counter, checks, favourite, inline edit and choose. */
 export function TitleCard({ option, directionName, favourite, onFavourite, onChoose, onSave, fresh }: TitleCardProps) {
+  const canWrite = useCanWrite();
   const [editing, setEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState(option.title);
   const [draftSubtitle, setDraftSubtitle] = useState(option.subtitle);
@@ -88,8 +90,12 @@ export function TitleCard({ option, directionName, favourite, onFavourite, onCho
         {/* The direction is the group heading above the card; screen readers still hear it here. */}
         <p className="sr-only">{directionName}</p>
         <div className="flex gap-1">
-          <IconButton icon={Star} size="sm" label={favourite ? "Remove from favourites" : "Add to favourites"} pressed={favourite} onClick={onFavourite} />
-          <IconButton ref={editRef} icon={Pencil} size="sm" label="Edit title" pressed={editing} onClick={() => (editing ? close() : open())} />
+          {canWrite && (
+            <>
+              <IconButton icon={Star} size="sm" label={favourite ? "Remove from favourites" : "Add to favourites"} pressed={favourite} onClick={onFavourite} />
+              <IconButton ref={editRef} icon={Pencil} size="sm" label="Edit title" pressed={editing} onClick={() => (editing ? close() : open())} />
+            </>
+          )}
         </div>
       </div>
 
@@ -153,11 +159,11 @@ export function TitleCard({ option, directionName, favourite, onFavourite, onCho
               <p className="flex h-8 items-center gap-1.5 text-label font-semibold text-select">
                 <Check size={16} strokeWidth={2} aria-hidden /> Chosen title
               </p>
-            ) : (
+            ) : canWrite ? (
               <Button size="sm" onClick={onChoose} disabledReason={invalid ? "Fix this option before you choose it." : undefined}>
                 Use this title
               </Button>
-            )}
+            ) : null}
           </div>
         </>
       )}

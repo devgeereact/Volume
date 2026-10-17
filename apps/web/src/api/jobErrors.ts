@@ -4,6 +4,8 @@
 
 const PLAIN_BY_CODE: Readonly<Record<string, string>> = {
   ai_credits: "OpenRouter has no credit left. Top up at openrouter.ai, then retry.",
+  guest_ai_disabled:
+    "AI runs are not switched on for this workspace. The owner of this Volume sets a monthly cap for other workspaces in Settings. Ask them to set one, then retry.",
   output_truncated:
     "The AI's answer was cut off before it finished, so it was not used. Raise max tokens for this step in Settings, or pick another model, then retry.",
 };

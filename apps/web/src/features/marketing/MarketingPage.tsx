@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useCanWrite } from "../../lib/access";
 import { Archive, Check, Copy, RotateCcw, RotateCw, ShieldCheck, Sparkles } from "lucide-react";
 import { Button, Card, EmptyState, Inspector, InspectorSection, PageHeader, Skeleton, StatusChip, Tabs, tabPanelProps } from "../../components/ui";
 import { Link } from "react-router";
@@ -113,6 +114,7 @@ function NotYet({ book }: { book: Book }) {
 }
 
 function MarketingBody({ book, empty }: { book: Book; empty: boolean }) {
+  const canWrite = useCanWrite();
   const toast = useToast();
   const [items, setItems] = useState<MarketingItem[]>(() => (empty ? [] : initialItems(book)));
   const [archive, setArchive] = useState<ArchivedItem[]>(() => (empty ? [] : initialArchive(book)));
@@ -231,9 +233,11 @@ function MarketingBody({ book, empty }: { book: Book; empty: boolean }) {
                         </p>
                         <p className="mt-1 font-book text-prose-sm text-ink">{headline(a.item)}</p>
                       </div>
-                      <Button size="sm" icon={RotateCcw} onClick={() => restore(a.item.data.id)}>
-                        Restore
-                      </Button>
+                      {canWrite && (
+                        <Button size="sm" icon={RotateCcw} onClick={() => restore(a.item.data.id)}>
+                          Restore
+                        </Button>
+                      )}
                     </Card>
                   </li>
                 ))}
@@ -321,6 +325,7 @@ interface ItemCardProps {
 }
 
 function ItemCard({ item, selected, busy, subjectIndex, onSubject, onSelect, onCopy, onRegenerate, onArchive, onToggleUsed }: ItemCardProps) {
+  const canWrite = useCanWrite();
   return (
     <article
       aria-label={`${kindLabel[item.kind]}: ${headline(item)}`}
@@ -350,15 +355,19 @@ function ItemCard({ item, selected, busy, subjectIndex, onSubject, onSelect, onC
         <Button size="sm" icon={Copy} onClick={onCopy} disabled={busy}>
           Copy
         </Button>
-        <Button size="sm" variant="ghost" icon={RotateCw} estimate="about $0.01" loading={busy} loadingLabel="Regenerating" onClick={onRegenerate}>
-          Regenerate
-        </Button>
-        <Button size="sm" variant="ghost" icon={Check} onClick={onToggleUsed} disabled={busy} aria-pressed={item.status === "used"}>
-          {item.status === "used" ? "Mark as draft" : "Mark as used"}
-        </Button>
-        <Button size="sm" variant="ghost" icon={Archive} onClick={onArchive} disabled={busy} className="sm:ml-auto">
-          Archive
-        </Button>
+        {canWrite && (
+          <>
+            <Button size="sm" variant="ghost" icon={RotateCw} estimate="about $0.01" loading={busy} loadingLabel="Regenerating" onClick={onRegenerate}>
+              Regenerate
+            </Button>
+            <Button size="sm" variant="ghost" icon={Check} onClick={onToggleUsed} disabled={busy} aria-pressed={item.status === "used"}>
+              {item.status === "used" ? "Mark as draft" : "Mark as used"}
+            </Button>
+            <Button size="sm" variant="ghost" icon={Archive} onClick={onArchive} disabled={busy} className="sm:ml-auto">
+              Archive
+            </Button>
+          </>
+        )}
       </div>
     </article>
   );

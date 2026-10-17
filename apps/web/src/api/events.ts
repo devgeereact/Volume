@@ -17,6 +17,8 @@ import { plainJobError } from "./jobErrors";
 import {
   BOOK_EVENT_TYPES,
   isTerminalJob,
+  type ApiBatchDetail,
+  type ApiBatchSummary,
   type ApiBookDetail,
   type ApiJobDetail,
   type BookEvent,
@@ -106,6 +108,14 @@ function keysForJobKind(bookId: string, kind: string | null): QueryKey[] {
       return [b.exports(bookId)];
     case "marketing":
       return [b.marketingAll(bookId)];
+    // Picture books: the run and its steps change the spreads, the character sheets and the spend.
+    case "picture_book":
+    case "picture_story":
+    case "picture_characters":
+    case "spread_image":
+      return [b.spreads(bookId), b.characters(bookId), b.costs(bookId), b.preflight(bookId)];
+    case "picture_export":
+      return [b.exports(bookId), b.spreads(bookId)];
     default:
       return [];
   }
@@ -225,10 +235,60 @@ export function applyBookEvent(qc: QueryClient, bookId: string, ev: BookEvent): 
       if (d.part === "titles") keys.push(b.titleSets(bookId));
       if (d.part === "blueprint") keys.push(b.blueprint(bookId), b.sections(bookId));
       if (d.part === "marketing") keys.push(b.marketingAll(bookId));
+      if (d.part === "spreads") keys.push(b.spreads(bookId));
+      if (d.part === "characters") keys.push(b.characters(bookId));
       if (d.part === "suggestions" && typeof d["sectionId"] === "string") keys.push(queryKeys.section.suggestionsAll(d["sectionId"]));
       inv(qc, keys);
       return;
     }
+  }
+}
+
+/* ---------- Volume mode batches ---------- */
+
+const BATCH_JOB_KINDS = new Set(["batch_run", "batch_book"]);
+
+/** Writes a batch job's progress (and status) into every cached batch list and detail that shows it. */
+function patchBatchJob(qc: QueryClient, jobId: string, progress: number, status: JobStatus | null): void {
+  qc.setQueriesData<ApiBatchDetail>({ queryKey: ["volume", "batches", "detail"] }, (old) => {
+    if (!old || typeof old !== "object" || !Array.isArray(old.items)) return old;
+    let changed = false;
+    const next: ApiBatchDetail = { ...old };
+    if (old.jobId === jobId) {
+      changed = true;
+      next.progress = progress;
+      if (status) next.status = status;
+    }
+    next.items = old.items.map((i) => {
+      if (i.jobId !== jobId) return i;
+      changed = true;
+      const run = i.run ?? { status: status ?? "running", progress: 0, error: null };
+      return { ...i, run: { ...run, progress, status: status ?? run.status } };
+    });
+    return changed ? next : old;
+  });
+  qc.setQueriesData<ApiBatchSummary[]>({ queryKey: ["volume", "batches", "list"] }, (old) =>
+    Array.isArray(old) ? old.map((b) => (b.jobId === jobId ? { ...b, progress, status: status ?? b.status } : b)) : old,
+  );
+}
+
+/**
+ * Applies one workspace event to the Volume mode caches: batch_run and batch_book progress goes straight into the
+ * cached batches (live progress without a refetch), and a status change refetches them so items, gates and slots
+ * arrive with it. Exported for tests and for any screen that opens its own stream.
+ */
+export function applyVolumeEvent(qc: QueryClient, ev: BookEvent): void {
+  if (ev.type === "job.status") {
+    const d = ev.data;
+    if (!BATCH_JOB_KINDS.has(d.kind)) return;
+    patchBatchJob(qc, d.jobId, d.progress, d.status);
+    void qc.invalidateQueries({ queryKey: ["volume", "batches"] });
+    return;
+  }
+  if (ev.type === "job.progress") {
+    const d = ev.data;
+    if (d.kind !== undefined && !BATCH_JOB_KINDS.has(d.kind)) return;
+    patchBatchJob(qc, d.jobId, d.progress, null);
   }
 }
 
@@ -352,9 +412,13 @@ export function useWorkspaceEvents(options: { enabled?: boolean } = {}): StreamS
     (options.enabled ?? true) ? "/events" : null,
     {},
     (ev) => {
+      applyVolumeEvent(qc, ev);
       if (ev.projectId) applyBookEvent(qc, ev.projectId, ev);
     },
-    () => void qc.invalidateQueries({ queryKey: queryKeys.books.all }),
+    () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.books.all });
+      void qc.invalidateQueries({ queryKey: queryKeys.volume.batchesAll });
+    },
   );
 }
 

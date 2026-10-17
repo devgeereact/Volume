@@ -29,6 +29,8 @@ import { countWords, expandNote, findIssues, findRanges, findRegex, weaveNote, t
 import { makeSuggestions, newId, useManuscript } from "./useManuscript";
 import { VersionDrawer } from "./VersionDrawer";
 import { ApiEditor } from "./ApiEditor";
+import { useCanWrite } from "../../lib/access";
+import type { InsertKind } from "../../lib/workbookMarkdown";
 
 /* Editor (docs/03-design/UX-SPEC.md, M9). A mock of the TipTap editor: paragraphs are editable in place on the
    galley sheet. Checks run as you type, claims and suggestions change the text only when accepted, and
@@ -113,6 +115,8 @@ function Editor({ book, initial }: { book: Book; initial: Manuscript }) {
   const { sectionId: param } = useParams();
   const store = useManuscript(initial, book.updatedAt);
   const { ms } = store;
+  const canWrite = useCanWrite();
+  const insertKinds: InsertKind[] = book.template === "fiction" ? ["scene"] : book.template === "workbook" ? ["exercise", "lines", "fill-in", "checklist"] : [];
   const fallbackId = defaultSection[book.id] ?? ms.sections.find((s) => s.group === "body")?.id ?? ms.sections[0]?.id ?? "";
   const section = ms.sections.find((s) => s.id === param) ?? ms.sections.find((s) => s.id === fallbackId) ?? ms.sections[0]!;
 
@@ -493,21 +497,25 @@ function Editor({ book, initial }: { book: Book; initial: Manuscript }) {
               {saveNote ?? (dirty ? "Unsaved changes" : `Saved as version ${versionNo}`)}
             </p>
             <div className="ml-auto flex flex-wrap items-center gap-1.5">
-              <Button
-                variant="ghost"
-                icon={MessageSquarePlus}
-                onClick={() => addNote()}
-                title={`Add a note after the paragraph you are in (${modKey()} Enter)`}
-                disabledReason={section.blocks.length === 0 ? "Write or paste some text first." : undefined}
-              >
-                Add note
-              </Button>
+              {canWrite && (
+                <Button
+                  variant="ghost"
+                  icon={MessageSquarePlus}
+                  onClick={() => addNote()}
+                  title={`Add a note after the paragraph you are in (${modKey()} Enter)`}
+                  disabledReason={section.blocks.length === 0 ? "Write or paste some text first." : undefined}
+                >
+                  Add note
+                </Button>
+              )}
               <Button variant="ghost" icon={History} onClick={() => setDrawer({ open: true, left: null })}>
                 Versions
               </Button>
-              <Button icon={Save} onClick={saveVersion} aria-keyshortcuts="Meta+S Control+S" title={`Save version (${modKey()} S)`}>
-                Save version
-              </Button>
+              {canWrite && (
+                <Button icon={Save} onClick={saveVersion} aria-keyshortcuts="Meta+S Control+S" title={`Save version (${modKey()} S)`}>
+                  Save version
+                </Button>
+              )}
               <span className="hidden xl:inline-flex">
                 <IconButton
                   icon={panelOpen ? PanelRightClose : PanelRightOpen}
@@ -549,6 +557,20 @@ function Editor({ book, initial }: { book: Book; initial: Manuscript }) {
           <div className="mt-4">
             <EditorCanvas
               section={section}
+              readOnly={!canWrite}
+              insertKinds={insertKinds}
+              onInsert={(after, kind, text) => {
+                const id = newId();
+                store.insertAfter(section.id, after ?? section.blocks[section.blocks.length - 1]?.id ?? "", [{ id, kind, text, rev: 0 }]);
+                setAnnounce(kind === "scene" ? "Scene break added." : "Block added.");
+              }}
+              onRemoveBlock={(id) => {
+                store.setBlocks(
+                  section.id,
+                  section.blocks.filter((b) => b.id !== id),
+                );
+                setAnnounce("Block removed.");
+              }}
               label={`${look.name} interior`}
               metaRight={metaRight}
               look={look}
@@ -592,6 +614,7 @@ function Editor({ book, initial }: { book: Book; initial: Manuscript }) {
 
       <div className={cn("min-h-0 border-t border-border xl:border-t-0", !panelOpen && "xl:hidden")}>
         <EditorInspector
+          readOnly={!canWrite}
           bookId={book.id}
           tab={tab}
           onTab={setTab}
@@ -662,6 +685,7 @@ function Editor({ book, initial }: { book: Book; initial: Manuscript }) {
       </Modal>
 
       <VersionDrawer
+        readOnly={!canWrite}
         open={drawer.open}
         onClose={() => setDrawer({ open: false, left: null })}
         sectionTitle={section.title}

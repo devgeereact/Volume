@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useCanWrite } from "../../lib/access";
 import { ArrowDown, RefreshCw, RotateCcw, Sparkles } from "lucide-react";
 import {
   Banner,
@@ -37,6 +38,7 @@ import { checkTitle } from "./titlesExtras";
 type Filter = "all" | "favourites" | "valid";
 
 export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetail }) {
+  const canWrite = useCanWrite();
   const bookId = apiBook.id;
   const sets = useTitleSets(bookId);
   const research = useResearch(bookId);
@@ -152,7 +154,7 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
           title="Titles"
           summary="Directions from the research and title options to compare. Pick a direction for more titles in it, edit any option, then choose one."
           actions={
-            list.length > 0 && !active ? (
+            canWrite && list.length > 0 && !active ? (
               <Button icon={RefreshCw} estimate={estimateWords(estimate.data)} onClick={() => setAgainOpen(true)}>
                 Regenerate all
               </Button>
@@ -232,9 +234,11 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
             tone="error"
             title="The title run stopped"
             action={
-              <Button size="sm" icon={RefreshCw} onClick={() => generate()} loading={gen.isPending} loadingLabel="Starting">
-                Retry
-              </Button>
+              canWrite ? (
+                <Button size="sm" icon={RefreshCw} onClick={() => generate()} loading={gen.isPending} loadingLabel="Starting">
+                  Retry
+                </Button>
+              ) : undefined
             }
           >
             {failed.error ?? "It did not finish."} Nothing from it was kept.
@@ -274,18 +278,20 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
                       <span className="num text-small text-ink-tertiary">
                         {count} {count === 1 ? "option" : "options"} in this set
                       </span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        icon={Sparkles}
-                        loading={busy}
-                        loadingLabel="Writing"
-                        estimate={estimateWords(estimate.data)}
-                        disabledReason={active ? "Wait for the current run." : !d.key ? "This direction has no key, so it cannot be picked." : undefined}
-                        onClick={() => generate({ directionKey: d.key })}
-                      >
-                        Titles for this direction
-                      </Button>
+                      {canWrite && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={Sparkles}
+                          loading={busy}
+                          loadingLabel="Writing"
+                          estimate={estimateWords(estimate.data)}
+                          disabledReason={active ? "Wait for the current run." : !d.key ? "This direction has no key, so it cannot be picked." : undefined}
+                          onClick={() => generate({ directionKey: d.key })}
+                        >
+                          Titles for this direction
+                        </Button>
+                      )}
                     </div>
                   </li>
                 );
