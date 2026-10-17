@@ -1,0 +1,189 @@
+{
+  "content": {
+    "characterSheets": [
+      {
+        "name": "Hattie",
+        "prompt": "Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile."
+      },
+      {
+        "name": "Bramble",
+        "prompt": "Bramble: a young grey rabbit a little taller than Hattie, long floppy ears with pale pink insides, a fluffy white tail, a white patch on his chest, calm brown eyes, a small twitching nose; slim and soft proportions; expressions range from a patient smile to quiet delight."
+      }
+    ],
+    "styleLine": "Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette.",
+    "scenes": [
+      {
+        "spread": 1,
+        "imagePrompt": "Wide 2:1 picture-book spread, split across two facing pages. Hattie stands among apple trees in golden evening light. The characters sit in the right third, away from the centre line. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. Keep the left page simple, soft and empty for text. No text, no letters, no numbers, no logos, no watermarks.",
+        "layout": "text-left",
+        "textArea": "plain pale sky across the left page",
+        "characters": [
+          "Hattie"
+        ],
+        "cameraAngle": "wide establishing shot",
+        "lighting": "golden late-afternoon light",
+        "characterPositions": "In the right third",
+        "backgroundSounds": [
+          "a blackbird singing softly",
+          "leaves rustling"
+        ]
+      },
+      {
+        "spread": 2,
+        "imagePrompt": "Wide 2:1 picture-book spread, split across two facing pages. Hattie looks up at a pink sky while Bramble sits beside her. The characters sit in the left and right thirds, away from the centre line. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Bramble: a young grey rabbit a little taller than Hattie, long floppy ears with pale pink insides, a fluffy white tail, a white patch on his chest, calm brown eyes, a small twitching nose; slim and soft proportions; expressions range from a patient smile to quiet delight. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. Keep the upper third of both pages simple, soft and empty for text. No text, no letters, no numbers, no logos, no watermarks.",
+        "layout": "text-top",
+        "textArea": "plain evening sky across the upper third",
+        "characters": [
+          "Hattie",
+          "Bramble"
+        ],
+        "cameraAngle": "eye-level two-shot",
+        "lighting": "golden late-afternoon light",
+        "characterPositions": "In the left and right thirds",
+        "backgroundSounds": [
+          "a blackbird singing softly",
+          "leaves rustling"
+        ]
+      },
+      {
+        "spread": 3,
+        "imagePrompt": "Wide 2:1 picture-book spread, split across two facing pages. Close-up of Hattie wrinkling her nose and Bramble explaining. The characters sit in the left third, away from the centre line. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Bramble: a young grey rabbit a little taller than Hattie, long floppy ears with pale pink insides, a fluffy white tail, a white patch on his chest, calm brown eyes, a small twitching nose; slim and soft proportions; expressions range from a patient smile to quiet delight. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. Keep the right page simple, soft and empty for text. No text, no letters, no numbers, no logos, no watermarks.",
+        "layout": "text-right",
+        "textArea": "smooth soft grass across the right page",
+        "characters": [
+          "Hattie",
+          "Bramble"
+        ],
+        "cameraAngle": "close-up",
+        "lighting": "golden late-afternoon light",
+        "characterPositions": "In the left third",
+        "backgroundSounds": [
+          "a blackbird singing softly",
+          "leaves rustling"
+        ]
+      },
+      {
+        "spread": 4,
+        "imagePrompt": "Wide 2:1 picture-book spread, split across two facing pages. Hattie counts apples on a low branch as the sky changes colour. The characters sit in the left and right thirds, away from the centre line. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. Keep the lower third of both pages simple, soft and empty for text. No text, no letters, no numbers, no logos, no watermarks.",
+        "layout": "text-bottom",
+        "textArea": "smooth meadow across the lower third",
+        "characters": [
+          "Hattie"
+        ],
+        "cameraAngle": "medium shot",
+        "lighting": "golden late-afternoon light",
+        "characterPositions": "In the left and right thirds",
+        "backgroundSounds": [
+          "a blackbird singing softly",
+          "leaves rustling"
+        ]
+      },
+      {
+        "spread": 5,
+        "imagePrompt": "Wide 2:1 picture-book spread, split across two facing pages. A bee flies past and a blackbird sings on a fence post. The characters sit in the right third, away from the centre line. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Bramble: a young grey rabbit a little taller than Hattie, long floppy ears with pale pink insides, a fluffy white tail, a white patch on his chest, calm brown eyes, a small twitching nose; slim and soft proportions; expressions range from a patient smile to quiet delight. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. Keep the left page simple, soft and empty for text. No text, no letters, no numbers, no logos, no watermarks.",
+        "layout": "text-left",
+        "textArea": "plain pale sky across the left page",
+        "characters": [
+          "Hattie",
+          "Bramble"
+        ],
+        "cameraAngle": "high angle looking down",
+        "lighting": "soft dusk light",
+        "characterPositions": "In the right third",
+        "backgroundSounds": [
+          "a blackbird singing softly",
+          "leaves rustling"
+        ]
+      },
+      {
+        "spread": 6,
+        "imagePrompt": "Wide 2:1 picture-book spread, split across two facing pages. Hattie and Bramble breathe slowly together on the grass. The characters sit in the left and right thirds, away from the centre line. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Bramble: a young grey rabbit a little taller than Hattie, long floppy ears with pale pink insides, a fluffy white tail, a white patch on his chest, calm brown eyes, a small twitching nose; slim and soft proportions; expressions range from a patient smile to quiet delight. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. Keep the upper third of both pages simple, soft and empty for text. No text, no letters, no numbers, no logos, no watermarks.",
+        "layout": "text-top",
+        "textArea": "plain evening sky across the upper third",
+        "characters": [
+          "Hattie",
+          "Bramble"
+        ],
+        "cameraAngle": "medium shot",
+        "lighting": "soft dusk light",
+        "characterPositions": "In the left and right thirds",
+        "backgroundSounds": [
+          "a blackbird singing softly",
+          "leaves rustling"
+        ]
+      },
+      {
+        "spread": 7,
+        "imagePrompt": "Wide 2:1 picture-book spread, split across two facing pages. Hattie curls up beside Bramble under the apple tree. The characters sit in the left third, away from the centre line. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Bramble: a young grey rabbit a little taller than Hattie, long floppy ears with pale pink insides, a fluffy white tail, a white patch on his chest, calm brown eyes, a small twitching nose; slim and soft proportions; expressions range from a patient smile to quiet delight. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. Keep the right page simple, soft and empty for text. No text, no letters, no numbers, no logos, no watermarks.",
+        "layout": "text-right",
+        "textArea": "smooth soft grass across the right page",
+        "characters": [
+          "Hattie",
+          "Bramble"
+        ],
+        "cameraAngle": "close-up",
+        "lighting": "soft dusk light",
+        "characterPositions": "In the left third",
+        "backgroundSounds": [
+          "a blackbird singing softly",
+          "leaves rustling"
+        ]
+      },
+      {
+        "spread": 8,
+        "imagePrompt": "Wide 2:1 picture-book spread, split across two facing pages. Wide view of the calm orchard at dusk with the two friends small in the grass. The characters sit in the left and right thirds, away from the centre line. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Bramble: a young grey rabbit a little taller than Hattie, long floppy ears with pale pink insides, a fluffy white tail, a white patch on his chest, calm brown eyes, a small twitching nose; slim and soft proportions; expressions range from a patient smile to quiet delight. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. Keep the lower third of both pages simple, soft and empty for text. No text, no letters, no numbers, no logos, no watermarks.",
+        "layout": "text-bottom",
+        "textArea": "smooth meadow across the lower third",
+        "characters": [
+          "Hattie",
+          "Bramble"
+        ],
+        "cameraAngle": "wide establishing shot",
+        "lighting": "soft dusk light",
+        "characterPositions": "In the left and right thirds",
+        "backgroundSounds": [
+          "a blackbird singing softly",
+          "leaves rustling"
+        ]
+      },
+      {
+        "spread": 9,
+        "imagePrompt": "Wide 2:1 picture-book spread, split across two facing pages. Low angle: the first star shines above the friends, who look up smiling. The characters sit in the left and right thirds, away from the centre line. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Bramble: a young grey rabbit a little taller than Hattie, long floppy ears with pale pink insides, a fluffy white tail, a white patch on his chest, calm brown eyes, a small twitching nose; slim and soft proportions; expressions range from a patient smile to quiet delight. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. Keep the upper third of both pages simple, soft and empty for text. No text, no letters, no numbers, no logos, no watermarks.",
+        "layout": "text-top",
+        "textArea": "plain evening sky across the upper third",
+        "characters": [
+          "Hattie",
+          "Bramble"
+        ],
+        "cameraAngle": "low angle looking up",
+        "lighting": "soft dusk light",
+        "characterPositions": "In the left and right thirds",
+        "backgroundSounds": [
+          "a blackbird singing softly",
+          "leaves rustling"
+        ]
+      },
+      {
+        "spread": 10,
+        "imagePrompt": "Wide 2:1 picture-book spread, split across two facing pages. Hattie asleep in a nest of leaves, Bramble tucked beside her, one star above. The characters sit in the right third, away from the centre line. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Bramble: a young grey rabbit a little taller than Hattie, long floppy ears with pale pink insides, a fluffy white tail, a white patch on his chest, calm brown eyes, a small twitching nose; slim and soft proportions; expressions range from a patient smile to quiet delight. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. Keep the left page simple, soft and empty for text. No text, no letters, no numbers, no logos, no watermarks.",
+        "layout": "text-left",
+        "textArea": "plain pale sky across the left page",
+        "characters": [
+          "Hattie",
+          "Bramble"
+        ],
+        "cameraAngle": "wide establishing shot",
+        "lighting": "soft dusk light",
+        "characterPositions": "In the right third",
+        "backgroundSounds": [
+          "a blackbird singing softly",
+          "leaves rustling"
+        ]
+      }
+    ],
+    "cover": {
+      "imagePrompt": "Hattie the hedgehog standing in the orchard grass, smiling and waving, the first star above. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. Keep the upper two fifths simple for the title. No text, no letters, no numbers, no logos, no watermarks.",
+      "titleSpace": "Upper two fifths: plain soft evening sky."
+    }
+  }
+}

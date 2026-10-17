@@ -1,0 +1,14 @@
+{
+  "content": {
+    "references": [
+      {
+        "name": "Hattie",
+        "imagePrompt": "Character reference picture for a children's picture book. Hattie: a small round hedgehog about the size of an apple, soft brown spines with lighter tips, a cream-coloured tummy and face, a little pink nose, large friendly dark eyes with a white sparkle, rosy cheeks, short legs and tiny paws; round and soft proportions; expressions range from wide-eyed excitement to a sleepy smile. Shown from head to toe, standing in a neutral, friendly pose, facing slightly to one side, with a calm, kind expression. Plain light background, soft even light, no props, no scenery, no other characters. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. No text, no letters, no numbers, no logos, no watermarks."
+      },
+      {
+        "name": "Bramble",
+        "imagePrompt": "Character reference picture for a children's picture book. Bramble: a young grey rabbit a little taller than Hattie, long floppy ears with pale pink insides, a fluffy white tail, a white patch on his chest, calm brown eyes, a small twitching nose; slim and soft proportions; expressions range from a patient smile to quiet delight. Shown from head to toe, standing in a neutral, friendly pose, facing slightly to one side, with a calm, kind expression. Plain light background, soft even light, no props, no scenery, no other characters. Soft watercolour picture-book style, bright and warm, rounded shapes, gentle evening light, a peach, lilac and soft blue palette. No text, no letters, no numbers, no logos, no watermarks."
+      }
+    ]
+  }
+}

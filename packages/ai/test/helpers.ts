@@ -56,6 +56,27 @@ export const FULL_INPUT = {
     quotes: [],
     format: 'ebook' as const,
     isbns: ['9781234567897'],
+    template: 'nonfiction',
+  },
+  storyBible: {
+    logline: 'A night nurse keeps a ward calm through one long shift.',
+    themes: ['steadiness'],
+    characters: [
+      {
+        name: 'Nadia',
+        role: 'night nurse',
+        want: 'a quiet shift',
+        need: 'to ask for help',
+        flaw: 'does everything alone',
+        voiceNotes: 'brisk',
+        appearance: '30, short hair',
+      },
+    ],
+    settings: [{ name: 'Ward 7', description: 'a twelve-bed ward on the fourth floor' }],
+    timeline: ['11pm: handover'],
+    worldRules: [],
+    povPlan: 'Close third person, past tense.',
+    ending: 'Nadia asks for help and the shift ends well.',
   },
   blueprint: {
     title: 'Quiet Hours',
@@ -117,6 +138,7 @@ export const FULL_INPUT = {
     characterCount: 2,
     characterIdeas: null,
     theme: null,
+    conflict: 'Hattie wants the apples to be ripe now and finds waiting hard.',
     wordLimit: 600,
     spreadCount: 12,
     goodnightMessage: 'Sleep tight',
@@ -125,6 +147,10 @@ export const FULL_INPUT = {
     includeSounds: true,
   },
   storyResult: { title: 'Hattie Goes To Sleep', spreads: [{ n: 1, text: 'Hattie yawned.', sceneSummary: 'A hedgehog yawns.' }] },
+  scenePrompts: {
+    characterSheets: [{ name: 'Hattie', prompt: 'Hattie: a small round hedgehog with soft brown spines and a pink nose.' }],
+    styleLine: 'Soft watercolour picture-book style, bright and warm.',
+  },
 };
 
 export interface FakeRequest {

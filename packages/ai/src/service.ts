@@ -19,6 +19,7 @@ import {
   type GuardrailHit,
   type GuardrailReport,
 } from './guardrails.ts';
+import { assertSeed, modelTakesReferences, modelTakesSeed, toImageReference, type ImagePurpose, type ImageReferenceInput } from './images.ts';
 import { MockProvider, mockModelInfo, type MockProviderOptions } from './provider/mock.ts';
 import { OpenRouterClient, providerSlug } from './provider/openrouter.ts';
 import type { RetryOptions } from './provider/retry.ts';
@@ -181,9 +182,21 @@ export interface GenerateImageOptions {
   overrides?: ModelOverrides | undefined;
   allowFallback?: boolean | undefined;
   n?: number | undefined;
+  /**
+   * What the image is for (default 'cover'). Picks the aspect ratio from `cover_image.aspectRatios` in
+   * config/models.defaults.json; an explicit `aspectRatio` wins.
+   */
+  purpose?: ImagePurpose | undefined;
   aspectRatio?: string | undefined;
   resolution?: string | undefined;
   outputFormat?: 'png' | 'jpeg' | 'webp' | undefined;
+  /**
+   * Reference images sent as OpenRouter `input_references`, for example one character reference per main
+   * character on every spread (D-045). Left out, with a note, when the model list shows no image input.
+   */
+  inputReferences?: ImageReferenceInput[] | undefined;
+  /** Fixed seed (0 to 2147483647). Sent only when the model lists `seed` in supported_parameters; otherwise a note. */
+  seed?: number | undefined;
   signal?: AbortSignal | undefined;
   budget?: BudgetLimit | undefined;
   timeoutMs?: number | undefined;
@@ -199,6 +212,14 @@ export interface GenerateImageResult {
   fallbackFrom: string | undefined;
   latencyMs: number;
   provider: 'openrouter' | 'mock';
+  /** The aspect ratio asked for. */
+  aspectRatio: string | undefined;
+  /** Reference images sent with the request (0 when none were given or the model takes no image input). */
+  referencesSent: number;
+  /** True when the seed was sent. */
+  seedSent: boolean;
+  /** Why a reference or seed was left out, for the job log and the UI. */
+  notes: string[];
 }
 
 export interface AiService {
@@ -657,6 +678,7 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
           const ctx = guardrailContext(input);
           if (task === 'research.title-research') ctx.sources = sources;
           if (def.guardrails === 'facts') ctx.bannedPhrases = [];
+          if (def.skipRules) ctx.skipRules = def.skipRules;
           guardrails = runGuardrails(output, config.houseStyle, ctx);
 
           // Banned phrases: one automatic style rewrite on the same model, then needs attention. Internal
@@ -818,6 +840,10 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
 
   async function generateImage(prompt: string, opts: GenerateImageOptions = {}): Promise<GenerateImageResult> {
     if (!prompt.trim()) throw new BadRequestError('The image prompt is empty.');
+    if (opts.seed !== undefined) assertSeed(opts.seed);
+    const references = (opts.inputReferences ?? []).map(toImageReference);
+    const purpose = opts.purpose ?? 'cover';
+    const purposeRatio = registry.stageConfig('cover_image').aspectRatios?.[purpose];
     let resolved = resolveStage('cover_image', opts);
     let fallbackUsed = resolved.fallbackUsed;
     let fallbackFrom = resolved.fallbackFrom;
@@ -830,12 +856,25 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
         checkBudget(opts.budget, 0, perImage === null ? null : perImage * n);
       }
       await opts.beforeCall?.(0, p?.perRequest === null || p?.perRequest === undefined ? null : p.perRequest * n);
+      const info = registry.modelInfo(model);
+      const notes: string[] = [];
+      const sendRefs = references.length > 0 && modelTakesReferences(info);
+      if (references.length > 0 && !sendRefs) {
+        notes.push(`${model} takes no image input, so the ${references.length} reference image(s) were not sent; the character sheet text still applies.`);
+      }
+      const sendSeed = opts.seed !== undefined && modelTakesSeed(info, registry.omittedParams(model));
+      if (opts.seed !== undefined && !sendSeed) {
+        notes.push(`${model} does not list seed in its supported parameters${info ? '' : ' (no model list loaded)'}, so no seed was sent.`);
+      }
+      const aspectRatio = opts.aspectRatio ?? purposeRatio ?? resolved.image.aspectRatio;
       try {
         const r = await provider.generateImage({
           model,
           prompt,
           n,
-          aspectRatio: opts.aspectRatio ?? resolved.image.aspectRatio,
+          inputReferences: sendRefs ? references : undefined,
+          seed: sendSeed ? opts.seed : undefined,
+          aspectRatio,
           resolution: opts.resolution ?? resolved.image.resolution,
           outputFormat: opts.outputFormat ?? (resolved.image.outputFormat as 'png' | 'jpeg' | 'webp' | undefined),
           signal: opts.signal,
@@ -851,6 +890,10 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
           fallbackFrom,
           latencyMs: r.latencyMs,
           provider: r.provider,
+          aspectRatio,
+          referencesSent: sendRefs ? references.length : 0,
+          seedSent: sendSeed,
+          notes,
         };
       } catch (e) {
         if (e instanceof ModelUnavailableError) {

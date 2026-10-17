@@ -40,6 +40,7 @@ export {
   formatLedger,
   formatProfileFacts,
   formatVoice,
+  formatExercisePlan,
   FENCED_VARIABLES,
   PACK_LEVELS,
 } from './context.ts';
@@ -82,10 +83,13 @@ export type { ResolveSourcesOptions, ResolveSourcesResult } from './sources.ts';
 export { chatStructured, extractJson, validateJson, jsonSchemaOf, responseFormatFor, JSON_REPAIR_PROMPT_ID } from './structured.ts';
 export type { StructuredResult, Validation } from './structured.ts';
 
-export { TASKS, TASK_IDS, isTaskId } from './stages/tasks.ts';
+export { TASKS, TASK_IDS, TEMPLATE_TASKS, isTaskId, taskForTemplate } from './stages/tasks.ts';
 export type { GuardrailMode, TaskDef, TaskId, TaskInput, TaskOutput } from './stages/tasks.ts';
 export * as StageInputs from './stages/inputs.ts';
 export * as StageOutputs from './stages/outputs.ts';
+
+export { IMAGE_PURPOSES, MAX_IMAGE_SEED, assertSeed, modelTakesReferences, modelTakesSeed, seedFromKey, toImageReference } from './images.ts';
+export type { ImagePurpose, ImageReferenceInput } from './images.ts';
 
 export * from './errors.ts';
 export * from './types.ts';

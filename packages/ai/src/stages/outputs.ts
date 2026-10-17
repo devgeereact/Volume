@@ -105,6 +105,110 @@ export const BlueprintOutput = z.object({
   claimsToWatch: strs,
 });
 
+// ---------- fiction and workbook blueprints (phase 6, D-042, D-043) ----------
+
+/**
+ * Exercise kinds of the workbook template. Same list as EXERCISE_KINDS in packages/core and
+ * config/book-templates/workbook.json chapterRules.exercises.types (a test keeps them in step).
+ */
+export const EXERCISE_KINDS = ['reflection', 'checklist', 'fill-in', 'tracker', 'scenario'] as const;
+export const ExerciseKind = z.enum(EXERCISE_KINDS);
+export type ExerciseKind = z.infer<typeof ExerciseKind>;
+
+/** One planned exercise in a workbook chapter (blueprint.blueprint-workbook), sent to the writer as {{chapter.exercises}}. */
+export const ExercisePlan = z.object({
+  kind: ExerciseKind,
+  title: str,
+  /** What the reader does and why, in one or two sentences. */
+  purpose: str,
+  /** Ruled writing lines for reflection and scenario answers; null for other kinds. */
+  lines: nul(z.number().int()),
+});
+export type ExercisePlan = z.infer<typeof ExercisePlan>;
+
+/** The fiction story bible (D-043), carried in the blueprint data as `storyBible`. */
+export const StoryBible = z.object({
+  logline: str,
+  themes: strs,
+  characters: z.array(
+    z.object({
+      name: str,
+      role: str,
+      want: str,
+      need: str,
+      flaw: str,
+      voiceNotes: str,
+      appearance: str,
+    }),
+  ),
+  settings: z.array(z.object({ name: str, description: str })),
+  /** Story events in order, one line each. */
+  timeline: strs,
+  worldRules: strs,
+  povPlan: str,
+  ending: str,
+});
+export type StoryBible = z.infer<typeof StoryBible>;
+
+/** Opening hook styles of the fiction template (config/book-templates/fiction.json chapterRules.openingHook). */
+export const FICTION_HOOK_STYLES = ['in-scene', 'dialogue', 'image', 'question'] as const;
+
+export const BlueprintFictionChapter = z.object({
+  number: z.number(),
+  title: str,
+  partNumber: nul(z.number()),
+  /** Whose point of view the chapter is told from (a name from storyBible.characters). */
+  povCharacter: str,
+  /** Main setting (a name from storyBible.settings). */
+  setting: str,
+  summary: str,
+  /** Scene beats in order, one line each; each scene after the first starts after a scene break. */
+  scenes: strs,
+  openingHookIdea: str,
+  bridgeToNext: str,
+  wordTarget: z.number(),
+});
+
+/** blueprint.blueprint-fiction v1: the blueprint for the fiction template, with the story bible and no subheadings or takeaways. */
+export const BlueprintFictionOutput = z.object({
+  title: str,
+  subtitle: str,
+  /** Full synopsis including the ending (the template's Synopsis package item, never printed). */
+  summary: str,
+  bookInfo: z.object({ genre: str, tone: str, writingStyle: str, targetAudience: str, estimatedWords: z.number() }),
+  targetAudience: str,
+  uniqueSellingPoints: strs,
+  toneNotes: str,
+  hookStyle: z.enum(FICTION_HOOK_STYLES),
+  storyBible: StoryBible,
+  frontMatter: z.object({
+    halfTitle: z.boolean(),
+    dedicationIdea: str,
+    epigraph: str,
+    acknowledgementsIdea: str,
+    prologue: z.object({ include: z.boolean(), idea: str, wordTarget: z.number() }),
+  }),
+  parts: z.array(z.object({ number: z.number(), title: str, purpose: str, chapterNumbers: z.array(z.number()) })),
+  chapters: z.array(BlueprintFictionChapter),
+  backMatter: z.object({
+    epilogue: z.object({ include: z.boolean(), outline: str, wordTarget: z.number() }),
+    glossaryTerms: strs,
+    reviewRequest: z.boolean(),
+    alsoBy: str,
+    aboutTheAuthor: str,
+  }),
+  backCoverBlurb: str,
+  amazonDescriptionDraft: str,
+  categories: strs,
+  keywords: strs,
+  claimsToWatch: strs,
+});
+
+/** blueprint.blueprint-workbook v1: the non-fiction blueprint plus 2 to 4 planned exercises per chapter. */
+export const BlueprintWorkbookOutput = BlueprintOutput.extend({
+  chapters: z.array(BlueprintChapter.extend({ exercises: z.array(ExercisePlan) })),
+});
+
 export const RegeneratePartOutput = z.object({
   target: str,
   value: z.unknown(),
@@ -217,6 +321,10 @@ export const SummariseOutput = z.object({
     phrasesOverused: strs,
     /** Warnings, cautions and disclaimers already given to the reader (summarise-and-ledger v2). */
     warnings: strs.optional(),
+    /** Fiction only (summarise-and-ledger v5): characters on the page, ledger kind `character` (D-043). */
+    characters: z.array(z.object({ name: str, role: str, details: str })).optional(),
+    /** Fiction only (summarise-and-ledger v5): settings on the page, ledger kind `setting` (D-043). */
+    settings: z.array(z.object({ name: str, details: str })).optional(),
   }),
   storiesForOwnerReview: z.array(z.object({ quote: str, why: str })),
 });
@@ -342,6 +450,15 @@ export const PictureBookStoryOutput = z.object({
   safetyCheck: z.object({ passed: z.boolean(), notes: strs }),
 });
 
+/**
+ * Where the text sits on a spread: the picture keeps that side calm and empty. Same values as `Spread.layout`
+ * in packages/core (plan PHASES-6-8, P7-2).
+ */
+export const SPREAD_LAYOUTS = ['text-left', 'text-right', 'text-top', 'text-bottom'] as const;
+export const SpreadLayout = z.enum(SPREAD_LAYOUTS);
+export type SpreadLayout = z.infer<typeof SpreadLayout>;
+
+/** children.scene-prompts v3: v2's fields plus layout, the empty text area and the characters in each scene. */
 export const ScenePromptsOutput = z.object({
   characterSheets: z.array(z.object({ name: str, prompt: str })),
   styleLine: str,
@@ -349,6 +466,12 @@ export const ScenePromptsOutput = z.object({
     z.object({
       spread: z.number(),
       imagePrompt: str,
+      /** Which side of the 2:1 picture stays calm for the text. */
+      layout: SpreadLayout,
+      /** The calm, empty area left for the text, in words (for example "soft sky across the left page"). */
+      textArea: str,
+      /** Names from characterSheets that appear, so the app sends only their reference images. */
+      characters: strs,
       cameraAngle: str,
       lighting: str,
       characterPositions: str,
@@ -356,4 +479,9 @@ export const ScenePromptsOutput = z.object({
     }),
   ),
   cover: z.object({ imagePrompt: str, titleSpace: str }),
+});
+
+/** children.character-reference v1: one neutral full-body reference image prompt per main character (D-045). */
+export const CharacterReferenceOutput = z.object({
+  references: z.array(z.object({ name: str, imagePrompt: str })),
 });

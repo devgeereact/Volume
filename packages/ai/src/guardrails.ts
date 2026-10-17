@@ -80,6 +80,8 @@ export interface GuardrailContext {
   bannedPhrases?: string[] | undefined;
   /** JSON keys whose strings are copied text (quotes, before) and are not checked. */
   skipKeys?: string[] | undefined;
+  /** House-style guardrail pattern ids not to run (TaskDef.skipRules). */
+  skipRules?: readonly string[] | undefined;
 }
 
 interface CompiledPattern {
@@ -152,7 +154,9 @@ export function checkText(text: string, houseStyle: HouseStyle, ctx: GuardrailCo
   const allowedUrls = [...(ctx.sources ?? []).map((s) => s.url), ...(ctx.allowedUrls ?? [])].map(normaliseUrl);
   const allowedHosts = new Set(allowedUrls.map((u) => u.split('/')[0] ?? ''));
 
+  const skipRules = new Set(ctx.skipRules ?? []);
   for (const p of compilePatterns(houseStyle)) {
+    if (skipRules.has(p.id)) continue;
     p.re.lastIndex = 0;
     for (const m of text.matchAll(p.re)) {
       const match = m[0];

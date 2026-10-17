@@ -26,8 +26,8 @@ function run(s: AiService, task: TaskId, input: unknown = FULL_INPUT, opts = {})
 }
 
 describe('stage runners with the mock provider', () => {
-  it('covers all 30 tasks', () => {
-    expect(TASK_IDS).toHaveLength(30);
+  it('covers all 37 tasks', () => {
+    expect(TASK_IDS).toHaveLength(37);
   });
 
   for (const task of TASK_IDS) {

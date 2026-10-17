@@ -505,6 +505,10 @@ export class OpenRouterClient implements AiProvider {
     if (req.aspectRatio) body['aspect_ratio'] = req.aspectRatio;
     if (req.resolution) body['resolution'] = req.resolution;
     if (req.outputFormat) body['output_format'] = req.outputFormat;
+    if (req.inputReferences?.length) {
+      body['input_references'] = req.inputReferences.map((r) => ({ type: 'image_url', image_url: { url: r.url } }));
+    }
+    if (req.seed !== undefined) body['seed'] = req.seed;
     const parsed = await withRetry(
       () => this.requestJson('POST', '/images', body, req.signal, req.timeoutMs ?? this.opts.timeoutMs ?? 300_000, req.model),
       this.retryOpts(),

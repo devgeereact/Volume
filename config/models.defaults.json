@@ -18,6 +18,7 @@
       "https://openrouter.ai/docs/api/reference/errors-and-debugging (read 2026-10-05)",
       "https://openrouter.ai/docs/guides/overview/multimodal/image-generation (read 2026-10-05)",
       "https://openrouter.ai/docs/guides/features/plugins/web-search (read 2026-10-05)",
+      "https://openrouter.ai/docs/guides/overview/multimodal/image-generation (read 2026-10-17: input_references, seed, supported_parameters on GET /api/v1/images/models)",
       "https://platform.claude.com/docs/en/models/opus-5-5/migration-guide (read 2026-10-05)"
     ],
     "resolved": [
@@ -175,7 +176,10 @@
       "responseFormat": "json_schema",
       "prompts": [
         "blueprint.blueprint",
-        "blueprint.regenerate-part"
+        "blueprint.blueprint-fiction",
+        "blueprint.blueprint-workbook",
+        "blueprint.regenerate-part",
+        "blueprint.regenerate-part-fiction"
       ],
       "notes": "One call shapes the whole book, so it gets the top tier. Structured output (supported_parameters includes structured_outputs on 2026-10-04). To verify against GET /api/v1/models. Max tokens 32,000: Claude Opus 5.5 always thinks and max tokens covers thinking plus text (Anthropic Opus 5.5 migration guide).",
       "expectedOutputTokens": 12000
@@ -193,7 +197,10 @@
       "responseFormat": "markdown",
       "prompts": [
         "writing.chapter",
+        "writing.chapter-fiction",
+        "writing.chapter-workbook",
         "writing.extend-section",
+        "writing.extend-section-fiction",
         "writing.introduction",
         "writing.conclusion",
         "writing.front-matter",
@@ -282,7 +289,8 @@
       "prompts": [
         "cover.cover-brief",
         "cover.cover-image",
-        "children.scene-prompts"
+        "children.scene-prompts",
+        "children.character-reference"
       ],
       "notes": "Writes the brief and 3 to 4 concept prompts. To verify against GET /api/v1/models."
     },
@@ -297,11 +305,17 @@
       "maxTokens": null,
       "temperature": null,
       "aspectRatio": "2:3",
+      "aspectRatios": {
+        "cover": "2:3",
+        "spread": "2:1",
+        "character-reference": "2:3"
+      },
       "resolution": "2K",
       "outputFormat": "png",
       "n": 1,
       "prompts": [],
-      "receives": "imagePrompt from cover.cover-image, or a scene prompt from children.scene-prompts",
+      "receives": "imagePrompt from cover.cover-image, a scene prompt from children.scene-prompts, or a reference prompt from children.character-reference",
+      "pictureBookNotes": "D-045: a spread image is one 2:1 picture split across the gutter of two facing pages. Each main character gets one 2:3 full-body reference image first; it is sent as input_references on every spread, and a fixed seed is sent when the model lists seed in supported_parameters (https://openrouter.ai/docs/guides/overview/multimodal/image-generation, read 2026-10-17). 2:1 and 2:3 are on the list the endpoint accepted on 2026-10-05. Whether google/gemini-2.5-flash-image lists seed is still to verify against GET /api/v1/models before phase 7 starts.",
       "notes": "Uses POST /api/v1/images (base64 results, no charge on failure per the plan). One image per concept (n 1). Aspect ratio 2:3 (5:8 is rejected); the export fits it to 1600 x 2560. The model never draws text; typography is added by the app. Export converts to JPEG for KDP (ebook.cover file types). To verify against GET /api/v1/models."
     },
     "marketing": {

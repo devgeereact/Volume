@@ -6,21 +6,42 @@ import { CONFIG_DIR, FIXTURES_DIR, FULL_INPUT, PROMPTS_DIR, ROOT } from './helpe
 
 const loader = new PromptLoader(PROMPTS_DIR);
 
+/** Prompts changed again after the humanizer revision of 6 October 2026: the version that revision made. */
+const HUMANIZER_VERSION: Record<string, number> = {
+  'children.scene-prompts': 2,
+  'children.picture-book-story': 2,
+  'checks.summarise-and-ledger': 3,
+  'checks.consistency': 3,
+};
+/** Prompts first written after the revision, with the guidance from version 1. */
+const NEW_AFTER_HUMANIZER = new Set([
+  'children.character-reference',
+  'blueprint.blueprint-fiction',
+  'blueprint.blueprint-workbook',
+  'writing.chapter-fiction',
+  'writing.chapter-workbook',
+  'writing.extend-section-fiction',
+  'blueprint.regenerate-part-fiction',
+]);
+
 describe('versioned humanizer guidance', () => {
   it('keeps old pins, variables and stage contracts available for every prompt', () => {
     for (const latest of loader.latest()) {
+      expect(latest.system + latest.user, latest.meta.id).toContain('Humanizer editing discipline');
+      if (NEW_AFTER_HUMANIZER.has(latest.meta.id)) continue;
+      const revised = loader.load(latest.meta.id, HUMANIZER_VERSION[latest.meta.id]);
       const versions = loader.versions(latest.meta.id);
-      const previousVersion = versions.at(-2);
+      const previousVersion = versions[versions.indexOf(revised.meta.version) - 1];
       expect(previousVersion, latest.meta.id).toBeDefined();
       const previous = loader.load(latest.meta.id, previousVersion);
-      expect(latest.meta.version).toBe(previous.meta.version + 1);
+      expect(revised.meta.version).toBe(previous.meta.version + 1);
       expect(latest.meta.stage).toBe(previous.meta.stage);
       expect(latest.meta.tier).toBe(previous.meta.tier);
-      expect(latest.meta.inputs).toEqual(previous.meta.inputs);
-      expect(new Set(latest.variables)).toEqual(new Set(previous.variables));
-      expect(latest.meta.guardrails).toEqual(previous.meta.guardrails);
+      expect(revised.meta.inputs).toEqual(previous.meta.inputs);
+      expect(new Set(revised.variables)).toEqual(new Set(previous.variables));
+      expect(revised.meta.guardrails).toEqual(previous.meta.guardrails);
       expect(loader.load(latest.meta.id, previous.meta.version).hash).toBe(previous.hash);
-      expect(latest.system + latest.user).toContain('Humanizer editing discipline');
+      expect(revised.system + revised.user).toContain('Humanizer editing discipline');
     }
   });
 

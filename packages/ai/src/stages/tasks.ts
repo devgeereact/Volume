@@ -21,6 +21,11 @@ export interface TaskDef<In extends z.ZodType = z.ZodType, Out extends z.ZodType
    * False for internal notes the reader never sees: banned phrases are then reported as warnings only.
    */
   styleRewrite?: boolean | undefined;
+  /**
+   * House-style guardrail pattern ids not run on this task's answer. Fiction chapters skip `quoted-testimonial`,
+   * because a line of dialogue followed by a character's full name is the story, not a testimonial.
+   */
+  skipRules?: readonly string[] | undefined;
 }
 
 function def<In extends z.ZodType, Out extends z.ZodType>(d: TaskDef<In, Out>): TaskDef<In, Out> {
@@ -61,8 +66,32 @@ export const TASKS = {
     output: O.BlueprintOutput,
     guardrails: 'full',
   }),
+  'blueprint.blueprint-fiction': def({
+    promptId: 'blueprint.blueprint-fiction',
+    group: 'blueprint',
+    kind: 'json',
+    input: I.BlueprintInput,
+    output: O.BlueprintFictionOutput,
+    guardrails: 'full',
+  }),
+  'blueprint.blueprint-workbook': def({
+    promptId: 'blueprint.blueprint-workbook',
+    group: 'blueprint',
+    kind: 'json',
+    input: I.BlueprintInput,
+    output: O.BlueprintWorkbookOutput,
+    guardrails: 'full',
+  }),
   'blueprint.regenerate-part': def({
     promptId: 'blueprint.regenerate-part',
+    group: 'blueprint',
+    kind: 'json',
+    input: I.RegeneratePartInput,
+    output: O.RegeneratePartOutput,
+    guardrails: 'full',
+  }),
+  'blueprint.regenerate-part-fiction': def({
+    promptId: 'blueprint.regenerate-part-fiction',
     group: 'blueprint',
     kind: 'json',
     input: I.RegeneratePartInput,
@@ -76,6 +105,32 @@ export const TASKS = {
     input: I.ChapterWriteInput,
     output: O.MarkdownOutput,
     guardrails: 'full',
+  }),
+  'writing.chapter-fiction': def({
+    promptId: 'writing.chapter-fiction',
+    group: 'writing',
+    kind: 'markdown',
+    input: I.ChapterWriteInput,
+    output: O.MarkdownOutput,
+    guardrails: 'full',
+    skipRules: ['quoted-testimonial'],
+  }),
+  'writing.chapter-workbook': def({
+    promptId: 'writing.chapter-workbook',
+    group: 'writing',
+    kind: 'markdown',
+    input: I.ChapterWriteInput,
+    output: O.MarkdownOutput,
+    guardrails: 'full',
+  }),
+  'writing.extend-section-fiction': def({
+    promptId: 'writing.extend-section-fiction',
+    group: 'writing',
+    kind: 'markdown',
+    input: I.ExtendSectionInput,
+    output: O.MarkdownOutput,
+    guardrails: 'full',
+    skipRules: ['quoted-testimonial'],
   }),
   'writing.introduction': def({
     promptId: 'writing.introduction',
@@ -255,6 +310,14 @@ export const TASKS = {
     output: O.ScenePromptsOutput,
     guardrails: 'facts',
   }),
+  'children.character-reference': def({
+    promptId: 'children.character-reference',
+    group: 'children',
+    kind: 'json',
+    input: I.CharacterReferenceInput,
+    output: O.CharacterReferenceOutput,
+    guardrails: 'facts',
+  }),
 } as const;
 
 export type TaskId = keyof typeof TASKS;
@@ -265,4 +328,29 @@ export const TASK_IDS = Object.keys(TASKS) as TaskId[];
 
 export function isTaskId(id: string): id is TaskId {
   return Object.prototype.hasOwnProperty.call(TASKS, id);
+}
+
+/** Book template ids with their own prompts. Any other template (nonfiction, picture-book) uses the base tasks. */
+export const TEMPLATE_TASKS: Readonly<Record<string, Readonly<Partial<Record<TaskId, TaskId>>>>> = {
+  fiction: {
+    'blueprint.blueprint': 'blueprint.blueprint-fiction',
+    'writing.chapter': 'writing.chapter-fiction',
+    'writing.extend-section': 'writing.extend-section-fiction',
+    'blueprint.regenerate-part': 'blueprint.regenerate-part-fiction',
+  },
+  workbook: {
+    'blueprint.blueprint': 'blueprint.blueprint-workbook',
+    'writing.chapter': 'writing.chapter-workbook',
+  },
+};
+
+/**
+ * The task to run for a base task in a book of the given template: `taskForTemplate('writing.chapter', 'fiction')`
+ * is 'writing.chapter-fiction'. Unknown or empty templates, and tasks with no template version, return the task
+ * unchanged, so non-fiction books keep their prompts.
+ */
+export function taskForTemplate(task: TaskId, templateId: string | null | undefined): TaskId {
+  if (!templateId) return task;
+  const map = Object.prototype.hasOwnProperty.call(TEMPLATE_TASKS, templateId) ? TEMPLATE_TASKS[templateId] : undefined;
+  return map?.[task] ?? task;
 }

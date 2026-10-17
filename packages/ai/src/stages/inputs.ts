@@ -4,6 +4,7 @@
 // variable a prompt needs and did not get. Pass null or '' for a value that is genuinely empty.
 
 import { z } from 'zod';
+import { ExercisePlan } from './outputs.ts';
 
 const str = z.string();
 const strs = z.array(z.string());
@@ -79,6 +80,12 @@ export const BookInput = z.object({
   checkedMonth: opt(str),
   /** The app's dated-prices check over the written chapters: a line starting "passed", "failed" or "not run". */
   pricesCheck: opt(str),
+  /** Book template id (nonfiction, fiction, workbook, picture-book). Prompts that differ by template read it. */
+  template: opt(str),
+  /** Fiction: point of view for the book (first person or close third, with the main viewpoint character). */
+  pov: opt(str),
+  /** Fiction: tense of the narration (past by default). */
+  tense: opt(str),
 });
 export type BookInput = z.infer<typeof BookInput>;
 
@@ -104,6 +111,12 @@ const ChapterInput = z.object({
   summary: opt(str),
   wordTarget: opt(z.number()),
   isLast: opt(z.boolean()),
+  /** Fiction: the chapter's viewpoint character, setting and scene beats (blueprint.blueprint-fiction). */
+  povCharacter: opt(str),
+  setting: opt(str),
+  scenes: opt(strs),
+  /** Workbook: the planned exercises (blueprint.blueprint-workbook), sent as {{chapter.exercises}}. */
+  exercises: opt(z.array(ExercisePlan)),
 });
 
 /** Fields shared by every stage input. */
@@ -114,6 +127,10 @@ const Base = z.object({
   blueprint: opt(json),
   /** Book template rules (object or compact JSON string). */
   template: opt(json),
+  /**
+   * Fiction story bible (D-043). Read from blueprint.storyBible when left out, and sent as {{storyBible}}.
+   */
+  storyBible: opt(json),
   /** Output of research.title-research. */
   research: opt(json),
   /** Ticked research sources, sent as {{research.sources}}. */
@@ -209,6 +226,8 @@ export const StorySettings = z.object({
   characterCount: opt(z.number()),
   characterIdeas: opt(str),
   theme: opt(str),
+  /** The gentle problem in the story (template storyRules.conflict): small, not scary, solved kindly. Sent as {{story.conflict}}. */
+  conflict: opt(z.string().max(500)),
   wordLimit: opt(z.number()),
   spreadCount: opt(z.number()),
   goodnightMessage: opt(str),
@@ -221,4 +240,11 @@ export const ScenePromptsInput = Base.extend({
   story: StorySettings,
   /** The finished story JSON from children.picture-book-story, sent as {{story}}. */
   storyResult: json,
+});
+export const CharacterReferenceInput = Base.extend({
+  story: StorySettings,
+  /** The finished story JSON from children.picture-book-story, sent as {{story}}. */
+  storyResult: json,
+  /** The children.scene-prompts answer (character sheets and style line), sent as {{scenePrompts}}. */
+  scenePrompts: json,
 });

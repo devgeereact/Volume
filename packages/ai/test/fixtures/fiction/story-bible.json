@@ -1,0 +1,45 @@
+{
+  "logline": "A harbourmaster's daughter must find her missing father before the island decides he chose to leave.",
+  "themes": [
+    "loyalty to family against loyalty to the truth",
+    "a small place keeping its secrets"
+  ],
+  "characters": [
+    {
+      "name": "Mara Quinn",
+      "role": "protagonist",
+      "want": "to find her father",
+      "need": "to trust people outside her family",
+      "flaw": "keeps every worry to herself",
+      "voiceNotes": "short, dry sentences; never says sorry",
+      "appearance": "32, tall, salt-stiff dark hair, her father's old oilskin coat"
+    },
+    {
+      "name": "Tomas Reyes",
+      "role": "boatman and reluctant ally",
+      "want": "to keep the harbour quiet",
+      "need": "to admit what he saw on Sunday",
+      "flaw": "avoids every hard conversation",
+      "voiceNotes": "jokes when cornered, answers questions with questions",
+      "appearance": "50s, broad, grey beard, rope burns on both hands"
+    }
+  ],
+  "settings": [
+    {
+      "name": "Calder Harbour",
+      "description": "a stone harbour on a small Hebridean island, twelve moorings, a slipway and a one-room harbour office"
+    },
+    {
+      "name": "The harbour office",
+      "description": "smells of paraffin and old paper; the logbook lives under the barometer"
+    }
+  ],
+  "timeline": [
+    "Sunday: the Gannet goes out at six",
+    "Sunday night: the Gannet does not come back",
+    "Tuesday: Mara arrives on the morning ferry"
+  ],
+  "worldRules": [],
+  "povPlan": "Close third person, past tense, every chapter from Mara's point of view.",
+  "ending": "Mara learns her father staged his disappearance to protect her from a debt, and chooses to tell the island the truth."
+}

@@ -1,0 +1,155 @@
+{
+  "content": {
+    "title": "Calmer Evenings",
+    "subtitle": "A Workbook For Winding Down After Work",
+    "summary": "A practical workbook that helps tired readers look at where their evenings go and build small habits that last.",
+    "bookInfo": {
+      "genre": "Self-help",
+      "tone": "warm and practical",
+      "writingStyle": "first person, speaking to you",
+      "targetAudience": "busy adults",
+      "estimatedWords": 4800
+    },
+    "targetAudience": "Busy adults who finish work tired and want calmer evenings.",
+    "uniqueSellingPoints": [
+      "exercises on every page",
+      "small changes only",
+      "a week of tracking per chapter"
+    ],
+    "toneNotes": "Warm and direct. One chapter a week, with a pen at hand.",
+    "hookStyle": "question",
+    "frontMatter": {
+      "halfTitle": false,
+      "dedicationIdea": "none",
+      "epigraph": "none",
+      "foreword": "none",
+      "preface": {
+        "include": false,
+        "idea": ""
+      },
+      "acknowledgementsIdea": "groups only",
+      "introduction": {
+        "hook": "Where did last night go?",
+        "outline": "What the workbook asks and how to use it.",
+        "wordTarget": 600
+      }
+    },
+    "parts": [],
+    "chapters": [
+      {
+        "number": 1,
+        "title": "Where Your Evening Goes",
+        "partNumber": null,
+        "promise": "You will plan one calmer evening.",
+        "subheadings": [
+          "Where The Evening Goes",
+          "Small Changes That Stick",
+          "Keeping Track Without Fuss"
+        ],
+        "summary": "How an evening drifts and how one small change, tied to a cue, holds it steady.",
+        "openingHookIdea": "An evening that started well and drifted",
+        "storyIdeas": [
+          "a composite reader who scrolls until midnight"
+        ],
+        "keyTakeaways": [
+          "An evening has three parts",
+          "Small changes last",
+          "Notes show what works"
+        ],
+        "bridgeToNext": "Next: mornings.",
+        "wordTarget": 1600,
+        "sourceIds": [],
+        "exercises": [
+          {
+            "kind": "reflection",
+            "title": "Your Usual Evening",
+            "purpose": "Notice what happens in the hour after work and how it leaves you feeling.",
+            "lines": 6
+          },
+          {
+            "kind": "checklist",
+            "title": "Before You Start Tonight",
+            "purpose": "Get the pieces of one small change in place.",
+            "lines": null
+          },
+          {
+            "kind": "tracker",
+            "title": "Seven Evenings",
+            "purpose": "Record a week of the change to see what works.",
+            "lines": null
+          }
+        ]
+      },
+      {
+        "number": 2,
+        "title": "Ending The Day Well",
+        "partNumber": null,
+        "promise": "You will plan one calmer evening.",
+        "subheadings": [
+          "Where The Evening Goes",
+          "Small Changes That Stick",
+          "Keeping Track Without Fuss"
+        ],
+        "summary": "How an evening drifts and how one small change, tied to a cue, holds it steady.",
+        "openingHookIdea": "An evening that started well and drifted",
+        "storyIdeas": [
+          "a composite reader who scrolls until midnight"
+        ],
+        "keyTakeaways": [
+          "An evening has three parts",
+          "Small changes last",
+          "Notes show what works"
+        ],
+        "bridgeToNext": "Next: mornings.",
+        "wordTarget": 1600,
+        "sourceIds": [],
+        "exercises": [
+          {
+            "kind": "scenario",
+            "title": "Sam's Late Finish",
+            "purpose": "Practise planning around a bad day using a made-up example.",
+            "lines": 5
+          },
+          {
+            "kind": "fill-in",
+            "title": "My Last Hour",
+            "purpose": "Write a simple plan for the hour before bed.",
+            "lines": null
+          }
+        ]
+      }
+    ],
+    "backMatter": {
+      "conclusion": {
+        "outline": "Keep the habits that worked.",
+        "wordTarget": 400
+      },
+      "appendixIdea": null,
+      "glossaryTerms": [],
+      "resourcesFromSources": [],
+      "reviewRequest": true,
+      "alsoBy": "from profile",
+      "aboutTheAuthor": "profile bio verbatim"
+    },
+    "backCoverBlurb": "A workbook for people who finish work tired. Each chapter teaches one idea and gives you space to try it.",
+    "amazonDescriptionDraft": "<p>A practical workbook for calmer evenings.</p>",
+    "categories": [
+      "Self-Help > Stress Management",
+      "Self-Help > Personal Growth",
+      "Health > Mental Health"
+    ],
+    "keywords": [
+      "evening routine workbook",
+      "wind down after work",
+      "stress workbook",
+      "habit tracker",
+      "self care journal",
+      "calm evenings",
+      "work life balance"
+    ],
+    "illustrativeStoriesLine": true,
+    "claimsToWatch": [
+      "sleep advice in chapter 2"
+    ]
+  }
+}

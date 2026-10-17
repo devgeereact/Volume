@@ -1,0 +1,47 @@
+{
+  "content": {
+    "summary": "Mara Quinn arrives at Calder Harbour to find her father's boat, the Gannet, missing from its mooring. Tomas Reyes, a boatman, meets her on the slipway and says the boat is late, but will not say more. In the harbour office Mara reads Sunday's log entry in her father's hand and finds a single word written underneath in faint pencil: Wait. She hides the book when Tomas comes in and leaves without telling him what she found.",
+    "keyPoints": [
+      "The Gannet is missing from the twelfth mooring",
+      "Tomas is evasive about Sunday",
+      "Someone wrote Wait under the log entry in pencil"
+    ],
+    "closingLine": "Mara leaves the office with a secret of her own.",
+    "ledgerAdditions": {
+      "stories": [],
+      "examples": [],
+      "metaphors": [
+        "his face closed like a door"
+      ],
+      "quotes": [],
+      "factsWithSources": [],
+      "names": [],
+      "terms": [],
+      "phrasesOverused": [],
+      "warnings": [],
+      "characters": [
+        {
+          "name": "Mara Quinn",
+          "role": "protagonist",
+          "details": "wears her father's coat; hides the logbook from Tomas"
+        },
+        {
+          "name": "Tomas Reyes",
+          "role": "boatman",
+          "details": "carries rope; says the boat is late"
+        }
+      ],
+      "settings": [
+        {
+          "name": "Calder Harbour",
+          "details": "twelve moorings, eleven boats on Tuesday, a slipway with steps"
+        },
+        {
+          "name": "The harbour office",
+          "details": "paraffin smell; logbook under the barometer"
+        }
+      ]
+    },
+    "storiesForOwnerReview": []
+  }
+}
