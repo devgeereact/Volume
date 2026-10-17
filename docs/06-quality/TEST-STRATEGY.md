@@ -93,6 +93,12 @@ On 6 October, 499 local tests and all measured coverage thresholds passed; five 
   - Phase 4: 3 cover concepts and a valid wrap.
 - Before phase 2 and phase 4: check model slugs and endpoints against openrouter.ai/docs and `GET /api/v1/models`.
 
+## Hosting checks (D-037 to D-039)
+
+- `apps/server/test/hosting.test.ts`: production settings refuse `AUTH_MODE=local`, a missing `APP_ORIGIN` and incomplete Clerk settings; Clerk mode answers 401 without a session, 403 off the allowlist and 200 for the owner (binding `users.clerk_user_id`); writes from another origin get 403; `/api/health` is public and says only `{"status":"ok"}`; other hosts get 421; pages carry the CSP and HSTS; the SPA fallback never hides a missing asset or API path; 500 answers never carry the error; rate limits per `CF-Connecting-IP`.
+- `apps/server/test/mysql.test.ts` runs when `MYSQL_TEST_URL` is set (CI job `node24-host` sets it against MariaDB 11.4).
+- The `node24-host` CI job runs doctor, tooling, typecheck and every Vitest suite on Node 24.21, then builds the release folder, installs it with `npm ci --omit=dev` (no better-sqlite3), migrates as the migration user and boots it on a runtime-only user, checking `/api/health`, a 401 and the web page.
+
 ## Hook tests
 
 `npm run hooks:test` runs `.claude/hooks/test-hooks.sh`, which feeds sample tool calls to each hook and checks:

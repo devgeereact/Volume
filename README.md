@@ -1,14 +1,16 @@
 # Volume
 
-Volume is a local-first book production app. It takes a rough idea or a working title and turns it into a finished, KDP-ready book: research with real sources, title options, an approved blueprint, a fully written manuscript in the author's voice, editing passes, covers, and an upload pack with print PDF, Word, EPUB, plain text, covers, listing copy and a claims-to-verify report.
+Volume is a book production app. It takes a rough idea or a working title and turns it into a finished, KDP-ready book: research with real sources, title options, an approved blueprint, a fully written manuscript in the author's voice, editing passes, covers, and an upload pack with print PDF, Word, EPUB, plain text, covers, listing copy and a claims-to-verify report.
 
 Each book belongs to an author profile (a pen name or a real person), with its own voice, bio, brand and model choices. All AI work goes through one OpenRouter account, and the owner picks the model for every job.
 
-Owner: Gideon (Gakinz, London). Runs on the owner’s macOS or Linux computer. Built so other self-publishers can have accounts later.
+Owner: Gideon (Gakinz, London). Hosted for the owner at https://volume.gakinz.com (cPanel, Passenger, MariaDB, Clerk sign-in; see [deployment](docs/07-operations/DEPLOYMENT.md)) and developed on macOS or Linux. Built so other self-publishers can have accounts later.
 
 ## Status
 
-GEE OS rebuild approved 7 October 2026 and now the active checkout, a linked Git worktree. Release acceptance remains PARTIAL. Existing book-production functionality and data contracts are preserved while contracts, portable tooling and the application shell are migrated. macOS execution remains NOT TESTED until an actual Mac/CI run. The Linux PDF reference mismatch and existing live AI/publishing blockers remain visible in [known issues](KNOWN-ISSUES.md).
+16 October 2026: restructured onto GEE OS 1.4.5, `cpanel` profile. The hosted release (Node 24.21, MySQL, Clerk) is built and proven locally; deployment is the lead agent's step with the owner's approval (D-037 to D-040).
+
+GEE OS rebuild approved 7 October 2026 and now the active checkout, a linked Git worktree. Release acceptance remains PARTIAL. Existing book-production functionality and data contracts are preserved while contracts, portable tooling and the application shell are migrated. macOS and remote CI passed on 14 October 2026. The Linux PDF reference mismatch and existing live AI/publishing blockers remain visible in [known issues](KNOWN-ISSUES.md).
 
 ## Restore and run on macOS or Linux
 
@@ -56,6 +58,7 @@ npm run format:check  # Prettier; npm run format rewrites the files
 npm run test          # Vitest in every workspace
 npm run test:coverage # measured core, AI, export and server thresholds
 npm run e2e           # seven browser tests in four specs, mock AI
+npm run build:release # release folder for the cPanel host (docs/07-operations/DEPLOYMENT.md)
 ```
 
 Settings live in `.env` at the root (template in `.env.example`). With no OpenRouter key the app uses the mock AI and spends nothing. The web app falls back to its built-in demo data when the server is not running.

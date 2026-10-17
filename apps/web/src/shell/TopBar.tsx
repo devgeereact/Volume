@@ -1,5 +1,6 @@
 import type { Ref } from "react";
 import { Menu, Search } from "lucide-react";
+import { AccountButton } from "../auth/AccountButton";
 import { IconButton } from "../components/ui/IconButton";
 import { Kbd, modKey } from "../components/ui/Kbd";
 import { useCommandPalette } from "../lib/commandPalette";
@@ -14,7 +15,7 @@ interface TopBarProps {
   menuButtonRef?: Ref<HTMLButtonElement> | undefined;
 }
 
-/** Slim bar above every screen: where you are, search (command menu), demo badge and theme. */
+/** Slim bar above every screen: where you are, search (command menu), demo badge, theme and, when hosted, the account menu. */
 export function TopBar({ phone, onOpenMenu, menuButtonRef }: TopBarProps) {
   const { setOpen } = useCommandPalette();
   const mod = modKey();
@@ -40,6 +41,7 @@ export function TopBar({ phone, onOpenMenu, menuButtonRef }: TopBarProps) {
         )}
         <DemoBadge />
         <ThemeToggle compact={phone} />
+        <AccountButton />
       </div>
     </header>
   );

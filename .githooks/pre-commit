@@ -1,0 +1,5 @@
+#!/bin/sh
+# GEE OS pre-commit guard. Enable once per clone: git config core.hooksPath .githooks
+set -eu
+root=$(git rev-parse --show-toplevel)
+exec python3 "$root/scripts/guard.py"

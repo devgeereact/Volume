@@ -1,0 +1,13 @@
+# === BEGIN Cloudflare-origin-lock (2026-08-28) ===
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP:CF-RAY} ^$
+  RewriteCond %{REQUEST_URI} !^/\.well-known/
+  RewriteRule ^ - [F,L]
+</IfModule>
+# === END Cloudflare-origin-lock ===
+
+# Volume (volume.gakinz.com): the whole site is the Passenger Node.js app (apps/volume/current, app.cjs).
+# The cPanel Node.js selector writes its own "CLOUDLINUX PASSENGER CONFIGURATION" block below this line.
+# Keep the origin lock above it, and keep nothing else in this docroot.
+Options -Indexes

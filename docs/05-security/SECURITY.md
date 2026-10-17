@@ -1,6 +1,6 @@
 # 10 Security and privacy
 
-Volume runs on the owner's Mac and holds unpublished books, author identities, possibly real people's stories, and one paid API key. The aim is simple: the key never leaves the server process, the app is reachable only from the Mac itself, and book content goes nowhere except OpenRouter.
+Volume holds unpublished books, author identities, possibly real people's stories, and one paid API key. It runs on the owner's cPanel host behind Cloudflare and Clerk sign-in (D-038, D-039), and locally on the Mac for development. The aim is simple: the key never leaves the server process, only allowed accounts reach the data, and book content goes nowhere except OpenRouter.
 
 ## What we protect
 
@@ -17,8 +17,10 @@ Volume runs on the owner's Mac and holds unpublished books, author identities, p
 | Threat | Control |
 |---|---|
 | Key leaks into the browser, logs, prompts or git | Key read only by `apps/server` from `.env`; never sent to the web app (not even partly masked); a test scans the built web bundle for key patterns (`sk-or-`) and the variable name; the logger redacts `Authorization` headers and any value matching key patterns; `.env` and `data/` are git-ignored; Claude Code hooks block AI tools from reading `.env` and `data/`, and other AI tools follow the same rule from `AGENTS.md` |
-| Another device on the network reaches the app | Server binds to `127.0.0.1` only; no LAN mode in v1 |
-| A web page in the owner's browser calls the local API (DNS rebinding, CSRF) | Host header must be `127.0.0.1:<port>` or `localhost:<port>`; Origin must match on every non-GET request; CORS disabled; JSON-only bodies; SSE is read-only |
+| A stranger reaches the hosted app | Clerk session required on every `/api` request (401 without one); allowlist by user id or verified email (403 otherwise); only `GET /api/health` is public and returns `{"status":"ok"}` only; the origin `.htaccess` refuses requests that did not come through Cloudflare; the server binds to `127.0.0.1` behind Passenger |
+| Brute force or flooding | Rate limit per visitor IP (`CF-Connecting-IP`): reads, writes and the health check have separate allowances per minute; JSON and upload body limits |
+| Error details leak | One JSON error shape; 500 answers carry a fixed message, never the stack or the error text; logs redact `Authorization` and cookies |
+| A web page in the owner's browser calls the API (DNS rebinding, CSRF) | Host header must be an allowed host (`ALLOWED_HOSTS`, default the `APP_ORIGIN` host; loopback in development); Origin must match on every non-GET request; Clerk's `authorizedParties` is `APP_ORIGIN`; CORS disabled; JSON-only bodies; SSE is read-only; pages carry a Content Security Policy, `X-Frame-Options: DENY` and HSTS |
 | Prompt injection from research pages or pasted text | Outside text goes into labelled data blocks; prompts state that data is not instructions; outputs are schema-validated; models have no tools that act on the system; sources come only from `url_citation` annotations |
 | Malicious import file (zip slip, huge files) | Markdown import validates sections and saves atomically. Project ZIP imports validate rows/references before mutation, reject unsafe/duplicate paths and limit expansion to 128 MiB per entry, 256 MiB total and 10,000 entries; upload limits also apply |
 | Path traversal in file downloads | Files are served by asset or export id, never by a path from the request; content comes from workspace-scoped database BLOB chunks, not a caller-supplied filesystem path |
@@ -66,9 +68,9 @@ Volume runs on the owner's Mac and holds unpublished books, author identities, p
 
 Not built in v1, but the design keeps the door open:
 - Every query is scoped by `workspace_id` through repositories; a test tries cross-workspace reads and expects `not_found`.
-- Real sessions replace the auth stub: password hashing with a memory-hard algorithm, HTTP-only, SameSite=Strict cookies, session rotation on login, rate-limited login.
+- Clerk sign-in replaced the auth stub for hosting (D-039); Clerk holds passwords and sessions.
 - Roles from `memberships` gate writes.
-- If the app is ever hosted, the local-only assumptions here (127.0.0.1, single key) must be revisited first, with a new `docs/08-change-management/DECISIONS.md` entry. Each account would need its own OpenRouter key.
+- The app is hosted for the owner only (D-038). Before a second self-publisher is added, give each account its own workspace and decide how OpenRouter keys and budgets are split.
 
 ## Checks that prove this
 

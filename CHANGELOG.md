@@ -2,6 +2,20 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 16 October 2026
+
+### Added
+- Hosted Volume for the owner: one Passenger app on the cPanel host serves the web app and the API, with MySQL on the host and Clerk sign-in (D-037 to D-039).
+- Sign-in screen and account menu when the web app is built with a Clerk publishable key. Accounts not on the owner allowlist see "This account is not allowed".
+- Public `GET /api/health` for uptime checks; it says only whether the app is up.
+- `npm run build:release` makes the release folder for the host; `npm run db:copy-to-mysql -w apps/server` copies a local library into MySQL once.
+- Separate migration command for a migration database user (`npm run migrate`, `migrate:status`).
+
+### Changed
+- Node 24.11 or later is enough to run Volume (the host runs 24.21); development stays on Node 26.
+- Hosted security: allowed hosts and origin from settings, visitor IP from Cloudflare, rate limits, security headers and a Content Security Policy.
+- PDF export can use an extra library folder for Chromium (`CHROMIUM_LD_LIBRARY_PATH`).
+
 ## 9 October 2026
 
 ### Fixed

@@ -1,3 +1,19 @@
+## cPanel hosting restructure, 16 October 2026 (Claude Code)
+
+Branch `chore/gee-os-cpanel` (pushed, not merged). Volume is ready to host at https://volume.gakinz.com as one Passenger Node.js app on Node 24.21 with MariaDB on localhost and Clerk sign-in (D-037 to D-040, GEE OS 1.4.5 `cpanel` profile). Release folder: `npm run build:release`; deploy contract, Passenger settings and checks: `docs/07-operations/DEPLOYMENT.md`.
+
+Proven locally (16 October 2026): every gate on Node 26 (doctor, typecheck, lint, format, docs, tooling, hooks 83, all Vitest suites, both builds, e2e 7 of 7); doctor, tooling, typecheck and all suites on Node 24.21 including the MySQL test; the release installs with `npm ci --omit=dev` on Node 24 without better-sqlite3, migrates as a migration user, refuses to start with pending migrations, and boots on a runtime-only MariaDB user (health 200, unsigned API 401, page with CSP); SQLite to MySQL copy on scratch data (3.5 MB blob byte-equal); docroot `.htaccess` on Apache 2.4 (403 without CF-RAY).
+
+Not tested: the real host (Passenger listen hook, idle stop, LiteSpeed), a real Clerk instance, Chromium export on the host, the new CI job remotely.
+
+Next: lead agent creates the Clerk application, database users, shared settings and Chromium on the host, then deploys with owner approval and runs the post-deploy checks. Owner: review `.env.example`, run the one-off library copy, decide on merging the branch.
+
+## macOS gate, 14 October 2026 (Claude Code)
+
+Main is clean at 8fc591e; PRs #1 and #2 merged, so the summary-missing work is now in main. macOS gate PASS on the owner's Mac (Homebrew Node 26.8.1; Mise not installed, repo pins 26.10.0): doctor, typecheck, lint, format, docs, hooks 83, core 75, AI 161, export 87 (1 skip), server 195 (1 skip), `compare:pdf` 4 of 4 on darwin references, both builds, e2e 7 of 7. Remote CI run 37995263944 on main PASS on macos-latest and ubuntu-latest. `../reports/volume` does not exist on this Mac.
+
+Next: owner (1) records the decision on save-chapter-when-summary-fails, already merged without a D entry, and the `checks.maxTokens` 16000 change; (2) authorises a free-model live writing run (`LIVE_AI=1`, budget zero) to close Live AI acceptance; (3) owner-book and KDP draft acceptance. MySQL stays deferred.
+
 ## Fix pass, 8 October 2026 (Claude Code)
 
 Supersedes the lint and Chromium lines in the audit status below. Lint now PASSES: the unused `all` was dropped from one destructure at `apps/server/src/jobs/handlers/writing.ts:357`; nothing else in the in-progress summary-missing work changed, and that behaviour is still an owner decision. Chromium 1243 is installed, so export and PDF suites run again: export 87 PASS (1 skip), including the 4-page Linux golden comparison; server 195 PASS (1 MySQL skip); doctor PASS; e2e 7 of 7 PASS. Also: title "Volume" in `apps/web/index.html`, `minimum_version` and `mcp_profile: "none"` in PROJECT.yml, a Commands block in AGENTS.md, and stale wording in README, KNOWN-ISSUES and TEST-STRATEGY. Report: `../reports/volume/FIX-PASS-2026-10-08.md`. Next: owner decides on the summary-missing work and the `checks.maxTokens` change, then record them.

@@ -1,11 +1,13 @@
-import type { FastifyError, FastifyInstance } from 'fastify';
+import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 export type ErrorCode =
   | 'validation_failed'
   | 'not_found'
   | 'conflict'
+  | 'unauthorized'
   | 'forbidden'
+  | 'rate_limited'
   | 'bad_host'
   | 'bad_origin'
   | 'payload_too_large'
@@ -21,7 +23,9 @@ const STATUS: Record<ErrorCode, number> = {
   validation_failed: 400,
   not_found: 404,
   conflict: 409,
+  unauthorized: 401,
   forbidden: 403,
+  rate_limited: 429,
   bad_host: 421,
   bad_origin: 403,
   payload_too_large: 413,
@@ -72,8 +76,12 @@ export function parse<S extends z.ZodType>(schema: S, data: unknown): z.output<S
   return result.data;
 }
 
-export function registerErrorHandling(app: FastifyInstance): void {
-  app.setNotFoundHandler((_req, reply) => {
+/** Answers a not-found GET with the web app shell when it can (hosted mode); returns false to fall through to 404. */
+export type NotFoundFallback = (req: FastifyRequest, reply: FastifyReply) => boolean;
+
+export function registerErrorHandling(app: FastifyInstance, fallback?: NotFoundFallback): void {
+  app.setNotFoundHandler((req, reply) => {
+    if (fallback?.(req, reply)) return;
     void reply.code(404).send(errorBody('not_found', 'There is nothing at this address.'));
   });
 
@@ -101,11 +109,15 @@ export function registerErrorHandling(app: FastifyInstance): void {
       void reply.code(415).send(errorBody('unsupported_media_type', 'Send JSON with Content-Type: application/json.'));
       return;
     }
+    if (fe.statusCode === 429) {
+      void reply.code(429).send(errorBody('rate_limited', 'Too many requests. Wait a minute, then try again.'));
+      return;
+    }
     if (typeof fe.statusCode === 'number' && fe.statusCode >= 400 && fe.statusCode < 500) {
       void reply.code(fe.statusCode).send(errorBody('validation_failed', 'The request could not be read.'));
       return;
     }
-    // Log the error without the request body or headers.
+    // Log the error without the request body or headers. The response never carries the stack or the message.
     req.log.error({ err: { message: err.message, name: err.name, stack: err.stack } }, 'request failed');
     void reply.code(500).send(errorBody('internal_error', 'Something went wrong on the server. Try again.'));
   });

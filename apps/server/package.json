@@ -6,7 +6,7 @@
   "type": "module",
   "main": "dist/index.js",
   "engines": {
-    "node": ">=26"
+    "node": ">=24.11 <27"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -16,13 +16,17 @@
     "test": "vitest run",
     "migrate": "tsx src/db/migrate-cli.ts",
     "seed": "tsx src/seed/seed-cli.ts",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "migrate:status": "tsx src/db/migrate-cli.ts status",
+    "db:copy-to-mysql": "tsx src/db/copy-sqlite-to-mysql.ts"
   },
   "dependencies": {
+    "@clerk/backend": "3.24.0",
+    "@fastify/rate-limit": "11.2.1",
+    "@fastify/static": "10.1.6",
     "@volume/ai": "*",
     "@volume/core": "*",
     "@volume/export": "*",
-    "better-sqlite3": "^13.0.3",
     "dotenv": "^18.0.5",
     "fastify": "^5.12.5",
     "kysely": "^0.29.6",
@@ -33,6 +37,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.4",
+    "better-sqlite3": "^13.0.3",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"

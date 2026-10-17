@@ -47,9 +47,11 @@ Rule: `apps/web` never imports `packages/ai` or `packages/export`. A lint rule e
 
 ```mermaid
 flowchart LR
-  B[Browser on the local computer] -- HTTP /api/v1 and SSE --> S[apps/server 127.0.0.1]
-  S --> DB[(data/volume.sqlite)]
-  S --> F[data/workspaces/... files]
+  B[Browser] -- HTTPS via Cloudflare --> P[LiteSpeed + Passenger on cPanel]
+  P --> S[apps/server: web app, /api/v1, SSE]
+  B -. sign-in .-> C[Clerk]
+  S -- verifies session --> C
+  S --> DB[(MariaDB on localhost, files as BLOB chunks)]
   S --> Q[Job runner in process]
   Q --> AI[packages/ai]
   Q --> EX[packages/export]
@@ -57,13 +59,14 @@ flowchart LR
   EX --> PW[Playwright Chromium, local]
 ```
 
-- Development: Vite dev server on 127.0.0.1 proxies `/api` to the server. Local production build: the server serves the built web app and the API on one port.
-- Both bind to 127.0.0.1 only. Port numbers live in `.env.example` (names only) and `apps/server` config.
+- Hosted (D-038): one Passenger Node.js app at https://volume.gakinz.com on Node 24.21. Fastify serves the built web app (static files, SPA fallback) and `/api` from one process; MariaDB on localhost holds everything, including files. Steps and settings: [deployment](../07-operations/DEPLOYMENT.md).
+- Development: SQLite in `data/`, the Vite dev server on 127.0.0.1:5180 proxies `/api` to the server on 127.0.0.1:5181, no sign-in (`AUTH_MODE=local`).
+- The server always binds to 127.0.0.1 (Passenger replaces the listen socket on the host). Setting names live in `.env.example` and `apps/server/src/config/env.ts`.
 
 ## Request flow
 
 1. The browser calls `/api/v1/...` with JSON. TanStack Query caches reads and invalidates on mutation or on SSE events.
-2. Fastify `onRequest` hooks: Host check (must be `127.0.0.1:<port>` or `localhost:<port>`), Origin check on writes, auth stub that attaches `ctx = { workspaceId, userId, role }`.
+2. Fastify `onRequest` hooks: rate limit per visitor IP (`CF-Connecting-IP` behind Cloudflare), Host check (`ALLOWED_HOSTS`, default the `APP_ORIGIN` host; loopback in development), Origin check on writes, then for `/api` (not `/api/health`) the auth provider that attaches `ctx = { workspaceId, userId, role }`: Clerk in production (D-039), the owner stub in development.
 3. Route handler validates params and body with zod schemas from `packages/core`.
 4. Handler calls a service. Services take `ctx` first and only reach the database through repositories that add `workspace_id` to every query.
 5. Short work (save a section, run deterministic checks, KDP maths) returns directly. Long work (any AI call, PDF, cover, pack, backup) creates a job and returns `202 { jobId }`.
@@ -128,17 +131,17 @@ The provider is chosen at start-up: `mock` when no key is set or in tests, `open
 3. The app never switches model silently. Every `prompt_runs` row records the model that actually answered.
 4. Web search unavailable for the chosen model: research stops and asks for a search-capable model; it never runs research without search.
 
-## Local-only binding
+## Binding and public hosting
 
-- Server listens on `127.0.0.1` only. No `0.0.0.0`, no LAN access in v1.
-- Host header must match the bound host and port (guards against DNS rebinding). Origin must match on every write. CORS is off.
+- Server listens on `127.0.0.1` only. No `0.0.0.0`. On the host, Passenger fronts it and Cloudflare fronts Passenger (the docroot `.htaccess` refuses requests without `CF-RAY`).
+- Host header must be an allowed host (guards against DNS rebinding). Origin must match on every write. CORS is off. Security headers on every response; a Content Security Policy on pages; no stack traces in responses.
 - No outside network calls except OpenRouter. Fonts, scripts and images are bundled. Checking research links on the open web is off unless the owner turns it on (see `KNOWN-ISSUES.md`).
 
 ## Multi-user readiness
 
 - Every table except `workspaces` and `users` has `workspace_id`, indexed. Repositories refuse a query without it.
 - IDs are ULIDs (sortable, safe to show, no counters to leak).
-- Auth stub in v1: on first start the server creates one workspace and one owner user and attaches them to every request. Phase 8 replaces the stub with real sessions; routes and services stay the same because they already take `ctx`.
+- On first start the server creates one workspace and one owner user. Locally the stub attaches them to every request. Hosted, Clerk sign-in maps an allowed Clerk user to a Volume user through `users.clerk_user_id` (the first one binds the owner); routes and services are unchanged because they already take `ctx`.
 - Roles exist from day one (`owner`, `editor`, `viewer`) on `memberships`; v1 only uses `owner`.
 - File paths include the workspace: `data/workspaces/<workspace_id>/projects/<project_id>/`.
 

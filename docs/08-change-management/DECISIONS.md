@@ -109,7 +109,7 @@ Status: **Accepted** (owner approved), **Proposed** (in the specs, waiting for t
 
 ## D-015 Owner's cPanel MySQL holds all work; Kysely with two dialects
 
-- Date: 4 October 2026. Status: Accepted (owner chose "Database on cPanel, app on Mac").
+- Date: 4 October 2026. Status: Accepted (owner chose "Database on cPanel, app on Mac"). Remote MySQL from the Mac superseded by D-038 on 16 October 2026; Kysely, the two dialects and BLOB storage stay.
 - Context: the owner wants all work saved in his cPanel database and pulled when needed. Shared hosting usually cannot run the Chromium engine that print PDFs need, so the app stays on the Mac.
 - Decision: the server uses Kysely (MIT) as a single query builder with two dialects: SQLite (better-sqlite3 or node:sqlite) for local development and tests, MySQL (mysql2) for production on cPanel through Remote MySQL with the Mac's IP allow-listed and TLS when the host offers it. Files (covers, images, exports, uploads) are stored in the database as chunked BLOBs (1 MB chunks) with a sha256, so the whole library lives on cPanel. Migrations are written once in Kysely and run on both dialects. Supersedes the "SQLite with Drizzle" part of the stack (D-005 area).
 - Consequences: no file storage on the Mac other than a cache; backups come from the cPanel database; one setting `DB_CLIENT=sqlite|mysql` switches. Owner must enable Remote MySQL and add host, port, database, user and password to `.env`.
@@ -243,3 +243,26 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
 
 - Context: an existing SSH tunnel can own the default web port 5180, so the launcher accepts `VOLUME_WEB_PORT` (from D-032). The API only allowed the 5180 origins by default.
 - Decision: when the selected web port is not 5180 and `WEB_ORIGINS` is not set, the launcher passes `http://127.0.0.1:<port>,http://localhost:<port>` to the API. An explicit `WEB_ORIGINS` always wins. No running process is stopped.
+
+## D-037, 16 October 2026: production runs on Node 24.21
+
+- Context: the owner hosts Volume on the cPanel account. Its CloudLinux Node.js selector offers Node 24.21.0 at most. D-032 kept a Node 26-only rule.
+- Decision: the code supports Node 24.11 and later (`engines` `>=24.11 <27` in the root and server manifests, `scripts/runtime.mjs`). Production runs Node 24.21 under Passenger. Development stays on Node 26 through Mise (`mise.toml`, `.nvmrc`). Code must not use Node 25 or 26-only APIs.
+- Evidence: 16 October 2026, Node 24.21.0 (darwin-arm64): doctor, test:tooling, typecheck and every Vitest suite PASS (core 75, AI 161, export 89 + 1 skip, server 210 including MySQL). CI gains a `node24-host` job that repeats this on Linux and boots the release folder.
+- Supersedes the Node 26-only runtime line of D-032 for production. Development is unchanged.
+
+## D-038, 16 October 2026: one Passenger app on cPanel with local MySQL
+
+- Context: D-015 kept the app on the Mac and the data in cPanel MySQL through Remote MySQL, because shared hosting seemed unable to run Chromium. The host now runs Playwright's chromium-headless-shell 1243 once two libraries are supplied.
+- Decision: Volume runs fully on the host at https://volume.gakinz.com as one CloudLinux Passenger Node.js app at the domain root. Fastify serves the built web app and `/api` from one process (`app.cjs`, `server/index.mjs`). Production uses `DB_CLIENT=mysql` against MariaDB on localhost with two users: a runtime user (SELECT, INSERT, UPDATE, DELETE) for the app and a migration user (`MYSQL_MIGRATE_USER`) for `node server/migrate.mjs`. Production never auto-migrates and refuses to start while migrations are pending. better-sqlite3 is a development dependency, loaded only when `DB_CLIENT=sqlite`, so `npm ci --omit=dev` on the host needs no native SQLite. Files stay as BLOB chunks in MySQL (D-015 unchanged on that point).
+- Consequences: Remote MySQL from the Mac is no longer the production path. The local library moves once with `npm run db:copy-to-mysql -w apps/server` (owner runs it). Passenger may stop an idle app; jobs are stored in the database and re-queued after a restart, and a cron keep-alive hits `GET /api/health`. Supersedes D-015 (Remote MySQL from the Mac). Deviation from the GEE OS `cpanel` profile rule "cPanel never runs Node": Volume needs Chromium, a job queue and SSE, which a PHP API cannot provide.
+
+## D-039, 16 October 2026: Clerk sign-in with an owner allowlist
+
+- Decision: the hosted app is gated by Clerk (application "Volume", created by the lead). The web app uses `@clerk/react` with `VITE_CLERK_PUBLISHABLE_KEY` at build time and shows Clerk's sign-in when signed out. The server verifies the Clerk session (Bearer token or Clerk's same-origin `__session` cookie, for SSE, images and downloads) on every `/api` request with `@clerk/backend` `authenticateRequest`, with `authorizedParties` set to `APP_ORIGIN` and networkless checks when `CLERK_JWT_KEY` is set. No session: 401. Signed in but not in `CLERK_ALLOWED_USER_IDS` or `OWNER_EMAILS` (verified addresses): 403. The first allowed sign-in binds the existing owner user (`users.clerk_user_id`, migration 0005); a further allowed account gets its own user with owner rights in the same workspace. `GET /api/health` stays public and answers only `{"status":"ok"}`.
+- `AUTH_MODE=local` (the stub) remains the development default and is refused in production. Workspaces, memberships and roles stay as they are, so other self-publishers can be added later with their own workspaces.
+- Replaces the "auth stub until phase 8" note in docs/05-security/AUTH-MODEL.md.
+
+## D-040, 16 October 2026: GEE OS 1.4.5 on the cpanel profile
+
+- Decision: the project card moves to GEE OS 1.4.5, profile `cpanel`, with the hosting facts above. Netlify and Supabase are not used. The rebuild plan (D-032) and the Full Product document hierarchy stay. Recorded deviations from the profile: Node runs on the host (D-038) and the backend is the existing Fastify server, not a PHP API.

@@ -11,10 +11,28 @@ let users = 0;
  */
 export const BROWSER_ARGS: readonly string[] = ['--font-render-hinting=none'];
 
+/**
+ * Environment for the launched browser. CHROMIUM_LD_LIBRARY_PATH names a folder of extra shared libraries that a host
+ * lacks (on the cPanel host: libatspi.so.0 and libatk-bridge-2.0.so.0); it is put in front of LD_LIBRARY_PATH for
+ * Chromium only. PLAYWRIGHT_BROWSERS_PATH, read by Playwright itself, says where the browser is installed.
+ */
+export function browserEnv(env: NodeJS.ProcessEnv = process.env): Record<string, string> | undefined {
+  const extra = env['CHROMIUM_LD_LIBRARY_PATH']?.trim();
+  if (!extra) return undefined;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(env)) if (typeof v === 'string') out[k] = v;
+  const current = env['LD_LIBRARY_PATH']?.trim();
+  out['LD_LIBRARY_PATH'] = current ? `${extra}:${current}` : extra;
+  return out;
+}
+
 /** Launch (or reuse) the shared browser. Call releaseBrowser() when done. */
 export async function acquireBrowser(): Promise<Browser> {
   users++;
-  if (!shared || !shared.isConnected()) shared = await chromium.launch({ headless: true, args: [...BROWSER_ARGS] });
+  if (!shared || !shared.isConnected()) {
+    const env = browserEnv();
+    shared = await chromium.launch({ headless: true, args: [...BROWSER_ARGS], ...(env ? { env } : {}) });
+  }
   return shared;
 }
 

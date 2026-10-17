@@ -1,7 +1,7 @@
 import { Migrator } from 'kysely/migration';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config/env.js';
-import { migrateToLatest, openSqlite } from '../src/db/connect.js';
+import { migrateToLatest, openSqlite, pendingMigrations } from '../src/db/connect.js';
 import { VolumeMigrationProvider } from '../src/db/migrations/index.js';
 
 const EXPECTED = [
@@ -39,7 +39,7 @@ describe('migrations on SQLite in memory', () => {
   it('create every table, are idempotent and roll back', async () => {
     const handle = openSqlite(':memory:');
     const first = await migrateToLatest(handle);
-    expect(first.results?.map((r) => r.status)).toEqual(['Success', 'Success', 'Success', 'Success']);
+    expect(first.results?.map((r) => r.status)).toEqual(['Success', 'Success', 'Success', 'Success', 'Success']);
     const tables = await handle.db.introspection.getTables();
     const names = tables.map((t) => t.name);
     for (const t of EXPECTED) expect(names).toContain(t);
@@ -71,11 +71,18 @@ describe('migrations on SQLite in memory', () => {
     expect(cols('marketing_items')).toContain('extras');
     // 0004
     expect(cols('section_versions')).toContain('guardrails');
+    // 0005
+    expect(cols('users')).toContain('clerk_user_id');
+    expect(await pendingMigrations(handle)).toEqual([]);
 
     const second = await migrateToLatest(handle);
     expect(second.results).toEqual([]);
 
     const migrator = new Migrator({ db: handle.db.withoutPlugins(), provider: new VolumeMigrationProvider('sqlite') });
+    const down5 = await migrator.migrateDown();
+    expect(down5.error).toBeUndefined();
+    expect((await handle.db.introspection.getTables()).find((t) => t.name === 'users')?.columns.map((c) => c.name)).not.toContain('clerk_user_id');
+    expect(await pendingMigrations(handle)).toEqual(['0005_clerk_identity']);
     const down4 = await migrator.migrateDown();
     expect(down4.error).toBeUndefined();
     const versionCols = (await handle.db.introspection.getTables()).find((t) => t.name === 'section_versions')?.columns.map((c) => c.name);

@@ -1,6 +1,6 @@
 # 03 Data model
 
-Kysely with two dialects (D-015, D-019): SQLite through better-sqlite3 locally and in tests, MySQL through mysql2 on the owner's cPanel. Migrations live in `apps/server/src/db/migrations/` and run on both. The table list as built is in `apps/server/README.md`. SQLite runs in WAL mode, `foreign_keys = ON`. Server input/JSON validation is defined alongside repositories and routes; AI stage schemas are in packages/ai/src/stages/. The descriptive tables below began as the design model; migrations and apps/server/src/db/schema.ts define the exact implemented columns.
+Kysely with two dialects (D-015, D-019, D-038): SQLite through better-sqlite3 locally and in tests (a development dependency, loaded only for SQLite), MySQL/MariaDB through mysql2 on the owner's cPanel host in production. Migrations live in `apps/server/src/db/migrations/` and run on both. The table list as built is in `apps/server/README.md`. SQLite runs in WAL mode, `foreign_keys = ON`. Server input/JSON validation is defined alongside repositories and routes; AI stage schemas are in packages/ai/src/stages/. The descriptive tables below began as the design model; migrations and apps/server/src/db/schema.ts define the exact implemented columns.
 
 ## Conventions
 
@@ -16,7 +16,7 @@ Kysely with two dialects (D-015, D-019): SQLite through better-sqlite3 locally a
 
 **workspaces** (no `workspace_id`): `name text not null`, `slug text unique not null`.
 
-**users** (no `workspace_id`): `email text unique` (null for the local owner), `display_name text not null`, `auth_provider text` (`local` in v1), `password_hash text` (null until phase 8), `last_seen_at integer`.
+**users** (no `workspace_id`): `email text unique` (null for the local owner), `display_name text not null`, `auth_provider text` (`local` in v1), `password_hash text` (unused; Clerk holds passwords), `last_seen_at integer`, `clerk_user_id text unique` (migration 0005, D-039: the Clerk user bound to this Volume user; null for local-only users).
 
 **memberships**: `user_id text not null -> users`, `role text` (`owner`, `editor`, `viewer`). Unique `(workspace_id, user_id)`.
 

@@ -3,8 +3,10 @@
    - JSON in, JSON out. The one exception is the raw upload in assets.ts, which the server requires.
    - Every call takes an optional AbortSignal (TanStack Query passes one to each queryFn).
    - Errors always arrive as ApiError, built from the server's { error: { code, message, details } }.
-   - No credentials, cookies or keys. The OpenRouter key lives on the server and never reaches the
-     browser; requests are sent with `credentials: "omit"`. */
+   - No keys. The OpenRouter key lives on the server and never reaches the browser.
+   - Hosted sign-in (Clerk): each request carries the session token as a Bearer header (see setAuthTokenGetter), and
+     same-origin requests also send Clerk's own session cookie, which is what EventSource streams, images and
+     download links rely on. Locally (AUTH_MODE=local) there is neither. */
 
 /** Base path. In the browser the Vite dev and preview servers proxy /api to the local server. */
 export const DEFAULT_API_BASE = "/api/v1";
@@ -16,12 +18,32 @@ export function configureApi(options: { baseUrl: string }): void {
   apiBase = options.baseUrl.replace(/\/+$/, "");
 }
 
+type TokenGetter = () => Promise<string | null>;
+let tokenGetter: TokenGetter | null = null;
+
+/** Hosted sign-in registers Clerk's getToken here; null clears it. */
+export function setAuthTokenGetter(getter: TokenGetter | null): void {
+  tokenGetter = getter;
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
+  if (!tokenGetter) return {};
+  try {
+    const token = await tokenGetter();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 /** Error codes the server sends (apps/server/src/http/errors.ts), plus two the client adds. */
 export type ApiErrorCode =
   | "validation_failed"
   | "not_found"
   | "conflict"
+  | "unauthorized"
   | "forbidden"
+  | "rate_limited"
   | "bad_host"
   | "bad_origin"
   | "payload_too_large"
@@ -135,7 +157,7 @@ export async function apiRequest<T>(
   body?: unknown,
   options: RequestOptions = {},
 ): Promise<T> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", ...(await authHeaders()) };
   let payload: BodyInit | undefined;
   if (body instanceof Blob) {
     payload = body;
@@ -145,7 +167,7 @@ export async function apiRequest<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  const init: RequestInit = { method, headers, credentials: "omit", cache: "no-store" };
+  const init: RequestInit = { method, headers, credentials: "same-origin", cache: "no-store" };
   if (payload !== undefined) init.body = payload;
   if (options.signal) init.signal = options.signal;
 
@@ -171,7 +193,7 @@ export interface ApiDownload {
 
 /** A request that answers with a file (for example a zip) instead of JSON. Errors arrive as ApiError, like apiRequest. */
 export async function apiDownload(method: "GET" | "POST", path: string, accept: string, options: RequestOptions = {}): Promise<ApiDownload> {
-  const init: RequestInit = { method, headers: { Accept: accept }, credentials: "omit", cache: "no-store" };
+  const init: RequestInit = { method, headers: { Accept: accept, ...(await authHeaders()) }, credentials: "same-origin", cache: "no-store" };
   if (options.signal) init.signal = options.signal;
   let res: Response;
   try {
