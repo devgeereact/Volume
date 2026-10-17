@@ -7,6 +7,7 @@ import {
   AlignmentType,
   Bookmark,
   BorderStyle,
+  CheckBox,
   Document,
   Footer,
   ImageRun,
@@ -27,11 +28,14 @@ import {
 import JSZip from 'jszip';
 import sharp from 'sharp';
 import {
+  clampLines,
   DEFAULT_INTERIOR_THEME,
   enabledSections,
+  exerciseHeading,
   marginsFor,
   parseInline,
   parseTrimKey,
+  inContents,
   sectionHeading,
   type Block,
   type BookDoc,
@@ -39,6 +43,7 @@ import {
   type Section,
   type TrimKey,
 } from '@volume/core';
+import { fillInLines } from './print-html.ts';
 import { fontBytes, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
 
 export interface DocxOptions {
@@ -95,6 +100,16 @@ function runsFor(text: string, extra: { size?: number } = {}): TextRun[] {
     (r) =>
       new TextRun({ text: r.text, ...(r.bold ? { bold: true } : {}), ...(r.italic ? { italics: true } : {}), ...(extra.size ? { size: extra.size } : {}) }),
   );
+}
+
+/** An empty paragraph with a bottom rule: one writing line for workbooks. */
+function ruledLine(): Paragraph {
+  return new Paragraph({
+    style: 'FirstParagraph',
+    spacing: { before: 280, after: 0 },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: '888888', space: 1 } },
+    children: [],
+  });
 }
 
 function styles(theme: InteriorTheme, body: string, heading: string): IParagraphStyleOptions[] {
@@ -357,7 +372,7 @@ export async function exportDocx(book: BookDoc, theme: InteriorTheme = DEFAULT_I
         continue;
       case 'contents': {
         children.push(new Paragraph({ style: 'ContentsHeading', children: [new TextRun('Contents')] }));
-        const after = secs.slice(secs.indexOf(s) + 1).filter((x) => mark.has(x.id));
+        const after = secs.slice(secs.indexOf(s) + 1).filter((x) => mark.has(x.id) && inContents(book, x));
         for (const x of after) {
           children.push(
             new Paragraph({
@@ -380,7 +395,7 @@ export async function exportDocx(book: BookDoc, theme: InteriorTheme = DEFAULT_I
     }
     children.push(headingPara(s, 'Heading1'));
     let afterBreak = true;
-    for (const b of s.blocks) {
+    const renderBlock = async (b: Block): Promise<void> => {
       switch (b.type) {
         case 'paragraph': {
           const style = s.subtype === 'dedication' ? 'Dedication' : afterBreak || b.text.startsWith('**') ? 'FirstParagraph' : 'Normal';
@@ -457,7 +472,33 @@ export async function exportDocx(book: BookDoc, theme: InteriorTheme = DEFAULT_I
         case 'pageBreak':
           children.push(new Paragraph({ style: 'FirstParagraph', children: [new PageBreak()] }));
           break;
+        // D-042: print formats draw ruled lines and tick boxes. Existing styles only, so styles.xml is unchanged.
+        case 'exercise':
+          children.push(new Paragraph({ style: 'TakeawaysHeading', children: runsFor(exerciseHeading(b)) }));
+          afterBreak = true;
+          for (const x of b.blocks) {
+            await renderBlock(x);
+            afterBreak = x.type !== 'paragraph';
+          }
+          break;
+        case 'lines':
+          for (let n = 0; n < clampLines(b.count); n++) children.push(ruledLine());
+          break;
+        case 'checklist':
+          for (const it of b.items)
+            children.push(new Paragraph({ style: 'FirstParagraph', children: [new CheckBox({ checked: false }), new TextRun(' '), ...runsFor(it)] }));
+          break;
+        case 'fillIn':
+          if (b.page) children.push(new Paragraph({ style: 'FirstParagraph', children: [new PageBreak()] }));
+          for (const p of b.prompts) {
+            children.push(new Paragraph({ style: 'FirstParagraph', children: runsFor(p) }));
+            for (let n = 0; n < fillInLines(b); n++) children.push(ruledLine());
+          }
+          break;
       }
+    };
+    for (const b of s.blocks) {
+      await renderBlock(b);
       afterBreak = b.type !== 'paragraph';
     }
   }

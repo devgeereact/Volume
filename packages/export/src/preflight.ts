@@ -2,7 +2,15 @@
 import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import sharp from 'sharp';
 import {
+  bleedPageSizeIn,
+  checkPictureBook,
+  checkTextInSafeArea,
+  colourPageRange,
+  pictureBookGeometry,
+  pictureBookPages,
+  pictureBookRulesFromTemplate,
   checkBookStyle,
+  checkBookTemplateRules,
   checkListing,
   ebookCoverSpec,
   blockTexts,
@@ -15,16 +23,20 @@ import {
   parseTrimKey,
   rulesAge,
   stripInline,
+  templateRulesFromTemplate,
   trimPageRange,
   wrapSizeIn,
   type BookDoc,
   type CheckItem,
+  type ColourInk,
+  type PictureBookDoc,
   type CompiledHouseStyle,
   type KdpRules,
   type ListingInput,
   type Paper,
   type TrimKey,
 } from '@volume/core';
+import type { PictureBookLayout } from './picture-book.ts';
 
 export type { CheckItem, CheckLevel } from '@volume/core';
 
@@ -45,6 +57,8 @@ export interface PdfInspection {
   pageText: string[];
   /** Per page: text in the top 8% (running heads), bottom 8% (folios) and the rest (body). */
   pageParts: { head: string; foot: string; body: string }[];
+  /** Per page: how many images are drawn on it. */
+  imagesPerPage: number[];
 }
 
 /** Read a PDF with pdfjs-dist: page sizes, every font used (embedded or not, Type 3 or not) and the text per page. */
@@ -55,6 +69,7 @@ export async function inspectPdf(pdf: Buffer, opts: { text?: boolean } = {}): Pr
   const fonts = new Map<string, PdfFontInfo>();
   const pageText: string[] = [];
   const pageParts: PdfInspection['pageParts'] = [];
+  const imagesPerPage: number[] = [];
   try {
     for (let i = 1; i <= doc.numPages; i++) {
       const page = await doc.getPage(i);
@@ -63,6 +78,7 @@ export async function inspectPdf(pdf: Buffer, opts: { text?: boolean } = {}): Pr
       const h = Math.round((y1 - y0) * 100) / 100;
       sizes.set(`${w}x${h}`, { widthPt: w, heightPt: h });
       const ops = await page.getOperatorList();
+      imagesPerPage.push(ops.fnArray.filter((fn) => fn === OPS.paintImageXObject || fn === OPS.paintInlineImageXObject).length);
       ops.fnArray.forEach((fn, k) => {
         if (fn !== OPS.setFont) return;
         const id = String((ops.argsArray[k] as unknown[])[0]);
@@ -96,7 +112,7 @@ export async function inspectPdf(pdf: Buffer, opts: { text?: boolean } = {}): Pr
   }
   const byName = new Map<string, PdfFontInfo>();
   for (const f of fonts.values()) byName.set(f.name, f);
-  return { pageCount: doc.numPages, pageSizes: [...sizes.values()], fonts: [...byName.values()], pageText, pageParts };
+  return { pageCount: doc.numPages, pageSizes: [...sizes.values()], fonts: [...byName.values()], pageText, pageParts, imagesPerPage };
 }
 
 // ---------- preflight ----------
@@ -149,6 +165,12 @@ export interface PreflightInput {
   datedPrices?: boolean;
   /** Year expected on the copyright page (default: the year of `now`). */
   copyrightYear?: number;
+  /**
+   * Picture book (phase 7, D-044): the spreads, the ink and the layout measured by exportPictureBookPdf. With it the
+   * interior is checked at the bleed size (`interior.bleed`) and against the colour page range, and the `picture.*`
+   * items run. `book` should be pictureBookToBookDoc(doc), so house style and the about-the-author check still run.
+   */
+  pictureBook?: { doc: PictureBookDoc; ink: ColourInk; layout?: PictureBookLayout };
   /** Manuscript hash at export time vs now (stale exports warning). */
   exportsHash?: string;
   manuscriptHash?: string;
@@ -234,13 +256,18 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
         : 'Every required section is present or deliberately off.',
     });
   }
+  // Template chapter rules (D-042): fiction has no subheadings or takeaways; workbooks have 2 to 4 exercises per
+  // chapter and ruled-line counts in range. Findings come from checkTemplateRules in @volume/core.
+  if (isObj(input.template) && isObj(input.template.chapterRules)) add(templateRulesItem(book, input.template));
   const contents = secs.find((s) => s.subtype === 'contents');
-  add({
-    id: 'structure.contents',
-    label: 'Contents page',
-    level: contents ? 'pass' : 'warn',
-    detail: contents ? 'Contents is built from the headings, so it always matches them.' : 'No contents section.',
-  });
+  const pb = input.pictureBook;
+  if (!pb)
+    add({
+      id: 'structure.contents',
+      label: 'Contents page',
+      level: contents ? 'pass' : 'warn',
+      detail: contents ? 'Contents is built from the headings, so it always matches them.' : 'No contents section.',
+    });
 
   // House style
   const findings = checkBookStyle(book, input.houseStyle, { titleCase: false });
@@ -353,16 +380,20 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
           : `${undated.length} price(s) have no month checked, first: ${undated.slice(0, 4).join(', ')}.${promise ? ` The book promises dated prices ("${clip(promise)}"): add the month to each price or remove the promise.` : ' Add "(checked Month Year)" after each.'}`,
     });
   }
-  if (input.aiDisclosure) {
-    const a = input.aiDisclosure;
-    const needed = a.aiWroteText || a.aiMadeImages;
-    const ok = needed ? a.disclosed === 'ai-generated' : true;
+  // A picture book's spread pictures come from the image model (D-045), so the disclosure must cover images even
+  // when the caller did not record them, and a picture book with no disclosure recorded fails.
+  const spreadPictures = pb ? pb.doc.spreads.some((s) => s.imageKey) : false;
+  if (input.aiDisclosure || pb) {
+    const a = input.aiDisclosure ?? { aiWroteText: false, aiMadeImages: false, disclosed: 'none' as const };
+    const images = a.aiMadeImages || spreadPictures;
+    const needed = a.aiWroteText || images;
+    const ok = needed ? a.disclosed === 'ai-generated' && (!spreadPictures || a.aiMadeImages) : true;
     add({
       id: 'kdp.ai-disclosure',
       label: 'KDP AI disclosure',
       level: ok ? 'pass' : 'fail',
       detail: needed
-        ? `AI made ${[a.aiWroteText ? 'text' : '', a.aiMadeImages ? 'images' : ''].filter(Boolean).join(' and ')}: disclosure must be AI-generated (set: ${a.disclosed}).`
+        ? `AI made ${[a.aiWroteText ? 'text' : '', images ? 'images' : ''].filter(Boolean).join(' and ')}: disclosure must be AI-generated (set: ${a.disclosed}).${spreadPictures && !a.aiMadeImages ? ' The spread pictures come from the image model: record AI-made images.' : ''}`
         : 'No AI-generated content recorded.',
       factIds: ['5.5'],
     });
@@ -377,17 +408,32 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
   if (input.interiorPdf) {
     const info = await inspectPdf(input.interiorPdf, { text: false });
     interiorPages = info.pageCount;
+    if (pb) {
+      const want = bleedPageSizeIn(rules, trim).value;
+      const ok =
+        info.pageSizes.length === 1 &&
+        near(info.pageSizes[0]?.widthPt ?? 0, want.widthIn * 72, 0.5) &&
+        near(info.pageSizes[0]?.heightPt ?? 0, want.heightIn * 72, 0.5);
+      add({
+        id: 'interior.bleed',
+        label: 'Interior page size with bleed',
+        level: ok ? 'pass' : 'fail',
+        detail: `${info.pageSizes.map((s) => `${s.widthPt} x ${s.heightPt} pt`).join(', ')} (want ${trim.widthIn} x ${trim.heightIn} in plus bleed = ${want.widthIn * 72} x ${want.heightIn * 72} pt).`,
+        factIds: ['3.7'],
+      });
+    }
     const sizeOk =
       info.pageSizes.length === 1 &&
       near(info.pageSizes[0]?.widthPt ?? 0, trim.widthIn * 72, 0.5) &&
       near(info.pageSizes[0]?.heightPt ?? 0, trim.heightIn * 72, 0.5);
-    add({
-      id: 'interior.trim',
-      label: 'Interior trim size',
-      level: sizeOk ? 'pass' : 'fail',
-      detail: `${info.pageSizes.map((s) => `${s.widthPt} x ${s.heightPt} pt`).join(', ')} (want ${trim.widthIn * 72} x ${trim.heightIn * 72} pt).`,
-      factIds: ['3.6'],
-    });
+    if (!pb)
+      add({
+        id: 'interior.trim',
+        label: 'Interior trim size',
+        level: sizeOk ? 'pass' : 'fail',
+        detail: `${info.pageSizes.map((s) => `${s.widthPt} x ${s.heightPt} pt`).join(', ')} (want ${trim.widthIn * 72} x ${trim.heightIn * 72} pt).`,
+        factIds: ['3.6'],
+      });
     const bad = info.fonts.filter((f) => !f.embedded || f.type3);
     add({
       id: 'interior.fonts',
@@ -400,14 +446,16 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
     });
     const range = trimPageRange(rules, trim, input.paper);
     const inRange = info.pageCount >= range.value.min && info.pageCount <= range.value.max;
-    add({
-      id: 'interior.pages',
-      label: 'Page count within trim limits',
-      level: inRange ? (range.warnings.length ? 'warn' : 'pass') : 'fail',
-      detail: `${info.pageCount} pages (allowed ${range.value.min} to ${range.value.max}).${range.warnings.length ? ` ${range.warnings.join(' ')}` : ''}`,
-      factIds: ['3.6'],
-    });
-    if (input.insideMarginIn !== undefined) {
+    if (!pb)
+      add({
+        id: 'interior.pages',
+        label: 'Page count within trim limits',
+        level: inRange ? (range.warnings.length ? 'warn' : 'pass') : 'fail',
+        detail: `${info.pageCount} pages (allowed ${range.value.min} to ${range.value.max}).${range.warnings.length ? ` ${range.warnings.join(' ')}` : ''}`,
+        factIds: ['3.6'],
+      });
+    if (pb) for (const i of pictureBookItems(pb, rules, trim, info, input.template)) add(i);
+    if (input.insideMarginIn !== undefined && !pb) {
       const min = insideMarginMinIn(rules, info.pageCount);
       if (min.value !== null) {
         const ok = input.insideMarginIn >= min.value;
@@ -421,6 +469,8 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
     }
   }
 
+  if (pb && !input.interiorPdf) for (const i of pictureBookItems(pb, rules, trim, undefined, input.template)) add(i);
+
   // Paperback wrap
   if (input.wrapPdf) {
     const pages = interiorPages;
@@ -433,14 +483,14 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
         detail: 'No interior PDF given, so the page count (and the wrap formula) could not be checked.',
       });
     } else {
-      const want = wrapSizeIn(rules, { trim, pages, paper: input.paper });
+      const want = wrapSizeIn(rules, pb ? { trim, pages, paper: input.paper, ink: pb.ink } : { trim, pages, paper: input.paper });
       const got = info.pageSizes[0];
       const ok = got !== undefined && near(got.widthPt / 72, want.widthIn, 0.001) && near(got.heightPt / 72, want.heightIn, 0.001);
       add({
         id: 'wrap.size',
         label: 'Wrap size matches the formula',
         level: ok ? 'pass' : 'fail',
-        detail: `${got ? `${(got.widthPt / 72).toFixed(4)} x ${(got.heightPt / 72).toFixed(4)} in` : 'no page'}; formula for ${pages} pages on ${input.paper}: ${want.widthIn.toFixed(4)} x ${want.heightIn.toFixed(4)} in (spine ${want.spineIn.toFixed(4)} in).`,
+        detail: `${got ? `${(got.widthPt / 72).toFixed(4)} x ${(got.heightPt / 72).toFixed(4)} in` : 'no page'}; formula for ${pages} pages on ${pb ? `${pb.ink} colour` : input.paper}: ${want.widthIn.toFixed(4)} x ${want.heightIn.toFixed(4)} in (spine ${want.spineIn.toFixed(4)} in).`,
         factIds: ['3.8', '3.9'],
       });
     }
@@ -535,11 +585,13 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
   const age = rulesAge(rules, now);
   add({
     id: 'rules.age',
-    label: 'KDP rules file age',
+    // The age counts from the file's verifiedOn, the date of its oldest check (newer rules carry their own dates),
+    // so a file released today can say 14 days: that is the oldest fact, not the file.
+    label: 'KDP rules last checked',
     level: age.stale ? 'warn' : 'pass',
     detail: age.stale
-      ? `KDP rules are more than ${rules.recheckAfterDays} days old (${age.days} days): re-check before you upload.`
-      : `Rules ${rules.version}, ${age.days} days old.`,
+      ? `The oldest KDP rule check in file ${rules.version} is more than ${rules.recheckAfterDays} days old (${rules.verifiedOn}, ${age.days} days): re-check before you upload.`
+      : `Rules file ${rules.version}; oldest check ${rules.verifiedOn} (${age.days} days ago, re-check after ${rules.recheckAfterDays} days).`,
   });
   const unverified = rules.rules.filter((r) => r.status === 'unverified').map((r) => r.id);
   if (unverified.length)
@@ -553,6 +605,102 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
   const counts = { pass: 0, warn: 0, fail: 0 };
   for (const i of items) counts[i.level]++;
   return { items, counts, ok: counts.fail === 0, ...(interiorPages !== undefined ? { interiorPages } : {}) };
+}
+
+/**
+ * Picture-book items: `picture.page-count` (colour range for the trim and ink), `picture.spread-images` (every spread
+ * page shows a picture, read from the PDF when given and from the layout), `picture.safe-area` (measured text boxes
+ * inside the safe area, and every text fits its box) and `picture.spreads` (text, numbering, template ranges).
+ */
+function pictureBookItems(
+  pb: NonNullable<PreflightInput['pictureBook']>,
+  rules: KdpRules,
+  trim: { widthIn: number; heightIn: number },
+  info: PdfInspection | undefined,
+  template: unknown,
+): CheckItem[] {
+  const out: CheckItem[] = [];
+  const plan = pictureBookPages(pb.doc);
+  const pages = info?.pageCount ?? plan.length;
+  const range = colourPageRange(rules, trim, pb.ink);
+  const inRange = pages >= range.value.min && pages <= range.value.max;
+  out.push({
+    id: 'picture.page-count',
+    label: 'Page count within the colour limits',
+    level: inRange ? (range.warnings.length ? 'warn' : 'pass') : 'fail',
+    detail: `${pages} pages (${pb.ink} colour on ${trim.widthIn} x ${trim.heightIn} in: ${range.value.min} to ${range.value.max}).${info && info.pageCount !== plan.length ? ` The page plan has ${plan.length} pages.` : ''}${range.warnings.length ? ` ${range.warnings.join(' ')}` : ''}`,
+  });
+
+  const missing = new Set<number>(pb.doc.spreads.filter((s) => !s.imageKey).map((s) => s.n));
+  for (const n of pb.layout?.missingImages ?? []) missing.add(n);
+  if (info)
+    plan.forEach((p, i) => {
+      if (p.kind === 'spread' && !(info.imagesPerPage[i] ?? 0)) missing.add(p.n);
+    });
+  out.push({
+    id: 'picture.spread-images',
+    label: 'Every spread has its picture',
+    level: missing.size || !pb.doc.spreads.length ? 'fail' : 'pass',
+    detail: !pb.doc.spreads.length
+      ? 'The book has no spreads.'
+      : missing.size
+        ? `No picture on spread ${[...missing].sort((a, b) => a - b).join(', ')}. Make the missing pictures before upload.`
+        : `${pb.doc.spreads.length} spreads, each with a picture across both pages${info ? ' (checked in the PDF)' : ''}.`,
+  });
+
+  if (pb.layout) {
+    const g = pictureBookGeometry(rules, trim, pages);
+    const outside = checkTextInSafeArea(g, pb.layout.textBoxes);
+    const problems = [...outside.map((f) => f.message), ...pb.layout.overflowing.map((l) => `The text of ${l} does not fit its box.`)];
+    out.push({
+      id: 'picture.safe-area',
+      label: 'Text inside the safe area',
+      level: problems.length ? 'fail' : 'pass',
+      detail: problems.length
+        ? `${problems.slice(0, 4).join(' ')}${problems.length > 4 ? ` And ${problems.length - 4} more.` : ''}`
+        : `${pb.layout.textBoxes.length} text boxes, all at least ${g.safe.outsideIn} in from the outside, top and bottom trim edges and ${g.safe.insideIn} in from the gutter.`,
+    });
+  } else {
+    out.push({ id: 'picture.safe-area', label: 'Text inside the safe area', level: 'warn', detail: 'Not measured: export the picture-book PDF first.' });
+  }
+
+  const tpl = isObj(template) && isObj(template.spreads) ? pictureBookRulesFromTemplate(template) : undefined;
+  const findings = checkPictureBook(pb.doc, { rules, trim, ink: pb.ink, ...(tpl ? { template: tpl } : {}) }).filter(
+    (f) => f.code !== 'picture.page-count' && f.code !== 'picture.spread-image',
+  );
+  const blocking = findings.filter((f) => f.severity === 'block');
+  out.push({
+    id: 'picture.spreads',
+    label: 'Spreads complete',
+    level: blocking.length ? 'fail' : findings.length ? 'warn' : 'pass',
+    detail: findings.length
+      ? `${findings
+          .slice(0, 4)
+          .map((f) => f.message)
+          .join(' ')}${findings.length > 4 ? ` And ${findings.length - 4} more.` : ''}`
+      : 'Every spread has text and the spreads are numbered in order.',
+  });
+  return out;
+}
+
+/** Preflight item `structure.template-rules`: block findings fail, warn findings warn. */
+function templateRulesItem(book: BookDoc, template: Record<string, unknown>): CheckItem {
+  const name = typeof template.name === 'string' ? template.name : 'book';
+  const base = { id: 'structure.template-rules', label: `${name} template rules` };
+  let findings;
+  try {
+    findings = checkBookTemplateRules(book, templateRulesFromTemplate(template));
+  } catch (e) {
+    return { ...base, level: 'fail', detail: `The template's chapter rules could not be read: ${e instanceof Error ? clip(e.message) : 'unknown error'}.` };
+  }
+  if (!findings.length) return { ...base, level: 'pass', detail: 'Every chapter follows the template rules.' };
+  const blocking = findings.filter((f) => f.severity === 'block');
+  const first = [...blocking, ...findings.filter((f) => f.severity !== 'block')].slice(0, 4).map((f) => f.message);
+  return {
+    ...base,
+    level: blocking.length ? 'fail' : 'warn',
+    detail: `${findings.length} problem(s): ${first.join(' ')}${findings.length > first.length ? ` And ${findings.length - first.length} more.` : ''}`,
+  };
 }
 
 /** A block as plain lines for the junk check: list and takeaway items keep their "- " marker, empty ones included. */
@@ -572,6 +720,12 @@ function blockSource(b: BookDoc['sections'][number]['blocks'][number]): string {
       return [...b.lines, b.attribution ?? ''].join('\n');
     case 'image':
       return b.caption ?? '';
+    case 'checklist':
+      return b.items.map((i) => `- ${i}`).join('\n');
+    case 'fillIn':
+      return b.prompts.join('\n');
+    case 'exercise':
+      return [b.title ?? '', ...b.blocks.map(blockSource)].filter(Boolean).join('\n');
     default:
       return '';
   }

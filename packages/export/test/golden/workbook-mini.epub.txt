@@ -1,0 +1,68 @@
+<!-- OEBPS/nav.xhtml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en-GB" xml:lang="en-GB">
+<head><meta charset="UTF-8"/><title>Contents</title><link rel="stylesheet" type="text/css" href="styles.css"/></head>
+<body>
+<nav epub:type="toc" id="toc"><h1>Contents</h1>
+<ol>
+<li><a href="text/how-to-use-this-workbook.xhtml">How to Use This Workbook</a></li>
+<li><a href="text/introduction.xhtml">Introduction</a></li>
+<li><a href="text/chapter-1-start-where-you-are.xhtml">Chapter 1: Start Where You Are</a><ol><li><a href="text/chapter-1-start-where-you-are.xhtml#chapter-1-start-where-you-are-s1">Notice Your Week</a></li><li><a href="text/chapter-1-start-where-you-are.xhtml#chapter-1-start-where-you-are-s3">Pick One Small Corner</a></li><li><a href="text/chapter-1-start-where-you-are.xhtml#chapter-1-start-where-you-are-s5">Keep It Short</a></li></ol></li>
+<li><a href="text/chapter-2-make-it-a-habit.xhtml">Chapter 2: Make It a Habit</a><ol><li><a href="text/chapter-2-make-it-a-habit.xhtml#chapter-2-make-it-a-habit-s1">Choose a Time</a></li><li><a href="text/chapter-2-make-it-a-habit.xhtml#chapter-2-make-it-a-habit-s3">Track It</a></li><li><a href="text/chapter-2-make-it-a-habit.xhtml#chapter-2-make-it-a-habit-s5">Plan for Bad Weeks</a></li></ol></li>
+<li><a href="text/conclusion.xhtml">Conclusion</a></li>
+<li><a href="text/about-the-author.xhtml">About the Author</a></li>
+</ol>
+</nav>
+<nav epub:type="landmarks" id="landmarks" hidden="hidden"><h2>Landmarks</h2><ol><li><a epub:type="toc" href="text/contents.xhtml">Contents</a></li><li><a epub:type="bodymatter" href="text/chapter-1-start-where-you-are.xhtml">Start of content</a></li></ol></nav>
+</body>
+</html>
+
+<!-- OEBPS/text/chapter-1-start-where-you-are.xhtml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en-GB" xml:lang="en-GB">
+<head>
+<meta charset="UTF-8"/>
+<title>Chapter 1: Start Where You Are</title>
+<link rel="stylesheet" type="text/css" href="../styles.css"/>
+</head>
+<body class="chapter">
+<section epub:type="chapter" class="chapter" id="chapter-1-start-where-you-are"><header><p class="kicker">Chapter 1</p><h1>Start Where You Are</h1></header><p class="noindent">Before you change anything, look at what you already do.</p>
+<h2 id="chapter-1-start-where-you-are-s1">Notice Your Week</h2>
+<p class="noindent">Most homes have one day that goes wrong. For me it was Sunday evening, when the week ahead arrived all at once.</p>
+<h2 id="chapter-1-start-where-you-are-s3">Pick One Small Corner</h2>
+<p class="noindent">A whole house is too much to think about. A shelf, a drawer or the hall table is not.</p>
+<h2 id="chapter-1-start-where-you-are-s5">Keep It Short</h2>
+<p class="noindent">Ten minutes is enough. Stop when the timer goes, even if you are halfway through.</p>
+<aside class="exercise"><p class="xh">Exercise: Your Busiest Day</p><p class="noindent">Which day of the week feels most crowded at home, and why?</p><p class="write-space">Space to write your answer.</p></aside>
+<aside class="exercise"><p class="xh">Exercise: Before You Start</p><ul class="checklist"><li>Choose one corner to reset first</li><li>Set a ten-minute timer on your phone</li><li>Put a bag for things to give away by the door</li></ul></aside>
+<aside class="takeaways"><p class="th">Key Takeaways</p><ul><li>Look at your week before you change it.</li><li>Start with one small corner, not the whole house.</li><li>Ten minutes, then stop.</li></ul></aside></section>
+</body>
+</html>
+
+<!-- OEBPS/text/chapter-2-make-it-a-habit.xhtml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en-GB" xml:lang="en-GB">
+<head>
+<meta charset="UTF-8"/>
+<title>Chapter 2: Make It a Habit</title>
+<link rel="stylesheet" type="text/css" href="../styles.css"/>
+</head>
+<body class="chapter">
+<section epub:type="chapter" class="chapter" id="chapter-2-make-it-a-habit"><header><p class="kicker">Chapter 2</p><h1>Make It a Habit</h1></header><p class="noindent">A reset only helps if it happens again next week.</p>
+<h2 id="chapter-2-make-it-a-habit-s1">Choose a Time</h2>
+<p class="noindent">Tie the reset to something you already do, such as the moment the kettle goes on after dinner.</p>
+<h2 id="chapter-2-make-it-a-habit-s3">Track It</h2>
+<p class="noindent">Ticking a box is a small reward. It also shows you the weeks that slipped.</p>
+<h2 id="chapter-2-make-it-a-habit-s5">Plan for Bad Weeks</h2>
+<p class="noindent">Some weeks will go wrong. Decide now what the smallest possible reset looks like.</p>
+<aside class="exercise"><p class="xh">Exercise: Your Reset Plan</p><p class="noindent">Fill in each line before your first reset.</p><div class="fill-in"><p class="fi">My reset day and time:</p><p class="fi">The corner I will start with:</p><p class="fi">What I will do with things I no longer need:</p><p class="write-space">Space to write your answer.</p></div></aside>
+<aside class="exercise"><p class="xh">Exercise: Four-Week Reset Log</p><p class="noindent">Tick each week you finish a reset and note how long it took.</p><table><thead><tr><th>Week</th><th>Done</th><th>Minutes</th></tr></thead><tbody><tr><td>Week 1</td><td></td><td></td></tr><tr><td>Week 2</td><td></td><td></td></tr><tr><td>Week 3</td><td></td><td></td></tr><tr><td>Week 4</td><td></td><td></td></tr></tbody></table></aside>
+<aside class="exercise"><p class="xh">Exercise: A Busy Saturday</p><p class="noindent">Sam planned a reset for Saturday morning, but friends arrived early and the day filled up.</p><ul><li>What could Sam do instead of skipping the week?</li><li>What would you do in the same place?</li></ul><p class="write-space">Space to write your answer.</p></aside>
+<aside class="takeaways"><p class="th">Key Takeaways</p><ul><li>Tie the reset to a habit you already have.</li><li>Tick the log so you can see the pattern.</li><li>Plan the smallest reset for bad weeks.</li></ul></aside>
+<div class="fill-in"><p class="fi">My goal for the next four weeks:</p><p class="fi">The first corner I will reset:</p><p class="fi">What I will do when I miss a week:</p><p class="write-space">Space to write your answer.</p></div></section>
+</body>
+</html>
+

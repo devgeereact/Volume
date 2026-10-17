@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document mc:Ignorable="w14 w15 wp14" xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:cx3="http://schemas.microsoft.com/office/drawing/2016/5/9/chartex" xmlns:cx4="http://schemas.microsoft.com/office/drawing/2016/5/10/chartex" xmlns:cx5="http://schemas.microsoft.com/office/drawing/2016/5/11/chartex" xmlns:cx6="http://schemas.microsoft.com/office/drawing/2016/5/12/chartex" xmlns:cx7="http://schemas.microsoft.com/office/drawing/2016/5/13/chartex" xmlns:cx8="http://schemas.microsoft.com/office/drawing/2016/5/14/chartex" xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink" xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex">
+<w:body>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TitlePageTitle"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">The Lamp at Gull Point</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TitlePageSubtitle"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">A Cornish Mystery</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="TitlePageAuthor"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Ada Penrose</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="CopyrightFirst"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Copyright © 2026 Ada Penrose. All rights reserved.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Copyright"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">No part of this publication may be reproduced, distributed or transmitted in any form or by any means without the prior written permission of the author, except for brief quotations in reviews.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Copyright"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">This is a work of fiction. Names, characters, places and incidents are the product of the author&apos;s imagination or are used fictitiously. Any resemblance to actual persons, living or dead, or actual events is coincidental.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading1"/>
+</w:pPr>
+<w:bookmarkStart w:name="_sec1" w:id="1"/>
+<w:r>
+<w:t xml:space="preserve">Dedication</w:t>
+</w:r>
+<w:bookmarkEnd w:id="1"/>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Dedication"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">For my sister, who always left a light on.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsHeading"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Contents</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsEntry"/>
+</w:pPr>
+<w:hyperlink w:history="1" w:anchor="_sec2">
+<w:r>
+<w:t xml:space="preserve">Chapter 1: The Light Comes Back</w:t>
+</w:r>
+</w:hyperlink>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="ContentsEntry"/>
+</w:pPr>
+<w:hyperlink w:history="1" w:anchor="_sec3">
+<w:r>
+<w:t xml:space="preserve">Chapter 2: Footprints in the Salt</w:t>
+</w:r>
+</w:hyperlink>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading1"/>
+</w:pPr>
+<w:bookmarkStart w:name="_sec2" w:id="2"/>
+<w:r>
+<w:t xml:space="preserve">Chapter 1: The Light Comes Back</w:t>
+</w:r>
+<w:bookmarkEnd w:id="2"/>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">The lamp at Gull Point had been dark for eleven years when Morwenna Tregear saw it burning from her kitchen window.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Normal"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">She set down the kettle and watched. The beam swung once across the bay, slow and yellow, and then it was gone.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Normal"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">&quot;You saw it too,&quot; said her brother from the doorway. He had his coat on already.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="SceneBreak"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">* * *</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">The path to the point was slick with rain. Morwenna went first, torch in one hand, the other on the cold iron rail her father had fixed to the rock.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Normal"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">At the top the door of the lamp room stood open. Someone had swept the floor.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading1"/>
+</w:pPr>
+<w:bookmarkStart w:name="_sec3" w:id="3"/>
+<w:r>
+<w:t xml:space="preserve">Chapter 2: Footprints in the Salt</w:t>
+</w:r>
+<w:bookmarkEnd w:id="3"/>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">By morning the whole village had an opinion. Mrs Kitto at the shop said it was boys from Penzance. The vicar said nothing at all, which Morwenna noticed.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Normal"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">She went back up alone after lunch. The floor was still clean, but a line of salty footprints led from the stairs to the window and stopped.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="SceneBreak"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">* * *</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Her brother was waiting at the bottom of the path when she came down.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Normal"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">&quot;Well?&quot; he said.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Normal"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">&quot;Whoever it was,&quot; she said, &quot;they never came back down.&quot;</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading1"/>
+</w:pPr>
+<w:bookmarkStart w:name="_sec4" w:id="4"/>
+<w:r>
+<w:t xml:space="preserve">About the Author</w:t>
+</w:r>
+<w:bookmarkEnd w:id="4"/>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">Ada Penrose writes quiet mysteries set on the Cornish coast. She lives in Falmouth with a patient dog and too many tide tables.</w:t>
+</w:r>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="Heading1"/>
+</w:pPr>
+<w:bookmarkStart w:name="_sec5" w:id="5"/>
+<w:r>
+<w:t xml:space="preserve">A Small Request</w:t>
+</w:r>
+<w:bookmarkEnd w:id="5"/>
+</w:p>
+<w:p>
+<w:pPr>
+<w:pStyle w:val="FirstParagraph"/>
+</w:pPr>
+<w:r>
+<w:t xml:space="preserve">If you enjoyed this story, a short honest review on the store where you bought it helps other readers find it. Thank you for reading.</w:t>
+</w:r>
+</w:p>
+<w:sectPr>
+<w:footerReference w:type="default" r:id="rId6"/>
+<w:footerReference w:type="first" r:id="rId7"/>
+<w:footerReference w:type="even" r:id="rId8"/>
+<w:pgSz w:w="8640" w:h="12960" w:orient="portrait"/>
+<w:pgMar w:top="1080" w:right="792" w:bottom="1152" w:left="1152" w:header="576" w:footer="547" w:gutter="0"/>
+<w:pgNumType/>
+<w:titlePg/>
+<w:docGrid w:linePitch="360"/>
+</w:sectPr>
+</w:body>
+</w:document>

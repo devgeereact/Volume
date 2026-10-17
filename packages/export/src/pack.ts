@@ -44,6 +44,8 @@ export interface UploadPackInput {
   ai: AiDisclosure;
   metadata?: PackMetadata;
   marketing?: { tiktokScripts?: string; instagramCaptions?: string; launchEmail?: string };
+  /** A picture book (D-044): print PDF only, no EPUB or DOCX; the README and the disclosure note say so. */
+  pictureBook?: boolean;
   date?: Date;
 }
 
@@ -83,14 +85,14 @@ export function metadataSheet(book: BookDoc, md: PackMetadata = {}): string {
   return `${lines.join('\n')}\n`;
 }
 
-export function aiDisclosureNote(ai: AiDisclosure, rules: KdpRules): string {
+export function aiDisclosureNote(ai: AiDisclosure, rules: KdpRules, opts: { pictureBook?: boolean } = {}): string {
   const r = rules.rules.find((x) => x.id === 'ai.disclosure');
   const generated = ai.aiWroteText || ai.aiMadeImages;
   const lines = [
     'KDP AI content disclosure',
     '',
     `Text: ${ai.aiWroteText ? "AI-generated (Volume's AI wrote the text, even where it was edited afterwards)" : 'not AI-generated'}`,
-    `Images: ${ai.aiMadeImages ? 'AI-generated (the cover art came from an image model)' : 'not AI-generated'}`,
+    `Images: ${ai.aiMadeImages ? `AI-generated (${opts.pictureBook ? 'the spread pictures and the cover art came' : 'the cover art came'} from an image model)` : 'not AI-generated'}`,
     ...(ai.textModels?.length ? [`Text models: ${ai.textModels.join(', ')}`] : []),
     ...(ai.imageModels?.length ? [`Image models: ${ai.imageModels.join(', ')}`] : []),
     '',
@@ -101,7 +103,12 @@ export function aiDisclosureNote(ai: AiDisclosure, rules: KdpRules): string {
   return `${lines.join('\n')}\n`;
 }
 
-const README = (slug: string, marketing: string) => `KDP upload pack for ${slug}
+const PICTURE_BOOK_NOTE = `
+Picture book: the interior PDF is full colour with bleed, so choose colour ink, white paper and "Bleed" in KDP's print
+options. This pack has no EPUB or DOCX: a picture-book eBook needs a fixed layout, which is a later format (D-044).
+`;
+
+const README = (slug: string, marketing: string, pictureBook = false) => `KDP upload pack for ${slug}
 
 manuscript/   the interior PDF (paperback), EPUB and DOCX (eBook), TXT and Markdown (your records)
 cover/        the eBook cover JPEG and the paperback wrap PDF
@@ -113,7 +120,7 @@ has three pages in this order: (1) details, which must match the manuscript; (2)
 cover and preview (eBook: the EPUB or DOCX and the eBook cover JPEG; paperback: the interior PDF and the wrap PDF,
 with print options and ISBN); (3) rights and pricing. You need a unique ISBN for each format if you use one.
 Check reports/preflight.txt before you upload.
-`;
+${pictureBook ? PICTURE_BOOK_NOTE : ''}`;
 
 /** "a", "a and b", "a, b and c" (first letter capitalised). */
 function listLabels(labels: string[]): string {
@@ -135,7 +142,7 @@ export async function buildUploadPack(input: UploadPackInput): Promise<{ fileNam
     { path: 'marketing/instagram-captions.txt', label: 'Instagram captions', text: mk.instagramCaptions },
     { path: 'marketing/launch-email.txt', label: 'the launch email', text: mk.launchEmail },
   ].filter((m): m is { path: string; label: string; text: string } => typeof m.text === 'string' && m.text.trim() !== '');
-  z.file('README.txt', README(slug, listLabels(marketing.map((m) => m.label))));
+  z.file('README.txt', README(slug, listLabels(marketing.map((m) => m.label)), input.pictureBook === true));
   if (f.interiorPdf) z.file(`manuscript/${slug}-interior-${input.trim}.pdf`, f.interiorPdf);
   if (f.epub) z.file(`manuscript/${slug}.epub`, f.epub);
   if (f.docx) z.file(`manuscript/${slug}.docx`, f.docx);
@@ -145,7 +152,7 @@ export async function buildUploadPack(input: UploadPackInput): Promise<{ fileNam
   if (f.wrapPdf) z.file(`cover/${slug}-paperback-wrap-${input.trim}-${input.paper}-${input.pages ?? 0}p.pdf`, f.wrapPdf);
   z.file('listing/metadata.txt', metadataSheet(input.book, input.metadata));
   z.file('listing/description.html', `${input.book.meta.listing?.description ?? ''}\n`);
-  z.file('listing/ai-disclosure.txt', aiDisclosureNote(input.ai, input.rules));
+  z.file('listing/ai-disclosure.txt', aiDisclosureNote(input.ai, input.rules, { pictureBook: input.pictureBook === true }));
   if (input.preflight) {
     z.file('reports/preflight.txt', preflightText(input.preflight, `Preflight: ${input.book.meta.title}`));
     z.file('reports/preflight.html', preflightHtml(input.preflight, `Preflight: ${input.book.meta.title}`));

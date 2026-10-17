@@ -1,5 +1,18 @@
 // TXT export in the owner's "====" format (docs/book-production/EXPORT-SPEC.md, TXT).
-import { countWords, enabledSections, stripInline, wrapText, type Block, type BookDoc, type Section } from '@volume/core';
+import {
+  blockText,
+  countWords,
+  enabledSections,
+  exerciseHeading,
+  inContents,
+  sectionHeading,
+  stripInline,
+  wrapText,
+  WRITING_SPACE_TEXT,
+  type Block,
+  type BookDoc,
+  type Section,
+} from '@volume/core';
 
 export interface TxtOptions {
   /** Line width for wrapping. Default 80. */
@@ -67,6 +80,21 @@ function blockLines(b: Block, width: number): string[] | null {
       return [`[Image: ${b.caption ?? b.alt}]`];
     case 'pageBreak':
       return null;
+    // D-042: plain text prints the exercise and one "Space to write" line instead of ruled lines.
+    case 'exercise': {
+      const out = [exerciseHeading(b).toUpperCase()];
+      for (const x of b.blocks) {
+        const ls = blockLines(x, width);
+        if (ls) out.push('', ...ls);
+      }
+      return out;
+    }
+    case 'lines':
+      return [WRITING_SPACE_TEXT];
+    case 'checklist':
+      return b.items.flatMap((it) => wrapText(stripInline(it), width, '[ ] ', '    '));
+    case 'fillIn':
+      return [...b.prompts.flatMap((p) => wrapText(stripInline(p), width)), WRITING_SPACE_TEXT];
   }
 }
 
@@ -107,6 +135,11 @@ export function txtWordCount(book: BookDoc): number {
         case 'image':
           n += countWords(b.caption ?? '');
           break;
+        case 'exercise':
+        case 'checklist':
+        case 'fillIn':
+          n += countWords(blockText(b));
+          break;
         default:
           break;
       }
@@ -116,22 +149,22 @@ export function txtWordCount(book: BookDoc): number {
 }
 
 function headingFor(s: Section): string {
-  if (s.kind === 'chapter' && s.number !== undefined) return `CHAPTER ${s.number}: ${s.title}`.toUpperCase();
-  if (s.kicker) return `${s.kicker}: ${s.title}`.toUpperCase();
+  if (s.kind === 'chapter' && s.number !== undefined) return (s.title ? `CHAPTER ${s.number}: ${s.title}` : `CHAPTER ${s.number}`).toUpperCase();
+  if (s.kicker) return sectionHeading(s).toUpperCase();
   return s.title.toUpperCase();
 }
 
-function contentsLines(secs: Section[], from: number): string[] {
+function contentsLines(book: BookDoc, secs: Section[], from: number): string[] {
   const out: string[] = [];
   let n = 0;
   for (const s of secs.slice(from)) {
-    if (FRONT_FENCES.has(s.subtype)) continue;
+    if (FRONT_FENCES.has(s.subtype) || !inContents(book, s)) continue;
     if (s.kind === 'chapter') {
       n = s.number ?? n + 1;
-      out.push(`${n}. ${s.title}`);
+      out.push(s.title ? `${n}. ${s.title}` : `${n}. ${s.kicker ?? `Chapter ${n}`}`);
       for (const b of s.blocks) if (b.type === 'heading2') out.push(`   ${stripInline(b.text)}`);
     } else if (s.kind === 'part') {
-      out.push(s.kicker ? `${s.kicker}: ${s.title}` : s.title);
+      out.push(sectionHeading(s));
     } else {
       out.push(s.title);
     }
@@ -170,7 +203,7 @@ export function exportTxt(book: BookDoc, opts: TxtOptions = {}): Buffer {
   secs.forEach((s, idx) => {
     if (s.subtype === 'titlepage' || s.subtype === 'copyright' || s.subtype === 'halftitle') return;
     if (s.subtype === 'contents') {
-      block('CONTENTS', contentsLines(secs, idx + 1));
+      block('CONTENTS', contentsLines(book, secs, idx + 1));
       return;
     }
     block(headingFor(s), bodyLines(s, width));
