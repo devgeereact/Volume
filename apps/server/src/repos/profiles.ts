@@ -230,7 +230,8 @@ export class ProfilesRepo {
         publishing: toJson(input.publishing ?? {}),
         models: toJson(input.models ?? {}),
         defaultBookTypeId: input.defaultBookTypeId ?? null,
-        bioStatus: input.bioStatus ?? 'confirmed',
+        // Bios are the owner's words (D-047): a pen name an editor makes waits for the owner to confirm its bio.
+        bioStatus: input.bioStatus ?? (ctx.role === 'owner' ? 'confirmed' : 'to_confirm'),
         status: 'active',
         archivedAt: null,
         createdAt: t,

@@ -26,6 +26,16 @@ export const JOB_KINDS = [
   'marketing',
   'export_pack',
   'rewrite_selection',
+  // Volume mode (P8-2): a batch parent and one child per book.
+  'batch_run',
+  'batch_book',
+  // Picture books (P7-5, D-044, D-045): a parent, then the story and scene prompts, the character references, one
+  // image per spread, and the print export on its own.
+  'picture_book',
+  'picture_story',
+  'picture_characters',
+  'spread_image',
+  'picture_export',
   'noop',
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
@@ -37,10 +47,11 @@ const DONE_OK: ReadonlySet<string> = new Set(['succeeded', 'needs_attention']);
 
 /** One plain sentence for a parent whose children did not all finish. */
 export function parentFailure(kind: string, failed: number, notStarted: number, total: number): string {
-  const noun = kind === 'write_book' ? 'section' : 'part';
+  const noun = kind === 'write_book' ? 'section' : kind === 'batch_run' ? 'book' : kind === 'picture_book' ? 'step' : 'part';
   let out = `${failed} of ${total} ${noun}${total === 1 ? '' : 's'} failed.`;
   if (notStarted > 0)
     out += ` ${notStarted} ${noun}${notStarted === 1 ? '' : 's'} after ${failed === 1 ? 'it' : 'them'} ${notStarted === 1 ? 'was' : 'were'} not started.`;
+  if (kind === 'batch_run') return out + ' Fix the failed book, then start the batch again: finished books are skipped.';
   return out + (kind === 'write_book' ? ' Retry the failed section, then write the rest.' : ' Try again.');
 }
 
@@ -537,6 +548,12 @@ export class JobQueue {
     const updated = await this.getById(parentId);
     if (updated) {
       await this.emitStatus(updated);
+      // A parent that ends badly through its children (a batch_book whose sections failed) must end the jobs that
+      // depend on it too, as finish() does; otherwise the books behind it in a batch stay queued for ever.
+      if (updated.status === 'failed' || updated.status === 'cancelled') {
+        await this.endedListener?.(updated);
+        await this.cancelDependents(updated);
+      }
       if (updated.parentId) await this.refreshParent(updated.parentId);
     }
   }
@@ -556,7 +573,9 @@ export class JobQueue {
         errorCode: job.errorCode,
         parentId: job.parentId,
         // Writing children name their section, so the UI can clear streamed text on a restart.
-        ...(job.kind === 'write_section' && typeof job.payload['sectionId'] === 'string' ? { sectionId: job.payload['sectionId'] } : {}),
+        ...((job.kind === 'write_section' || job.kind === 'spread_image') && typeof job.payload['sectionId'] === 'string'
+          ? { sectionId: job.payload['sectionId'] }
+          : {}),
       },
     });
   }

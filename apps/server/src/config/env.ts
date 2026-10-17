@@ -54,6 +54,8 @@ const EnvSchema = z.object({
   CLERK_ALLOWED_USER_IDS: z.string().optional(),
   /** Comma separated email addresses allowed in. Needs CLERK_SECRET_KEY to look the address up. */
   OWNER_EMAILS: z.string().optional(),
+  /** owner-only (default: only the owner's allowlisted accounts) or invite (the owner invites other accounts with a role). */
+  ACCOUNTS_MODE: z.preprocess((v) => (typeof v === 'string' ? v.trim().toLowerCase() : v), z.enum(['owner-only', 'invite'])).optional(),
   /** mock, openrouter, or auto (the default): OpenRouter only when the key is set and accepted. */
   AI_PROVIDER: z.preprocess((v) => (typeof v === 'string' ? v.trim().toLowerCase() : v), z.enum(['mock', 'openrouter', 'auto'])).optional(),
   /** volume (the default): real files from @volume/export. mock: placeholder files marked MOCK. */
@@ -123,6 +125,8 @@ export interface AppConfig {
   production: boolean;
   authMode: 'local' | 'clerk';
   clerk: ClerkSettings;
+  /** ACCOUNTS_MODE (D-047). owner-only keeps sign-in to the allowlist; invite also admits invited accounts with their role. */
+  accountsMode: 'owner-only' | 'invite';
   /** APP_ORIGIN, or null in development when unset. */
   appOrigin: string | null;
   trustProxy: boolean;
@@ -305,6 +309,7 @@ export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
     production,
     authMode,
     clerk,
+    accountsMode: e.ACCOUNTS_MODE ?? 'owner-only',
     appOrigin,
     trustProxy: e.TRUST_PROXY ?? production,
     rateLimit: {

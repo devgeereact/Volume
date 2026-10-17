@@ -1,4 +1,14 @@
-import { checkedMonth, findUndatedPrices, profileFactsUsedIn, type RepetitionUnit } from '@volume/core';
+import {
+  checkedMonth,
+  checkTemplateRules,
+  findUndatedPrices,
+  parseBlocks,
+  profileFactsUsedIn,
+  templateRulesFromTemplate,
+  type RepetitionUnit,
+  type Section as CoreSection,
+  type TemplateRules,
+} from '@volume/core';
 import type { RequestCtx } from '../auth/context.js';
 import { hasDatedPrices, loadBookStructure } from '../config/book-structure.js';
 import type { Book } from '../repos/books.js';
@@ -117,4 +127,59 @@ export function writtenSummaries(sections: readonly WrittenSection[]): { number:
       const summary = [s.summary?.trim() ?? '', takeaways.length ? `Key takeaways: ${takeaways.join('; ')}` : ''].filter(Boolean).join('\n');
       return summary ? [{ number: s.number ?? i + 1, title: s.title, summary }] : [];
     });
+}
+
+/** Checker name of a template rule finding (fiction subheadings and takeaways, workbook exercises and ruled lines). */
+export const TEMPLATE_RULES_CHECKER = 'template_rules';
+
+/** The template's chapter rules, or null when the template has none or they do not parse. */
+export function templateRulesOf(template: unknown): TemplateRules | null {
+  const rules = typeof template === 'object' && template !== null ? (template as Record<string, unknown>)['chapterRules'] : undefined;
+  if (typeof rules !== 'object' || rules === null) return null;
+  try {
+    return templateRulesFromTemplate(template);
+  } catch {
+    return null;
+  }
+}
+
+/** Section Markdown without its "# Title" line, as the exporter parses it. */
+function bodyLinesOf(md: string): string[] {
+  const lines = md.replace(/\r\n?/g, '\n').split('\n');
+  let i = 0;
+  while (i < lines.length && (lines[i] ?? '').trim() === '') i += 1;
+  if ((lines[i] ?? '').startsWith('# ')) lines.splice(0, i + 1);
+  return lines;
+}
+
+/**
+ * Template rule checks for one written section (@volume/core checkTemplateRules): a fiction chapter with subheadings
+ * or takeaways, a workbook chapter with no exercises. Block findings block the section (needs attention) and the
+ * preflight item structure.template-rules blocks the pack. Empty for templates with no chapter rules.
+ */
+export function templateChecks(
+  markdown: string,
+  section: { id: string; kind: string; title: string | null; number: number | null },
+  template: unknown,
+): { checker: string; severity: 'warn' | 'block'; message: string; location: Record<string, unknown> }[] {
+  const rules = templateRulesOf(template);
+  if (!rules) return [];
+  const core: CoreSection = {
+    id: section.id,
+    // Only chapters carry chapter rules; other sections get the block checks alone, so front or back does not matter.
+    kind: section.kind === 'chapter' ? 'chapter' : 'front',
+    subtype: section.kind === 'chapter' ? 'chapter' : 'other',
+    title: section.title ?? section.kind,
+    blocks: parseBlocks(bodyLinesOf(markdown)),
+  };
+  if (section.number !== null && section.kind === 'chapter') {
+    core.number = section.number;
+    core.kicker = `Chapter ${section.number}`;
+  }
+  return checkTemplateRules(core, rules).map((f) => ({
+    checker: TEMPLATE_RULES_CHECKER,
+    severity: f.severity,
+    message: f.message,
+    location: { code: f.code, ...(f.blockIndex !== undefined ? { blockIndex: f.blockIndex } : {}) },
+  }));
 }

@@ -3,6 +3,7 @@ import { ensureOwner } from '../src/auth/context.js';
 import { migrateToLatest, openMysql } from '../src/db/connect.js';
 import { BlobStore } from '../src/files/blob-store.js';
 import { createRepos } from '../src/repos/index.js';
+import { acceptInvitation } from '../src/repos/members.js';
 
 /**
  * Runs only when MYSQL_TEST_URL is set, for example
@@ -36,6 +37,24 @@ describe.skipIf(!url)('MySQL dialect (MYSQL_TEST_URL)', () => {
       const meta = await store.put(ctx, { kind: 'import', filename: 'x.bin', mime: 'application/octet-stream' }, data);
       const back = await store.read(ctx, meta.id);
       expect(back.data.equals(data)).toBe(true);
+      // 0009: an invitation is accepted into its workspace with its role.
+      const email = `mysql-${Date.now()}@example.test`;
+      await repos.members.invite(ctx, { email, role: 'viewer' });
+      const joined = await acceptInvitation(handle.db, `user_mysql_${Date.now()}`, [email]);
+      expect(joined).toMatchObject({ workspaceId: ctx.workspaceId, role: 'viewer' });
+      expect((await repos.members.listMembers(ctx)).map((m) => m.email)).toContain(email);
+      // Parallel invites of one address leave one pending row (unique workspace_id, pending_email).
+      const twin = `twin-${Date.now()}@example.test`;
+      const invites = await Promise.all([1, 2, 3].map(() => repos.members.invite(ctx, { email: twin, role: 'viewer' })));
+      expect(new Set(invites.map((i) => i.id)).size).toBe(1);
+      // Parallel slot adds: the workspace row lock lets only the limit through.
+      const books = await Promise.all(
+        [1, 2, 3].map((n) => repos.books.create(ctx, { profileId: p.id, idea: `Slot ${n}` }, { budgetUsd: 10, illustrativeLine: false })),
+      );
+      const limit = { maxNewTitlesPerFormat: 1, periodDays: 7, ruleId: 'titles.creationLimit', rulesVersion: 'test' };
+      const at = Date.UTC(2027, 0, 10);
+      const added = await Promise.allSettled(books.map((b) => repos.schedule.add(ctx, { bookId: b.id, format: 'ebook', plannedAt: at }, limit)));
+      expect(added.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     } finally {
       await handle.close();
     }

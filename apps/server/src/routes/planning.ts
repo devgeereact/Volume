@@ -1,11 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppServices } from '../app.js';
-import type { RequestCtx } from '../auth/context.js';
 import { AppError, parse } from '../http/errors.js';
-import { BlueprintPartKeySchema, BlueprintSchema, type Blueprint } from '../ports/ai.js';
-import { loadBookStructure, type StructureSection } from '../config/book-structure.js';
-import type { NewSectionInput } from '../repos/manuscript.js';
+import { approveBlueprint } from '../jobs/approve-blueprint.js';
+import { bookChapterCount } from '../jobs/book-data.js';
+import { BlueprintPartKeySchema, BlueprintSchema } from '../ports/ai.js';
 import { accepted, idOf, writer } from './common.js';
 
 const TitlesBody = z
@@ -28,120 +27,6 @@ const TitlesBody = z
   .refine((b) => !(b.directionKey && b.direction), { message: 'Send directionKey or direction, not both.' });
 
 const VersionParams = z.object({ id: z.string().min(1).max(64), version: z.coerce.number().int().min(1) });
-
-type Rec = Record<string, unknown>;
-const rec = (v: unknown): Rec => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Rec) : {});
-const positive = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.round(v) : null);
-const words = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
-
-/** The plan of the introduction or conclusion from the blueprint (camelCase from the model, snake_case from older plans). */
-function matterPlan(item: Rec): { summary: string; wordTarget: number | null } {
-  const summary = [words(item['hook']) ? `Hook: ${words(item['hook'])}` : '', words(item['outline']) || words(item['summary'])].filter(Boolean).join('\n\n');
-  return { summary, wordTarget: positive(item['wordTarget']) ?? positive(item['word_target']) };
-}
-
-/**
- * One new section for a front or back matter entry of the book type's structure. AI pages are switched on;
- * code pages are built at export; pages only the owner can supply (a disclaimer, a map, practical information)
- * start switched off, so nothing is invented and the owner switches them on once filled. Required template
- * sections the type leaves out are switched off on purpose (the preflight sees them as off).
- */
-function structureSection(x: StructureSection, bp: Blueprint): NewSectionInput {
-  const plan: Rec = { writer: x.writer, templateId: x.id, source: x.source };
-  if (x.content) plan['rule'] = x.content;
-  let wordTarget = x.wordTarget;
-  if (x.kind === 'introduction' || x.kind === 'conclusion') {
-    const m = matterPlan(rec(x.kind === 'introduction' ? bp.front['introduction'] : bp.back['conclusion']));
-    plan['summary'] = m.summary;
-    wordTarget = m.wordTarget ?? x.wordTarget ?? (x.kind === 'introduction' ? 1500 : 1200);
-  }
-  const out: NewSectionInput = { kind: x.kind, area: x.area, title: x.title, enabled: x.inType && x.writer !== 'owner', plan };
-  if (wordTarget !== null) out.wordTarget = wordTarget;
-  return out;
-}
-
-/** Creates the book's sections from the approved blueprint, or updates chapter plans when they exist. */
-async function syncSections(s: AppServices, ctx: RequestCtx, projectId: string, bp: Blueprint): Promise<{ created: number; updated: number }> {
-  const existing = await s.repos.manuscript.listSections(ctx, projectId);
-  const chapterPlan = (c: Blueprint['chapters'][number]) => ({
-    subheadings: c.subheadings,
-    summary: c.summary,
-    key_points: c.key_points,
-    takeaways: c.takeaways,
-    bridge_note: c.bridge_note,
-    hook_style: bp.hook_style,
-  });
-  if (existing.length === 0) {
-    // The book type decides the front and back matter (a tech how-to gets how-to-use, glossary and resources).
-    const book = await s.repos.books.require(ctx, projectId);
-    const structure = await loadBookStructure(s.configDir, book.bookTypeId, book.template);
-    const items: NewSectionInput[] = structure.front.map((x) => structureSection(x, bp));
-    const created = await s.repos.manuscript.addSections(ctx, projectId, items, 1000);
-    let pos = 1000 * (created.length + 1);
-    const partIds = new Map<number, string>();
-    for (const p of bp.parts) {
-      const [part] = await s.repos.manuscript.addSections(ctx, projectId, [{ kind: 'part', area: 'body', title: p.title, number: p.number }], pos);
-      if (part) partIds.set(p.number, part.id);
-      pos += 1000;
-    }
-    for (const c of bp.chapters) {
-      await s.repos.manuscript.addSections(
-        ctx,
-        projectId,
-        [
-          {
-            kind: 'chapter',
-            area: 'body',
-            title: c.title,
-            number: c.number,
-            wordTarget: c.word_target,
-            plan: chapterPlan(c),
-            partId: c.part ? (partIds.get(c.part) ?? null) : null,
-          },
-        ],
-        pos,
-      );
-      pos += 1000;
-    }
-    const backItems: NewSectionInput[] = structure.back.map((x) => {
-      const sec = structureSection(x, bp);
-      // Also by lists published books under this pen name; it starts off until there is one.
-      return x.kind === 'also_by' ? { ...sec, enabled: false } : sec;
-    });
-    await s.repos.manuscript.addSections(ctx, projectId, backItems, pos);
-    return { created: items.length + bp.parts.length + bp.chapters.length + backItems.length, updated: 0 };
-  }
-  // Sections exist: update chapter plans; flag written chapters whose plan changed.
-  let updated = 0;
-  const chapters = existing.filter((x) => x.kind === 'chapter');
-  let lastBody = Math.max(0, ...existing.filter((x) => x.area === 'body').map((x) => x.position));
-  for (const c of bp.chapters) {
-    const match = chapters.find((x) => x.number === c.number);
-    const plan = chapterPlan(c);
-    if (match) {
-      const changed = JSON.stringify(match.plan) !== JSON.stringify(plan) || match.title !== c.title;
-      if (changed) {
-        await s.repos.manuscript.updateSectionPlan(ctx, match.id, {
-          title: c.title,
-          plan,
-          wordTarget: c.word_target,
-          blueprintChanged: match.currentVersionId !== null,
-        });
-        updated += 1;
-      }
-    } else {
-      lastBody += 10;
-      await s.repos.manuscript.addSections(
-        ctx,
-        projectId,
-        [{ kind: 'chapter', area: 'body', title: c.title, number: c.number, wordTarget: c.word_target, plan }],
-        lastBody,
-      );
-      updated += 1;
-    }
-  }
-  return { created: 0, updated };
-}
 
 export function planningRoutes(app: FastifyInstance, s: AppServices): void {
   const { books, planning } = s.repos;
@@ -240,9 +125,10 @@ export function planningRoutes(app: FastifyInstance, s: AppServices): void {
     const id = idOf(req);
     const body =
       parse(z.object({ instruction: z.string().max(4000).optional(), chapterCount: z.number().int().min(1).max(60).optional() }).optional(), req.body) ?? {};
-    await books.require(req.ctx, id);
-    // Without a chapter count, the workspace default for new books (setting book.defaults) is used when set.
-    const chapterCount = body.chapterCount ?? (await s.repos.settings.get(req.ctx, 'book.defaults'))?.chapterCount ?? null;
+    const book = await books.require(req.ctx, id);
+    // Without a chapter count in the request: the count chosen in the new-book wizard (settings.chapters), then the
+    // workspace default for new books (setting book.defaults) when set.
+    const chapterCount = body.chapterCount ?? bookChapterCount(book.settings) ?? (await s.repos.settings.get(req.ctx, 'book.defaults'))?.chapterCount ?? null;
     const job = await s.queue.enqueue(req.ctx, { kind: 'blueprint', projectId: id, payload: { instruction: body.instruction ?? null, chapterCount } });
     return accepted(reply, job);
   });
@@ -308,21 +194,6 @@ export function planningRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const id = idOf(req);
     const body = parse(z.object({ version: z.number().int().min(1).optional() }).optional(), req.body) ?? {};
-    const bp = body.version ? await planning.blueprintByVersion(req.ctx, id, body.version) : await planning.latestBlueprint(req.ctx, id);
-    if (!bp) throw new AppError('invalid_state', 'Build the blueprint first.');
-    const v = BlueprintSchema.safeParse(bp.data);
-    if (!v.success)
-      throw new AppError(
-        'validation_failed',
-        'The blueprint is missing parts.',
-        v.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-      );
-    if (v.data.chapters.length === 0) throw new AppError('validation_failed', 'The blueprint has no chapters.');
-    const approved = await planning.approveBlueprint(req.ctx, bp.id);
-    await books.setApprovedBlueprint(req.ctx, id, approved.id, v.data.title || null, v.data.subtitle ?? null);
-    const sections = await syncSections(s, req.ctx, id, v.data);
-    await books.advanceStage(req.ctx, id, 'writing');
-    await s.bus.publish(req.ctx.workspaceId, { projectId: id, type: 'book.updated', data: { projectId: id, part: 'blueprint', approved: approved.id } });
-    return { blueprint: approved, sections, book: await books.require(req.ctx, id) };
+    return approveBlueprint(s, req.ctx, id, body.version);
   });
 }

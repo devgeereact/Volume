@@ -4,6 +4,7 @@ import type { MarketingExtras } from '../../repos/production.js';
 import { buildExportBook, profileSummary, withOwnerPlaceholders, withPackCovers } from '../book-data.js';
 import { writtenSections, writtenSummaries } from '../book-checks.js';
 import { JobFailed } from '../errors.js';
+import { isPictureBook, pageCount as picturePageCount, PICTURE_INK, pictureStructure, SPREAD_KIND } from '../picture-book.js';
 import type { JobHandler } from '../runner.js';
 
 /** True for undefined, null, blank strings, empty arrays and empty objects. */
@@ -102,14 +103,28 @@ export const coverBuildHandler: JobHandler = async (jc) => {
   // The wrap needs the real interior page count: use the latest print PDF, or build one now.
   const exports = await repos.production.listExports(jc.ctx, projectId);
   let pageCount = exports.find((e) => e.kind === 'pdf_print' && e.status === 'done' && e.manuscriptHash === book.manuscriptHash)?.pageCount ?? null;
-  if (pageCount === null) pageCount = (await exporter.buildPdf(book, { signal: jc.signal })).pageCount ?? 24;
+  // A picture book prints in premium colour, so its spine uses the colour rule (paperback.spine.widthPerPage.colour).
+  const picture = isPictureBook(await pictureStructure(jc.services.configDir, await repos.books.require(jc.ctx, projectId)));
+  if (pageCount === null) {
+    // A picture book's interior is the full-bleed spread PDF: count its pages from the sections, never from an
+    // ordinary print PDF of the same text (that gave the wrap a far thinner spine).
+    const all = await repos.manuscript.listSections(jc.ctx, projectId);
+    if (picture) {
+      const on = all.filter((s) => s.enabled);
+      pageCount = picturePageCount(
+        on.filter((s) => s.area === 'front').length,
+        on.filter((s) => s.kind === SPREAD_KIND).length,
+        on.filter((s) => s.area === 'back').length,
+      );
+    } else pageCount = (await exporter.buildPdf(book, { signal: jc.signal })).pageCount ?? 24;
+  }
 
   await jc.progress(0.3, 'Building the eBook cover');
   const input = { book, artwork: { mime: art.meta.mime, data: art.data }, typography: cover.typography, coverStyleId: book.coverStyleId };
   const ebook = await exporter.buildEbookCover(input, { signal: jc.signal });
   await jc.checkpoint();
   await jc.progress(0.6, 'Building the paperback wrap');
-  const wrap = await exporter.buildWrapCover({ ...input, pageCount, backBlurb }, { signal: jc.signal });
+  const wrap = await exporter.buildWrapCover({ ...input, pageCount, backBlurb, ...(picture ? { ink: PICTURE_INK } : {}) }, { signal: jc.signal });
   const ebookAsset = await blobs.put(
     jc.ctx,
     { kind: 'cover_ebook', filename: ebook.filename, mime: ebook.mime, projectId, aiGenerated: art.meta.aiGenerated },
@@ -123,7 +138,7 @@ export const coverBuildHandler: JobHandler = async (jc) => {
   await repos.production.upsertCover(jc.ctx, projectId, {
     ebookAssetId: ebookAsset.id,
     wrapAssetId: wrapAsset.id,
-    wrapSpec: { trim: book.trim, paper: book.paper, pages: pageCount, mock: ebook.mock || wrap.mock },
+    wrapSpec: { trim: book.trim, paper: book.paper, pages: pageCount, ...(picture ? { ink: PICTURE_INK } : {}), mock: ebook.mock || wrap.mock },
     status: 'final',
   });
   if (art.meta.aiGenerated) await repos.books.setAiDisclosure(jc.ctx, projectId, 'images', 'ai_generated');

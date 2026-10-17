@@ -100,6 +100,16 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
   };
 }
 
+/**
+ * The chapter count the owner chose for this book in the new-book wizard (book settings `chapters`, a number or a
+ * numeric string), or null. The blueprint uses it when the request names no count, before the workspace default.
+ */
+export function bookChapterCount(settings: Record<string, unknown>): number | null {
+  const raw = settings['chapters'];
+  const n = typeof raw === 'number' ? raw : typeof raw === 'string' && raw.trim() ? Number(raw) : Number.NaN;
+  return Number.isInteger(n) && n >= 1 && n <= 60 ? n : null;
+}
+
 /** Marketing items as plain text for the pack's marketing/ folder. */
 async function marketingText(repos: Repos, ctx: RequestCtx, projectId: string): Promise<NonNullable<ExportBook['marketing']>> {
   const items = await repos.production.listMarketing(ctx, projectId, {});

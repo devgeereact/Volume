@@ -24,6 +24,8 @@ const CHILD_TABLES = [
   'titleSets',
   'blueprints',
   'sections',
+  // Picture books (migration 0006): character sheets and their reference pictures.
+  'pictureCharacters',
   'sectionVersions',
   'suggestions',
   'authorNotes',
@@ -231,6 +233,8 @@ export class ProjectTransfer {
     await this.db.transaction().execute(async (trx) => {
       if (profileCreated) {
         const profile: Row = { ...map(file.profile), sourceKey: null, status: 'active', archivedAt: null };
+        // Only the owner confirms a bio (D-047): a pen name an editor brings in waits for the owner's confirmation.
+        if (ctx.role !== 'owner') profile['bioStatus'] = 'to_confirm';
         await trx
           .insertInto('authorProfiles')
           .values(profile as never)

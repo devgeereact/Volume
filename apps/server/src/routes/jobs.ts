@@ -6,6 +6,9 @@ import { JobInsights } from '../jobs/eta.js';
 import { openSseStream } from '../sse/stream.js';
 import { idOf, writer } from './common.js';
 
+/** How often an open event stream re-checks that the caller is still a member of the workspace. */
+export const SSE_MEMBERSHIP_RECHECK_MS = 60_000;
+
 export function jobRoutes(app: FastifyInstance, s: AppServices): void {
   const insights = new JobInsights(s.db, s.runner);
 
@@ -63,7 +66,16 @@ export function jobRoutes(app: FastifyInstance, s: AppServices): void {
     const header = req.headers['last-event-id'];
     const lastEventId = (typeof header === 'string' ? header : undefined) ?? q.lastEventId ?? null;
     reply.hijack();
-    await openSseStream(reply.raw, { bus: s.bus, workspaceId: req.ctx.workspaceId, projectId, lastEventId });
+    const ctx = req.ctx;
+    await openSseStream(reply.raw, {
+      bus: s.bus,
+      workspaceId: ctx.workspaceId,
+      projectId,
+      lastEventId,
+      // A long-lived stream outlives the per-request membership check: re-check it, and close for a removed member.
+      stillAllowed: () => s.repos.members.isMember(ctx),
+      recheckMs: SSE_MEMBERSHIP_RECHECK_MS,
+    });
   };
 
   app.get('/books/:id/events', async (req, reply) => {

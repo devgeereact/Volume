@@ -4,6 +4,7 @@ import type { ClerkSettings } from '../config/env.js';
 import type { Db } from '../db/connect.js';
 import { AppError } from '../http/errors.js';
 import { newId, now } from '../lib/util.js';
+import { acceptInvitation } from '../repos/members.js';
 import type { AuthProvider, RequestCtx, Role } from './context.js';
 
 /** Checks the Clerk session token on a request. Null means signed out (missing, expired or invalid token). */
@@ -11,7 +12,7 @@ export interface ClerkVerifier {
   verify(request: FastifyRequest): Promise<{ userId: string } | null>;
 }
 
-/** Looks up a Clerk user's verified email addresses (Clerk Backend API). Only used when OWNER_EMAILS is set. */
+/** Looks up a Clerk user's verified email addresses (Clerk Backend API). Used when OWNER_EMAILS is set or ACCOUNTS_MODE=invite. */
 export interface ClerkUserLookup {
   verifiedEmails(userId: string): Promise<string[]>;
 }
@@ -74,10 +75,14 @@ const ALLOW_TTL_MS = 10 * 60 * 1000;
  * - Signed in but not on the allowlist (CLERK_ALLOWED_USER_IDS, OWNER_EMAILS): 403.
  * - Allowed: the Volume user bound to that Clerk user. The first allowed sign-in binds the existing local owner,
  *   so the owner's library stays theirs; a further allowed Clerk user gets its own user row with owner rights in the
- *   same workspace. Workspaces and roles stay as they are, ready for more self-publishers later.
+ *   same workspace. The allowlist names the owner's own accounts only (D-047).
+ * - ACCOUNTS_MODE=invite (D-047): an account that is not on the allowlist gets in only through the owner's invitation,
+ *   matched on a verified email address. It lands in the invited workspace with the invited role (or, for an owner
+ *   invitation, in a new workspace of its own), never as an owner of the owner's workspace. Its membership is read
+ *   on every request and never cached, so a removed member gets 403 on the next request.
  */
 export class ClerkAuthProvider implements AuthProvider {
-  private readonly allowCache = new Map<string, { allowed: boolean; at: number }>();
+  private readonly emailCache = new Map<string, { emails: string[]; at: number }>();
   private readonly ctxCache = new Map<string, RequestCtx>();
 
   constructor(
@@ -86,6 +91,7 @@ export class ClerkAuthProvider implements AuthProvider {
     private readonly settings: ClerkSettings,
     private readonly verifier: ClerkVerifier,
     private readonly lookup: ClerkUserLookup | null,
+    private readonly accountsMode: 'owner-only' | 'invite' = 'owner-only',
   ) {}
 
   async resolve(req: FastifyRequest): Promise<RequestCtx | null> {
@@ -97,42 +103,69 @@ export class ClerkAuthProvider implements AuthProvider {
       session = null;
     }
     if (!session) return null;
-    if (!(await this.isAllowed(session.userId, req))) {
-      throw new AppError('forbidden', 'This account is not allowed to use Volume.');
+    if (await this.isAllowed(session.userId, req)) {
+      const cached = this.ctxCache.get(session.userId);
+      if (cached) return cached;
+      const ctx = await this.bind(session.userId);
+      this.ctxCache.set(session.userId, ctx);
+      return ctx;
     }
-    const cached = this.ctxCache.get(session.userId);
-    if (cached) return cached;
-    const ctx = await this.bind(session.userId);
-    this.ctxCache.set(session.userId, ctx);
-    return ctx;
+    if (this.accountsMode === 'invite') {
+      const invited = await this.invitedCtx(session.userId, req);
+      if (invited) return invited;
+    }
+    throw new AppError('forbidden', 'This account is not allowed to use Volume.');
   }
 
   private async isAllowed(userId: string, req: FastifyRequest): Promise<boolean> {
     if (this.settings.allowedUserIds.includes(userId)) return true;
-    if (this.settings.ownerEmails.length === 0 || !this.lookup) return false;
-    const hit = this.allowCache.get(userId);
-    if (hit && Date.now() - hit.at < ALLOW_TTL_MS) return hit.allowed;
-    let emails: string[];
-    try {
-      emails = await this.lookup.verifiedEmails(userId);
-    } catch (err) {
-      // Clerk unreachable: refuse this time, without caching, so the next request asks again.
-      req.log.warn({ err: { message: err instanceof Error ? err.message : 'unknown' } }, 'Clerk user lookup failed');
-      return false;
-    }
-    const allowed = emails.some((e) => this.settings.ownerEmails.includes(e));
-    this.allowCache.set(userId, { allowed, at: Date.now() });
-    return allowed;
+    if (this.settings.ownerEmails.length === 0) return false;
+    const emails = await this.emailsOf(userId, req);
+    return emails !== null && emails.some((e) => this.settings.ownerEmails.includes(e));
   }
 
+  /** Verified addresses, cached for ten minutes. Null when Clerk could not be asked (not cached, so the next request asks again). */
+  private async emailsOf(userId: string, req: FastifyRequest): Promise<string[] | null> {
+    if (!this.lookup) return null;
+    const hit = this.emailCache.get(userId);
+    if (hit && Date.now() - hit.at < ALLOW_TTL_MS) return hit.emails;
+    let emails: string[];
+    try {
+      emails = (await this.lookup.verifiedEmails(userId)).map((e) => e.toLowerCase());
+    } catch (err) {
+      req.log.warn({ err: { message: err instanceof Error ? err.message : 'unknown' } }, 'Clerk user lookup failed');
+      return null;
+    }
+    this.emailCache.set(userId, { emails, at: Date.now() });
+    return emails;
+  }
+
+  /** An invited account: its current membership, or the first sign-in that accepts a pending invitation. */
+  private async invitedCtx(clerkUserId: string, req: FastifyRequest): Promise<RequestCtx | null> {
+    const member = await this.ctxFor(clerkUserId);
+    if (member) return member;
+    const emails = await this.emailsOf(clerkUserId, req);
+    if (!emails || emails.length === 0) return null;
+    // The instance owner's own invitation wins over any other workspace's (one membership per account, D-047).
+    const accepted = await acceptInvitation(this.db, clerkUserId, emails, this.owner.workspaceId);
+    // null also when a parallel request claimed the same invitation first; that request created the membership.
+    return accepted ?? (await this.ctxFor(clerkUserId));
+  }
+
+  /**
+   * The account's membership. One Volume account has one membership (D-047): sign-in only accepts an invitation for
+   * an account without one. Should older data hold several, the instance owner's workspace wins, then the oldest.
+   */
   private async ctxFor(userId: string): Promise<RequestCtx | null> {
-    const row = await this.db
+    const rows = await this.db
       .selectFrom('memberships')
       .innerJoin('users', 'users.id', 'memberships.userId')
       .select(['memberships.workspaceId', 'memberships.userId', 'memberships.role'])
       .where('users.clerkUserId', '=', userId)
       .orderBy('memberships.createdAt')
-      .executeTakeFirst();
+      .limit(20)
+      .execute();
+    const row = rows.find((r) => r.workspaceId === this.owner.workspaceId) ?? rows[0];
     return row ? { workspaceId: row.workspaceId, userId: row.userId, role: row.role as Role } : null;
   }
 

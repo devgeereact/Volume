@@ -6,8 +6,10 @@ import type { AppServices } from '../app.js';
 import { readCatalogue, readJsonFile, readModelDefaults, type CatalogueName } from '../config/catalogue.js';
 import type { AiCredit } from '../ports/ai.js';
 import { AppError, parse } from '../http/errors.js';
-import { SettingsPatchSchema } from '../repos/settings.js';
-import { writer } from './common.js';
+import { INSTANCE_ONLY_SETTINGS, SettingsPatchSchema, type SettingValues } from '../repos/settings.js';
+import { assertInstanceOwner, isInstanceOwner } from '../auth/context.js';
+import { GUEST_CAP_KEY } from '../jobs/runner.js';
+import { owner } from './common.js';
 
 const startedAt = Date.now();
 const CREDIT_TTL_MS = 5 * 60 * 1000;
@@ -111,6 +113,13 @@ export function systemRoutes(app: FastifyInstance, s: AppServices): void {
 
   // ---------- settings ----------
 
+  /** The workspace's settings; instance-only keys are left out for everyone but the instance owner. */
+  async function visibleValues(req: FastifyRequest): Promise<SettingValues> {
+    const values = await s.repos.settings.all(req.ctx);
+    if (!isInstanceOwner(req.ctx, s.ownerCtx)) for (const key of INSTANCE_ONLY_SETTINGS) delete values[key];
+    return values;
+  }
+
   async function budgets(req: FastifyRequest) {
     const defaults = await readModelDefaults(s.config.configDir);
     const values = await s.repos.settings.all(req.ctx);
@@ -120,6 +129,8 @@ export function systemRoutes(app: FastifyInstance, s: AppServices): void {
       monthlyCapUsd: values['budget.monthly_cap_usd'] ?? null,
       warnRatio: values['budget.warn_ratio'] ?? 0.8,
       monthSpendUsd: await s.repos.production.monthSpendUsd(req.ctx),
+      // The cap for every other workspace on this Volume (D-047): the instance owner's to see and set; 0 means off.
+      ...(isInstanceOwner(req.ctx, s.ownerCtx) ? { guestWorkspacesMonthlyCapUsd: values[GUEST_CAP_KEY] ?? 0 } : {}),
     };
   }
 
@@ -131,10 +142,12 @@ export function systemRoutes(app: FastifyInstance, s: AppServices): void {
       exporter: s.exporter.name,
       database: { client: s.dbClient },
       budgets: await budgets(req),
-      values: await s.repos.settings.all(req.ctx),
-      // Workspace status for the Settings screen (all read only).
-      openRouterCredit: await openRouterCredit(),
-      backups: await s.backups.status((await s.repos.settings.get(req.ctx, 'backup.enabled')) !== false),
+      values: await visibleValues(req),
+      // Workspace status for the Settings screen (all read only). The credit is the owner's key, so only the owner's
+      // workspace sees it (D-047).
+      openRouterCredit: req.ctx.workspaceId === s.ownerCtx.workspaceId ? await openRouterCredit() : null,
+      // Backups hold the whole database, so only the instance owner sees their status.
+      backups: isInstanceOwner(req.ctx, s.ownerCtx) ? await s.backups.status((await s.repos.settings.get(req.ctx, 'backup.enabled')) !== false) : null,
       houseStyleVersion: await houseStyleVersion(s.config.configDir),
       kdpRulesVersion: await kdpRulesVersion(s.config.configDir),
       houseStyle: await houseStyleInfo(s.config.configDir),
@@ -144,7 +157,7 @@ export function systemRoutes(app: FastifyInstance, s: AppServices): void {
   });
 
   app.post('/settings/openrouter/test', async (req) => {
-    writer(req);
+    assertInstanceOwner(req.ctx, s.ownerCtx);
     if (!s.openRouterKeyCheck) {
       return { ok: false, creditUsd: null, message: 'No OpenRouter key is set. Add OPENROUTER_API_KEY to .env and restart Volume.' };
     }
@@ -169,24 +182,27 @@ export function systemRoutes(app: FastifyInstance, s: AppServices): void {
 
   // ---------- backups ----------
 
+  // Backups hold the whole database (every workspace), so only the owner of this Volume sees or makes them.
   app.get('/backups', async (req) => {
+    assertInstanceOwner(req.ctx, s.ownerCtx);
     const enabled = (await s.repos.settings.get(req.ctx, 'backup.enabled')) !== false;
     return { items: await s.backups.list(), status: await s.backups.status(enabled) };
   });
 
   app.post('/backups', async (req, reply) => {
-    writer(req);
+    assertInstanceOwner(req.ctx, s.ownerCtx);
     const file = await s.backups.create();
     void reply.code(201);
     return file;
   });
 
   app.patch('/settings', async (req) => {
-    writer(req);
+    owner(req);
     const patch = parse(SettingsPatchSchema, req.body ?? {});
+    if (INSTANCE_ONLY_SETTINGS.some((key) => patch[key] !== undefined)) assertInstanceOwner(req.ctx, s.ownerCtx);
     if (patch.default_profile_id) await s.repos.profiles.require(req.ctx, patch.default_profile_id);
-    const values = await s.repos.settings.set(req.ctx, patch);
-    return { values, budgets: await budgets(req) };
+    await s.repos.settings.set(req.ctx, patch);
+    return { values: await visibleValues(req), budgets: await budgets(req) };
   });
 
   app.get('/settings/models', async (req) => {
@@ -208,7 +224,7 @@ export function systemRoutes(app: FastifyInstance, s: AppServices): void {
   });
 
   app.put('/settings/models', async (req) => {
-    writer(req);
+    owner(req);
     const body = parse(
       z.object({
         stages: z.record(z.string(), z.object({ model: z.string().min(1).max(200), fallbacks: z.array(z.string().max(200)).max(10).optional() }).nullable()),

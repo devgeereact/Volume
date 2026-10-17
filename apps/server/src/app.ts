@@ -116,6 +116,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
     ai: opts.ai ?? new MockAiAdapter(),
     exporter: opts.exporter ?? new MockExportAdapter(),
     configDir: config.configDir,
+    instanceWorkspaceId: ownerCtx.workspaceId,
   };
   const runnerOpts: RunnerOptions = { ...opts.runner, log: app.log };
   const runner = new JobRunner(jobServices, opts.handlers ?? defaultHandlers, runnerOpts);

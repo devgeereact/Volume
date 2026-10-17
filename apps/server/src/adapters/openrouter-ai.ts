@@ -13,6 +13,7 @@ import {
   type AiCredit,
   type AiGuardrailHit,
   type AiGuardrails,
+  type AiImageEstimate,
   type AiImageResult,
   type AiPort,
   type AiSource,
@@ -28,6 +29,8 @@ import { MockAiAdapter } from './mock-ai.js';
 import {
   createAiService,
   isTaskId,
+  StageOutputs,
+  taskForTemplate,
   type AiProvider,
   type AiService,
   type CostEstimate,
@@ -37,6 +40,7 @@ import {
   type GenerateImageResult as VolumeAiImageResult,
   type KeyStatus as VolumeAiKeyStatus,
   type MockScenario,
+  type ModelPricing,
   type RunStageOptions as VolumeAiRunOptions,
   type StageResult,
 } from '@volume/ai';
@@ -77,9 +81,19 @@ function estimateTask(service: AiService, task: string, input: Rec, opts: Volume
 export const STAGE_TASKS: { readonly [S in AiStage]: readonly string[] } = {
   research: ['research.title-research'],
   titles: ['titles.topic-directions', 'titles.title-options'],
-  blueprint: ['blueprint.blueprint'],
-  blueprint_part: ['blueprint.regenerate-part'],
-  writing: ['writing.chapter', 'writing.introduction', 'writing.conclusion', 'writing.front-matter', 'writing.back-matter'],
+  blueprint: ['blueprint.blueprint', 'blueprint.blueprint-fiction', 'blueprint.blueprint-workbook'],
+  blueprint_part: ['blueprint.regenerate-part', 'blueprint.regenerate-part-fiction'],
+  writing: [
+    'writing.chapter',
+    'writing.chapter-fiction',
+    'writing.chapter-workbook',
+    'writing.extend-section',
+    'writing.extend-section-fiction',
+    'writing.introduction',
+    'writing.conclusion',
+    'writing.front-matter',
+    'writing.back-matter',
+  ],
   summarise: ['checks.summarise-and-ledger'],
   checks: ['checks.claims', 'checks.consistency'],
   editing: ['editing.line-edit-uk', 'editing.structural', 'editing.voice', 'writing.rewrite-selection'],
@@ -87,7 +101,24 @@ export const STAGE_TASKS: { readonly [S in AiStage]: readonly string[] } = {
   matter_metadata: ['matter.amazon-description', 'matter.keywords-categories', 'matter.back-cover'],
   cover_brief: ['cover.cover-brief', 'cover.cover-image'],
   marketing: ['marketing.tiktok-scripts', 'marketing.instagram-captions', 'marketing.launch-email'],
+  picture_story: ['children.picture-book-story'],
+  scene_prompts: ['children.scene-prompts'],
+  character_reference: ['children.character-reference'],
 };
+
+/**
+ * The book's template id: an explicit templateId, else the id inside the {{template}} rules object, else the
+ * template string (research sends book.template), else book.template.
+ */
+export function templateIdOf(v: Rec): string | null {
+  const t = v['template'];
+  return firstText(v['templateId'], rec(t)['id'], typeof t === 'string' ? t : null, rec(v['book'])['template']);
+}
+
+/** The @volume/ai task for a base task in this book's template (fiction and workbook have their own prompts). */
+export function taskFor(task: string, v: Rec): string {
+  return isTaskId(task) ? taskForTemplate(task, templateIdOf(v)) : task;
+}
 
 /** Cover art ratio sent to the images endpoint (5:8 is rejected; the export fits 2:3 to 1600 x 2560). */
 export const COVER_ASPECT_RATIO = '2:3';
@@ -297,6 +328,14 @@ export function bookInput(v: Rec): Rec {
   else put(out, 'datedPrices', text(dated));
   put(out, 'checkedMonth', firstText(v['checkedMonth'], b['checkedMonth']));
   put(out, 'pricesCheck', firstText(v['pricesCheck'], b['pricesCheck']));
+  // Template (fiction and workbook prompts read it), and the fiction point of view and tense: the book's own choice,
+  // else the template's voice defaults (fiction.json voice.defaultPerspective and voice.tense).
+  const templateId = templateIdOf(v);
+  put(out, 'template', templateId);
+  const voice = rec(rec(v['template'])['voice']);
+  const fiction = templateId === 'fiction';
+  put(out, 'pov', firstText(v['pov'], b['pov'], fiction ? voice['defaultPerspective'] : null));
+  put(out, 'tense', firstText(v['tense'], b['tense'], fiction ? voice['tense'] : null));
   return out;
 }
 
@@ -339,6 +378,14 @@ export function baseInput(v: Rec): Rec {
   if (profile) out['profile'] = profile;
   out['book'] = bookInput(v);
   for (const k of ['blueprint', 'template', 'research'] as const) if (v[k] !== undefined) out[k] = v[k] ?? null;
+  // The fiction story bible goes on its own as {{storyBible}}, never inside {{blueprint}} (D-043).
+  const bp = out['blueprint'];
+  const bible = v['storyBible'] ?? (isRec(bp) ? bp['storyBible'] : undefined);
+  if (isRec(bp) && 'storyBible' in bp) {
+    const { storyBible: _bible, ...rest } = bp;
+    out['blueprint'] = rest;
+  }
+  if (isRec(bible)) out['storyBible'] = bible;
   if (v['sources'] !== undefined) out['sources'] = sourcesInput(v['sources']);
   if (v['previousSummaries'] !== undefined) out['previousSummaries'] = summariesInput(v['previousSummaries']);
   if (v['ledger'] !== undefined) out['ledger'] = ledgerInput(v['ledger']);
@@ -359,7 +406,22 @@ function chapterInput(section: Rec, instruction: string | null = null): Rec {
   put(out, 'summary', instruction ? `${summary ?? ''}\n\nOwner instruction: ${instruction}`.trim() : summary);
   put(out, 'wordTarget', firstNum(section['wordTarget'], section['word_target']));
   put(out, 'isLast', firstBool(section['isLast'], section['is_last']));
+  // Fiction: viewpoint character, setting and scene beats; workbook: the planned exercises (blueprint chapter plan).
+  put(out, 'povCharacter', firstText(section['povCharacter'], section['pov_character']));
+  put(out, 'setting', text(section['setting']));
+  const scenes = strList(section['scenes']);
+  if (scenes.length) out['scenes'] = scenes;
+  const exercises = exercisesOf(section['exercises']);
+  if (exercises.length) out['exercises'] = exercises;
   return out;
+}
+
+/** Planned workbook exercises that match the AI layer's ExercisePlan schema; anything else is dropped. */
+function exercisesOf(v: unknown): StageOutputs.ExercisePlan[] {
+  return list(v).flatMap((e) => {
+    const ok = StageOutputs.ExercisePlan.safeParse({ lines: null, purpose: '', ...rec(e) });
+    return ok.success ? [ok.data] : [];
+  });
 }
 
 /** Variables the package fills itself (config, computed hits): never pre-filled here. */
@@ -417,6 +479,12 @@ function chapterOut(c: unknown, fallbackNumber: number): Rec {
   put(out, 'opening_hook', firstText(o['openingHookIdea'], o['opening_hook']));
   if (Array.isArray(o['storyIdeas'])) out['story_ideas'] = strList(o['storyIdeas']);
   if (Array.isArray(o['sourceIds'])) out['source_ids'] = strList(o['sourceIds']);
+  // Fiction and workbook chapter plans (blueprint.blueprint-fiction, blueprint.blueprint-workbook).
+  const exercises = exercisesOf(o['exercises']);
+  if (Array.isArray(o['exercises'])) out['exercises'] = exercises;
+  put(out, 'povCharacter', firstText(o['povCharacter'], o['pov_character']));
+  put(out, 'setting', text(o['setting']));
+  if (Array.isArray(o['scenes'])) out['scenes'] = strList(o['scenes']);
   return out;
 }
 
@@ -443,6 +511,8 @@ function blueprintOut(o: Rec): Rec {
   if (isRec(o['bookInfo'])) out['book_info'] = o['bookInfo'];
   if (typeof o['illustrativeStoriesLine'] === 'boolean') out['illustrative_stories_line'] = o['illustrativeStoriesLine'];
   if (Array.isArray(o['claimsToWatch'])) out['claims_to_watch'] = strList(o['claimsToWatch']);
+  // Fiction: the story bible travels in the blueprint data (D-043).
+  if (isRec(o['storyBible'])) out['storyBible'] = o['storyBible'];
   return out;
 }
 
@@ -510,6 +580,15 @@ function summariseOut(o: Rec): Rec {
   for (const t of list(l['terms']).filter(isRec)) {
     const key = text(t['term']);
     if (key) ledger.push({ kind: 'term', key, detail: firstText(t['explainedAs']) ?? '' });
+  }
+  // Fiction (summarise-and-ledger v5): characters and settings on the page (D-043).
+  for (const c of list(l['characters']).filter(isRec)) {
+    const key = text(c['name']);
+    if (key) ledger.push({ kind: 'character', key, detail: [firstText(c['role']), firstText(c['details'])].filter(Boolean).join(': ') });
+  }
+  for (const st of list(l['settings']).filter(isRec)) {
+    const key = text(st['name']);
+    if (key) ledger.push({ kind: 'setting', key, detail: firstText(st['details']) ?? '' });
   }
   return { summary: o['summary'], ledger };
 }
@@ -898,7 +977,7 @@ export class OpenRouterAiAdapter implements AiPort {
       case 'titles':
         return this.titles(run, v);
       case 'blueprint': {
-        const r = await run.call('blueprint.blueprint', blueprintInput(v), { primary: true, pinVersion: true });
+        const r = await run.call(taskFor('blueprint.blueprint', v), blueprintInput(v), { primary: true, pinVersion: true });
         return blueprintOut(rec(r.output));
       }
       case 'blueprint_part':
@@ -921,6 +1000,12 @@ export class OpenRouterAiAdapter implements AiPort {
         return this.coverBrief(run, v);
       case 'marketing':
         return this.marketing(run, v);
+      case 'picture_story':
+      case 'scene_prompts':
+      case 'character_reference': {
+        const r = await run.call(CHILDREN_TASKS[run.stage], childrenInput(v), { primary: true, pinVersion: true });
+        return r.output;
+      }
     }
   }
 
@@ -952,7 +1037,7 @@ export class OpenRouterAiAdapter implements AiPort {
 
   private async blueprintPart(run: StageRun, v: Rec): Promise<unknown> {
     const part = text(v['part']) ?? 'summary';
-    const r = await run.call('blueprint.regenerate-part', blueprintPartInput(v, part), { primary: true, pinVersion: true });
+    const r = await run.call(taskFor('blueprint.regenerate-part', v), blueprintPartInput(v, part), { primary: true, pinVersion: true });
     const value = rec(r.output)['value'];
     const val = rec(value);
     let data: unknown;
@@ -1275,6 +1360,24 @@ export class OpenRouterAiAdapter implements AiPort {
     return { low, high, unknown };
   }
 
+  /**
+   * One picture at the configured resolution (stage cover_image), priced from the model list: the request price when
+   * the model has one, else its image output price times the tokens one image uses. Low is the chosen model, high the
+   * dearest of it and its fallbacks (a fallback can be used after a failure).
+   */
+  async estimateImage(opts: { model?: string } = {}): Promise<AiImageEstimate> {
+    await this.ensureModelList();
+    const registry = this.service.registry;
+    const resolved = registry.resolve('cover_image', opts.model ? { model: opts.model } : {});
+    const resolution = resolved.image.resolution ?? '1K';
+    const priceOf = (slug: string): number | null => imagePriceUsd(registry.pricing(slug), resolution);
+    const own = priceOf(resolved.model);
+    const all = [own, ...resolved.fallbacks.map(priceOf)].filter((x): x is number => x !== null);
+    if (all.length === 0) return { lowUsd: 0, highUsd: 0, model: resolved.model, priced: false };
+    const high = Math.max(...all);
+    return { lowUsd: own ?? Math.min(...all), highUsd: high, model: resolved.model, priced: true };
+  }
+
   /** Prices come from the OpenRouter model list (cached by the package for 24 hours). */
   private async ensureModelList(): Promise<boolean> {
     if (this.modelsLoadedAt !== null) return false;
@@ -1311,6 +1414,9 @@ export class OpenRouterAiAdapter implements AiPort {
     if (opts.beforeCall) o.beforeCall = opts.beforeCall;
     if (opts.model) o.model = opts.model;
     if (opts.aspectRatio) o.aspectRatio = opts.aspectRatio;
+    if (opts.purpose) o.purpose = opts.purpose;
+    if (opts.inputReferences?.length) o.inputReferences = opts.inputReferences.map((r) => ({ data: r.data, mediaType: r.mediaType }));
+    if (opts.seed !== undefined) o.seed = opts.seed;
     if (opts.signal) o.signal = opts.signal;
     if (opts.scenario && this.provider === 'mock' && isMockScenario(opts.scenario)) o.scenario = opts.scenario;
     let r: VolumeAiImageResult;
@@ -1338,8 +1444,29 @@ export class OpenRouterAiAdapter implements AiPort {
         latencyMs: r.latencyMs,
       },
       mock: r.provider === 'mock',
+      notes: [...r.notes],
     };
   }
+}
+
+// ---------- image prices ----------
+
+/**
+ * Output tokens one image uses, by resolution: the largest figure Google gives for the Gemini image models in
+ * config/models.defaults.json (gemini-2.5-flash-image 1290 at 1K, gemini-3.1-flash-image 1680 at 2K and 2520 at 4K),
+ * https://ai.google.dev/gemini-api/docs/pricing, read 2026-10-17. Used only when a model has no per-request price.
+ */
+export const IMAGE_OUTPUT_TOKENS: Readonly<Record<string, number>> = { '0.5K': 747, '1K': 1290, '2K': 1680, '4K': 2520 };
+
+/** USD for one image from the model list prices, or null when the list gives none. */
+export function imagePriceUsd(p: ModelPricing | undefined, resolution: string): number | null {
+  if (!p) return null;
+  if (p.perRequest !== null && p.perRequest > 0) return p.perRequest;
+  if (p.imageOutputPerMillion !== null && p.imageOutputPerMillion > 0) {
+    const tokens = IMAGE_OUTPUT_TOKENS[resolution] ?? IMAGE_OUTPUT_TOKENS['4K'] ?? 2520;
+    return (tokens * p.imageOutputPerMillion) / 1_000_000;
+  }
+  return null;
 }
 
 // ---------- per stage input plans (shared by runStage and estimate) ----------
@@ -1385,7 +1512,7 @@ function writingPlan(v: Rec, promptId: string | undefined): { task: string; inpu
   if (promptId === 'writing.extend-section') {
     const markdown = typeof v['markdown'] === 'string' ? v['markdown'] : '';
     return {
-      task: 'writing.extend-section',
+      task: taskFor('writing.extend-section', v),
       input: { ...base, chapter: chapterInput(section), text: markdown, currentWords: firstNum(v['currentWords']) ?? wordsIn(markdown) },
     };
   }
@@ -1395,7 +1522,22 @@ function writingPlan(v: Rec, promptId: string | undefined): { task: string; inpu
   if (isRec(v['nextChapter'])) chapter['nextChapter'] = { title: text(v['nextChapter']['title']), summary: text(v['nextChapter']['summary']) };
   if (promptId === 'writing.introduction' || promptId === 'writing.conclusion')
     return { task: promptId, input: { ...base, chapter: chapterInput(section, instruction) } };
-  return { task: 'writing.chapter', input: chapter };
+  return { task: taskFor('writing.chapter', v), input: chapter };
+}
+
+/** The @volume/ai task of each picture-book stage. */
+const CHILDREN_TASKS = {
+  picture_story: 'children.picture-book-story',
+  scene_prompts: 'children.scene-prompts',
+  character_reference: 'children.character-reference',
+} as const;
+
+/** Input for the picture-book tasks: story settings, the finished story and the scene prompts when there are any. */
+function childrenInput(v: Rec): Rec {
+  const out: Rec = { ...baseInput(v), story: rec(v['story']) };
+  if (v['storyResult'] !== undefined) out['storyResult'] = v['storyResult'];
+  if (v['scenePrompts'] !== undefined) out['scenePrompts'] = v['scenePrompts'];
+  return out;
 }
 
 function summariseInput(v: Rec): Rec {
@@ -1553,9 +1695,9 @@ export function estimatePlan(stage: AiStage, input: AiStageInput): { task: strin
         { task: 'titles.title-options', input: { ...baseInput(v), direction: v['direction'] ?? null }, times: 1 },
       ];
     case 'blueprint':
-      return [{ task: 'blueprint.blueprint', input: blueprintInput(v), times: 1 }];
+      return [{ task: taskFor('blueprint.blueprint', v), input: blueprintInput(v), times: 1 }];
     case 'blueprint_part':
-      return [{ task: 'blueprint.regenerate-part', input: blueprintPartInput(v, text(v['part']) ?? 'summary'), times: 1 }];
+      return [{ task: taskFor('blueprint.regenerate-part', v), input: blueprintPartInput(v, text(v['part']) ?? 'summary'), times: 1 }];
     case 'writing': {
       const p = writingPlan(v, input.promptId);
       return [{ task: p.task, input: p.input, times: 1 }];
@@ -1592,6 +1734,10 @@ export function estimatePlan(stage: AiStage, input: AiStageInput): { task: strin
       ];
     case 'marketing':
       return marketingPlan(v).map((s) => ({ ...s, times: 1 }));
+    case 'picture_story':
+    case 'scene_prompts':
+    case 'character_reference':
+      return [{ task: CHILDREN_TASKS[stage], input: childrenInput(v), times: 1 }];
   }
 }
 

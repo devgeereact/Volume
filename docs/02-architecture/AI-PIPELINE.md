@@ -187,7 +187,7 @@ Live run 3 ("Small Offer, Real Customers") added these rules. Code: `packages/co
 ## Mock provider
 
 - Implements the same `AiProvider` interface. Default in tests and whenever no key is set.
-- Deterministic: answers come from fixtures in `tests/fixtures/ai/<stage>/` chosen by prompt id and a hash of the inputs, with a generic valid fallback per schema.
+- Deterministic: answers come from fixtures in `packages/ai/test/fixtures/` (`<promptId>.json` or `<stage>/<promptId>.json`) chosen by prompt id and a hash of the inputs, with a generic valid fallback per schema.
 - Streams in chunks with a short delay so progress UI and SSE can be tested.
 - Fault injection by scenario name: `rate_limit`, `server_error`, `invalid_json`, `stream_cut`, `refusal`, `model_missing`, `slow`.
 - Reports a fixed fake cost so budget logic is tested without money.

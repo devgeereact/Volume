@@ -67,9 +67,10 @@ async function main(): Promise<void> {
       jwtKey: process.env['CLERK_JWT_KEY']?.trim().replace(/\\n/g, '\n') || undefined,
     };
     const verifier = createClerkVerifier(keys, config.clerk, config.appOrigin ?? `http://127.0.0.1:${config.port}`);
-    const lookup =
-      keys.secretKey && config.clerk.ownerEmails.length > 0 ? createClerkUserLookup({ publishableKey: keys.publishableKey, secretKey: keys.secretKey }) : null;
-    auth = (ownerCtx, db) => new ClerkAuthProvider(db, ownerCtx, config.clerk, verifier, lookup);
+    // Email lookups serve OWNER_EMAILS and, with ACCOUNTS_MODE=invite, matching invitations to verified addresses.
+    const needsLookup = config.clerk.ownerEmails.length > 0 || config.accountsMode === 'invite';
+    const lookup = keys.secretKey && needsLookup ? createClerkUserLookup({ publishableKey: keys.publishableKey, secretKey: keys.secretKey }) : null;
+    auth = (ownerCtx, db) => new ClerkAuthProvider(db, ownerCtx, config.clerk, verifier, lookup, config.accountsMode);
   }
   const { app } = await buildApp({ config, handle, ai, exporter, openRouterKeyCheck, ...(auth ? { auth } : {}) });
   for (const line of aiLog) app.log.info(line);
@@ -99,7 +100,10 @@ async function main(): Promise<void> {
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) process.once(signal, () => void shutdown(signal));
 
   await app.listen({ host: config.host, port: config.port });
-  app.log.info({ db: config.db.client, ai: provider, exporter: exporter.name, auth: config.authMode, web: config.webDistDir !== null }, 'Volume server ready');
+  app.log.info(
+    { db: config.db.client, ai: provider, exporter: exporter.name, auth: config.authMode, accounts: config.accountsMode, web: config.webDistDir !== null },
+    'Volume server ready',
+  );
 }
 
 main().catch((err: unknown) => {

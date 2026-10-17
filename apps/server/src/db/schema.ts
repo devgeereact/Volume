@@ -45,6 +45,53 @@ export interface MembershipsTable extends Tenant {
   role: string;
 }
 
+/** P8-3 (D-047). role editor or viewer joins workspace_id; owner means a new workspace for a separate self-publisher. */
+export interface InvitationsTable extends Tenant {
+  /** Lower case. */
+  email: string;
+  role: string;
+  /** pending, accepted or revoked. */
+  status: string;
+  /** The email while the invitation is pending, else null; unique per workspace, so one pending invitation per address. */
+  pendingEmail: string | null;
+  invitedBy: string | null;
+  acceptedUserId: string | null;
+  acceptedAt: Ms | null;
+}
+
+/** P8-2 (D-046). A named group of books run one at a time by a batch_run job (job_id: the latest run). */
+export interface BatchesTable extends Tenant {
+  name: string;
+  notes: string | null;
+  jobId: string | null;
+  createdBy: string | null;
+  startedAt: Ms | null;
+}
+
+/** P8-2. One book in a batch. status planned or ready (ready only after the quality gate). */
+export interface BatchItemsTable extends Tenant {
+  batchId: string;
+  projectId: string;
+  position: number;
+  status: string;
+  /** The latest batch_book job for this book. */
+  jobId: string | null;
+  readyAt: Ms | null;
+}
+
+/** P8-2 (D-046). A planned release per book and format, checked against KDP's title creation limit. */
+export interface TitleSlotsTable extends Tenant {
+  projectId: string;
+  batchId: string | null;
+  /** ebook, paperback or hardcover. */
+  format: string;
+  plannedAt: Ms;
+  /** planned or confirmed (confirmed only after the quality gate). */
+  status: string;
+  confirmedAt: Ms | null;
+  createdBy: string | null;
+}
+
 export interface SettingsTable extends Tenant {
   settingKey: string;
   value: JsonText;
@@ -125,6 +172,8 @@ export interface ProjectsTable extends Tenant {
   listPrices: JsonText | null;
   /** Amazon marketplace, null means amazon.co.uk (migration 0002). */
   marketplace: string | null;
+  /** When the book first joined a Volume mode batch; never cleared, so the quality gate keeps applying (migration 0008). */
+  batchedAt: Ms | null;
 }
 
 export interface ResearchRunsTable extends Tenant {
@@ -191,6 +240,24 @@ export interface SectionsTable extends Tenant {
   currentVersionId: string | null;
   status: string;
   blueprintChanged: Bool;
+  /** Spreads only: text-left, text-right, text-top or text-bottom (migration 0006). Null for other kinds. */
+  layout: string | null;
+  /** Spreads only: the 2:1 picture, an asset of kind spread_image (migration 0006). */
+  imageAssetId: string | null;
+}
+
+/** One character sheet of a picture book (migration 0006, D-045). */
+export interface PictureCharactersTable extends Tenant {
+  projectId: string;
+  name: string;
+  position: number;
+  /** The character sheet, repeated word for word in every scene prompt. */
+  sheet: string;
+  /** 1 when the character appears in more than one spread: only main characters get a reference picture. */
+  main: Bool;
+  referencePrompt: string | null;
+  /** The neutral full-body reference picture (asset kind character_reference), sent with every spread showing the character. */
+  referenceAssetId: string | null;
 }
 
 export interface SectionVersionsTable extends Tenant {
@@ -418,6 +485,10 @@ export interface Database {
   workspaces: WorkspacesTable;
   users: UsersTable;
   memberships: MembershipsTable;
+  invitations: InvitationsTable;
+  batches: BatchesTable;
+  batchItems: BatchItemsTable;
+  titleSlots: TitleSlotsTable;
   settings: SettingsTable;
   authorProfiles: AuthorProfilesTable;
   profileSamples: ProfileSamplesTable;
@@ -428,6 +499,7 @@ export interface Database {
   titleSets: TitleSetsTable;
   blueprints: BlueprintsTable;
   sections: SectionsTable;
+  pictureCharacters: PictureCharactersTable;
   sectionVersions: SectionVersionsTable;
   suggestions: SuggestionsTable;
   authorNotes: AuthorNotesTable;

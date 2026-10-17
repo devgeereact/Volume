@@ -50,6 +50,8 @@ The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `m
 5. Flip the link: `ln -sfn releases/<utc> ~/apps/volume/current`, then `touch ~/apps/volume/current/tmp/restart.txt`.
 6. Run the post-deploy checks below. Rollback: point `current` back at the previous release and touch `tmp/restart.txt`. Migrations are additive, so the previous release still runs on the newer schema.
 
+Migration order: `0006_picture_books`, `0008_volume_mode` and `0009_invitations` ship together in one release (`0007` is reserved and not shipped). Production has none of them yet, so step 4 applies them in order. Kysely refuses a migration older than one already applied, and unordered migrations stay off on purpose: a development database that applied `0008` or `0009` before `0006` existed will not take `0006`. Recreate that local database (or restore one taken before `0008`); never edit the migration table by hand. `apps/server/test/migrations.test.ts` checks that a fresh SQLite database applies `0001` to `0009` in order and that every migration compiles for MySQL.
+
 ## One-off host steps
 
 - Create the database and two users in cPanel MySQL Databases: runtime user with SELECT, INSERT, UPDATE, DELETE; migration user with those plus CREATE, ALTER, INDEX, DROP, REFERENCES. Passwords are generated on the server and typed into `shared/.env` only.
@@ -86,3 +88,12 @@ The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `m
 ## What the server enforces in production
 
 `NODE_ENV=production` requires `APP_ORIGIN`, `AUTH_MODE=clerk` (local is refused), `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` and an allowlist (`OWNER_EMAILS` or `CLERK_ALLOWED_USER_IDS`). It answers only the `ALLOWED_HOSTS` (default: the `APP_ORIGIN` host), refuses writes from other origins, trusts the proxy and takes the visitor IP from `CF-Connecting-IP`, rate limits per IP (reads, writes and the health check separately) and never returns stack traces.
+
+### Accounts setting (D-047, proposed)
+
+| Setting | Values | Default | Effect |
+| --- | --- | --- | --- |
+| `ACCOUNTS_MODE` | `owner-only`, `invite` | `owner-only` | `owner-only`: only the allowlist (`OWNER_EMAILS`, `CLERK_ALLOWED_USER_IDS`, the owner's own accounts) signs in, as today. `invite`: the owner can also invite an email address as editor or viewer of their workspace, or as a separate self-publisher with a new workspace. An invited account is matched on a verified Clerk email, so `CLERK_SECRET_KEY` must be set. Set back to `owner-only` to shut every invited account out on its next request. |
+| `budget.guest_workspaces_monthly_cap_usd` (in-app setting, not an env name) | 0 to 100000 (US dollars) | `0` | Monthly AI spend allowed to each workspace other than the instance owner's, on the instance owner's OpenRouter key. `0` refuses their AI and image runs (`guest_ai_disabled`). Only the instance owner sets it, in Settings (`PATCH /api/v1/settings`). |
+
+Migration `0009_invitations` adds the `invitations` table. It needs the owner's approval and a backup like any production migration, and must ship together with `0006` to `0008` (Kysely refuses migrations applied out of order).

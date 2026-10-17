@@ -5,6 +5,8 @@ import type {
   ExportFile,
   ExportFileRole,
   ExportPort,
+  PictureBookBuild,
+  PictureBookInput,
   PreflightItem,
   PreflightReport,
   WrapCoverInput,
@@ -155,6 +157,37 @@ export class MockExportAdapter implements ExportPort {
   /** The mock's final preflight is its first one: placeholder files have nothing more to check. */
   async finalPreflight(book: ExportBook): Promise<PreflightReport> {
     return this.preflight(book);
+  }
+
+  /** Picture books: a placeholder PDF and a preflight that checks only that every spread has text and a picture. */
+  async buildPictureBook(input: PictureBookInput): Promise<PictureBookBuild> {
+    const { book, spreads } = input;
+    const missingImages = spreads.filter((sp) => !sp.imageKey || !input.images[sp.imageKey]).map((sp) => sp.n);
+    const front = book.sections.filter((s) => s.area === 'front').length;
+    const back = book.sections.filter((s) => s.area === 'back').length;
+    const pages = front + (front % 2 === 1 ? 0 : 1) + spreads.length * 2 + back;
+    const pageCount = pages % 2 === 1 ? pages + 1 : pages;
+    const interior = file(`${slug(book.title)}-picture-book.pdf`, 'application/pdf', minimalPdf(`MOCK PICTURE BOOK: ${book.title}`), pageCount, 'interior_pdf');
+    const base = await this.preflight(book);
+    const items: PreflightItem[] = [
+      ...base.items,
+      missingImages.length
+        ? { id: 'picture.spread-images', area: 'picture', severity: 'block', message: `MOCK: spreads without a picture: ${missingImages.join(', ')}.` }
+        : { id: 'picture.spread-images', area: 'picture', severity: 'pass', message: 'MOCK: every spread has a picture.' },
+    ];
+    const blocks = items.filter((i) => i.severity === 'block').length;
+    const preflight: PreflightReport = { ...base, items, blocks, ok: blocks === 0, warnings: items.filter((i) => i.severity === 'warn').length };
+    const pack = blocks === 0 ? await this.buildPack(book, [interior, ...(input.covers ?? [])]) : null;
+    return {
+      interior,
+      preflight,
+      pack,
+      pageSizeIn: { widthIn: 8.625, heightIn: 8.75 },
+      safeAreaFindings: [],
+      missingImages,
+      ruleIds: [],
+      warnings: ['MOCK picture book: placeholder PDF, no real layout.'],
+    };
   }
 
   buildPack(book: ExportBook, files: ExportFile[]): Promise<ExportFile> {

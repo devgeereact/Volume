@@ -3,7 +3,8 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import type { RequestCtx } from '../auth/context.js';
 import { AppError, parse } from '../http/errors.js';
-import { buildExportBook, CODE_WRITTEN_KINDS, withOwnerPlaceholders, withPackCovers } from '../jobs/book-data.js';
+import { buildExportBook, CODE_WRITTEN_KINDS } from '../jobs/book-data.js';
+import { assertQualityGate, preflightReport } from '../jobs/quality-gate.js';
 import { EXPORT_KINDS } from '../ports/export.js';
 import { MARKETING_KINDS, MarketingPatchSchema } from '../repos/production.js';
 import { accepted, idOf, writer } from './common.js';
@@ -91,34 +92,15 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
 
   // ---------- exports ----------
 
-  app.get('/books/:id/preflight', async (req) => {
-    const id = idOf(req);
-    const book = await buildExportBook(s.repos, req.ctx, id, s.configDir, s.blobs);
-    const cover = await s.repos.production.getCover(req.ctx, id);
-    const report = withPackCovers(await withOwnerPlaceholders(s.repos, req.ctx, id, await s.exporter.preflight(book)), {
-      ebook: !!cover?.ebookAssetId,
-      wrap: !!cover?.wrapAssetId,
-    });
-    const openClaims = await s.repos.manuscript.listClaims(req.ctx, { projectId: id, status: 'open' });
-    // The real exporter reports claims itself (claims.open); the mock does not.
-    if (openClaims.length > 0 && !report.items.some((i) => i.id === 'claims.open')) {
-      report.items.push({
-        id: 'claims.open',
-        area: 'claims',
-        severity: 'warn',
-        message: `${openClaims.length} claims still need checking.`,
-        fix: { route: 'editor', label: 'Review claims' },
-      });
-      report.warnings += 1;
-    }
-    return { ...report, manuscriptHash: book.manuscriptHash };
-  });
+  app.get('/books/:id/preflight', async (req) => preflightReport(s, req.ctx, idOf(req)));
 
   app.post('/books/:id/exports', async (req, reply) => {
     writer(req);
     const id = idOf(req);
     const body = parse(z.object({ kinds: z.array(z.enum(EXPORT_KINDS)).min(1).optional(), pack: z.boolean().optional() }).optional(), req.body) ?? {};
     await s.repos.books.require(req.ctx, id);
+    // Volume mode: a book that is or ever was in a batch is packed only after preflight and claims review (P8-2).
+    if (body.pack !== false && (await s.repos.batches.everBatched(req.ctx, id))) await assertQualityGate(s, req.ctx, id, 'packed');
     const job = await s.queue.enqueue(req.ctx, {
       kind: 'export_pack',
       projectId: id,

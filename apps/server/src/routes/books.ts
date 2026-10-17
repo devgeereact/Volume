@@ -3,10 +3,11 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import { readModelDefaults } from '../config/catalogue.js';
 import { AppError, parse } from '../http/errors.js';
+import { assertQualityGate } from '../jobs/quality-gate.js';
 import type { RequestCtx } from '../auth/context.js';
 import { BookInputSchema, BookListQuerySchema, BookPatchSchema, type Book } from '../repos/books.js';
 import type { BookExtras } from '../repos/library.js';
-import { idOf, writer } from './common.js';
+import { idOf, owner, writer } from './common.js';
 
 export function bookRoutes(app: FastifyInstance, s: AppServices): void {
   const r = s.repos.books;
@@ -23,6 +24,8 @@ export function bookRoutes(app: FastifyInstance, s: AppServices): void {
   app.post('/books', async (req, reply) => {
     writer(req);
     const body = parse(BookInputSchema, req.body);
+    // Budgets are the owner's (D-047); an editor's new book takes the workspace default.
+    if (body.budgetUsd !== undefined) owner(req);
     const profile = await s.repos.profiles.require(req.ctx, body.profileId);
     if (profile.status !== 'active') throw new AppError('invalid_state', 'Restore this pen name before starting a book with it.');
     const settings = await s.repos.settings.all(req.ctx);
@@ -57,6 +60,7 @@ export function bookRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const id = idOf(req);
     const patch = parse(BookPatchSchema, req.body);
+    if (patch.budgetUsd !== undefined) owner(req);
     if (patch.profileId) await s.repos.profiles.require(req.ctx, patch.profileId);
     return full(req.ctx, await r.update(req.ctx, id, patch));
   });
@@ -64,7 +68,23 @@ export function bookRoutes(app: FastifyInstance, s: AppServices): void {
   for (const action of ['archive', 'restore', 'publish', 'unpublish'] as const) {
     app.post(`/books/:id/${action}`, async (req) => {
       writer(req);
-      const book = await r.setStatus(req.ctx, idOf(req), action);
+      const id = idOf(req);
+      // Volume mode: a book that is or ever was in a batch is marked published only after preflight and claims review
+      // (P8-2). The gate runs now, so a `ready` mark that later edits made stale does not count.
+      if (action === 'publish') {
+        await r.require(req.ctx, id);
+        if (await s.repos.batches.everBatched(req.ctx, id)) {
+          try {
+            await assertQualityGate(s, req.ctx, id, 'marked published');
+          } catch (err) {
+            // A stale `ready` mark goes back to planned, so the planner shows the book needs another look.
+            const item = await s.repos.batches.itemOfBook(req.ctx, id);
+            if (item) await s.repos.batches.setItemStatus(req.ctx, item.id, 'planned');
+            throw err;
+          }
+        }
+      }
+      const book = await r.setStatus(req.ctx, id, action);
       await s.bus.publish(req.ctx.workspaceId, { projectId: book.id, type: 'book.updated', data: { projectId: book.id, status: book.status } });
       return full(req.ctx, book);
     });

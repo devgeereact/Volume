@@ -32,6 +32,8 @@ export const SECTION_KINDS = [
   'also_by',
   'review_request',
   'newsletter',
+  // Picture books (D-044): one section per spread, text in its versions, layout and picture in their own columns.
+  'spread',
 ] as const;
 
 export const SaveVersionSchema = z.object({
@@ -71,6 +73,10 @@ export interface Section {
   blueprintChanged: boolean;
   wordCount: number;
   updatedAt: number;
+  /** Spreads only (migration 0006): where the text sits. Null for other kinds. */
+  layout: string | null;
+  /** Spreads only: the spread's picture asset, null until it is made. */
+  imageAssetId: string | null;
 }
 
 export interface SectionVersion {
@@ -108,6 +114,8 @@ function toSection(r: SectionsTable, words = 0): Section {
     blueprintChanged: bool(r.blueprintChanged),
     wordCount: words,
     updatedAt: Number(r.updatedAt),
+    layout: r.layout ?? null,
+    imageAssetId: r.imageAssetId ?? null,
   };
 }
 
@@ -266,6 +274,8 @@ export interface NewSectionInput {
   plan?: Record<string, unknown>;
   partId?: string | null;
   enabled?: boolean;
+  /** Spreads only. */
+  layout?: string | null;
 }
 
 export interface SaveVersionInput {
@@ -434,6 +444,8 @@ export class ManuscriptRepo {
             currentVersionId: null,
             status: 'empty',
             blueprintChanged: 0,
+            layout: it.layout ?? null,
+            imageAssetId: null,
             createdAt: t,
             updatedAt: t,
           })
@@ -466,6 +478,14 @@ export class ManuscriptRepo {
     if (set.blueprintChanged !== undefined) patch.blueprintChanged = flag(set.blueprintChanged);
     if (set.enabled !== undefined) patch.enabled = flag(set.enabled);
     if (set.position !== undefined) patch.position = set.position;
+    await this.db.updateTable('sections').set(patch).where('id', '=', id).where('workspaceId', '=', ctx.workspaceId).execute();
+  }
+
+  /** Sets a spread's layout and, when given, its picture (picture books, migration 0006). */
+  async setSpread(ctx: RequestCtx, id: string, set: { layout?: string; imageAssetId?: string | null }): Promise<void> {
+    const patch: Partial<SectionsTable> = { updatedAt: now() };
+    if (set.layout !== undefined) patch.layout = set.layout;
+    if (set.imageAssetId !== undefined) patch.imageAssetId = set.imageAssetId;
     await this.db.updateTable('sections').set(patch).where('id', '=', id).where('workspaceId', '=', ctx.workspaceId).execute();
   }
 
@@ -609,6 +629,9 @@ export class ManuscriptRepo {
             currentVersionId: null,
             status: 'empty',
             blueprintChanged: 0,
+            // A copied picture book keeps its layouts and pictures (assets stay in the same workspace).
+            layout: s.layout,
+            imageAssetId: s.imageAssetId,
             createdAt: t,
             updatedAt: t,
           })

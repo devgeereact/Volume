@@ -10,6 +10,11 @@ export const SETTING_SCHEMAS = {
   /** null clears the cap. */
   'budget.monthly_cap_usd': z.number().min(0).max(100000).nullable(),
   'budget.warn_ratio': z.number().min(0).max(1),
+  /**
+   * Instance owner only, stored on the instance owner's workspace (D-047): the monthly AI cap in USD for each other
+   * workspace, which spends the instance owner's OpenRouter key. 0 (the default) refuses their AI runs.
+   */
+  'budget.guest_workspaces_monthly_cap_usd': z.number().min(0).max(100000),
   'backup.enabled': z.boolean(),
   'backup.time': z.string().regex(/^\d{2}:\d{2}$/),
   'links.check_enabled': z.boolean(),
@@ -31,6 +36,9 @@ export const SETTING_SCHEMAS = {
 } as const;
 
 export type SettingKey = keyof typeof SETTING_SCHEMAS;
+
+/** Keys only the instance owner reads or changes; they mean nothing on any other workspace. */
+export const INSTANCE_ONLY_SETTINGS: readonly SettingKey[] = ['budget.guest_workspaces_monthly_cap_usd'];
 export type SettingValues = { [K in SettingKey]?: z.infer<(typeof SETTING_SCHEMAS)[K]> };
 
 export const SettingsPatchSchema = z

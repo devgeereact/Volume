@@ -3,9 +3,14 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import { parse } from '../http/errors.js';
 import { MemoryInputSchema, MemoryPatchSchema, ProfileInputSchema, ProfilePatchSchema, SampleInputSchema, SamplePatchSchema } from '../repos/profiles.js';
-import { idOf, writer } from './common.js';
+import { idOf, owner, writer } from './common.js';
 
 const SubParams = z.object({ id: z.string().min(1).max(64), subId: z.string().min(1).max(64) });
+
+/** Pen name bios are the owner's words (About the author is printed word for word), so only the owner sets them (D-047). */
+function touchesBio(body: { bioThirdPerson?: unknown; shortBio?: unknown; bioStatus?: unknown }): boolean {
+  return body.bioThirdPerson !== undefined || body.shortBio !== undefined || body.bioStatus !== undefined;
+}
 
 export function profileRoutes(app: FastifyInstance, s: AppServices): void {
   const r = s.repos.profiles;
@@ -20,6 +25,7 @@ export function profileRoutes(app: FastifyInstance, s: AppServices): void {
   app.post('/profiles', async (req, reply) => {
     writer(req);
     const body = parse(ProfileInputSchema, req.body);
+    if (touchesBio(body)) owner(req);
     void reply.code(201);
     return r.create(req.ctx, body);
   });
@@ -28,7 +34,9 @@ export function profileRoutes(app: FastifyInstance, s: AppServices): void {
 
   app.patch('/profiles/:id', async (req) => {
     writer(req);
-    return r.update(req.ctx, idOf(req), parse(ProfilePatchSchema, req.body));
+    const patch = parse(ProfilePatchSchema, req.body);
+    if (touchesBio(patch)) owner(req);
+    return r.update(req.ctx, idOf(req), patch);
   });
 
   app.post('/profiles/:id/archive', async (req) => {

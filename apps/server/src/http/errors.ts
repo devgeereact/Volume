@@ -16,6 +16,8 @@ export type ErrorCode =
   | 'model_unavailable'
   | 'provider_error'
   | 'invalid_state'
+  | 'title_limit'
+  | 'quality_gate'
   | 'not_implemented'
   | 'internal_error';
 
@@ -34,6 +36,9 @@ const STATUS: Record<ErrorCode, number> = {
   model_unavailable: 503,
   provider_error: 502,
   invalid_state: 409,
+  // Volume mode (P8-2): a slot over KDP's weekly title limit, and a book that has not passed preflight and claims review.
+  title_limit: 409,
+  quality_gate: 409,
   not_implemented: 501,
   internal_error: 500,
 };
