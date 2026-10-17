@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useLocation } from "react-router";
 import { useBook as useServerBook, useProfile } from "../api/hooks";
 import { useWireMode } from "../api/wire-a";
@@ -61,6 +62,12 @@ export function Breadcrumbs() {
     bookTitle: book.data ? (book.data.title ?? "Untitled book") : undefined,
     profileName: profile.data?.penName,
   });
+  // The browser tab names the page: the book step (if any), the current crumb, then Volume.
+  const stepTitle = parts[0] === "books" && parts[2] ? (screens as Record<string, { title: string } | undefined>)[parts[2]]?.title : undefined;
+  const pageTitle = [stepTitle, crumbs[crumbs.length - 1]?.label, "Volume"].filter(Boolean).join(" · ");
+  useEffect(() => {
+    document.title = pageTitle;
+  }, [pageTitle]);
   return (
     <nav aria-label="Breadcrumb" className="min-w-0">
       <ol className="flex min-w-0 items-center gap-1 text-[13.5px] font-medium">

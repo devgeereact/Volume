@@ -203,6 +203,7 @@ describe('public hosting', () => {
     expect(page.headers['cache-control']).toBe('no-cache');
     expect(page.headers['strict-transport-security']).toBe('max-age=31536000');
     expect(page.headers['x-frame-options']).toBe('DENY');
+    expect(page.headers['x-robots-tag']).toBe('noindex, nofollow');
     const csp = String(page.headers['content-security-policy']);
     expect(csp).toContain(inlineScriptHashes(`<script>${THEME_SCRIPT}</script>`)[0]);
     expect(csp).toContain("connect-src 'self' https://clerk.example.com https://*.protect.clerk.com:*");

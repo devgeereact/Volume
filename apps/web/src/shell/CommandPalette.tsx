@@ -1,11 +1,12 @@
 import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { hostedSignIn } from "../auth/HostedAuth";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { LucideIcon } from "lucide-react";
 import { BookOpen, BookSearch, Component, FileArchive, Moon, Pause, Play, Search, Sun, TextSearch, UserPlus } from "lucide-react";
 import { useBook as useServerBook } from "../api/hooks";
-import { apiErrorText, downloadProjectFile, useWireMode } from "../api/wire-a";
+import { apiErrorText, downloadProjectFile, useWireMode, useWiredBooks } from "../api/wire-a";
 import { useToast } from "../lib/toast";
 import { Kbd } from "../components/ui/Kbd";
 import { bookSteps, books, currentStep, getBook } from "../demo/books";
@@ -77,7 +78,10 @@ export function CommandPalette() {
 
   const bookInView = getBook(pathname.split("/")[2]);
   const onEditor = /^\/books\/[^/]+\/editor(\/|$)/.test(pathname);
-  const api = useWireMode() === "api";
+  const wireMode = useWireMode();
+  const api = wireMode === "api";
+  // Server books when the API is up; the demo shelf only in demo mode.
+  const paletteBooks = useWiredBooks(wireMode, books).books;
   const toast = useToast();
   const urlBookId = pathname.split("/")[1] === "books" ? pathname.split("/")[2] : undefined;
   const serverBookId = api && urlBookId && urlBookId !== "new" && !bookInView ? urlBookId : undefined;
@@ -145,8 +149,8 @@ export function CommandPalette() {
     for (const s of globalNav) {
       list.push({ id: `go-${s.id}`, group: "Go to", label: s.title, icon: s.icon, keywords: s.purpose, run: go(s.id === "settings" ? "/settings" : s.path) });
     }
-    list.push({ id: "go-components", group: "Go to", label: "Components", hint: "Style guide", icon: Component, run: go("/components") });
-    for (const b of books) {
+    if (!hostedSignIn) list.push({ id: "go-components", group: "Go to", label: "Components", hint: "Style guide", icon: Component, run: go("/components") });
+    for (const b of paletteBooks) {
       list.push({
         id: `book-${b.id}`,
         group: "Books",
@@ -176,7 +180,7 @@ export function CommandPalette() {
       });
     }
     return list;
-  }, [bookInView, serverBook, toast, onEditor, navigate, theme, setTheme, job]);
+  }, [bookInView, serverBook, paletteBooks, toast, onEditor, navigate, theme, setTheme, job]);
 
   const q = query.trim().toLowerCase();
   const results = useMemo(

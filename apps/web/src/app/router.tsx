@@ -6,6 +6,7 @@ import { RouteError } from "../shell/RouteError";
 import BookIndexRedirect from "../features/books/BookIndexRedirect";
 import LibraryPage from "../features/library/LibraryPage";
 import { screens } from "../screens";
+import { hostedSignIn } from "../auth/HostedAuth";
 
 // Screen paths and navigation share the same catalogue; preserve aliases and lazy chunks.
 export const router = createBrowserRouter([
@@ -58,7 +59,8 @@ export const router = createBrowserRouter([
       },
       { path: screens.settings.path, lazy: async () => ({ Component: (await import("../features/settings/SettingsPage")).default }) },
       { path: screens.archive.path, lazy: async () => ({ Component: (await import("../features/archive/ArchivePage")).default }) },
-      { path: "/components", lazy: async () => ({ Component: (await import("../features/components/ComponentsPage")).default }) },
+      // The developer style guide is for local builds only; the hosted app answers it with Page not found.
+      ...(hostedSignIn ? [] : [{ path: "/components", lazy: async () => ({ Component: (await import("../features/components/ComponentsPage")).default }) }]),
       { path: "*", element: <NotFound /> },
     ],
   },

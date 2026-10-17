@@ -96,6 +96,8 @@ export function applySecurityHeaders(req: FastifyRequest, reply: FastifyReply, c
   void reply.header('Referrer-Policy', api ? 'no-referrer' : 'strict-origin-when-cross-origin');
   void reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   void reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  // Private app: keep every page, file and API answer out of search results.
+  void reply.header('X-Robots-Tag', 'noindex, nofollow');
   if (config.production) void reply.header('Strict-Transport-Security', 'max-age=31536000');
   if (!reply.hasHeader('Cache-Control')) {
     // Hashed bundles never change; pages and everything else are checked on every load. The API is never cached.

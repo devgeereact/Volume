@@ -1,0 +1,3 @@
+# Volume is a private app. Nothing here is for search engines.
+User-agent: *
+Disallow: /

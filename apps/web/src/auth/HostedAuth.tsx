@@ -73,7 +73,7 @@ function Gate({ children }: { children: ReactNode }) {
     return (
       <Centre>
         <div className="flex flex-col items-center gap-6">
-          <p className="font-book text-display text-ink">Volume</p>
+          <h1 className="font-book text-display text-ink">Volume</h1>
           <SignIn routing="hash" />
         </div>
       </Centre>
