@@ -1,4 +1,5 @@
 /* Data source switch: "api" when the Volume server answers GET /api/v1/health, "mock" otherwise.
+   The hosted build (Clerk sign-in) is always "api"; only local development falls back to demo data.
    Screens keep their mock data as the fallback, so the prototype still works with the server off:
 
      const source = useDataSource();
@@ -12,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "./hooks";
 import { systemApi } from "./system";
 import type { HealthResponse } from "./types";
+import { hostedSignIn } from "../auth/HostedAuth";
 
 export type DataSource = "api" | "mock";
 
@@ -19,6 +21,8 @@ export interface DataSourceState {
   source: DataSource;
   /** True until the first health check has answered or failed. */
   checking: boolean;
+  /** True when the last health check failed. On the hosted app the screens stay on real data and say so. */
+  down: boolean;
   health: HealthResponse | null;
 }
 
@@ -37,7 +41,10 @@ export function useDataSourceState(): DataSourceState {
     staleTime: 10_000,
   });
   const up = q.isSuccess && !q.isError && q.data.database.status === "ok";
-  return { source: up ? "api" : "mock", checking: q.isPending, health: q.data ?? null };
+  // The hosted app never falls back to sample data: a failed check there means the server or the
+  // connection is down, and sample books shown as if they were real would mislead the owner.
+  const source: DataSource = up || hostedSignIn ? "api" : "mock";
+  return { source, checking: q.isPending, down: !q.isPending && !up, health: q.data ?? null };
 }
 
 /** "api" when the server answers its health check, "mock" otherwise (including while checking). */

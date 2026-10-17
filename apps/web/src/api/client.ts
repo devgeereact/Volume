@@ -176,7 +176,7 @@ export async function apiRequest<T>(
     res = await fetch(apiUrl(path, options.query), init);
   } catch (e) {
     if (isAbort(e)) throw e;
-    throw new ApiError(0, "network_error", "The Volume server is not answering. Start it, then try again.");
+    throw new ApiError(0, "network_error", "The Volume server is not answering. Check your connection, then try again.");
   }
 
   if (res.status === 204) return undefined as T;
@@ -200,7 +200,7 @@ export async function apiDownload(method: "GET" | "POST", path: string, accept: 
     res = await fetch(apiUrl(path, options.query), init);
   } catch (e) {
     if (isAbort(e)) throw e;
-    throw new ApiError(0, "network_error", "The Volume server is not answering. Start it, then try again.");
+    throw new ApiError(0, "network_error", "The Volume server is not answering. Check your connection, then try again.");
   }
   if (!res.ok) throw errorFromBody(res.status, await readJson(res), `The server answered ${res.status}.`);
   const m = /filename="?([^";]+)"?/i.exec(res.headers.get("content-disposition") ?? "");

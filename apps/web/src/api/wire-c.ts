@@ -19,7 +19,7 @@ import { isTerminalJob, type ApiSection, type ApiSectionVersion, type JobStatus 
 /** One plain sentence for an error from the server (or the network). */
 export function errorText(e: unknown, fallback = "Something went wrong. Try again."): string {
   if (isApiError(e)) {
-    if (e.code === "network_error") return "The Volume server is not answering. Start it, then try again.";
+    if (e.code === "network_error") return "The Volume server is not answering. Check your connection, then try again.";
     if (e.code === "conflict") return "This changed somewhere else since you opened it. Reload to see the latest, then try again.";
     const issues = e.fieldIssues;
     if (issues.length > 0) return `${e.message} ${issues.map((i) => i.message).join(" ")}`.trim();
