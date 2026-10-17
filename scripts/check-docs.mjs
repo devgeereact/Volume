@@ -20,9 +20,8 @@ function collect(dir) {
 for (const dir of ['docs', 'qa', '.agent', '.claude', 'apps', 'packages', 'scripts', 'tests']) collect(resolve(root, dir));
 for (const name of ['README.md', 'AGENTS.md', 'CLAUDE.md', 'GEMINI.md', 'CODEX.md', 'CHANGELOG.md', 'KNOWN-ISSUES.md']) files.push(resolve(root, name));
 // Reports live outside the repository (../reports/volume). A fresh clone or CI run has no copy,
-// so links into that folder are only checked when it exists.
+// and each computer keeps only the reports written there, so a missing report is skipped, not failed.
 const reportsRoot = resolve(root, '..', 'reports', 'volume');
-const reportsPresent = existsSync(reportsRoot);
 const failures = [];
 let skipped = 0;
 for (const file of files) {
@@ -32,7 +31,7 @@ for (const file of files) {
     if (/^[a-z]+:|^#|^\//i.test(dest)) continue;
     const target = resolve(dirname(file), decodeURIComponent(dest.split('#')[0]));
     const fromReports = relative(reportsRoot, target);
-    if (!reportsPresent && !fromReports.startsWith('..') && !isAbsolute(fromReports)) {
+    if (!existsSync(target) && !fromReports.startsWith('..') && !isAbsolute(fromReports)) {
       skipped++;
       continue;
     }
@@ -43,6 +42,6 @@ if (failures.length) {
   console.error(failures.join('\n'));
   process.exitCode = 1;
 } else {
-  const note = skipped ? ` ${skipped} links into ../reports/volume skipped (folder absent).` : '';
+  const note = skipped ? ` ${skipped} links into ../reports/volume skipped (report not on this computer).` : '';
   console.log(`PASS: local Markdown file links in ${files.length} documents (source drafts and examples excluded).${note}`);
 }

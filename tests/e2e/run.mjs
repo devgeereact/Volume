@@ -5,8 +5,9 @@
  *   1. Builds the server (npm run build -w apps/server).
  *   2. Builds the web app with vite into <tmp>/volume-e2e/web, so apps/web/dist (used by the smoke
  *      script) is never touched.
- *   3. Runs Playwright with tests/e2e/playwright.config.ts, which starts the test server on
- *      127.0.0.1:5311 and `vite preview` on 127.0.0.1:5312 and stops both when it ends.
+ *   3. Runs Playwright with tests/e2e/playwright.config.ts, which starts two test servers
+ *      (127.0.0.1:5311 and 5315, the second injects the writing failure full-book expects) and a
+ *      `vite preview` for each (5312 and 5316), and stops all four when it ends.
  *   4. Removes <tmp>/volume-e2e (the SQLite file, DATA_DIR, the web build and the download folder).
  *
  * <tmp> is os.tmpdir(), so TMPDIR moves it. Exit code is Playwright's, or 1 if a build fails.
