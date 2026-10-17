@@ -89,7 +89,7 @@ Migration order: `0006_picture_books`, `0008_volume_mode` and `0009_invitations`
 
 `NODE_ENV=production` requires `APP_ORIGIN`, `AUTH_MODE=clerk` (local is refused), `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` and an allowlist (`OWNER_EMAILS` or `CLERK_ALLOWED_USER_IDS`). It answers only the `ALLOWED_HOSTS` (default: the `APP_ORIGIN` host), refuses writes from other origins, trusts the proxy and takes the visitor IP from `CF-Connecting-IP`, rate limits per IP (reads, writes and the health check separately) and never returns stack traces.
 
-### Accounts setting (D-047, proposed)
+### Accounts setting (D-047)
 
 | Setting | Values | Default | Effect |
 | --- | --- | --- | --- |

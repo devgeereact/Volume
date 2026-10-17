@@ -25,7 +25,7 @@ Built on branch `feat/phases-6-8`. Plan: [PHASES-6-8](docs/08-change-management/
 
 | Item | Remaining work | Status |
 |---|---|---|
-| Owner decisions D-041 to D-047 | Built to the recommended defaults; every ADR is still Proposed. Owner accepts or changes each one, then holds the phase 6, 7 and 8 gates. | Owner decision |
+| Owner decisions D-041 to D-047 | Accepted by the owner as built on 17 October 2026. Phase 6, 7 and 8 owner gates (try each book type) still to hold. | Owner gate |
 | Live AI per template | Fiction, workbook and picture-book prompts and image references pass with the mock provider only. One free-model run per template needs `LIVE_AI=1` and the owner's budget. The image seed is sent only when the model list shows `seed`. | NOT TESTED live |
 | Picture-book ink and paper | Premium colour, 8.5 x 8.5. Colour costs, page limits and spine are confirmed on kdp.amazon.com (FACTS 12.1 to 12.5); white-only paper for colour stays partial. No printed proof yet. | PARTIAL |
 | `.env.example` | Needs `ACCOUNTS_MODE=owner-only`. Agents cannot read or edit it; the setting is listed in DEPLOYMENT.md. | Owner task |

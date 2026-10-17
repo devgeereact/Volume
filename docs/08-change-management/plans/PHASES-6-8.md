@@ -1,6 +1,6 @@
 # Plan: phases 6 to 8 (fiction and workbooks, picture books, Volume mode and accounts)
 
-Status: **Proposed**, 17 October 2026, by the architect agent. Nothing here is approved until the owner says so (AGENTS.md working rule 1). Decisions are drafted as D-041 to D-047 in `docs/08-change-management/DECISIONS.md` with status Proposed.
+Status: **Approved**, 17 October 2026. Drafted by the architect agent; the owner accepted D-041 to D-047 as built on 17 October 2026.
 
 Source of the deliverables and acceptance lines: `docs/01-product/ROADMAP.md` (phases 6, 7 and 8). Each phase still ends with its owner review gate, and no phase starts on top of an unreviewed one. Phases 6 and 7 can be built in parallel because they touch different files, but the owner reviews phase 6 before phase 7 is accepted.
 

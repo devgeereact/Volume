@@ -4,7 +4,7 @@ User-visible changes, newest first. Dates in British format.
 
 ## 17 October 2026
 
-Roadmap phases 6 to 8, built to the Proposed decisions D-041 to D-047 (owner sign-off pending).
+Roadmap phases 6 to 8, built to decisions D-041 to D-047 (accepted by the owner on 17 October 2026).
 
 ### Added
 - Fiction books: wizard with point of view and tense, story bible, character and setting ledger, scene breaks, chapters without subheadings or takeaways. Non-fiction prompts are unchanged.
