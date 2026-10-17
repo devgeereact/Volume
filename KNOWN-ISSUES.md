@@ -19,7 +19,19 @@ Updated 16 October 2026 (rows rechecked; first written 6 October after the local
 | Environment examples | `.env.example` rewritten on 16 October 2026 at the lead's request with every setting name (names only). The agent guard blocks reading it, so earlier comments in that file were not carried over; Git history holds the previous version. Owner to review. | Owner review |
 | TypeScript lint compatibility, D-023 | Root TypeScript 6 alias remains necessary for the current ESLint parser. Workspaces use TypeScript 7. | Existing workaround |
 
-Fiction/workbooks, picture books, batch scheduling and accounts remain later roadmap phases. They are not part of the v1 correction pass.
+## Phases 6 to 8, 17 October 2026
+
+Built on branch `feat/phases-6-8`. Plan: [PHASES-6-8](docs/08-change-management/plans/PHASES-6-8.md).
+
+| Item | Remaining work | Status |
+|---|---|---|
+| Owner decisions D-041 to D-047 | Built to the recommended defaults; every ADR is still Proposed. Owner accepts or changes each one, then holds the phase 6, 7 and 8 gates. | Owner decision |
+| Live AI per template | Fiction, workbook and picture-book prompts and image references pass with the mock provider only. One free-model run per template needs `LIVE_AI=1` and the owner's budget. The image seed is sent only when the model list shows `seed`. | NOT TESTED live |
+| Picture-book ink and paper | Premium colour, 8.5 x 8.5. Colour costs, page limits and spine are confirmed on kdp.amazon.com (FACTS 12.1 to 12.5); white-only paper for colour stays partial. No printed proof yet. | PARTIAL |
+| `.env.example` | Needs `ACCOUNTS_MODE=owner-only`. Agents cannot read or edit it; the setting is listed in DEPLOYMENT.md. | Owner task |
+| Concurrency on MySQL | The MySQL test passes on local MariaDB 12.3 (migrations 0001 to 0009). The weekly-limit lock and duplicate-invitation race are tested on SQLite only. | PARTIAL |
+| Production auth-bypass fix | Another session fixed `/%61pi/v1/health` answering without sign-in, uncommitted in the main checkout. It overlaps `app.ts`, web api files, CHANGELOG and handoff files. Owner ships it on its own first, then this branch is rebased onto it. | Open |
+| EPUBCheck and Linux goldens for new samples | `EPUBCHECK_JAR` is not set on this Mac; fiction, workbook and picture-book page images exist for macOS only (Linux runs the layout guard). | NOT TESTED |
 
 Closed locally: atomic project imports, row/ZIP validation, internal AI budget checks and concurrent reservations, Markdown import, API blueprint comparison/restoration, TipTap editor, photo upload/export, writing cost confirmation, prices before publication, stale project metadata, migration any alias, backup documentation, EPUBCheck, the long-book benchmark and measured coverage targets. See the review's correction ledger for exact checks and limitations.
 

@@ -2,6 +2,21 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 17 October 2026
+
+Roadmap phases 6 to 8, built to the Proposed decisions D-041 to D-047 (owner sign-off pending).
+
+### Added
+- Fiction books: wizard with point of view and tense, story bible, character and setting ledger, scene breaks, chapters without subheadings or takeaways. Non-fiction prompts are unchanged.
+- Workbooks: exercises, ruled writing lines, fill-in pages and checklists in the editor and every export format. Template checks run in the checker and preflight.
+- Picture books: story, character sheet with reference pictures, one picture per spread with a shared seed and references, a spreads board, and a print-only full-colour PDF with bleed (24 pages: 10 spreads plus 4 pages of matter).
+- Volume mode: batches across pen names with live progress, a release calendar that refuses a third new title per format in any rolling 7 days (limit from the KDP rules file), and a quality gate before publish or pack.
+- Accounts: owner, editor and viewer roles, invitations on a verified email, members screen. Off by default (`ACCOUNTS_MODE=owner-only`). Other workspaces may spend your OpenRouter key only up to a monthly cap you set, starting at 0.
+- KDP rules file 2026-10-17 with colour printing costs, page limits, colour spine and bleed.
+
+### Fixed
+- `* * *` scene breaks, untitled chapters, fiction contents, wizard chapter count, batch failure cancelling waiting books, long Select menus, and acknowledgement names on the Writing screen.
+
 ## 16 October 2026
 
 ### Added

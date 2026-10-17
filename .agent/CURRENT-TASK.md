@@ -1,3 +1,20 @@
+## Phases 6 to 8 built, 17 October 2026 (Claude Code, lead with subagents)
+
+Branch `feat/phases-6-8` (pushed; worktree `../Volume-phases` on the owner's Mac). Plan: `docs/08-change-management/plans/PHASES-6-8.md`. Decisions D-041 to D-047 are Proposed, built to their recommended defaults.
+
+Done: fiction and workbook templates (P6-1 to P6-6), picture books (P7-1 to P7-6), Volume mode and accounts (P8-1 to P8-4), reviewer findings (1 high, 7 medium, 9 low) fixed. Migrations 0006 picture books, 0008 volume mode, 0009 invitations ship together (0007 unused).
+
+Proven (Node 26.8.1, no Mise): doctor, typecheck, lint, format, docs (88), hooks 83, all Vitest suites 854 passed and 2 skipped, both builds, e2e 14 of 14 twice, compare:pdf, build:release, MySQL test on local MariaDB 12.3. Screenshots: Settings budgets, batch detail, schedule, picture-book run (progress never decreases), no console errors.
+
+Not tested: live AI per template, MySQL concurrency races, EPUBCheck, Linux goldens for new samples, real host, printed proof, KDP upload.
+
+Next:
+1. Owner ships the separate auth-bypass fix (uncommitted in the main checkout, by the audit session) on its own, then rebase this branch onto it and resolve overlaps (`apps/server/src/app.ts`, `apps/web/src/api/{client,wire-c}.ts`, `app/router.tsx`, `shell/{Breadcrumbs,CommandPalette}.tsx`, CHANGELOG, KNOWN-ISSUES, `.agent/`). Rerun the full gate.
+2. Owner accepts or changes D-041 to D-047 and holds the phase 6, 7, 8 gates.
+3. Owner adds `ACCOUNTS_MODE=owner-only` to `.env.example`.
+4. Owner authorises one free live run per template (`LIVE_AI=1`).
+5. Open a PR from `feat/phases-6-8` when the owner asks.
+
 ## cPanel hosting restructure, 16 October 2026 (Claude Code)
 
 Branch `chore/gee-os-cpanel` (pushed, not merged). Volume is ready to host at https://volume.gakinz.com as one Passenger Node.js app on Node 24.21 with MariaDB on localhost and Clerk sign-in (D-037 to D-040, GEE OS 1.4.5 `cpanel` profile). Release folder: `npm run build:release`; deploy contract, Passenger settings and checks: `docs/07-operations/DEPLOYMENT.md`.
