@@ -1,7 +1,7 @@
 // House-style checker: typed port of .claude/skills/volume-house-style/scripts/check-style.mjs.
 // Reads the house-style config object (config/house-style.json) passed in by the caller.
 
-import type { BookDoc, Section } from './model.ts';
+import { sectionHeading, type Block, type BookDoc, type Section } from './model.ts';
 import { stripInline } from './inline.ts';
 import { countWords, titleCaseProblems } from './text.ts';
 
@@ -473,27 +473,36 @@ export interface BookStyleFinding extends StyleFinding {
 
 /** Text of every block of a section, one string per block (inline markers removed). */
 export function blockTexts(s: Section): string[] {
-  return s.blocks.map((b) => {
-    switch (b.type) {
-      case 'paragraph':
-      case 'heading2':
-      case 'heading3':
-        return stripInline(b.text);
-      case 'list':
-      case 'takeaways':
-        return b.items.map(stripInline).join('\n');
-      case 'table':
-        return b.rows.map((r) => r.map(stripInline).join(' | ')).join('\n');
-      case 'quote':
-        return [...b.lines, b.attribution ?? ''].join('\n');
-      case 'callout':
-        return stripInline(b.text);
-      case 'image':
-        return b.caption ?? '';
-      default:
-        return '';
-    }
-  });
+  return s.blocks.map(blockText);
+}
+
+/** Text of one block (inline markers removed). An exercise gives its title and every nested block, one per line. */
+export function blockText(b: Block): string {
+  switch (b.type) {
+    case 'paragraph':
+    case 'heading2':
+    case 'heading3':
+      return stripInline(b.text);
+    case 'list':
+    case 'takeaways':
+      return b.items.map(stripInline).join('\n');
+    case 'table':
+      return b.rows.map((r) => r.map(stripInline).join(' | ')).join('\n');
+    case 'quote':
+      return [...b.lines, b.attribution ?? ''].join('\n');
+    case 'callout':
+      return stripInline(b.text);
+    case 'image':
+      return b.caption ?? '';
+    case 'checklist':
+      return b.items.map(stripInline).join('\n');
+    case 'fillIn':
+      return b.prompts.map(stripInline).join('\n');
+    case 'exercise':
+      return [b.title ? stripInline(b.title) : '', ...b.blocks.map(blockText)].filter(Boolean).join('\n');
+    default:
+      return '';
+  }
 }
 
 export interface CheckBookOptions extends CheckTextOptions {
@@ -514,9 +523,9 @@ export function checkBookStyle(book: BookDoc, style: CompiledHouseStyle, opts: C
   const disclaimerUnits: HabitUnit[] = [];
   for (const s of book.sections) {
     if (s.enabled === false) continue;
-    const headText = s.kicker ? `${s.kicker}: ${s.title}` : s.title;
+    const headText = sectionHeading(s);
     for (const f of checkText(headText, style, perBlock)) out.push({ ...f, sectionId: s.id, blockIndex: -1 });
-    if (opts.titleCase !== false && (s.kind === 'chapter' || s.kind === 'part')) {
+    if (opts.titleCase !== false && s.title && (s.kind === 'chapter' || s.kind === 'part')) {
       const msg = checkHeadingCase(s.title, style);
       if (msg)
         out.push({
@@ -541,7 +550,7 @@ export function checkBookStyle(book: BookDoc, style: CompiledHouseStyle, opts: C
       }
       if (!FENCED_FRONT.has(s.subtype))
         s.blocks.forEach((b, k) => {
-          if (b.type === 'paragraph' || b.type === 'list' || b.type === 'quote' || b.type === 'callout')
+          if (b.type === 'paragraph' || b.type === 'list' || b.type === 'quote' || b.type === 'callout' || b.type === 'exercise')
             disclaimerUnits.push({ sectionId: s.id, blockIndex: k, text: texts[k] ?? '' });
         });
     }

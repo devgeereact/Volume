@@ -1,7 +1,7 @@
 {
   "$comment": "Workbook template (phase 6): non-fiction with exercises and fill-in pages. Same section model as nonfiction.json. source: profile | owner | ai | app.",
   "id": "workbook",
-  "version": 2,
+  "version": 3,
   "name": "Workbook",
   "locale": "en-GB",
   "extends": "nonfiction",
@@ -90,7 +90,15 @@
         "scenario": "A short illustrative situation followed by questions."
       },
       "linesDefault": 6,
-      "safety": "No exercise gives medical, clinical, legal or financial instructions. Exercises about health point the reader to a qualified professional and go to the claims report."
+      "safety": "No exercise gives medical, clinical, legal or financial instructions. Exercises about health point the reader to a qualified professional and go to the claims report.",
+      "syntax": {
+        "exercise": "::: exercise <kind> [title] ... ::: with nested paragraphs, lists, tables, ::: lines N and ::: fill-in. <kind> is one of types.",
+        "lines": "::: lines N then ::: (N from 1 to 30; exports clamp, preflight warns).",
+        "checklist": "- [ ] item lines (all items in the list must use the box).",
+        "fillIn": "::: fill-in, one prompt per line, then :::. ::: fill-in page starts a new page with three ruled lines per prompt in print.",
+        "rendering": "PDF and DOCX draw ruled lines and tick boxes. EPUB and TXT print the exercise and one line 'Space to write your answer.' instead of ruled lines (D-042).",
+        "checks": "Preflight item structure.template-rules: a chapter with no exercises fails; outside perChapter or an unknown kind warns."
+      }
     }
   },
   "sections": [

@@ -559,7 +559,7 @@ export function findBookRepetitions(book: BookDoc, options: RepetitionOptions = 
     if (SKIP_SUBTYPES.has(s.subtype)) continue;
     const texts = blockTexts(s);
     s.blocks.forEach((b, k) => {
-      if (b.type === 'paragraph' || b.type === 'list' || b.type === 'takeaways' || b.type === 'quote' || b.type === 'callout')
+      if (b.type === 'paragraph' || b.type === 'list' || b.type === 'takeaways' || b.type === 'quote' || b.type === 'callout' || b.type === 'exercise')
         units.push({ sectionId: s.id, blockIndex: k, text: texts[k] ?? '', title: sectionHeading(s) });
     });
   }

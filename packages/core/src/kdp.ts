@@ -100,6 +100,13 @@ export function spineWidthIn(rules: KdpRules, pages: number, paper: Paper): numb
   return pages * num(field(r.values, paper, r.id), r.id, `values.${paper}`);
 }
 
+/** Spine width in inches for a colour interior: pages x per-page thickness for the ink (rule paperback.spine.widthPerPage.colour). */
+export function colourSpineWidthIn(rules: KdpRules, pages: number, ink: ColourInk): number {
+  const r = getRule(rules, 'paperback.spine.widthPerPage.colour');
+  const key = ink === 'premium' ? 'premiumColour' : 'standardColour';
+  return pages * num(field(r.values, key, r.id), r.id, `values.${key}`);
+}
+
 export interface WrapSize {
   widthIn: number;
   heightIn: number;
@@ -108,14 +115,20 @@ export interface WrapSize {
   trim: TrimSize;
   pages: number;
   paper: Paper;
+  /** Colour ink when the interior is colour (the spine then uses the colour rule). */
+  ink?: ColourInk;
 }
 
-/** Full paperback wrap: bleed + back + spine + front + bleed, by bleed + height + bleed (FACTS 3.8, 3.9). */
-export function wrapSizeIn(rules: KdpRules, args: { trim: TrimSize; pages: number; paper: Paper }): WrapSize {
+/**
+ * Full paperback wrap: bleed + back + spine + front + bleed, by bleed + height + bleed (FACTS 3.8, 3.9). With `ink`
+ * the spine uses the colour per-page thickness (rule paperback.spine.widthPerPage.colour) instead of the paper's.
+ */
+export function wrapSizeIn(rules: KdpRules, args: { trim: TrimSize; pages: number; paper: Paper; ink?: ColourInk }): WrapSize {
   const cover = getRule(rules, 'paperback.cover');
   const bleed = num(field(cover.values, 'bleedIn', cover.id), cover.id, 'values.bleedIn');
-  const spine = spineWidthIn(rules, args.pages, args.paper);
+  const spine = args.ink ? colourSpineWidthIn(rules, args.pages, args.ink) : spineWidthIn(rules, args.pages, args.paper);
   return {
+    ...(args.ink ? { ink: args.ink } : {}),
     widthIn: bleed + args.trim.widthIn + spine + args.trim.widthIn + bleed,
     heightIn: bleed + args.trim.heightIn + bleed,
     spineIn: spine,
@@ -447,6 +460,124 @@ export function ebookCoverSpec(rules: KdpRules): EbookCoverSpec {
     maxFileSizeMB: num(field(v, 'maxFileSizeMB', r.id), r.id, 'maxFileSizeMB'),
     colourMode: text(field(v, 'colourMode', r.id)),
   };
+}
+
+// ---------- colour paperbacks and interior bleed (phase 7, P7-2) ----------
+
+/** Colour ink options for a paperback interior (rules paperback.trimAndPages.colour, paperback.printingCost.uk.*Colour). */
+export type ColourInk = 'standard' | 'premium';
+const INK_KEY: Readonly<Record<ColourInk, { trims: string; cost: string }>> = {
+  standard: { trims: 'standardColourByTrim', cost: 'paperback.printingCost.uk.standardColour' },
+  premium: { trims: 'premiumColourByTrim', cost: 'paperback.printingCost.uk.premiumColour' },
+};
+
+/** Interior page size with bleed (rule print.bleed), with the rule id and any status warning. */
+export function bleedPageSizeIn(rules: KdpRules, trim: TrimSize): KdpResult<TrimSize> {
+  return { value: interiorBleedSizeIn(rules, trim), ruleIds: ['print.bleed'], warnings: statusWarnings(rules, ['print.bleed']) };
+}
+
+/**
+ * Where the bleed sits on an interior page (rule print.bleed): the added width is on the outside edge only, the added
+ * height is split equally between top and bottom.
+ */
+export function bleedEdgesIn(rules: KdpRules): { outsideIn: number; topIn: number; bottomIn: number } {
+  const r = getRule(rules, 'print.bleed');
+  const w = num(field(r.values, 'addWidthIn', r.id), r.id, 'values.addWidthIn');
+  const h = num(field(r.values, 'addHeightIn', r.id), r.id, 'values.addHeightIn');
+  return { outsideIn: w, topIn: h / 2, bottomIn: h / 2 };
+}
+
+export interface SafeAreaIn {
+  topIn: number;
+  bottomIn: number;
+  insideIn: number;
+  outsideIn: number;
+}
+
+/**
+ * Minimum distance of text from the trim edges on a bleed interior (rule paperback.interiorMargins): inside from the
+ * page-count band; top, bottom and outside from the with-bleed outside minimum. Measured from the trim edge, which is
+ * at least as safe whether KDP measures from the trim or the bleed edge. A draft whose page count is outside every
+ * inside band (too short to print) uses the nearest band, with a warning, so it can still be laid out and checked.
+ */
+export function safeAreaIn(rules: KdpRules, trim: TrimSize, pageCount: number): KdpResult<SafeAreaIn> {
+  void trim; // The rule has no trim-specific values today; kept so callers do not change when it does.
+  let inside = insideMarginMinIn(rules, pageCount);
+  const warnings = [...inside.warnings];
+  if (inside.value === null) {
+    const r = getRule(rules, 'paperback.interiorMargins');
+    const bands = field(r.values, 'insideByPageCount', r.id);
+    const limits = (Array.isArray(bands) ? bands : [])
+      .filter((b): b is Record<string, unknown> => isObj(b) && isObj(b.pages))
+      .flatMap((b) => (isObj(b.pages) ? [num(b.pages.min, r.id, 'pages.min'), num(b.pages.max, r.id, 'pages.max')] : []));
+    if (!limits.length) throw new KdpRuleError(`No inside margin band for ${pageCount} pages.`, r.id);
+    const nearest = pageCount < Math.min(...limits) ? Math.min(...limits) : Math.max(...limits);
+    inside = insideMarginMinIn(rules, nearest);
+    if (inside.value === null) throw new KdpRuleError(`No inside margin band for ${pageCount} pages.`, r.id);
+    warnings.push(`${pageCount} pages is outside the inside-margin bands; the band for ${nearest} pages was used.`);
+  }
+  const outside = outsideMarginMinIn(rules, true);
+  return {
+    value: { topIn: outside.value, bottomIn: outside.value, insideIn: inside.value, outsideIn: outside.value },
+    ruleIds: ['paperback.interiorMargins'],
+    warnings,
+  };
+}
+
+/** Page range for a colour interior on a trim (rule paperback.trimAndPages.colour, white paper only). */
+export function colourPageRange(rules: KdpRules, trim: TrimSize, ink: ColourInk): KdpResult<{ min: number; max: number }> {
+  const r = getRule(rules, 'paperback.trimAndPages.colour');
+  const key = INK_KEY[ink].trims;
+  const table = field(r.values, key, r.id);
+  const row = (Array.isArray(table) ? table : []).find(
+    (e): e is Record<string, unknown> => isObj(e) && e.widthIn === trim.widthIn && e.heightIn === trim.heightIn,
+  );
+  if (!row) throw new KdpRuleError(`No ${ink} colour page range for ${trim.widthIn} x ${trim.heightIn} in.`, r.id);
+  const ids = [r.id, 'paperback.colour.paper'];
+  return {
+    value: { min: num(row.minPages, r.id, `${key}.minPages`), max: num(row.maxPages, r.id, `${key}.maxPages`) },
+    ruleIds: ids,
+    warnings: statusWarnings(rules, ids),
+  };
+}
+
+/**
+ * Colour printing cost on amazon.co.uk (rules paperback.printingCost.uk.standardColour and premiumColour): the first
+ * band whose page range holds the count, flat or fixed + pages x perPage; large trims use the large-trim bands.
+ */
+export function colourPrintingCost(rules: KdpRules, args: { ink: ColourInk; trim: TrimSize; pages: number }): KdpResult<number> {
+  const r = getRule(rules, INK_KEY[args.ink].cost);
+  const cls = trimClassFor(rules, args.trim);
+  const bands = field(r.values, cls === 'large' ? 'largeTrim' : 'regularTrim', r.id);
+  const band = (Array.isArray(bands) ? bands : []).find(
+    (b): b is Record<string, unknown> =>
+      isObj(b) && isObj(b.pages) && args.pages >= num(b.pages.min, r.id, 'pages.min') && args.pages <= num(b.pages.max, r.id, 'pages.max'),
+  );
+  if (!band) throw new KdpRuleError(`No ${args.ink} colour printing cost band for ${args.pages} pages.`, r.id);
+  const value = typeof band.flat === 'number' ? band.flat : num(band.fixed, r.id, 'fixed') + args.pages * num(band.perPage, r.id, 'perPage');
+  const ids = [r.id, 'paperback.trimAndPages'];
+  return { value: round(value, 4), ruleIds: ids, warnings: statusWarnings(rules, ids) };
+}
+
+// ---------- title creation limit (FACTS 5.7, D-046) ----------
+
+export interface TitleCreationLimit {
+  maxNewTitlesPerFormat: number;
+  periodDays: number;
+}
+
+/** Calendar words a rule may use for its period. These are units, not KDP numbers. */
+const PERIOD_DAYS: Readonly<Record<string, number>> = { day: 1, week: 7 };
+
+/** New titles allowed per book format per period, from rule titles.creationLimit. */
+export function titleCreationLimit(rules: KdpRules): TitleCreationLimit {
+  const r = getRule(rules, 'titles.creationLimit');
+  const max = num(field(r.values, 'maxNewTitlesPerFormat', r.id), r.id, 'maxNewTitlesPerFormat');
+  if (!Number.isInteger(max) || max < 1) throw new KdpRuleError(`KDP rule "${r.id}" maxNewTitlesPerFormat must be a whole number of 1 or more.`, r.id);
+  const period = field(r.values, 'period', r.id);
+  const periodDays = typeof period === 'string' && Object.hasOwn(PERIOD_DAYS, period) ? PERIOD_DAYS[period] : undefined;
+  if (periodDays === undefined) throw new KdpRuleError(`KDP rule "${r.id}" has an unknown period "${String(period)}".`, r.id);
+  return { maxNewTitlesPerFormat: max, periodDays };
 }
 
 /** Days since the rules were verified, and whether the re-check is due (recheckAfterDays). */

@@ -1,7 +1,7 @@
 {
   "$comment": "Picture book template (phase 7), from the owner's Children's Bedtime Story Writer and Kids' Bedtime Story & Video Script Generator drafts. Channel-specific calls to action from the drafts are replaced by an optional {cta} the owner fills. source: profile | owner | ai | app.",
   "id": "picture-book",
-  "version": 2,
+  "version": 3,
   "name": "Picture Book (Bedtime Story)",
   "locale": "en-GB",
   "audience": {
@@ -127,15 +127,21 @@
     "kdpRuleIds": [
       "print.bleed",
       "paperback.trimAndPages",
-      "paperback.trimSizes.list"
+      "paperback.trimSizes.list",
+      "paperback.trimAndPages.colour",
+      "paperback.printingCost.uk.premiumColour",
+      "paperback.printingCost.uk.standardColour",
+      "paperback.colour.paper",
+      "paperback.spine.widthPerPage.colour"
     ],
+    "inkDefault": "premium colour",
     "trimDefault": {
       "widthIn": 8.5,
       "heightIn": 8.5,
-      "status": "unverified trim list"
+      "ruleId": "paperback.trimSizes.list"
     },
-    "pageCountNote": "KDP's minimum is 24 pages (fact 3.6); 12 spreads plus front and back matter fits a 32-page layout.",
-    "spineText": "Picture books are usually under 80 pages, so no spine text (paperback.spine.textMinPages)."
+    "pageCountNote": "Page limits come from paperback.trimAndPages.colour for the chosen ink and trim; standard colour has a higher minimum than premium colour, so short picture books use premium colour. 12 spreads plus front and back matter fits a 32-page layout.",
+    "spineText": "Picture books are usually shorter than the spine-text minimum in paperback.spine.textMinPages, so they have no spine text."
   },
   "sections": [
     {

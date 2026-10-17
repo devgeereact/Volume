@@ -9,3 +9,6 @@ export * from './listing.ts';
 export * from './theme.ts';
 export * from './repetition.ts';
 export * from './checks.ts';
+export * from './template-rules.ts';
+export * from './schedule.ts';
+export * from './spread.ts';
