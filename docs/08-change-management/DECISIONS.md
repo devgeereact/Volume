@@ -266,3 +266,60 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
 ## D-040, 16 October 2026: GEE OS 1.4.5 on the cpanel profile
 
 - Decision: the project card moves to GEE OS 1.4.5, profile `cpanel`, with the hosting facts above. Netlify and Supabase are not used. The rebuild plan (D-032) and the Full Product document hierarchy stay. Recorded deviations from the profile: Node runs on the host (D-038) and the backend is the existing Fastify server, not a PHP API.
+
+## D-041, 17 October 2026: owners and order for phases 6 to 8
+
+- **Status:** Proposed.
+- **Context:** The lead asked for phases 6, 7 and 8 (`docs/01-product/ROADMAP.md`). `packages/core` has no single owner, and every exhaustive `Block` switch sits in `packages/core` and `packages/export` (`style.ts`, `markdown.ts`, `txt.ts`, `epub.ts`, `docx.ts`, `preflight.ts`, `print-html.ts`).
+- **Decision:** Follow `docs/08-change-management/plans/PHASES-6-8.md`. In `packages/core`, volume-export owns blocks, parser, template checks, spreads and KDP maths; volume-backend owns the new `schedule.ts`. Migration numbers as built: 0006 picture books (`sections.layout`, `sections.image_asset_id`, table `picture_characters`), 0007 unused, 0008 Volume mode, 0009 invitations. The fiction ledger needs no migration (D-043). Owner gates stay between phases.
+- **Options considered:** one core owner for everything (slows backend work on the scheduler); free-for-all in core (breaks typecheck when two agents change `Block`).
+- **Consequences:** Export carries more work in waves 1 to 3. Undo by naming different owners in a later entry.
+
+## D-042, 17 October 2026: workbook and fiction block dialect
+
+- **Status:** Proposed.
+- **Context:** The parser treats only `***` as a scene break (`packages/core/src/markdown.ts:119`) while the writer prompt and template use `* * *` (`prompts/writing/chapter.v5.md:89`, `config/book-templates/fiction.json:46`). Any `::: name` fence becomes one-line callout text (`markdown.ts:188-189`), and `::: lines N` renders only in PDF (`packages/export/src/print-html.ts:103-104`).
+- **Decision:** Accept both `***` and `* * *`; write `***`. Add block types `exercise` (`::: exercise <kind> [title]`, nested blocks), `lines` (`::: lines N`, 1 to 30) and `checklist` (`- [ ]` items). PDF and DOCX draw lines and tick boxes. EPUB and TXT print the exercise and replace ruled lines with "Space to write your answer."
+- **Options considered:** keep exercises as callouts (loses structure); fake ruled lines in EPUB (look broken on Kindle screens).
+- **Consequences:** New goldens for fiction and workbook. Old manuscripts still parse. Undo by removing the block types; manuscripts keep the fences as callouts.
+
+## D-043, 17 October 2026: fiction story bible and ledger kinds
+
+- **Status:** Proposed.
+- **Context:** `fiction.json:74` lists story bible fields with no schema or storage; `story_ledger.kind` has no character or setting (`docs/02-architecture/DATA-MODEL.md:119`).
+- **Decision:** The story bible is a zod-checked `storyBible` object inside the blueprint data. Fiction and workbook books get their own prompt ids instead of new versions of the shared ones, so non-fiction books stay on `blueprint.blueprint` v5 and `writing.chapter` v5: `taskForTemplate` in `packages/ai` sends fiction books to `blueprint.blueprint-fiction` (writes the story bible), `blueprint.regenerate-part-fiction`, `writing.chapter-fiction` and `writing.extend-section-fiction`, and workbooks to `blueprint.blueprint-workbook` and `writing.chapter-workbook`. The story bible goes to prompts once, as `{{storyBible}}`, and is left out of `{{blueprint}}`. The ledger gains kinds `character` and `setting`, enforced by the zod schema with no migration (`story_ledger.kind` is a free string column; the list is `LEDGER_KINDS` in `apps/server/src/ports/ai.ts`), written by `checks.summarise-and-ledger` v5. `checks.consistency` v4 checks chapters against the story bible.
+- **Options considered:** a `story_bibles` table (more code, versions already come with blueprints); reuse `person` and `place` (loses the link to the bible); new versions (`chapter.v6`, `blueprint.v6`) with a branch per template (the loader picks the latest version, so every non-fiction book would move to them and read rules meant for other templates).
+- **Consequences:** Editing the bible means a new blueprint version, as for any blueprint change. Undo by ignoring the field; the kinds stay valid.
+
+## D-044, 17 October 2026: picture books are print-only spreads on premium colour
+
+- **Status:** Proposed.
+- **Context:** Phase 7 needs a full-colour interior with bleed (FACTS 3.7, rule `print.bleed`). Config has only black-ink printing costs. KDP's Paperback Printing Cost page (https://kdp.amazon.com/en_US/help/topic/G201834340, read on the official page on 17 October 2026, FACTS 12.1 and 12.2) lists standard colour from 72 to 600 pages and premium colour from 24 to 828 pages. The trim table (GVBQ3CMEQW3W2VL6, FACTS 12.3) limits premium colour to 590 pages on 8.5 x 8.5 and shows colour only on white paper (FACTS 12.4, partial). The cover guide (G201953020, FACTS 12.5) gives the colour spine widths.
+- **Decision:** A picture book is front matter, spreads (new section kind `spread` with text, image and layout) and back matter. Phase 7 exports a full-bleed print PDF and the pack, not EPUB or DOCX. Default trim 8.5 x 8.5 and premium colour ink. The colour rules are in `config/kdp-rules/2026-10-17.json` (facts in `docs/reference/reference-kdp-facts-2026-10-17.md`): costs, trim limits and spine widths are confirmed; white-only paper is partial, so anything that uses it shows a check-before-use note.
+- **Options considered:** reflowable EPUB of the story (images lose the layout); fixed-layout ebook now (a separate format, more work than the phase allows); standard colour (would not allow a 24-page book if the page holds).
+- **Consequences:** No picture-book ebook until a later decision. Undo by adding formats later; the spread model does not block them.
+
+## D-045, 17 October 2026: consistent characters across spread images
+
+- **Status:** Proposed.
+- **Context:** The template asks for one reused character sheet (`config/book-templates/picture-book.json`, spreads). OpenRouter `POST /api/v1/images` accepts `input_references` and a `seed` "where supported" (https://openrouter.ai/docs/guides/overview/multimodal/image-generation, read 17 October 2026).
+- **Decision:** Repeat the character sheet word for word in every scene prompt, make one reference image per main character first, send it as `input_references` on every spread, and pass a fixed `seed` when the model lists it in `supported_parameters`. No text in images. Each image is budget-checked before the call (D-025).
+- **Options considered:** text only (drifts between spreads); fine-tuned models (not available through OpenRouter's images endpoint, and costly).
+- **Consequences:** One extra image per main character. Re-verify the endpoint and the default image model before phase 7 starts, as for phase 4. Undo by dropping the references; prompts still carry the sheet.
+
+## D-046, 17 October 2026: the title scheduler
+
+- **Status:** Proposed.
+- **Context:** Rule `titles.creationLimit` (factId 5.7, `config/kdp-rules/2026-10-06.json:740`) allows 2 new titles per book format per week; the reset time and start date are only partly verified (its note).
+- **Decision:** Pure `checkTitleSlot` in `packages/core/src/schedule.ts` reads the limit from the rules file and refuses a slot when the same format already has the limit inside any rolling 7-day window in the workspace. One workspace is one KDP account, so all its pen names share the limit. The API answers 409 `title_limit` with the conflicting slots and the next free date.
+- **Options considered:** calendar week from Sunday 00:00 UTC (not confirmed on an official page); per pen name (wrong, the limit is per KDP account).
+- **Consequences:** Can be stricter than KDP near a reset. Undo by switching the window once the reset rule is confirmed.
+
+## D-047, 17 October 2026: accounts on the single-owner cPanel host
+
+- **Status:** Proposed.
+- **Context:** D-039 lets every allowed Clerk account in as an owner of the owner's workspace (`apps/server/src/auth/clerk.ts:165-180`). Roles exist but only viewers are blocked (`apps/server/src/auth/context.ts:30-31`). Clerk roles need Organizations, and custom roles in production need a paid add-on (https://clerk.com/docs/guides/organizations/control-access/roles-and-permissions, read 17 October 2026).
+- **Decision:** Clerk stays for sign-in only; roles stay in `memberships`. Add invitations (owner adds an email and a role) and owner-only routes for settings, budgets and members. `ACCOUNTS_MODE=owner-only` is the default; `invite` turns invitations on. A route-by-route isolation test covers every registered route. Per-account OpenRouter keys are deferred: all AI uses the owner's key within workspace budgets.
+- **Options considered:** Clerk Organizations and roles (paid in production, ties data rules to Clerk); open sign-up (not safe on a shared host); encrypted per-account keys now (holds other people's secrets on a host with no key service).
+- **Consequences:** Other self-publishers cannot use their own OpenRouter credit until a later decision. A new env name goes in `.env.example` and `docs/07-operations/DEPLOYMENT.md`. Undo by leaving `ACCOUNTS_MODE` at `owner-only`.
+- **Note, 17 October 2026 (review fixes):** Other workspaces spend the instance owner's key, and their own caps are theirs to set. The instance owner now holds `budget.guest_workspaces_monthly_cap_usd` (stored on the instance workspace, default 0, which refuses their AI and image runs with `guest_ai_disabled`), enforced in the job runner's reservation path for every call. Only the instance owner sees or sets it, and only the instance owner sees backup status. One account has one membership; the instance owner's pending invitation wins at sign-in. Details in `docs/05-security/AUTH-MODEL.md`. Status stays Proposed.
