@@ -1007,6 +1007,16 @@ export function useRemoveMember() {
   });
 }
 
+/** POST /me/leave. Nothing to refresh: the caller no longer belongs here, so the screen shows its own end state. */
+export function useLeaveWorkspace() {
+  return useMutation({ mutationFn: (confirm: string) => volumeApi.leave(confirm) });
+}
+
+/** DELETE /workspace. Nothing to refresh: the workspace is gone, so the screen shows its own end state. */
+export function useDeleteWorkspace() {
+  return useMutation({ mutationFn: (confirm: string) => volumeApi.deleteWorkspace(confirm) });
+}
+
 export function useBatches(options: QueryOptions = {}) {
   return useQuery({ queryKey: queryKeys.volume.batches(), queryFn: ({ signal }) => volumeApi.batches({ signal }), enabled: options.enabled ?? true });
 }

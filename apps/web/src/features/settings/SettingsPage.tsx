@@ -1,13 +1,14 @@
 import { useEffect, useRef } from "react";
 import { NavLink, Navigate, useLocation, useParams } from "react-router";
 import type { LucideIcon } from "lucide-react";
-import { BookOpen, Cpu, HardDrive, Info, KeyRound, Scale, SpellCheck, SunMoon, UserCog, Wallet } from "lucide-react";
+import { BookOpen, CircleUserRound, Cpu, HardDrive, Info, KeyRound, Scale, SpellCheck, SunMoon, UserCog, Wallet } from "lucide-react";
 import { Banner, Button, PageHeader, Skeleton } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { settingsTabs, type SettingsTab } from "../../screens";
 import { useDemoState } from "../library/demoState";
 import { useWireMode } from "../../api/wire-a";
 import { useVolumeMe } from "../../api/wire-d";
+import { AccountPanel } from "./AccountPanel";
 import { MembersPanel } from "./MembersPanel";
 import { ApiAboutPanel, ApiBackupsPanel, ApiBookDefaultsPanel, ApiBudgetsPanel, ApiHouseStylePanel, ApiKdpRulesPanel, ApiKeyPanel } from "./apiPanels";
 import { ModelsPanel } from "./ModelsPanel";
@@ -40,6 +41,7 @@ const icons: Record<SettingsTab, LucideIcon> = {
   "house-style": SpellCheck,
   "kdp-rules": Scale,
   members: UserCog,
+  account: CircleUserRound,
   about: Info,
 };
 const sections = settingsTabs.map((t) => ({ id: t.id, label: t.label, icon: icons[t.id] }));
@@ -84,10 +86,12 @@ export default function SettingsPage() {
   // Members shows only to the owner with ACCOUNTS_MODE=invite (D-047); anyone else is sent to the first section.
   if (tab === "members" && me.state !== "loading" && !me.membersVisible) return <Navigate to={{ pathname: "/settings", search }} replace />;
   const shown = sections.filter((s) => s.id !== "members" || me.membersVisible);
+  const ownTab = tab === "appearance" || tab === "account";
 
   function panel() {
     if (mode === "checking" && tab !== "appearance") return <PanelSkeleton />;
     if (tab === "members") return me.state === "loading" ? <PanelSkeleton /> : <MembersPanel me={me} />;
+    if (tab === "account") return me.state === "loading" ? <PanelSkeleton /> : <AccountPanel me={me} />;
     if (api) {
       switch (tab) {
         case "key":
@@ -182,13 +186,14 @@ export default function SettingsPage() {
           </ul>
         </nav>
         <div className="grid min-w-0 max-w-[880px] content-start gap-5">
-          {!me.canManage && me.state === "ready" && tab !== "appearance" && (
+          {!me.canManage && me.state === "ready" && !ownTab && (
             <Banner tone="info" title={`Only the owner changes settings. You are ${me.role === "editor" ? "an editor" : "a viewer"}.`}>
               You can read every setting here. Ask the owner to change one.
             </Banner>
           )}
-          {/* Settings are the owner's (D-047): for anyone else the fields read but do not change. Appearance is this browser's own. */}
-          <fieldset disabled={!me.canManage && tab !== "appearance"} className="m-0 min-w-0 border-0 p-0">
+          {/* Settings are the owner's (D-047): for anyone else the fields read but do not change. Appearance is this browser's own,
+              and Your account is the caller's own (D-050). */}
+          <fieldset disabled={!me.canManage && !ownTab} className="m-0 min-w-0 border-0 p-0">
             {panel()}
           </fieldset>
         </div>

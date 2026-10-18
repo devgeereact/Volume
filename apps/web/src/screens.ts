@@ -72,6 +72,7 @@ export const settingsTabs = [
   { id: "house-style", label: "House style" },
   { id: "kdp-rules", label: "KDP rules" },
   { id: "members", label: "Members" },
+  { id: "account", label: "Your account" },
   { id: "about", label: "About" },
 ] as const;
 export type SettingsTab = (typeof settingsTabs)[number]["id"];
