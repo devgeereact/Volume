@@ -19,6 +19,19 @@ Production hub (D-048, D-049).
 
 The hosted app at volume.gakinz.com now runs the latest version: fiction, workbooks, picture books, Volume mode and invitations, plus the 17 October sign-in fix.
 
+Data rights and retention (D-050).
+
+#### Added
+- Settings, Your account: the owner can download all the workspace's data as one zip. It includes private profile details, so keep it safe.
+- Editors and viewers can leave a workspace from Settings, Your account, after typing LEAVE.
+- The owner of a separate self-publisher workspace can delete it, with every book and file, after typing DELETE. It waits while a job runs. The main workspace of a Volume cannot be deleted.
+
+#### Changed
+- Removing a member now asks the owner to type REMOVE. A removed or departing person whose account belongs to no other workspace has the account deleted too.
+- Deleting a book also deletes its AI output and its job history.
+- Job history is kept for 90 days, then deleted.
+- A book's project zip no longer carries the pen name's legal name or location.
+
 ## 17 October 2026
 
 Security and privacy audit, shipped on its own first.
