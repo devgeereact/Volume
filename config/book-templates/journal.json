@@ -198,12 +198,18 @@
       {
         "id": "tiktok-scripts",
         "source": "ai",
-        "promptId": "marketing.tiktok-scripts"
+        "promptId": "marketing.tiktok-scripts",
+        "default": {
+          "count": 5
+        }
       },
       {
         "id": "instagram-captions",
         "source": "ai",
-        "promptId": "marketing.instagram-captions"
+        "promptId": "marketing.instagram-captions",
+        "default": {
+          "count": 5
+        }
       },
       {
         "id": "launch-email",

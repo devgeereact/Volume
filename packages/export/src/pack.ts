@@ -44,6 +44,10 @@ export interface UploadPackInput {
   ai: AiDisclosure;
   metadata?: PackMetadata;
   marketing?: { tiktokScripts?: string; instagramCaptions?: string; launchEmail?: string };
+  /** Back-cover blurb as plain text (D-049): the matter-stage blurb, else the blueprint blurb. Written to listing/back-cover-blurb.txt when non-empty. */
+  backCoverBlurb?: string;
+  /** Short author bio as plain text (D-049). Written to listing/short-bio.txt when non-empty. */
+  shortBio?: string;
   /** A picture book (D-044): print PDF only, no EPUB or DOCX; the README and the disclosure note say so. */
   pictureBook?: boolean;
   date?: Date;
@@ -108,11 +112,11 @@ Picture book: the interior PDF is full colour with bleed, so choose colour ink, 
 options. This pack has no EPUB or DOCX: a picture-book eBook needs a fixed layout, which is a later format (D-044).
 `;
 
-const README = (slug: string, marketing: string, pictureBook = false) => `KDP upload pack for ${slug}
+const README = (slug: string, marketing: string, pictureBook = false, listingExtras: string[] = []) => `KDP upload pack for ${slug}
 
 manuscript/   the interior PDF (paperback), EPUB and DOCX (eBook), TXT and Markdown (your records)
 cover/        the eBook cover JPEG and the paperback wrap PDF
-listing/      metadata, the HTML description and the AI disclosure note
+listing/      metadata, the HTML description${listingExtras.map((x) => `, ${x}`).join('')} and the AI disclosure note
 reports/      preflight, claims to verify and the KDP rules used
 ${marketing ? `marketing/    ${marketing}\n` : ''}
 How KDP takes each format (FACTS 10.3): on the Bookshelf choose + Create, then Kindle eBook or Paperback. Each title
@@ -142,7 +146,19 @@ export async function buildUploadPack(input: UploadPackInput): Promise<{ fileNam
     { path: 'marketing/instagram-captions.txt', label: 'Instagram captions', text: mk.instagramCaptions },
     { path: 'marketing/launch-email.txt', label: 'the launch email', text: mk.launchEmail },
   ].filter((m): m is { path: string; label: string; text: string } => typeof m.text === 'string' && m.text.trim() !== '');
-  z.file('README.txt', README(slug, listLabels(marketing.map((m) => m.label)), input.pictureBook === true));
+  const listingText = [
+    { path: 'listing/back-cover-blurb.txt', label: 'the back-cover blurb', text: input.backCoverBlurb },
+    { path: 'listing/short-bio.txt', label: 'the short bio', text: input.shortBio },
+  ].filter((m): m is { path: string; label: string; text: string } => typeof m.text === 'string' && m.text.trim() !== '');
+  z.file(
+    'README.txt',
+    README(
+      slug,
+      listLabels(marketing.map((m) => m.label)),
+      input.pictureBook === true,
+      listingText.map((m) => m.label),
+    ),
+  );
   if (f.interiorPdf) z.file(`manuscript/${slug}-interior-${input.trim}.pdf`, f.interiorPdf);
   if (f.epub) z.file(`manuscript/${slug}.epub`, f.epub);
   if (f.docx) z.file(`manuscript/${slug}.docx`, f.docx);
@@ -152,6 +168,7 @@ export async function buildUploadPack(input: UploadPackInput): Promise<{ fileNam
   if (f.wrapPdf) z.file(`cover/${slug}-paperback-wrap-${input.trim}-${input.paper}-${input.pages ?? 0}p.pdf`, f.wrapPdf);
   z.file('listing/metadata.txt', metadataSheet(input.book, input.metadata));
   z.file('listing/description.html', `${input.book.meta.listing?.description ?? ''}\n`);
+  for (const m of listingText) z.file(m.path, m.text.endsWith('\n') ? m.text : `${m.text}\n`);
   z.file('listing/ai-disclosure.txt', aiDisclosureNote(input.ai, input.rules, { pictureBook: input.pictureBook === true }));
   if (input.preflight) {
     z.file('reports/preflight.txt', preflightText(input.preflight, `Preflight: ${input.book.meta.title}`));

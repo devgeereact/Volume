@@ -309,6 +309,8 @@ cover/<slug>-ebook-cover.jpg
 cover/<slug>-paperback-wrap-<trim>-<paper>-<pages>p.pdf
 listing/metadata.txt            title, subtitle, author, edition, series, ISBNs if entered, prices, keywords, categories
 listing/description.html
+listing/back-cover-blurb.txt    the back-cover blurb as plain text (matter stage, else the blueprint blurb)
+listing/short-bio.txt           the short author bio as plain text
 listing/ai-disclosure.txt       what was AI-generated (text, images) and why
 reports/preflight.txt
 reports/claims-to-verify.csv    chapter, sentence, category, check needed, status
@@ -317,5 +319,7 @@ marketing/tiktok-scripts.txt
 marketing/instagram-captions.txt
 marketing/launch-email.txt
 ```
+
+`listing/back-cover-blurb.txt` and `listing/short-bio.txt` come from the optional `backCoverBlurb` and `shortBio` inputs to `buildUploadPack()` (D-049). Each is written only when its text is not blank, as UTF-8 with one trailing newline, and the README's `listing/` line names it. The caller picks the blurb: the matter-stage back-cover blurb, falling back to the blueprint blurb. Marketing files follow the same rule: only the ones with text are written. Marketing counts come from the book template at `packages.marketing[].default.count` (5 TikTok scripts and 5 Instagram captions in every template).
 
 A picture-book pack (`buildUploadPack({ ..., pictureBook: true })`) has the interior PDF but no EPUB or DOCX (D-044); its README says to choose colour ink, white paper and bleed in KDP, and `listing/ai-disclosure.txt` says the spread pictures and the cover art came from an image model.

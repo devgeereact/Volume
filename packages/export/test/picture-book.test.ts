@@ -226,9 +226,18 @@ describe('picture-mini: upload pack', () => {
       ruleIds: r.ruleIds,
       ai: { aiWroteText: true, aiMadeImages: true },
       pictureBook: true,
+      backCoverBlurb: 'Mabel finds a garden that only grows at night.',
+      shortBio: '   ',
       date: NOW,
     });
     const z = await JSZip.loadAsync(zip);
+    // The blurb is written; a blank short bio is left out (D-049).
+    expect(
+      Object.keys(z.files)
+        .filter((f) => f.startsWith('listing/') && !f.endsWith('/'))
+        .sort(),
+    ).toEqual(['listing/ai-disclosure.txt', 'listing/back-cover-blurb.txt', 'listing/description.html', 'listing/metadata.txt']);
+    expect(await z.file('listing/back-cover-blurb.txt')?.async('string')).toBe('Mabel finds a garden that only grows at night.\n');
     expect(Object.keys(z.files).filter((f) => f.startsWith('manuscript/'))).toEqual([
       'manuscript/',
       'manuscript/mabel-and-the-moonlit-garden-interior-8.5x8.5.pdf',
