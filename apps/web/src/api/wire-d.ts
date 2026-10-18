@@ -43,6 +43,22 @@ export const roleHints: Record<Role, string> = {
 /** The sentence a viewer sees where the write buttons would be. */
 export const READ_ONLY_NOTE = "You can view this, but your role cannot change it. Ask the owner if you need editor access.";
 
+/* ---------- Typed confirmations (D-050) ---------- */
+
+/** The words the server wants before it removes a member, lets someone leave or deletes a workspace. */
+export const CONFIRM_WORDS = { removeMember: "REMOVE", leave: "LEAVE", deleteWorkspace: "DELETE" } as const;
+export type ConfirmWord = (typeof CONFIRM_WORDS)[keyof typeof CONFIRM_WORDS];
+
+/** True when the typed text is the word, as the server checks it: capitals, spaces around it ignored. */
+export function isTyped(typed: string, word: ConfirmWord): boolean {
+  return typed.trim() === word;
+}
+
+/** The demo's copy of the server check: 409 invalid_state for a wrong word. */
+function assertTyped(typed: string, word: ConfirmWord): void {
+  if (!isTyped(typed, word)) throw new ApiError(409, "invalid_state", `Type ${word} to confirm.`);
+}
+
 /* ---------- The caller ---------- */
 
 export interface VolumeMe {
@@ -145,7 +161,8 @@ export interface WiredMembers {
   invite: (input: InvitationInput) => Promise<void>;
   revoke: (id: string) => Promise<void>;
   setRole: (userId: string, role: MemberRole) => Promise<void>;
-  remove: (userId: string) => Promise<void>;
+  /** `confirm` is the word the owner typed (REMOVE); the server checks it again. */
+  remove: (userId: string, confirm: string) => Promise<void>;
 }
 
 /** GET /members in API mode (owner only), the demo store otherwise. Actions return a promise that rejects with an ApiError. */
@@ -167,14 +184,18 @@ export function useWiredMembers(mode: WireMode, enabled: boolean): WiredMembers 
             invite: (input: InvitationInput) => invite(input).then(() => undefined),
             revoke: (id: string) => revoke(id).then(() => undefined),
             setRole: (userId: string, role: MemberRole) => setRole({ userId, role }).then(() => undefined),
-            remove: (userId: string) => remove(userId).then(() => undefined),
+            remove: (userId: string, confirm: string) => remove({ userId, confirm }).then(() => undefined),
           }
         : {
             invite: (input: InvitationInput) => Promise.resolve().then(() => setDemo(demoInvite(input))),
             revoke: (id: string) => Promise.resolve().then(() => setDemo({ ...demoState, invitations: demoState.invitations.filter((i) => i.id !== id) })),
             setRole: (userId: string, role: MemberRole) =>
               Promise.resolve().then(() => setDemo({ ...demoState, members: demoState.members.map((m) => (m.userId === userId ? { ...m, role } : m)) })),
-            remove: (userId: string) => Promise.resolve().then(() => setDemo({ ...demoState, members: demoState.members.filter((m) => m.userId !== userId) })),
+            remove: (userId: string, confirm: string) =>
+              Promise.resolve().then(() => {
+                assertTyped(confirm, CONFIRM_WORDS.removeMember);
+                setDemo({ ...demoState, members: demoState.members.filter((m) => m.userId !== userId) });
+              }),
           },
     [api, invite, revoke, setRole, remove],
   );

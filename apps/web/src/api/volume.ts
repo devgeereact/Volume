@@ -31,7 +31,8 @@ export const volumeApi = {
   invite: (body: InvitationInput, o?: Opts) => api.post<ApiInvitation>("/invitations", body, o),
   revokeInvitation: (id: string, o?: Opts) => api.delete(`/invitations/${seg(id)}`, o),
   setMemberRole: (userId: string, role: MemberRole, o?: Opts) => api.patch<ApiMember>(`/members/${seg(userId)}`, { role }, o),
-  removeMember: (userId: string, o?: Opts) => api.delete(`/members/${seg(userId)}`, o),
+  /** D-050: the server needs { confirm: "REMOVE" }, typed by the owner. */
+  removeMember: (userId: string, confirm: string, o?: Opts) => api.delete(`/members/${seg(userId)}`, o, { confirm }),
 
   batches: (o?: Opts) => api.get<ListResponse<ApiBatchSummary>>("/batches", o).then((r) => r.items),
   batch: (id: string, o?: Opts) => api.get<ApiBatchDetail>(`/batches/${seg(id)}`, o),

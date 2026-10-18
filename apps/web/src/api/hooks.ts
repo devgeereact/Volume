@@ -1002,7 +1002,7 @@ export function useSetMemberRole() {
 export function useRemoveMember() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => volumeApi.removeMember(userId),
+    mutationFn: (v: { userId: string; confirm: string }) => volumeApi.removeMember(v.userId, v.confirm),
     onSuccess: () => invalidate(qc, queryKeys.volume.members()),
   });
 }
