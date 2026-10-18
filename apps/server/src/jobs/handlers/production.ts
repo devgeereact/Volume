@@ -1,7 +1,7 @@
 import type { ExportFile, ExportKind, PreflightReport } from '../../ports/export.js';
 import { EXPORT_KINDS } from '../../ports/export.js';
 import type { MarketingExtras } from '../../repos/production.js';
-import { buildExportBook, profileSummary, withOwnerPlaceholders, withPackCovers } from '../book-data.js';
+import { bookMarketingCounts, buildExportBook, profileSummary, withOwnerPlaceholders, withPackCovers } from '../book-data.js';
 import { writtenSections, writtenSummaries } from '../book-checks.js';
 import { JobFailed } from '../errors.js';
 import { isPictureBook, pageCount as picturePageCount, PICTURE_INK, pictureStructure, SPREAD_KIND } from '../picture-book.js';
@@ -164,6 +164,7 @@ export const marketingHandler: JobHandler = async (jc) => {
     : await repos.planning.latestBlueprint(jc.ctx, projectId);
   // Marketing describes only what the written book teaches: each written section's summary and key takeaways
   // (live run 3: two TikTok scripts described methods the book never covered).
+  const counts = await bookMarketingCounts(jc.services.configDir, book);
   const taught = writtenSummaries(await writtenSections(repos, jc.ctx, projectId));
   const res = await jc.runAi('marketing', {
     promptId: 'marketing.launch-pack',
@@ -175,7 +176,8 @@ export const marketingHandler: JobHandler = async (jc) => {
       blueprint: blueprint?.data ?? null,
       previousSummaries: taught,
       kinds,
-      ...(target ? { count: 1, instruction: jc.payload['instruction'] ?? null } : {}),
+      // Counts from the book's template (D-049, 5 and 5 unless it says otherwise); one item when regenerating one.
+      ...(target ? { count: 1, instruction: jc.payload['instruction'] ?? null } : { tiktokCount: counts.tiktok, instagramCount: counts.instagram }),
       profile: await profileSummary(repos, jc.ctx, book.profileId, book),
     },
   });

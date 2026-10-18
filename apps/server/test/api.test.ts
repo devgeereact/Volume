@@ -332,10 +332,14 @@ describe('book flow with the mock AI', () => {
     await t.call('POST', `/api/v1/books/${bookId}/marketing`, {});
     await t.services.runner.runUntilIdle();
     const mk = await t.call<{ items: { id: string; kind: string }[] }>('GET', `/api/v1/books/${bookId}/marketing`);
-    expect(mk.body.items.map((i) => i.kind).sort()).toEqual(['instagram_caption', 'launch_email', 'tiktok_script']);
+    // Five TikTok scripts and five Instagram posts from the nonfiction template (D-049), one launch email.
+    const kinds = mk.body.items.map((i) => i.kind);
+    expect(kinds.filter((k) => k === 'tiktok_script')).toHaveLength(5);
+    expect(kinds.filter((k) => k === 'instagram_caption')).toHaveLength(5);
+    expect(kinds.filter((k) => k === 'launch_email')).toHaveLength(1);
     expect((await t.call<Obj>('PATCH', `/api/v1/marketing/${mk.body.items[0]!.id}`, { status: 'used' })).body['status']).toBe('used');
     await t.call('POST', `/api/v1/marketing/${mk.body.items[0]!.id}/archive`, {});
-    expect((await t.call<{ items: unknown[] }>('GET', `/api/v1/books/${bookId}/marketing`)).body.items).toHaveLength(2);
+    expect((await t.call<{ items: unknown[] }>('GET', `/api/v1/books/${bookId}/marketing`)).body.items).toHaveLength(10);
 
     // Jobs list and cost
     const jobs = await t.call<{ items: unknown[] }>('GET', `/api/v1/books/${bookId}/jobs`);

@@ -253,6 +253,11 @@ describe('8. marketing', () => {
   it('keeps all subject lines, the image idea and hashtags, and regenerates one item in place', async () => {
     t = await testApp();
     const { bookId } = await writtenBook(t);
+    // No names to thank: acknowledgements holds the app's placeholder, so writing is not complete (D-049) until the
+    // owner fills it.
+    const tree = await t.call<{ front: Obj[] }>('GET', `/api/v1/books/${bookId}/sections`);
+    const thanks = tree.body.front.find((x) => x['kind'] === 'acknowledgements' && x['enabled'] === true);
+    if (thanks) await t.call('POST', `/api/v1/sections/${thanks['id'] as string}/versions`, { bodyMd: '# Acknowledgements\n\nThank you, Sam.' });
     await t.call('POST', `/api/v1/books/${bookId}/marketing`, {});
     await t.services.runner.runUntilIdle();
     const items = await t.call<{

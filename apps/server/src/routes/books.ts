@@ -3,22 +3,74 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import { readModelDefaults } from '../config/catalogue.js';
 import { AppError, parse } from '../http/errors.js';
+import { bookMarketingCounts, isWritingComplete, type MarketingCounts } from '../jobs/book-data.js';
 import { assertQualityGate } from '../jobs/quality-gate.js';
 import type { RequestCtx } from '../auth/context.js';
 import { BookInputSchema, BookListQuerySchema, BookPatchSchema, type Book } from '../repos/books.js';
 import type { BookExtras } from '../repos/library.js';
 import { idOf, owner, writer } from './common.js';
 
+/** UTC+14 (Kiribati), the furthest ahead any time zone is. */
+const LATEST_OFFSET_MS = 14 * 60 * 60 * 1000;
+
+/** Body of POST /books/:id/publish: an optional publish date, YYYY-MM-DD. */
+const PublishBodySchema = z.object({ publishedAt: z.unknown().optional() }).loose();
+
+/**
+ * The owner's publish date as ms at midnight UTC: a real calendar date written YYYY-MM-DD and not after today.
+ * "Today" is the latest date anywhere on Earth (the UTC date of now + 14 hours), so the owner's local today always
+ * passes, for example 00:30 in London in summer. Anything else is a 400 invalid_published_at.
+ */
+export function parsePublishedAt(raw: unknown, nowMs: number = Date.now()): number {
+  const bad = (): AppError => new AppError('invalid_published_at', 'Enter the publish date as YYYY-MM-DD, today or earlier.');
+  if (typeof raw !== 'string') throw bad();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!m) throw bad();
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const ms = Date.UTC(y, mo - 1, d);
+  const back = new Date(ms);
+  if (back.getUTCFullYear() !== y || back.getUTCMonth() !== mo - 1 || back.getUTCDate() !== d || y < 1900) throw bad();
+  const today = new Date(nowMs + LATEST_OFFSET_MS);
+  if (ms > Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())) throw bad();
+  return ms;
+}
+
+/** Fields the server works out for the book JSON (D-049): writing complete and the template's marketing counts. */
+export interface BookDerived {
+  writingComplete: boolean;
+  marketingCounts: MarketingCounts;
+}
+
 export function bookRoutes(app: FastifyInstance, s: AppServices): void {
   const r = s.repos.books;
 
-  /** A book with its list extras (words, sections, running job, cover, formats, pack version). */
-  const full = async (ctx: RequestCtx, book: Book): Promise<Book & BookExtras> => ({ ...book, ...(await s.repos.library.extrasFor(ctx, book)) });
+  /** writingComplete and marketingCounts for each book (one sections query; counts cached per template). */
+  const derived = async (ctx: RequestCtx, books: readonly Book[]): Promise<Map<string, BookDerived>> => {
+    const state = await s.repos.manuscript.writingStateFor(
+      ctx,
+      books.map((b) => b.id),
+    );
+    const out = new Map<string, BookDerived>();
+    for (const b of books) {
+      // Cached per process (templates are static), so the list reads no file per book.
+      const c = bookMarketingCounts(s.configDir, b);
+      out.set(b.id, { writingComplete: isWritingComplete(state.get(b.id) ?? []), marketingCounts: await c });
+    }
+    return out;
+  };
+
+  /** A book with its list extras (words, sections, running job, cover, formats, pack version) and derived fields. */
+  const full = async (ctx: RequestCtx, book: Book): Promise<Book & BookExtras & BookDerived> => {
+    const d = (await derived(ctx, [book])).get(book.id);
+    if (!d) throw new Error('Derived book fields missing.');
+    return { ...book, ...(await s.repos.library.extrasFor(ctx, book)), ...d };
+  };
 
   app.get('/books', async (req) => {
     const books = await r.list(req.ctx, parse(BookListQuerySchema, req.query));
     const extras = await s.repos.library.extras(req.ctx, books);
-    return { items: books.map((b) => ({ ...b, ...extras.get(b.id) })) };
+    const d = await derived(req.ctx, books);
+    return { items: books.map((b) => ({ ...b, ...extras.get(b.id), ...d.get(b.id) })) };
   });
 
   app.post('/books', async (req, reply) => {
@@ -69,6 +121,12 @@ export function bookRoutes(app: FastifyInstance, s: AppServices): void {
     app.post(`/books/:id/${action}`, async (req) => {
       writer(req);
       const id = idOf(req);
+      // Publish takes an optional { publishedAt: "YYYY-MM-DD" }; checked before the quality gate so a bad date changes nothing.
+      let publishedAt: number | undefined;
+      if (action === 'publish') {
+        const body = parse(PublishBodySchema.optional(), req.body ?? undefined);
+        if (body?.publishedAt !== undefined) publishedAt = parsePublishedAt(body.publishedAt);
+      }
       // Volume mode: a book that is or ever was in a batch is marked published only after preflight and claims review
       // (P8-2). The gate runs now, so a `ready` mark that later edits made stale does not count.
       if (action === 'publish') {
@@ -84,7 +142,7 @@ export function bookRoutes(app: FastifyInstance, s: AppServices): void {
           }
         }
       }
-      const book = await r.setStatus(req.ctx, id, action);
+      const book = await r.setStatus(req.ctx, id, action, publishedAt);
       await s.bus.publish(req.ctx.workspaceId, { projectId: book.id, type: 'book.updated', data: { projectId: book.id, status: book.status } });
       return full(req.ctx, book);
     });

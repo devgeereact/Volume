@@ -279,11 +279,23 @@ function descriptionHtml(text: string): string {
 function aiFlags(book: ExportBook): NonNullable<PreflightInput['aiDisclosure']> {
   const d = book.aiDisclosure;
   const values = [d.text, d.images, d.translation];
+  // What AI made comes from the book itself (versions and assets) as well as the stored flag, so an unset flag on a
+  // book the AI wrote fails kdp.ai-disclosure instead of passing. The disclosure stays the stored flag.
   return {
-    aiWroteText: d.text !== 'none',
-    aiMadeImages: d.images !== 'none',
+    aiWroteText: book.aiEvidence?.text === true || d.text !== 'none',
+    aiMadeImages: book.aiEvidence?.images === true || d.images !== 'none',
     disclosed: values.includes('ai_generated') ? 'ai-generated' : values.includes('ai_assisted') ? 'ai-assisted' : 'none',
   };
+}
+
+/** The pack's listing/back-cover-blurb.txt and listing/short-bio.txt text (D-049), only when there is text. */
+function packText(book: ExportBook): Pick<Parameters<typeof buildUploadPack>[0], 'backCoverBlurb' | 'shortBio'> {
+  const out: Pick<Parameters<typeof buildUploadPack>[0], 'backCoverBlurb' | 'shortBio'> = {};
+  const blurb = book.listing?.backBlurb?.trim();
+  const bio = book.author.shortBio?.trim();
+  if (blurb) out.backCoverBlurb = blurb;
+  if (bio) out.shortBio = bio;
+  return out;
 }
 
 const FIX_ROUTES: Readonly<Record<string, { route: string; label: string }>> = {
@@ -622,6 +634,7 @@ export class VolumeExportAdapter implements ExportPort {
       };
       if (book.edition) packInput.metadata = { edition: book.edition };
       if (book.marketing) packInput.marketing = book.marketing;
+      Object.assign(packInput, packText(book));
       const { fileName, zip } = await buildUploadPack(packInput);
       pack = { filename: fileName, mime: MIME.zip, data: bytes(zip), pageCount: null, mock: false, role: 'pack' };
     }
@@ -713,6 +726,7 @@ export class VolumeExportAdapter implements ExportPort {
     if (pages !== undefined) input.pages = pages;
     if (book.edition) input.metadata = { edition: book.edition };
     if (book.marketing) input.marketing = book.marketing;
+    Object.assign(input, packText(book));
     const { fileName, zip } = await buildUploadPack(input);
     return { filename: fileName, mime: MIME.zip, data: bytes(zip), pageCount: null, mock: false, role: 'pack' };
   }

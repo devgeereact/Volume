@@ -8,9 +8,81 @@ import { CODE_KINDS, hasDatedPrices, loadBookStructure, promptTemplate, sectionK
 import type { ExportBook, ExportClaim, ExportSection, PreflightReport } from '../ports/export.js';
 import type { Book } from '../repos/books.js';
 import type { Repos } from '../repos/index.js';
+import type { WritingState } from '../repos/manuscript.js';
 
 /** Sections whose text comes from code, never from the writer (docs/04, stage 7). */
 export const CODE_WRITTEN_KINDS: ReadonlySet<string> = CODE_KINDS;
+
+/** A section the AI or the owner writes: not a code-made page, not a part divider, not planned as code-written. */
+export function writtenByPerson(s: Pick<WritingState, 'kind' | 'plan'>): boolean {
+  return !CODE_WRITTEN_KINDS.has(s.kind) && s.kind !== 'part' && s.plan['writer'] !== 'code';
+}
+
+/**
+ * Writing is complete (D-048, D-049): the book has at least one switched-on section the AI or the owner writes, and
+ * every such section has a current version. One predicate for every template (nonfiction, fiction, workbook,
+ * picture book spreads); it advances the stage to editor and opens marketing.
+ */
+export function isWritingComplete(sections: readonly WritingState[]): boolean {
+  const mine = sections.filter((s) => s.enabled && writtenByPerson(s));
+  return mine.length > 0 && mine.every(hasRealText);
+}
+
+/** A current version with words in it that is not the app's placeholder for the owner to fill. */
+function hasRealText(s: WritingState): boolean {
+  return s.currentVersionId !== null && s.wordCount > 0 && s.currentSource !== OWNER_PLACEHOLDER_SOURCE;
+}
+
+/** isWritingComplete for one book, read from the database. */
+export async function bookWritingComplete(repos: Repos, ctx: RequestCtx, projectId: string): Promise<boolean> {
+  return isWritingComplete((await repos.manuscript.writingStateFor(ctx, [projectId])).get(projectId) ?? []);
+}
+
+/** After a section save: moves the book to editor (forward only) once writing is complete. Returns whether it is. */
+export async function advanceIfWritingComplete(repos: Repos, ctx: RequestCtx, projectId: string): Promise<boolean> {
+  const done = await bookWritingComplete(repos, ctx, projectId);
+  if (done) await repos.books.advanceStage(ctx, projectId, 'editor');
+  return done;
+}
+
+/** Marketing counts when the template says nothing (AC12.1, AC12.2). */
+export const DEFAULT_MARKETING_COUNT = 5;
+export interface MarketingCounts {
+  tiktok: number;
+  instagram: number;
+}
+
+/**
+ * TikTok scripts and Instagram posts to write, from the template's packages.marketing defaults (items
+ * tiktok-scripts and instagram-captions, default.count). Anything missing or not a whole number from 1 to 20 is 5.
+ */
+export function marketingCountsOf(template: Record<string, unknown> | null): MarketingCounts {
+  const isRec = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+  const packages = template && isRec(template['packages']) ? template['packages'] : {};
+  const items = Array.isArray(packages['marketing']) ? packages['marketing'].filter(isRec) : [];
+  const count = (id: string): number => {
+    const d = items.find((i) => i['id'] === id)?.['default'];
+    const n = isRec(d) ? d['count'] : undefined;
+    return typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 20 ? n : DEFAULT_MARKETING_COUNT;
+  };
+  return { tiktok: count('tiktok-scripts'), instagram: count('instagram-captions') };
+}
+
+/** The book's marketing counts from its template (book type first, then the template column). */
+/** Counts per config folder, book type and template: template files do not change while the server runs. */
+const marketingCountsCache = new Map<string, Promise<MarketingCounts>>();
+
+export async function bookMarketingCounts(configDir: string, book: Pick<Book, 'bookTypeId' | 'template'>): Promise<MarketingCounts> {
+  const key = `${configDir}\u0000${book.bookTypeId ?? ''}\u0000${book.template}`;
+  let hit = marketingCountsCache.get(key);
+  if (!hit) {
+    hit = loadBookStructure(configDir, book.bookTypeId, book.template).then((st) => marketingCountsOf(st.template));
+    // A failed read is not kept, so the next request tries again.
+    hit.catch(() => marketingCountsCache.delete(key));
+    marketingCountsCache.set(key, hit);
+  }
+  return hit;
+}
 
 /** Gathers everything the exporter needs. About the author is the profile bio, verbatim. */
 export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: string, configDir: string, blobs?: BlobStore): Promise<ExportBook> {
@@ -92,8 +164,10 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
       description: text(bp['description_draft']),
       keywords: strings(bp['keywords']),
       categories: strings(bp['categories']),
-      backBlurb: text(bp['back_blurb']),
+      // The matter-stage blurb wins; the blueprint's is the fallback (D-049, pack listing/back-cover-blurb.txt).
+      backBlurb: (await repos.production.listingBackBlurb(ctx, projectId)) ?? text(bp['back_blurb']),
     },
+    aiEvidence: await repos.manuscript.aiEvidence(ctx, projectId),
     claims,
     datedPrices: hasDatedPrices(structure),
     marketing: await marketingText(repos, ctx, projectId),

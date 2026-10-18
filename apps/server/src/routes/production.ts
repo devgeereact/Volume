@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import type { RequestCtx } from '../auth/context.js';
 import { AppError, parse } from '../http/errors.js';
-import { buildExportBook, CODE_WRITTEN_KINDS } from '../jobs/book-data.js';
+import { bookWritingComplete, buildExportBook } from '../jobs/book-data.js';
 import { assertQualityGate, preflightReport } from '../jobs/quality-gate.js';
 import { EXPORT_KINDS } from '../ports/export.js';
 import { MARKETING_KINDS, MarketingPatchSchema } from '../repos/production.js';
@@ -30,14 +30,12 @@ export async function sendAsset(s: AppServices, ctx: RequestCtx, reply: FastifyR
 }
 
 /**
- * Marketing describes the book, so it needs written text to describe. Refuses with 409 until at least one
- * section the AI or the owner writes (not the code-made pages such as the title page) has text.
+ * Marketing quotes the finished book (D-049): refused with 409 writing_incomplete until writing is complete (the
+ * D-048 predicate, every switched-on section the AI or the owner writes has a current version).
  */
-export async function requireWrittenSections(s: AppServices, ctx: RequestCtx, bookId: string): Promise<void> {
-  const sections = await s.repos.manuscript.listSections(ctx, bookId);
-  const written = sections.some((x) => x.currentVersionId !== null && !CODE_WRITTEN_KINDS.has(x.kind));
-  if (!written) {
-    throw new AppError('invalid_state', 'Write the book first. Marketing describes what is in the book, and no chapter has been written yet.');
+export async function requireWritingComplete(s: AppServices, ctx: RequestCtx, bookId: string): Promise<void> {
+  if (!(await bookWritingComplete(s.repos, ctx, bookId))) {
+    throw new AppError('writing_incomplete', 'Finish writing every chapter before marketing.');
   }
 }
 
@@ -140,7 +138,7 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     const id = idOf(req);
     const body = parse(z.object({ kinds: z.array(z.enum(MARKETING_KINDS)).min(1).optional() }).optional(), req.body) ?? {};
     await s.repos.books.require(req.ctx, id);
-    await requireWrittenSections(s, req.ctx, id);
+    await requireWritingComplete(s, req.ctx, id);
     const job = await s.queue.enqueue(req.ctx, { kind: 'marketing', projectId: id, payload: { kinds: body.kinds ?? [...MARKETING_KINDS] } });
     return accepted(reply, job);
   });
@@ -178,7 +176,7 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const body = parse(z.object({ instruction: z.string().max(2000).optional() }).optional(), req.body) ?? {};
     const item = await p.requireMarketing(req.ctx, idOf(req));
-    await requireWrittenSections(s, req.ctx, item.projectId);
+    await requireWritingComplete(s, req.ctx, item.projectId);
     const job = await s.queue.enqueue(req.ctx, {
       kind: 'marketing',
       projectId: item.projectId,

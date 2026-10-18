@@ -1654,6 +1654,9 @@ function coverImageInput(v: Rec, brief: unknown, concept: unknown, aspectRatio: 
   return { book: bookInput(v), brief, concept, cover: { target: 'ebook front cover', aspectRatio } };
 }
 
+/** TikTok scripts and Instagram captions when the job names no count (AC12.1, AC12.2; the job sends the template's). */
+const MARKETING_COUNT_DEFAULT = 5;
+
 function marketingPlan(v: Rec): { task: string; input: Rec }[] {
   const kinds = Array.isArray(v['kinds']) ? strList(v['kinds']) : ['tiktok_script', 'instagram_caption', 'launch_email'];
   const base = baseInput(v);
@@ -1661,11 +1664,11 @@ function marketingPlan(v: Rec): { task: string; input: Rec }[] {
   if (kinds.includes('tiktok_script')) {
     steps.push({
       task: 'marketing.tiktok-scripts',
-      input: { ...base, count: firstNum(v['tiktokCount'], v['count']) ?? 3, lengthSeconds: firstNum(v['lengthSeconds']) ?? 30 },
+      input: { ...base, count: firstNum(v['tiktokCount'], v['count']) ?? MARKETING_COUNT_DEFAULT, lengthSeconds: firstNum(v['lengthSeconds']) ?? 30 },
     });
   }
   if (kinds.includes('instagram_caption')) {
-    steps.push({ task: 'marketing.instagram-captions', input: { ...base, count: firstNum(v['instagramCount'], v['count']) ?? 3 } });
+    steps.push({ task: 'marketing.instagram-captions', input: { ...base, count: firstNum(v['instagramCount'], v['count']) ?? MARKETING_COUNT_DEFAULT } });
   }
   if (kinds.includes('launch_email')) {
     const kdp = v['kdpSelect'];

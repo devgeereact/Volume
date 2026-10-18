@@ -17,6 +17,7 @@ import {
   type PictureBookView,
   type SpreadView,
 } from '../jobs/picture-book.js';
+import { advanceIfWritingComplete } from '../jobs/book-data.js';
 import { TERMINAL } from '../jobs/queue.js';
 import { imageReservationUsd } from '../jobs/runner.js';
 import type { Section } from '../repos/manuscript.js';
@@ -116,6 +117,7 @@ export function spreadRoutes(app: FastifyInstance, s: AppServices): void {
       const input: Parameters<typeof s.repos.manuscript.saveVersion>[2] = { bodyMd: body.text, source: 'human' };
       if (body.baseVersionId !== undefined) input.baseVersionId = body.baseVersionId;
       await s.repos.manuscript.saveVersion(req.ctx, section.id, input);
+      await advanceIfWritingComplete(s.repos, req.ctx, section.projectId);
     }
     await s.bus.publish(req.ctx.workspaceId, {
       projectId: section.projectId,
