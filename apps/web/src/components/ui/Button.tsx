@@ -86,7 +86,7 @@ export function Button({
       ref={ref}
       type={type}
       disabled={disabled}
-      aria-disabled={softDisabled ? true : undefined}
+      aria-disabled={softDisabled || loading ? true : undefined}
       aria-busy={loading || undefined}
       onClick={handleClick}
       className={cn(base, sizes[size], isDisabled ? disabledClasses : variants[variant], fullWidth && "w-full", className)}

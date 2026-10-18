@@ -89,8 +89,12 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
     gen.mutate(input);
   }
 
+  // The option being saved as the book's title, so its button shows Saving and the others wait.
+  const savingChoiceId = choose.isPending && choose.variables ? `${choose.variables.titleSetId}:${choose.variables.input.index}` : null;
+
   function chooseOption(o: TitleOption) {
-    if (!set) return;
+    // One choice at a time: a second press while the first saves does nothing.
+    if (!set || choose.isPending) return;
     const index = Number(o.id.slice(o.id.lastIndexOf(":") + 1));
     const e = edits[o.id];
     choose.mutate({ bookId, titleSetId: set.id, input: e ? { index, title: e.title, subtitle: e.subtitle } : { index } });
@@ -346,6 +350,8 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
                         onChoose={() => chooseOption(o)}
                         onSave={(t, s) => saveEdit(o, t, s)}
                         fresh={false}
+                        saving={savingChoiceId === o.id}
+                        busy={savingChoiceId !== null}
                       />
                     ))}
                   </ul>
@@ -376,7 +382,11 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
           ) : (
             <p className="text-small text-ink-secondary">Not set yet. Pick one with Use this title.</p>
           )}
-          {choose.isPending && <p className="mt-2 text-small text-ink-secondary">Saving the title</p>}
+          {choose.isPending && (
+            <p className="mt-2 text-small text-ink-secondary" role="status">
+              Saving the title
+            </p>
+          )}
           <p className="mt-3 text-small text-ink-tertiary">KDP needs the title and subtitle together under 200 characters. Choosing sets the book's title.</p>
         </InspectorSection>
         <InspectorSection title="This set">
