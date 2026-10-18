@@ -30,7 +30,7 @@ Fastify answers everything: the built web app (files and the SPA fallback), `/ap
 
 `app.cjs` loads that file before the server starts (Playwright reads `PLAYWRIGHT_BROWSERS_PATH` at import), and path settings may start with `~/`. Values set in the selector win over the file. `CLERK_PUBLISHABLE_KEY` on the server must be the same key the web build used; the server decodes its Frontend API host (`clerk.volume.gakinz.com`) for the Content Security Policy.
 
-Do not press "Run NPM Install" in the selector: each release installs its own `node_modules` with `npm ci`. The web server is LiteSpeed: its `lsnode` process resolves `current` to a release folder when it starts and does not restart on `tmp/restart.txt` after the link moves (seen 18 October 2026). `cloudlinux-selector restart` also fails, because it looks for a Node environment named after the release folder. To restart, stop the `lsnode` process (`ps -ef | grep lsnode`, then `kill <pid>`); LiteSpeed starts a new one on the next request. The docroot `.htaccess` points `PassengerNodejs` at `~/nodevenv/apps/volume/releases/20261016T224127Z/24/bin/node`, so keep that folder until the line points at a stable path such as `/opt/alt/alt-nodejs24/root/usr/bin/node`.
+Do not press "Run NPM Install" in the selector: each release installs its own `node_modules` with `npm ci`. The web server is LiteSpeed: its `lsnode` process resolves `current` to a release folder when it starts and does not restart on `tmp/restart.txt` after the link moves (seen 18 October 2026). `cloudlinux-selector restart` also fails, because it looks for a Node environment named after the release folder. To restart, stop the `lsnode` process (`ps -ef | grep lsnode`, then `kill <pid>`); LiteSpeed starts a new one on the next request. The docroot `.htaccess` points `PassengerNodejs` at `~/nodevenv/apps/volume/releases/20261016T224127Z/24/bin/node`, so keep that folder. That path is CloudLinux's `node_wrapper`, which loads the selector's environment from its own folder, so the line stays as the selector wrote it; `npm run deploy` refuses to run when the binary it names is missing.
 
 ## Build on the Mac
 
@@ -41,12 +41,24 @@ VITE_CLERK_PUBLISHABLE_KEY=<pk_live_...> npm run build:release -- --require-cler
 
 The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `migrate.mjs`), `web/`, `config/`, `prompts/`, `assets/`, `tmp/restart.txt`, `RELEASE.json` and a `package.json` with a lockfile pruned from the repository's own (no better-sqlite3, no dev tools). The publishable key is public; no secret enters the bundle.
 
-## Deploy steps (lead agent, approved per deploy)
+## Deploy (one command, from the Mac)
+
+`npm run deploy` (`scripts/deploy.mjs`, host facts in `deploy/production.json`) runs every step below and checks the result. Run it on `main`, clean and pushed, after CI on that commit has passed.
+
+| Command | Does |
+| --- | --- |
+| `npm run deploy -- --dry-run` | Reads the host and runs the preflight; changes nothing. |
+| `npm run deploy` | Builds, uploads to `releases/<utc>`, installs with Node 24, links the shared settings file, checks migrations, switches `current`, restarts and runs the live checks. A failed check switches back to the previous release by itself. |
+| `npm run deploy -- --migrate` | Same, and applies pending migrations. Without it the script stops before going live when any are pending. Take the cPanel database backup first. |
+| `npm run deploy -- --rollback` | Switches `current` to the release before it and restarts. |
+| `--no-ci-check` | Skips the CI check (use only when GitHub Actions cannot run). |
+
+It never deletes a release and never reads or copies the settings file (the link is a symlink). The steps it runs, for doing them by hand:
 
 1. Rsync `build/release/` to `~/apps/volume/releases/<utc>/`.
 2. On the host, inside that folder, with Node 24 (`export PATH=/opt/alt/alt-nodejs24/root/usr/bin:$PATH`; there is no `~/nodevenv/apps/volume/current`): `npm ci --omit=dev --no-audit --no-fund`.
-3. Link shared config: `ln -s ../../shared/.env .env` (optional when `VOLUME_ENV_FILE` is set).
-4. Back up the database (cPanel Backup or `mariadb-dump --defaults-file=<private temp file> --single-transaction --no-tablespaces`, run with `set -o pipefail` so a failed dump stops the step; the migration user has no `LOCK TABLES` grant), then migrate as the migration user: `node server/migrate.mjs status`, then `node server/migrate.mjs`. The app refuses to start while migrations are pending.
+3. Link shared config into the release: a symlink named after the settings file pointing at `../../shared/` (the app also finds it through `VOLUME_ENV_FILE`).
+4. Back up the database (cPanel Backup or `mariadb-dump --defaults-file=<private temp file> --single-transaction --no-tablespaces`, run with `set -o pipefail` so a failed dump stops the step; the migration user has no `LOCK TABLES` grant), then migrate as the migration user: `node server/migrate.mjs status` (exit 2 means pending), then `node server/migrate.mjs`. The app refuses to start while migrations are pending.
 5. Flip the link: `ln -sfn releases/<utc> ~/apps/volume/current`, then stop the running `lsnode` process (see Passenger settings above). Confirm the page loads the new `/assets/index-*.js` from `build/release/web/index.html`.
 6. Run the post-deploy checks below. Rollback: point `current` back at the previous release and stop the `lsnode` process. Migrations are additive, so the previous release still runs on the newer schema.
 

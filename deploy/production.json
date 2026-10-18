@@ -1,0 +1,7 @@
+{
+  "host": "cpanel",
+  "url": "https://volume.gakinz.com",
+  "appDir": "apps/volume",
+  "nodeBin": "/opt/alt/alt-nodejs24/root/usr/bin",
+  "clerkPublishableKey": "pk_live_Y2xlcmsudm9sdW1lLmdha2luei5jb20k"
+}

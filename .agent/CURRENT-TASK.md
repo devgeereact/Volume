@@ -8,7 +8,7 @@ Proven (Node 26.8.1): doctor, typecheck, lint, format, docs, hooks, Vitest 898 p
 
 Merged as PR #5 (main 404ce0e) and live on 18 October 2026 (release `20261018T131543Z`; rollback `20261018T105443Z`). Live checks: health 200, unsigned API 401, bypass 401, new bundle `index-DmS0ok80.js`.
 
-Next: owner tries Mark as published, Archive and the marketing gate on the live site; phase 6, 7, 8 gates; point `PassengerNodejs` at a stable Node path. Behaviour change: an acknowledgements placeholder keeps a book out of `editor` and marketing until the owner fills it.
+Next: owner tries Mark as published, Archive and the marketing gate on the live site; phase 6, 7, 8 gates; deploys go through `npm run deploy` (PR #6). Behaviour change: an acknowledgements placeholder keeps a book out of `editor` and marketing until the owner fills it.
 
 ## Production deploy, 18 October 2026 (Claude Code)
 
