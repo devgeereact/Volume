@@ -5,6 +5,7 @@ import { AppError, parse } from '../http/errors.js';
 import { approveBlueprint } from '../jobs/approve-blueprint.js';
 import { bookChapterCount } from '../jobs/book-data.js';
 import { BlueprintPartKeySchema, BlueprintSchema } from '../ports/ai.js';
+import { BlueprintPartsSchema } from './body-schemas.js';
 import { accepted, idOf, writer } from './common.js';
 
 const TitlesBody = z
@@ -162,7 +163,7 @@ export function planningRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const id = idOf(req);
     const body = parse(
-      z.object({ parts: z.record(z.string(), z.unknown()), note: z.string().max(500).optional(), baseVersion: z.number().int().optional() }),
+      z.object({ parts: BlueprintPartsSchema, note: z.string().max(500).optional(), baseVersion: z.number().int().optional() }).strict(),
       req.body,
     );
     const latest = await planning.latestBlueprint(req.ctx, id);
