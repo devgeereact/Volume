@@ -6,6 +6,7 @@ import { Banner, Button, EmptyState, KeyValueList, Modal, PageHeader, ProgressBa
 import { calmWardBlueprint, getModel, getPenName, type Blueprint, type Book, type ClaimToVerify } from "../../demo";
 import { DEMO_NOW } from "../../demo/books";
 import { cn } from "../../lib/cn";
+import { scrollBehavior } from "../../lib/motion";
 import { formatDuration, formatNumber, formatUsd } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
 import { useBook } from "../../lib/useBook";
@@ -175,7 +176,7 @@ function BlueprintScreen({ book }: { book: Book }) {
 
   function select(id: string) {
     setSelectedId(id);
-    requestAnimationFrame(() => document.getElementById(`bp-${id}`)?.scrollIntoView({ block: "start", behavior: "smooth" }));
+    requestAnimationFrame(() => document.getElementById(`bp-${id}`)?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
   }
 
   function toggle(id: string) {

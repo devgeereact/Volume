@@ -26,6 +26,7 @@ import { formatUsd } from "../../lib/format";
 import { GuardrailNote } from "../research/GuardrailNote";
 import { TITLE_SUBTITLE_MAX, titleLength, type Book, type TitleOption } from "../../demo";
 import { cn } from "../../lib/cn";
+import { scrollBehavior } from "../../lib/motion";
 import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
 import { TitleCard } from "./TitleCard";
@@ -142,7 +143,7 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
     if (filter !== "all") setFilter("all");
     requestAnimationFrame(() => {
       const el = document.getElementById(`title-${chosenHere.id}`);
-      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      el?.scrollIntoView({ block: "center", behavior: scrollBehavior() });
       el?.focus({ preventScroll: true });
     });
   }

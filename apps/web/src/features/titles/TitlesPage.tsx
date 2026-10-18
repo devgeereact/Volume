@@ -17,6 +17,7 @@ import {
 } from "../../components/ui";
 import { stageDefaults, titleOptions, topicDirections, type Book, type TitleOption } from "../../demo";
 import { formatUsd } from "../../lib/format";
+import { scrollBehavior } from "../../lib/motion";
 import { useStepAction } from "../../lib/stepAction";
 import { useBook } from "../../lib/useBook";
 import { bookStepPath } from "../../screens";
@@ -150,7 +151,7 @@ function Titles({ book }: { book: Book }) {
     if (filter !== "all") setFilter("all");
     requestAnimationFrame(() => {
       const el = document.getElementById(`title-${chosen.id}`);
-      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      el?.scrollIntoView({ block: "center", behavior: scrollBehavior() });
       el?.focus({ preventScroll: true });
     });
   }
