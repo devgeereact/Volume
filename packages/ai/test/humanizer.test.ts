@@ -12,6 +12,12 @@ const HUMANIZER_VERSION: Record<string, number> = {
   'children.picture-book-story': 2,
   'checks.summarise-and-ledger': 3,
   'checks.consistency': 3,
+  'writing.rewrite-selection': 4,
+};
+/** Prompts whose latest version moved to another model stage on purpose, with that stage. */
+const STAGE_MOVED: Record<string, string> = {
+  // v5 (18 October 2026): the server already sends selection rewrites to the editing model.
+  'writing.rewrite-selection': 'editing',
 };
 /** Prompts first written after the revision, with the guidance from version 1. */
 const NEW_AFTER_HUMANIZER = new Set([
@@ -35,7 +41,7 @@ describe('versioned humanizer guidance', () => {
       expect(previousVersion, latest.meta.id).toBeDefined();
       const previous = loader.load(latest.meta.id, previousVersion);
       expect(revised.meta.version).toBe(previous.meta.version + 1);
-      expect(latest.meta.stage).toBe(previous.meta.stage);
+      expect(latest.meta.stage, latest.meta.id).toBe(STAGE_MOVED[latest.meta.id] ?? previous.meta.stage);
       expect(latest.meta.tier).toBe(previous.meta.tier);
       expect(revised.meta.inputs).toEqual(previous.meta.inputs);
       expect(new Set(revised.variables)).toEqual(new Set(previous.variables));

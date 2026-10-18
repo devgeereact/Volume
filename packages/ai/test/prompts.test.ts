@@ -118,3 +118,20 @@ describe('prompt loader', () => {
     expect(v['ledger']).toBe('Stories already told (never retell them; refer back in a few words if needed):\n- car park: Sitting in the car after a shift');
   });
 });
+
+describe('model stages in config/models.defaults.json', () => {
+  it('lists every task prompt under the stage its latest version runs on', () => {
+    const stages = config.defaults.stages;
+    for (const id of TASK_IDS) {
+      const promptId = TASKS[id].promptId;
+      const stage = loader.load(promptId).meta.stage;
+      expect(stages[stage], `${promptId} runs on unknown stage ${stage}`).toBeDefined();
+      expect(stages[stage]?.prompts, promptId).toContain(promptId);
+    }
+  });
+
+  it('runs the selection rewrite on the editing model and note expansion on the writing model', () => {
+    expect(loader.load('writing.rewrite-selection').meta).toMatchObject({ version: 5, stage: 'editing' });
+    expect(loader.load('writing.expand-note').meta.stage).toBe('writing');
+  });
+});

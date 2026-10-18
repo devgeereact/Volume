@@ -18,11 +18,21 @@ Nine stages, one Node server, one OpenRouter key. Each stage has its own model c
 
 Tiers: **top** (strongest Claude model), **mid** (mid Claude model), **small** (small fast model), **search** (Gemini model with web search), **image** (Gemini image model, default `google/gemini-2.5-flash-image`). Exact slugs and fallback lists are in `config/models.defaults.json` and must be checked against `GET /api/v1/models` before phase 2. The owner can change any stage per workspace, profile or book (profile models, project settings.models and workspace models.overrides, D-019).
 
+### Three kinds of stage name
+
+The word "stage" means three different things in the code. Keep them apart.
+
+- **Book stage** (`projects.stage`, `apps/server/src/repos/books.ts:9`): where a book is in production, forward only: `idea`, `research`, `titles`, `blueprint`, `writing`, `editor`, `cover`, `export`, `marketing`. Choosing a title moves the book to `blueprint`; once writing is complete (every enabled section the AI or the owner writes has a current version, D-048) it moves to `editor`.
+- **Model stage** (the keys of `stages` in `config/models.defaults.json`, and each prompt's front matter `stage`): which model, max tokens and temperature answer: `research`, `titles`, `blueprint`, `writing`, `summarise`, `checks`, `editing`, `matter_metadata`, `cover_brief`, `cover_image`, `marketing`. This is what the owner changes in Settings.
+- **Job stage** (`AI_STAGES` in `apps/server/src/ports/ai.ts:11`): which server job runs, mapped to a model stage by `STAGE_TO_CONFIG` in `apps/server/src/jobs/runner.ts`. `blueprint_part` uses `blueprint`; `weave` (`writing.weave-note`, `writing.expand-note`) and `picture_story` use `writing`; `editing` (the three passes and `writing.rewrite-selection`) uses `editing`; `scene_prompts` and `character_reference` use `cover_brief`.
+
+The book stage records progress; it does not choose the model. Marketing is the one AI step gated on progress (stage 9 below).
+
 The BOOK.md roles map here: Research AI is stage 1, Publisher AI stages 2 and 3, Story AI stage 4, Editor, Copy Editor and Proofreader stages 5 and 6, Amazon KDP AI stage 7, Cover Designer and Typography AI stage 8, Marketing AI stage 9.
 
 ## Stage contracts
 
-Every structured output is validated with a zod schema in `packages/core/schemas`. Field lists below are the contract.
+Every structured output is validated twice: by the task's zod schema in `packages/ai/src/stages/outputs.ts` (the prompt's own fields), then by the server's stage schema in `apps/server/src/ports/ai.ts` after the adapter maps the fields. Field lists below are the server contract.
 
 ### 1 Researcher
 
@@ -40,6 +50,7 @@ Every structured output is validated with a zod schema in `packages/core/schemas
 
 - **In:** chosen title and subtitle, research output, ticked sources, profile voice DNA, template (sections, word range, chapter count), house style.
 - **Out:** `title`, `subtitle`, `summary` (200 to 500 words), `audience`, `usps[3..5]`, `tone_notes`, `hook_style` (`quote`, `question`, `scene`), `parts[]` (`number`, `title`), `chapters[]` (`number`, `title`, `part`, `subheadings[3..]`, `summary` 200 to 300 words, `word_target`, `key_points[]`, `takeaways` bool, `bridge_note`), `front` (`dedication`, `acknowledgements_notes`, `introduction` {summary, word_target}, `preface` {on, summary}, `epigraph` {on, text, attribution}), `back` (`conclusion` {summary, word_target}, `appendix`, `resources`, `glossary`, `references` on or off), `back_blurb`, `description_draft`, `categories[3]`, `keywords[7]`.
+- **Blueprint blurb:** `back_blurb` here is a planning draft (the prompt's `backCoverBlurb`, 120 to 200 words, written before any chapter exists). It is kept with the blueprint and is the fallback for the pack only; see the matter blurb in stage 7.
 - **Part regeneration:** the same prompt with a `part` input (`summary`, `chapter:<n>`, `chapters`, `front`, `back`, `listing`) and the rest of the blueprint as fixed context; returns only that part.
 - **Epigraph rule:** text must be supplied by the owner or be public domain with a known author the owner confirms. The model may suggest "add your own epigraph" but never writes a quotation and attributes it.
 
@@ -57,24 +68,31 @@ Code first, then a small model for what code cannot judge. See "Checker gate" be
 ### 6 Editor passes
 
 - **Passes:** `structure` (does the chapter keep its blueprint promise, order, gaps, repeats across the book), `line` (British English line edit, shorter sentences, less filler, voice kept), `voice` (match the profile samples).
-- **Out:** `suggestions[]` (`original`, `proposed`, `reason`, `start`, `end`). Never a full rewritten chapter. Selection rewrite uses the same shape with one suggestion.
+- **Out:** `suggestions[]` (`original`, `proposed`, `reason`, `start`, `end`). Never a full rewritten chapter.
+- **Selection rewrite** (`writing.rewrite-selection`, `POST /sections/:id/rewrite-selection`): runs on the `editing` model (prompt v5 says so; earlier versions said `writing`). It returns one proposal (`text`, `changeNote`, `newClaims`); nothing is saved until the owner saves a version.
+- **Notes** (`writing.weave-note`, `writing.expand-note`): the server's `weave` job, on the `writing` model. Weave works a note into the prose; expand turns it into a new `##` subsection of 2 to 4 paragraphs.
 - **Memory:** an accepted suggestion can be saved to `profile_memory` (owner ticks "remember this").
 
 ### 7 Matter and metadata writer
 
+- **Model stage `matter_metadata`, three prompts:** `matter.amazon-description`, `matter.keywords-categories`, `matter.back-cover` (the adapter runs them in turn and merges the answers).
 - **In:** approved blueprint, chapter summaries, profile templates and links, published books under the pen name.
-- **Out:** `dedication`, `acknowledgements`, `preface` (if on), `review_request`, `newsletter_line`, `back_blurb` (up to 150 words), `short_bio` (only a trim of the profile short bio, never new facts), `description_html` (allowed tags only: `b`, `i`, `u`, `br`, `p`, `h4` to `h6`, `ol`, `ul`, `li`, FACTS 10.14), `keywords[7]`, `categories[3]`.
+- **Out (server contract):** `description_html` (allowed tags only: `b`, `i`, `u`, `br`, `p`, `h4` to `h6`, `ol`, `ul`, `li`, FACTS 10.14) and `description_text`, `keywords[7]` with `keyword_reasons`, `categories[3]`, `back_blurb`, `short_bio` (the profile short bio, or the full bio condensed to 60 words or fewer with only its facts, flagged for the owner), `spine_text`. The schema also carries `dedication`, `acknowledgements`, `review_request` and `newsletter_line`, but this stage leaves them empty: those pages are written by `writing.front-matter` and `writing.back-matter` on the `writing` model.
+- **Matter blurb:** `back_blurb` here is the back-cover blurb for the finished book: `matter.back-cover` returns a one-line headline and a body of 120 to 200 words (v6), which the adapter joins with a blank line. One range everywhere: the blueprint `backCoverBlurb`, the matter blurb and the template's `back-cover-blurb` limit are all 120 to 200 words.
+- **Which blurb the pack uses (D-049):** the matter blurb; when there is none, the blueprint `back_blurb`. The pack writes it to `listing/back-cover-blurb.txt`, with the short bio beside it.
 - **Written by code, never by the model:** title page, copyright page (from templates), contents, about the author (profile bio verbatim), also by, the AI disclosure note.
 - **App checks:** description 4,000 characters or fewer including tags (FACTS 5.3), exactly 7 keywords (FACTS 5.1) and 3 categories (FACTS 5.2), no banned keyword words (brand names, "Kindle Unlimited", "new", "on sale").
 
 ### 8 Cover director
 
 - **`cover_brief` out:** `brief` (mood, audience, symbols to use and avoid, palette, composition with space for title), `concepts[3..4]` (`name`, `image_prompt`, `why`).
-- **`cover_image`:** one image per concept, portrait 1:1.6, no text, no letters, no logos, no real people's faces. Returned as base64, stored as `assets` with `ai_generated = 1`.
+- **`cover_image`:** one image per concept, portrait 2:3 (the images endpoint rejects 5:8; the export fits the art to 1600 x 2560), no text, no letters, no logos, no real people's faces. Returned as base64, stored as `assets` with `ai_generated = 1`.
 - Typography is set by `packages/export`, never by the model.
 
 ### 9 Marketing writer
 
+- **Gate (D-049):** marketing opens only when writing is complete, the same predicate that moves the book to `editor` (D-048). The server computes it and returns `writingComplete` on the book; the web app reads that field and nothing else. Scripts quote the finished chapters, so they never run on a half-written book.
+- **Counts:** from the book template's `marketing` defaults (`count` on `tiktok-scripts` and `instagram-captions`), 5 TikTok scripts and 5 Instagram posts unless the template says otherwise. The server passes them as `tiktokCount` and `instagramCount`; the prompts receive them as `{{count}}` and hard-code no number. The mock provider returns as many items as `count` asks for.
 - **Out:** `tiktok[]` (`hook`, `beats[]`, `on_screen[]`, `cta`, `seconds`), `instagram[]` (`caption`, `hashtags[]` up to 10, `cta`), `email` (`subjects[3]`, `preview`, `body`).
 - **Rules:** no invented reviews, ratings, rankings, awards or sales figures; no review incentives (FACTS 10.6, 10.7); quotes only from the book itself.
 
@@ -124,8 +142,8 @@ flowchart TD
 
 - **Blocking:** em dash, banned phrase, invented-content pattern, unsourced statistic, missing subheadings (fewer than 3 in non-fiction), word count outside plus or minus 15% of target, missing hook or bridge.
 - **Warning:** repetition, heading case, consistency notes, open claims.
-- **Auto-fix rules:** an em dash between words becomes a comma and space, or a full stop when the next word starts a new clause (rule set in `config/house-style.json`); US spellings follow the map with case kept. Auto-fixes never touch quotations from sources.
-- The targeted rewrite sends only the paragraphs with issues and the issue list, and must return the same paragraphs.
+- **Auto-fix rules (planned, not wired):** `config/house-style.json` marks em and en dashes `autofix: true` and US spellings `autofix: "suggest"`, and `packages/core` has `fixDashes`, but no server job calls it and no `checker_fix` version is ever saved. Today em dashes and US spellings are reported as findings; in the editor the owner applies them one by one from the issue list (`apps/web/src/features/editor/textTools.ts`). The flowchart's auto-fix box describes the intended design.
+- **The rewrite that does run:** inside `@volume/ai`, when an answer uses banned phrases (any task with full guardrails, except internal notes such as research) or a written section has too many scaffolding openers, one automatic style rewrite on the same model (`system.style-rewrite`) is sent before the answer is returned. There is no second, issue-list rewrite after the server's code checks: a section with blocking findings is saved as `needs_attention` and the book continues.
 
 ## Live-run lessons (5 October 2026)
 
@@ -180,7 +198,8 @@ Live run 3 ("Small Offer, Real Customers") added these rules. Code: `packages/co
 ## Prompt versioning
 
 - Files: `prompts/<folder>/<name>.v<N>.md`, ids such as `writing.chapter`. Front matter: `id`, `version`, `stage`, `tier`, `inputs`, `output`, `derived_from`, `guardrails`.
-- The loader picks the highest version unless a book pins one. Changing a prompt means a new file; old versions stay so past runs can be explained.
+- The loader picks the highest version. Changing a prompt means a new file; old versions stay so past runs can be explained.
+- **Pinning (plumbed, not used):** `AiStageInput.promptVersion` and the `@volume/ai` `promptVersion` option can run an older version, and the adapter honours it on the primary call of a stage. Nothing sets it yet: there is no per-book pin in settings and no job passes one, so every run uses the latest version. Prompt change notes that say "books pinned to an older version keep using it" describe this capability, not a feature the owner can use today.
 - Every `prompt_runs` row stores `prompt_id`, `prompt_version` and `prompt_hash`.
 - Templates use named placeholders only (for example `{{chapter.title}}`); the loader fails if a placeholder has no value.
 
@@ -189,7 +208,8 @@ Live run 3 ("Small Offer, Real Customers") added these rules. Code: `packages/co
 - Implements the same `AiProvider` interface. Default in tests and whenever no key is set.
 - Deterministic: answers come from fixtures in `packages/ai/test/fixtures/` (`<promptId>.json` or `<stage>/<promptId>.json`) chosen by prompt id and a hash of the inputs, with a generic valid fallback per schema.
 - Streams in chunks with a short delay so progress UI and SSE can be tested.
-- Fault injection by scenario name: `rate_limit`, `server_error`, `invalid_json`, `stream_cut`, `refusal`, `model_missing`, `slow`.
+- Fault injection by scenario name: `rate_limit`, `server_error`, `invalid_json`, `invalid_json_always`, `stream_cut`, `truncated`, `truncated_always`, `refusal`, `model_missing`, `slow`, `no_sources`.
+- With no fixture, the sample answer built from the schema fills each top-level list to the task input's `count` (for example five TikTok scripts), so count handling is testable without fixtures.
 - Reports a fixed fake cost so budget logic is tested without money.
 
 ## Humanizer wording, 6 October 2026

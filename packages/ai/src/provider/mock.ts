@@ -41,6 +41,24 @@ export interface MockProviderOptions {
   models?: ModelInfo[] | undefined;
 }
 
+/**
+ * Grows every top-level list in a sample answer to the requested item count (copies of the first item), so a
+ * request for five TikTok scripts gets five back. Fixtures are returned as written.
+ */
+export function fillTopLevelLists(sample: unknown, itemCount: number | undefined): unknown {
+  const obj = asObject(sample);
+  if (!obj || itemCount === undefined || !Number.isInteger(itemCount) || itemCount < 1) return sample;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    const list = asArray(v);
+    out[k] =
+      Array.isArray(v) && list.length > 0 && list.length < itemCount
+        ? Array.from({ length: itemCount }, (_, i): unknown => structuredClone(list[i] ?? list[0]))
+        : v;
+  }
+  return out;
+}
+
 // A 1 x 1 transparent PNG.
 const TINY_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
@@ -162,7 +180,7 @@ export class MockProvider implements AiProvider {
     if (fixture) {
       text = typeof fixture.content === 'string' ? fixture.content : JSON.stringify(fixture.content, null, 2);
     } else if (req.responseFormat?.type === 'json_schema') {
-      text = JSON.stringify(sampleFromSchema(req.responseFormat.schema), null, 2);
+      text = JSON.stringify(fillTopLevelLists(sampleFromSchema(req.responseFormat.schema), req.meta?.itemCount), null, 2);
     } else if (req.responseFormat?.type === 'json_object') {
       text = '{}';
     } else {

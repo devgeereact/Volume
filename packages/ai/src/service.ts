@@ -500,7 +500,13 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
         onDelta: opts.onDelta,
         signal: opts.signal,
         timeoutMs: opts.timeoutMs,
-        meta: { promptId: def.promptId, stage: resolved.stage, inputHash: prep.inputHash, scenario: opts.scenario },
+        meta: {
+          promptId: def.promptId,
+          stage: resolved.stage,
+          inputHash: prep.inputHash,
+          scenario: opts.scenario,
+          itemCount: typeof input['count'] === 'number' ? input['count'] : undefined,
+        },
       };
 
       // One call, with the budget check, one restart after a cut stream, one retry without response_format
