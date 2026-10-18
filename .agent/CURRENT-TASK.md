@@ -1,3 +1,9 @@
+## Production deploy, 18 October 2026 (Claude Code)
+
+Main at aa5eb67 is live at https://volume.gakinz.com (release `20261018T105443Z`, rollback `20261016T224127Z`). Migrations 0006, 0008, 0009 applied after a cPanel backup. Auth bypass closed (`/%61pi/v1/health` 401). Owner confirmed sign-in, library, Settings (MySQL) and PDF export. Restart on this host means stopping the `lsnode` process (DEPLOYMENT.md).
+
+Next: phase 6, 7, 8 owner gates; point `PassengerNodejs` at `/opt/alt/alt-nodejs24/root/usr/bin/node`; origin lock and cron checks; CI on main.
+
 ## Phases 6 to 8 built, 17 October 2026 (Claude Code, lead with subagents)
 
 Branch `feat/phases-6-8` (pushed; worktree `../Volume-phases` on the owner's Mac). Plan: `docs/08-change-management/plans/PHASES-6-8.md`. Decisions D-041 to D-047 accepted by the owner as built (17 October 2026). The audit branch (auth fix 11e848b) is merged to main (54a788a) and merged into this branch.
@@ -9,11 +15,11 @@ Proven (Node 26.8.1, no Mise): doctor, typecheck, lint, format, docs (88), hooks
 Not tested: live AI per template, MySQL concurrency races, EPUBCheck, Linux goldens for new samples, real host, printed proof, KDP upload.
 
 Next:
-1. Deploy main at 9061a92 (auth fix plus phases 6 to 8, migrations 0006, 0008, 0009) per docs/07-operations/DEPLOYMENT.md. Owner authorised it on 17 October 2026; the agent auto-mode check blocked the release build, so the owner runs the deploy or allows it. Production still answers `/%61pi/v1/health` without sign-in until then.
+1. Done 18 October 2026: main at aa5eb67 deployed (release `20261018T105443Z`, migrations 0006, 0008, 0009 applied, auth bypass closed). Owner confirmed the signed-in library, Settings (MySQL) and a PDF export. Open: origin lock and cron checks; point `PassengerNodejs` in the docroot `.htaccess` at a stable Node path before old releases are removed (DEPLOYMENT.md).
 2. Owner holds the phase 6, 7, 8 gates (try each book type).
 3. Owner adds `ACCOUNTS_MODE=owner-only` to `.env.example`.
 4. One free live run per template (`LIVE_AI=1`, budget zero): authorised, not run. The key lives only in the main checkout settings file, so run it there.
-5. GitHub Actions did not start on PR #4 (account billing or spending limit). Fix billing, then rerun CI on main.
+5. GitHub Actions did not start on PR #4 (account billing or spending limit). The 18 October record commit on main shows whether billing is fixed.
 ## Production, privacy and hub audit, 17 October 2026 (Claude Code)
 
 Saved on branch `fix/hosted-auth-privacy-audit` (pushed, not merged, not deployed). Live auth bypass found: `https://volume.gakinz.com/%61pi/v1/health` answered 200 without sign-in. Fixed locally with a regression test (decoded path check plus a context guard in the `/api/v1` scope). The hosted web app no longer falls back to demo data; noindex, robots.txt and `X-Robots-Tag` added; tab titles; style guide local only; command menu uses server books. Privacy inventory and a draft privacy notice in `docs/05-security/`. Report: `../reports/volume/PRODUCTION-PRIVACY-AUDIT-2026-10-17.md`.

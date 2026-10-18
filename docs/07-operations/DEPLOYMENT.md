@@ -30,7 +30,7 @@ Fastify answers everything: the built web app (files and the SPA fallback), `/ap
 
 `app.cjs` loads that file before the server starts (Playwright reads `PLAYWRIGHT_BROWSERS_PATH` at import), and path settings may start with `~/`. Values set in the selector win over the file. `CLERK_PUBLISHABLE_KEY` on the server must be the same key the web build used; the server decodes its Frontend API host (`clerk.volume.gakinz.com`) for the Content Security Policy.
 
-Do not press "Run NPM Install" in the selector: each release installs its own `node_modules` with `npm ci`. Restart with `touch ~/apps/volume/current/tmp/restart.txt` (or `cloudlinux-selector restart --json --interpreter nodejs --app-root apps/volume/current`).
+Do not press "Run NPM Install" in the selector: each release installs its own `node_modules` with `npm ci`. The web server is LiteSpeed: its `lsnode` process resolves `current` to a release folder when it starts and does not restart on `tmp/restart.txt` after the link moves (seen 18 October 2026). `cloudlinux-selector restart` also fails, because it looks for a Node environment named after the release folder. To restart, stop the `lsnode` process (`ps -ef | grep lsnode`, then `kill <pid>`); LiteSpeed starts a new one on the next request. The docroot `.htaccess` points `PassengerNodejs` at `~/nodevenv/apps/volume/releases/20261016T224127Z/24/bin/node`, so keep that folder until the line points at a stable path such as `/opt/alt/alt-nodejs24/root/usr/bin/node`.
 
 ## Build on the Mac
 
@@ -44,11 +44,11 @@ The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `m
 ## Deploy steps (lead agent, approved per deploy)
 
 1. Rsync `build/release/` to `~/apps/volume/releases/<utc>/`.
-2. On the host, inside that folder, with Node 24 (`source ~/nodevenv/apps/volume/current/24/bin/activate` or the alt-nodejs24 binary): `npm ci --omit=dev --no-audit --no-fund`.
+2. On the host, inside that folder, with Node 24 (`export PATH=/opt/alt/alt-nodejs24/root/usr/bin:$PATH`; there is no `~/nodevenv/apps/volume/current`): `npm ci --omit=dev --no-audit --no-fund`.
 3. Link shared config: `ln -s ../../shared/.env .env` (optional when `VOLUME_ENV_FILE` is set).
 4. Back up the database (cPanel Backup or `mariadb-dump --defaults-file=<private temp file> --single-transaction --no-tablespaces`, run with `set -o pipefail` so a failed dump stops the step; the migration user has no `LOCK TABLES` grant), then migrate as the migration user: `node server/migrate.mjs status`, then `node server/migrate.mjs`. The app refuses to start while migrations are pending.
-5. Flip the link: `ln -sfn releases/<utc> ~/apps/volume/current`, then `touch ~/apps/volume/current/tmp/restart.txt`.
-6. Run the post-deploy checks below. Rollback: point `current` back at the previous release and touch `tmp/restart.txt`. Migrations are additive, so the previous release still runs on the newer schema.
+5. Flip the link: `ln -sfn releases/<utc> ~/apps/volume/current`, then stop the running `lsnode` process (see Passenger settings above). Confirm the page loads the new `/assets/index-*.js` from `build/release/web/index.html`.
+6. Run the post-deploy checks below. Rollback: point `current` back at the previous release and stop the `lsnode` process. Migrations are additive, so the previous release still runs on the newer schema.
 
 Migration order: `0006_picture_books`, `0008_volume_mode` and `0009_invitations` ship together in one release (`0007` is reserved and not shipped). Production has none of them yet, so step 4 applies them in order. Kysely refuses a migration older than one already applied, and unordered migrations stay off on purpose: a development database that applied `0008` or `0009` before `0006` existed will not take `0006`. Recreate that local database (or restore one taken before `0008`); never edit the migration table by hand. `apps/server/test/migrations.test.ts` checks that a fresh SQLite database applies `0001` to `0009` in order and that every migration compiles for MySQL.
 

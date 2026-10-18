@@ -2,6 +2,10 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 18 October 2026
+
+The hosted app at volume.gakinz.com now runs the latest version: fiction, workbooks, picture books, Volume mode and invitations, plus the 17 October sign-in fix.
+
 ## 17 October 2026
 
 Security and privacy audit, shipped on its own first.
