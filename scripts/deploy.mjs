@@ -119,6 +119,11 @@ step('Reading the host');
 const current = remote(`basename "$(readlink ${app}/current)"`).out;
 const releases = remote(`ls -1 ${app}/releases`).out.split('\n').filter(Boolean).sort();
 console.log(`  live release: ${current}`);
+// The docroot .htaccess (owned by the Node.js selector) names the Node binary; a missing one takes the whole site down.
+const nodeLine = remote(`grep -m1 '^PassengerNodejs' $HOME/${new URL(cfg.url).hostname}/.htaccess || true`).out;
+const passengerNode = nodeLine.match(/"([^"]+)"/)?.[1];
+if (!passengerNode) fail('no PassengerNodejs line in the docroot .htaccess.');
+if (remote(`test -x '${passengerNode}'`, { allowFail: true }).status !== 0) fail(`PassengerNodejs points at ${passengerNode}, which is missing.`);
 
 if (rollbackOnly) {
   const idx = releases.indexOf(current);
