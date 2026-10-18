@@ -393,6 +393,20 @@ export interface ApiBook {
   archivedAt: EpochMs | null;
   createdAt: EpochMs;
   updatedAt: EpochMs;
+  /** Every enabled section the AI or the owner writes has a current version (D-048). Opens marketing (D-049). Older servers omit it. */
+  writingComplete?: boolean | undefined;
+  /** How many TikTok scripts and Instagram posts the book's template asks for (D-049). Older servers omit it. */
+  marketingCounts?: ApiMarketingCounts | undefined;
+}
+
+export interface ApiMarketingCounts {
+  tiktok: number;
+  instagram: number;
+}
+
+/** POST /books/:id/publish body. `publishedAt` is a local date (YYYY-MM-DD) not after today; the server uses today without it. */
+export interface PublishInput {
+  publishedAt?: string | undefined;
 }
 
 export interface ApiListPrices {

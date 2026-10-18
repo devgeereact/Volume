@@ -1,4 +1,6 @@
 import { PublishedDetailsDialog } from "../published/PublishedDetailsDialog";
+import { BookStatusActions } from "../published/BookStatusActions";
+import { canMarkPublished } from "../published/publishDate";
 import { useCanWrite } from "../../lib/access";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Download, FileArchive, FileImage, FileText, FileType, Package, Sparkles } from "lucide-react";
@@ -167,9 +169,12 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
     <>
       <PageHeader title="Export" summary="Check, build and download the KDP upload pack." />
       {canWrite && (
-        <Button className="mt-3" variant="secondary" onClick={() => setPricing(true)}>
-          Set list prices
-        </Button>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button variant="secondary" onClick={() => setPricing(true)}>
+            Set list prices
+          </Button>
+          <BookStatusActions bookId={bookId} title={book.title} showPublish={canMarkPublished(book)} />
+        </div>
       )}
       {pricing && apiBook && (
         <PublishedDetailsDialog

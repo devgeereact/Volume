@@ -20,6 +20,7 @@ import {
 import type { Book } from "../../demo";
 import { useGenerateMarketing, useMarketing, useMarketingStatus, usePatchMarketing, useRememberJob } from "../../api/hooks";
 import { productionApi } from "../../api/production";
+import { isApiError } from "../../api/client";
 import type { ApiMarketingItem, MarketingKind, MarketingPatch } from "../../api/types";
 import { errorText, jobStatusText, useJobWatch } from "../../api/wire-c";
 import { cn } from "../../lib/cn";
@@ -27,7 +28,7 @@ import { formatRelative } from "../../lib/format";
 import { useToast } from "../../lib/toast";
 import { useStepAction } from "../../lib/stepAction";
 import { ErrorPanel, LoadingBlock } from "../writing/screenState";
-import { EmailBody, headline, InstagramBody, meta, SelectedPanel, TikTokBody } from "./MarketingPage";
+import { EmailBody, headline, InstagramBody, LockedNotice, MARKETING_LOCKED, meta, SelectedPanel, TikTokBody } from "./MarketingPage";
 import { itemText, type ItemKind, type MarketingItem } from "./marketingExtras";
 
 /* Marketing on the Volume server (API mode): Generate is a job (progress over SSE), items are listed
@@ -46,6 +47,12 @@ const emptyCopy: Record<ItemKind, string> = {
   instagram: "No captions yet for this book.",
   email: "No launch email yet for this book.",
 };
+
+/** The server's 409 `writing_incomplete` in the screen's words; anything else as the server put it. */
+function marketingError(e: unknown): string {
+  if (isApiError(e) && e.code === "writing_incomplete") return MARKETING_LOCKED;
+  return errorText(e);
+}
 
 function kindOf(k: string): ItemKind | null {
   return k === "tiktok_script" ? "tiktok" : k === "instagram_caption" ? "instagram" : k === "launch_email" ? "email" : null;
@@ -93,6 +100,7 @@ function toItem(i: ApiMarketingItem): MarketingItem | null {
 export function ApiMarketing({ book }: { book: Book }) {
   const canWrite = useCanWrite();
   const bookId = book.id;
+  const locked = book.writingComplete ? undefined : MARKETING_LOCKED;
   const toast = useToast();
   const listQ = useMarketing(bookId, { includeArchived: true });
   const generate = useGenerateMarketing();
@@ -129,7 +137,7 @@ export function ApiMarketing({ book }: { book: Book }) {
       setProblem(null);
       setAnnounce("Writing it again.");
     } catch (e) {
-      setProblem(errorText(e));
+      setProblem(marketingError(e));
     }
   }
 
@@ -161,7 +169,7 @@ export function ApiMarketing({ book }: { book: Book }) {
       setProblem(null);
       setAnnounce("Generating.");
     } catch (e) {
-      setProblem(errorText(e));
+      setProblem(marketingError(e));
     }
   }
 
@@ -208,7 +216,7 @@ export function ApiMarketing({ book }: { book: Book }) {
           label: generating && job?.kind === tab ? "Generating" : generateLabel[tab].label,
           estimate: generateLabel[tab].cost,
           onClick: () => void run(tab),
-          disabledReason: generating ? "Already generating." : undefined,
+          disabledReason: locked ?? (generating ? "Already generating." : undefined),
         },
   );
 
@@ -220,7 +228,7 @@ export function ApiMarketing({ book }: { book: Book }) {
         <ErrorPanel
           className="mt-5 max-w-[720px]"
           title="Could not load the launch content"
-          body={errorText(listQ.error)}
+          body={marketingError(listQ.error)}
           onRetry={() => void listQ.refetch()}
         />
       </>
@@ -229,6 +237,7 @@ export function ApiMarketing({ book }: { book: Book }) {
   return (
     <>
       <PageHeader title="Marketing" summary="Launch content for this book. Edit it, copy what you need, archive what you do not." />
+      {locked && <LockedNotice book={book} />}
       {problem && (
         <Banner
           tone="error"
@@ -288,7 +297,10 @@ export function ApiMarketing({ book }: { book: Book }) {
                 <EmptyState
                   drawing="pen"
                   title={emptyCopy[tab]}
-                  body={`The writer drafts these from the book in the profile's voice. No reviews, rankings or numbers are invented. ${generateLabel[tab].label}, at the foot of the page, makes the first ones.`}
+                  body={
+                    locked ??
+                    `The writer drafts these from the book in the profile's voice. No reviews, rankings or numbers are invented. ${generateLabel[tab].label}, at the foot of the page, makes the first ones.`
+                  }
                 />
               ) : (
                 <ul className="grid gap-4">
@@ -351,7 +363,7 @@ export function ApiMarketing({ book }: { book: Book }) {
                                     estimate="about $0.01"
                                     loading={regen?.itemId === item.data.id}
                                     loadingLabel="Regenerating"
-                                    disabledReason={regen && regen.itemId !== item.data.id ? "Another item is being written again." : undefined}
+                                    disabledReason={locked ?? (regen && regen.itemId !== item.data.id ? "Another item is being written again." : undefined)}
                                     onClick={() => void regenerate(item.data.id)}
                                   >
                                     Regenerate

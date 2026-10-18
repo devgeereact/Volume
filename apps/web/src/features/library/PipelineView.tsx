@@ -7,6 +7,8 @@ import type { Book, PenName } from "../../demo/types";
 import { cn } from "../../lib/cn";
 import { columnFor, splitLeadingFigure } from "./bookStatus";
 import { libraryCover } from "./draftCover";
+import { BookStatusActions } from "../published/BookStatusActions";
+import { canMarkPublished } from "../published/publishDate";
 
 interface PipelineViewProps {
   books: Book[];
@@ -14,12 +16,24 @@ interface PipelineViewProps {
   live: { bookId: string; running: boolean } | null;
   /** Pen name lookup for the current data source (server profiles or the demo list). */
   penName?: (id: string) => PenName | undefined;
+  /** Show Mark as published and Archive under each card (server books the owner can change). */
+  statusActions?: boolean | undefined;
 }
 
 /** Published books shown in the column before the link to the Published shelf. */
 const PUBLISHED_SHOWN = 2;
 
-function BookCard({ book, live, penName }: { book: Book; live: "running" | "paused" | null; penName: (id: string) => PenName | undefined }) {
+function BookCard({
+  book,
+  live,
+  penName,
+  statusActions,
+}: {
+  book: Book;
+  live: "running" | "paused" | null;
+  penName: (id: string) => PenName | undefined;
+  statusActions: boolean;
+}) {
   const pen = penName(book.penNameId);
   const status = splitLeadingFigure(book.statusLine);
   const { design, draft } = libraryCover(book);
@@ -54,6 +68,9 @@ function BookCard({ book, live, penName }: { book: Book; live: "running" | "paus
           {draft && <span className="mt-0.5 block text-[12.5px] leading-4 text-ink-tertiary">Draft cover</span>}
         </span>
       </Link>
+      {statusActions && (
+        <BookStatusActions look="links" className="mt-1 pl-[78px] sm:mt-2 sm:pl-0" bookId={book.id} title={book.title} showPublish={canMarkPublished(book)} />
+      )}
     </li>
   );
 }
@@ -64,7 +81,7 @@ function BookCard({ book, live, penName }: { book: Book; live: "running" | "paus
  * Published keeps its two newest books here and links to the Published shelf for the rest, so no
  * column runs far below the others. Under 1280 px each stage becomes a section with a wrapping grid.
  */
-export function PipelineView({ books, live, penName = getPenName }: PipelineViewProps) {
+export function PipelineView({ books, live, penName = getPenName, statusActions = false }: PipelineViewProps) {
   return (
     <div className="grid grid-cols-1 gap-8 xl:grid-cols-8 xl:gap-4">
       {libraryColumns.map((stage) => {
@@ -96,7 +113,13 @@ export function PipelineView({ books, live, penName = getPenName }: PipelineView
             ) : (
               <ul className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] sm:gap-y-6 xl:grid-cols-1">
                 {visible.map((b) => (
-                  <BookCard key={b.id} book={b} penName={penName} live={live && live.bookId === b.id ? (live.running ? "running" : "paused") : null} />
+                  <BookCard
+                    key={b.id}
+                    book={b}
+                    penName={penName}
+                    statusActions={statusActions}
+                    live={live && live.bookId === b.id ? (live.running ? "running" : "paused") : null}
+                  />
                 ))}
               </ul>
             )}

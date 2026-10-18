@@ -3,7 +3,7 @@ import { useCanWrite } from "../../lib/access";
 import { Archive, Check, Copy, RotateCcw, RotateCw, ShieldCheck, Sparkles } from "lucide-react";
 import { Button, Card, EmptyState, Inspector, InspectorSection, PageHeader, Skeleton, StatusChip, Tabs, tabPanelProps } from "../../components/ui";
 import { Link } from "react-router";
-import { stageOrder, type Book } from "../../demo";
+import type { Book } from "../../demo";
 import { cn } from "../../lib/cn";
 import { formatRelative } from "../../lib/format";
 import { useToast } from "../../lib/toast";
@@ -33,13 +33,13 @@ const emptyCopy: Record<ItemKind, string> = {
 };
 
 export default function MarketingPage() {
-  const { book, from, apiBook } = useBook();
+  const { book, from } = useBook();
   const { state, retry } = useScreenState();
   if (!book) return <NotFound what="book" />;
   if (from === "api")
     return (
       <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
-        {apiBook && apiBook.totals.words === 0 ? <NotYet book={book} /> : <ApiMarketing key={book.id} book={book} />}
+        <ApiMarketing key={book.id} book={book} />
       </div>
     );
   return (
@@ -56,65 +56,66 @@ export default function MarketingPage() {
           />
         </>
       )}
-      {(state === "ready" || state === "empty") &&
-        (stageOrder.indexOf(book.stage) <= stageOrder.indexOf("writing") ? (
-          <NotYet book={book} />
-        ) : (
-          <MarketingBody key={book.id + state} book={book} empty={state === "empty"} />
-        ))}
+      {(state === "ready" || state === "empty") && <MarketingBody key={book.id + state} book={book} empty={state === "empty" || !book.writingComplete} />}
     </div>
   );
 }
 
-/** Marketing opens once the book is written: the scripts quote the finished chapters. */
-function NotYet({ book }: { book: Book }) {
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** The one line shown beside Generate and Regenerate while writing is not complete (D-049). */
+export const MARKETING_LOCKED = "Finish writing every chapter to open marketing.";
+
+/**
+ * Marketing opens once writing is complete (D-049): the scripts quote the finished chapters. Until then the
+ * screen still lists any items; only Generate and Regenerate wait, and this notice says why.
+ */
+export function LockedNotice({ book }: { book: Book }) {
   const writing = book.stage === "writing";
+  const { tiktok, instagram } = book.marketingCounts;
   return (
-    <>
-      <PageHeader title="Marketing" summary="Launch content for this book, drafted from the finished text in the profile's voice." />
-      <section
-        aria-labelledby="not-yet"
-        className="mt-6 grid max-w-[760px] gap-5 rounded-md border border-border bg-sheet p-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-8"
-      >
-        <div>
-          <h2 id="not-yet" className="font-book text-heading text-ink">
-            Available after the book is written
-          </h2>
-          <p className="mt-2 text-body text-ink-secondary">
-            {writing
-              ? `The writer is still on ${book.title}. Once every section is written, Volume drafts the launch content from the finished chapters.`
-              : `Volume drafts the launch content once ${book.title} is written, so every line can point to a real chapter.`}
-          </p>
-          <Link
-            to={`/books/${book.id}/writing`}
-            className="mt-4 inline-flex h-10 items-center rounded-sm border border-border-strong bg-sheet px-4 text-label font-semibold text-ink hover:bg-sunken"
-          >
-            {writing ? "Watch the writer" : "Open Writing"}
-          </Link>
-        </div>
-        <div>
-          <h3 className="text-label font-semibold text-ink">What you will get</h3>
-          <ul className="mt-2 grid gap-2 text-[14px] leading-5 text-ink">
-            <li className="flex gap-2">
-              <Sparkles size={16} aria-hidden className="mt-0.5 shrink-0 text-ink-secondary" />3 TikTok scripts, each with a hook under 3 seconds, beats and
-              on-screen text
-            </li>
-            <li className="flex gap-2">
-              <Sparkles size={16} aria-hidden className="mt-0.5 shrink-0 text-ink-secondary" />2 Instagram captions with hashtags and an image idea
-            </li>
-            <li className="flex gap-2">
-              <Sparkles size={16} aria-hidden className="mt-0.5 shrink-0 text-ink-secondary" />1 launch email with three subject lines to pick from
-            </li>
-          </ul>
-          <p className="mt-3 text-small text-ink-secondary">No invented reviews, rankings or numbers. About $0.04 for the set.</p>
-        </div>
-      </section>
-    </>
+    <section
+      aria-labelledby="not-yet"
+      className="mt-5 grid max-w-[860px] gap-5 rounded-md border border-border bg-sheet p-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-8 sm:p-6"
+    >
+      <div>
+        <h2 id="not-yet" className="font-book text-heading text-ink">
+          Opens when writing is finished
+        </h2>
+        <p className="mt-2 text-body text-ink-secondary">
+          {MARKETING_LOCKED} Volume then drafts the launch content from the finished text, so every line can point to a real chapter.
+        </p>
+        <Link
+          to={`/books/${book.id}/writing`}
+          className="mt-4 inline-flex h-10 items-center rounded-sm border border-border-strong bg-sheet px-4 text-label font-semibold text-ink hover:bg-sunken"
+        >
+          {writing ? "Watch the writer" : "Open Writing"}
+        </Link>
+      </div>
+      <div>
+        <h3 className="text-label font-semibold text-ink">What you will get</h3>
+        <ul className="mt-2 grid gap-2 text-[14px] leading-5 text-ink">
+          <li className="flex gap-2">
+            <Sparkles size={16} aria-hidden className="mt-0.5 shrink-0 text-ink-secondary" />
+            {plural(tiktok, "TikTok script", "TikTok scripts")}, each with a hook under 3 seconds, beats and on-screen text
+          </li>
+          <li className="flex gap-2">
+            <Sparkles size={16} aria-hidden className="mt-0.5 shrink-0 text-ink-secondary" />
+            {plural(instagram, "Instagram caption", "Instagram captions")} with hashtags and an image idea
+          </li>
+          <li className="flex gap-2">
+            <Sparkles size={16} aria-hidden className="mt-0.5 shrink-0 text-ink-secondary" />1 launch email with three subject lines to pick from
+          </li>
+        </ul>
+        <p className="mt-3 text-small text-ink-secondary">No invented reviews, rankings or numbers. About $0.04 for the set.</p>
+      </div>
+    </section>
   );
 }
 
 function MarketingBody({ book, empty }: { book: Book; empty: boolean }) {
   const canWrite = useCanWrite();
+  const locked = book.writingComplete ? undefined : MARKETING_LOCKED;
   const toast = useToast();
   const [items, setItems] = useState<MarketingItem[]>(() => (empty ? [] : initialItems(book)));
   const [archive, setArchive] = useState<ArchivedItem[]>(() => (empty ? [] : initialArchive(book)));
@@ -208,13 +209,14 @@ function MarketingBody({ book, empty }: { book: Book; empty: boolean }) {
           label: generating === tab ? "Generating" : generateLabel[tab].label,
           estimate: generateLabel[tab].cost,
           onClick: () => generate(tab),
-          disabledReason: generating ? "Already generating." : undefined,
+          disabledReason: locked ?? (generating ? "Already generating." : undefined),
         },
   );
 
   return (
     <>
       <PageHeader title="Marketing" summary="Launch content for this book. Copy what you need, regenerate what you do not." />
+      {locked && <LockedNotice book={book} />}
       <Tabs idBase="mk" label="Content type" className="mt-5" value={tab} onChange={(t) => setTab(t as Tab)} items={tabItems} />
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_var(--vol-inspector)]">
@@ -256,7 +258,10 @@ function MarketingBody({ book, empty }: { book: Book; empty: boolean }) {
                 <EmptyState
                   drawing="pen"
                   title={emptyCopy[tab]}
-                  body={`The writer drafts these from the finished chapters in the profile's voice. No reviews, rankings or numbers are invented. ${generateLabel[tab].label}, at the foot of the page, makes the first ones.`}
+                  body={
+                    locked ??
+                    `The writer drafts these from the finished chapters in the profile's voice. No reviews, rankings or numbers are invented. ${generateLabel[tab].label}, at the foot of the page, makes the first ones.`
+                  }
                 />
               ) : (
                 <ul className="grid gap-4">
@@ -271,6 +276,7 @@ function MarketingBody({ book, empty }: { book: Book; empty: boolean }) {
                         onSelect={() => setSelectedId(item.data.id)}
                         onCopy={() => void copy(itemText(item, subjectIdx[item.data.id] ?? 0), kindLabel[item.kind])}
                         onRegenerate={() => regenerate(item)}
+                        regenerateLocked={locked}
                         onArchive={() => archiveItem(item)}
                         onToggleUsed={() => toggleUsed(item)}
                       />
@@ -320,11 +326,13 @@ interface ItemCardProps {
   onSelect: () => void;
   onCopy: () => void;
   onRegenerate: () => void;
+  /** Why Regenerate is off (writing not complete), else undefined. */
+  regenerateLocked?: string | undefined;
   onArchive: () => void;
   onToggleUsed: () => void;
 }
 
-function ItemCard({ item, selected, busy, subjectIndex, onSubject, onSelect, onCopy, onRegenerate, onArchive, onToggleUsed }: ItemCardProps) {
+function ItemCard({ item, selected, busy, subjectIndex, onSubject, onSelect, onCopy, onRegenerate, regenerateLocked, onArchive, onToggleUsed }: ItemCardProps) {
   const canWrite = useCanWrite();
   return (
     <article
@@ -357,7 +365,16 @@ function ItemCard({ item, selected, busy, subjectIndex, onSubject, onSelect, onC
         </Button>
         {canWrite && (
           <>
-            <Button size="sm" variant="ghost" icon={RotateCw} estimate="about $0.01" loading={busy} loadingLabel="Regenerating" onClick={onRegenerate}>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={RotateCw}
+              estimate="about $0.01"
+              loading={busy}
+              loadingLabel="Regenerating"
+              disabledReason={regenerateLocked}
+              onClick={onRegenerate}
+            >
               Regenerate
             </Button>
             <Button size="sm" variant="ghost" icon={Check} onClick={onToggleUsed} disabled={busy} aria-pressed={item.status === "used"}>

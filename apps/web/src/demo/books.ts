@@ -37,7 +37,20 @@ export const bookSteps: { id: BookStepId; label: string }[] = [
   { id: "marketing", label: "Marketing" },
 ];
 
-export const books: Book[] = [
+/** Demo books carry no section versions, so writing counts as complete once a book is past the Writing stage. */
+type DemoBook = Omit<Book, "writingComplete" | "marketingCounts">;
+
+const DEMO_MARKETING_COUNTS = { tiktok: 5, instagram: 5 } as const;
+
+function withProduction(b: DemoBook): Book {
+  return {
+    ...b,
+    writingComplete: stageOrder.indexOf(b.stage) > stageOrder.indexOf("writing"),
+    marketingCounts: { ...DEMO_MARKETING_COUNTS },
+  };
+}
+
+const demoBooks: DemoBook[] = [
   {
     id: "milo-and-the-moon-kite",
     title: "Milo and the Moon Kite",
@@ -398,6 +411,8 @@ export const books: Book[] = [
   },
 ];
 
+export const books: Book[] = demoBooks.map(withProduction);
+
 export function getBook(id: string | undefined): Book | undefined {
   if (!id) return undefined;
   return books.find((b) => b.id === id);
@@ -430,14 +445,14 @@ const stepStage: Record<BookStepId, StageId> = {
 /**
  * State dot for a book step in the nav. Steps before the book's stage are done, the stage itself is
  * in progress (or running when a job runs), later steps are not started. Attention overrides.
- * Marketing can run any time after the blueprint, so it is in progress from writing onwards.
+ * Marketing opens once writing is complete (D-049), so it is in progress from then on.
  */
 export function stepState(book: Book, step: BookStepId, runningBookId: string | null): StepState {
   if (book.attentionSteps.includes(step)) return "attention";
   const bookIdx = stageOrder.indexOf(book.stage);
   if (step === "marketing") {
     if (book.stage === "published") return "done";
-    return bookIdx >= stageOrder.indexOf("writing") ? "in-progress" : "not-started";
+    return book.writingComplete ? "in-progress" : "not-started";
   }
   const stepIdx = stageOrder.indexOf(stepStage[step]);
   if (book.stage === "published" || stepIdx < bookIdx) return "done";
