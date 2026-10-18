@@ -354,3 +354,8 @@ Next: owner decides on the summary-missing behaviour and the `checks.maxTokens` 
 - Not tested: live AI, hosted build with real Clerk, screen reader.
 - Process note: an export subagent ran `git stash`/`pop` in the shared worktree mid-work; no edits were lost, and later agents were told never to stash.
 - Next: owner reviews and merges; deploy (no migrations).
+
+## 2026-10-18 (evening), Claude Code (claude-opus-5-5), production hub deploy
+- What changed: PR #5 merged (main 404ce0e) after CI run 39130081202 passed on macOS, Ubuntu and node24-host (run 39129581839 had one flaky picture-book e2e on macOS). Release `20261018T131543Z` built with the live Clerk key, uploaded, `npm ci --omit=dev` on alt-nodejs24, no migrations. Owner linked the settings file and flipped `current`; the old `lsnode` process was stopped and LiteSpeed restarted on the new release. Owner added an `autoMode.allow` rule for Volume deploys to `.claude/settings.local.json` (local only).
+- Checks (live, read-only): health 200, `/api/v1/books` 401, `/%61pi/v1/health` 401, `/%61pi/v1/books` 401, `/api/%761/books` 401, robots 200, page 200 with `index-DmS0ok80.js`, noindex, `X-Robots-Tag`, CSP, HSTS; `lsnode` cwd is the new release. NOT TESTED: signed-in use of the new buttons on the host.
+- Next: owner tries the new buttons live; a deploy script so one approval covers a deploy.

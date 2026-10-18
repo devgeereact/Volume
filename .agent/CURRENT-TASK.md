@@ -6,7 +6,9 @@ Done: stage to `blueprint` on title choice and to `editor` when writing is compl
 
 Proven (Node 26.8.1): doctor, typecheck, lint, format, docs, hooks, Vitest 898 passed and 2 skipped (core 151, AI 202, export 132, server 322, web 91), both builds, e2e 17 of 17 (new `tests/e2e/production-hub.spec.ts`). Screenshots: `../reports/volume/screenshots/production-hub/`.
 
-Next: owner reviews and merges the branch, then deploys per DEPLOYMENT.md (no new migrations). Behaviour change: an acknowledgements placeholder keeps a book out of `editor` and marketing until the owner fills it.
+Merged as PR #5 (main 404ce0e) and live on 18 October 2026 (release `20261018T131543Z`; rollback `20261018T105443Z`). Live checks: health 200, unsigned API 401, bypass 401, new bundle `index-DmS0ok80.js`.
+
+Next: owner tries Mark as published, Archive and the marketing gate on the live site; phase 6, 7, 8 gates; point `PassengerNodejs` at a stable Node path. Behaviour change: an acknowledgements placeholder keeps a book out of `editor` and marketing until the owner fills it.
 
 ## Production deploy, 18 October 2026 (Claude Code)
 
