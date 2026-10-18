@@ -11,6 +11,7 @@ import { AppError, errorBody, registerErrorHandling } from './http/errors.js';
 import { applySecurityHeaders, clientIp, isApiPath, isPublicHealth, PUBLIC_HEALTH_PATH, registerWebApp, sendSpaIndex } from './http/hosting.js';
 import { defaultHandlers } from './jobs/handlers/index.js';
 import { JobQueue } from './jobs/queue.js';
+import { RetentionService } from './jobs/retention.js';
 import { JobRunner, type HandlerMap, type JobServices, type RunnerOptions } from './jobs/runner.js';
 import type { AiPort } from './ports/ai.js';
 import type { ExportPort } from './ports/export.js';
@@ -31,6 +32,8 @@ export interface AppServices extends JobServices {
   ownerCtx: RequestCtx;
   dbClient: 'sqlite' | 'mysql';
   backups: BackupService;
+  /** Daily deletion of job events older than 90 days (D-050). */
+  retention: RetentionService;
   /** Checks the OpenRouter key with OpenRouter's key status (null when no key is set). Never returns the key. */
   openRouterKeyCheck: OpenRouterKeyCheck | null;
 }
@@ -51,7 +54,7 @@ export interface BuildAppOptions {
   startJobs?: boolean;
   logger?: NonNullable<FastifyServerOptions['logger']>;
   chunkBytes?: number;
-  /** Run the nightly SQLite backup while the app runs (default: the same as startJobs). */
+  /** Run the nightly SQLite backup and the daily retention pass while the app runs (default: the same as startJobs). */
   nightlyBackups?: boolean;
   /** POST /settings/openrouter/test uses this (index.ts builds it from the key; tests pass a fake). */
   openRouterKeyCheck?: OpenRouterKeyCheck | null;
@@ -121,6 +124,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
   const runnerOpts: RunnerOptions = { ...opts.runner, log: app.log };
   const runner = new JobRunner(jobServices, opts.handlers ?? defaultHandlers, runnerOpts);
   const backups = new BackupService(db, handle.dialect, config.dataDir);
+  const retention = new RetentionService(bus);
   const services: AppServices = {
     ...jobServices,
     config,
@@ -128,6 +132,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
     ownerCtx,
     dbClient: handle.dialect,
     backups,
+    retention,
     openRouterKeyCheck: opts.openRouterKeyCheck ?? null,
   };
   if (config.authMode === 'clerk' && !opts.auth) throw new Error('AUTH_MODE=clerk needs the Clerk auth provider.');
@@ -206,6 +211,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
 
   app.addHook('onClose', async () => {
     backups.stop();
+    retention.stop();
     await runner.stop();
     // The real exporter holds one shared Chromium; it is released here.
     await jobServices.exporter.close?.();
@@ -213,6 +219,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
 
   if (opts.startJobs ?? config.jobsEnabled) await runner.start();
   if (opts.nightlyBackups ?? opts.startJobs ?? config.jobsEnabled) {
+    retention.start({ log: (msg, deleted, failed) => (failed ? app.log.warn(msg) : app.log.info({ deleted }, msg)) });
     backups.startNightly(repos.settings, ownerCtx, {
       log: (msg, err) =>
         err ? app.log.warn({ err: { message: err instanceof Error ? err.message : typeof err === 'string' ? err : 'Unknown error' } }, msg) : app.log.info(msg),

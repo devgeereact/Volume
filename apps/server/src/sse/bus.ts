@@ -42,6 +42,9 @@ export interface PublishInput {
 
 type Listener = (e: BusEvent) => void;
 
+/** Stored job events older than this are deleted daily (D-050). */
+export const JOB_EVENT_RETENTION_DAYS = 90;
+
 export class EventBus {
   private readonly listeners = new Map<string, Set<Listener>>();
 
@@ -135,19 +138,13 @@ export class EventBus {
     });
   }
 
-  /** Removes stored events older than `days`, keeping the last event of each job. */
-  async prune(days = 30): Promise<number> {
-    const cutoff = now() - days * 24 * 60 * 60 * 1000;
-    const keep = this.db
-      .selectFrom('jobEvents')
-      .select((eb) => eb.fn.max('id').as('id'))
-      .where('jobId', 'is not', null)
-      .groupBy('jobId');
-    const res = await this.db
-      .deleteFrom('jobEvents')
-      .where('createdAt', '<', cutoff)
-      .where('id', 'not in', this.db.selectFrom(keep.as('k')).select('k.id'))
-      .executeTakeFirst();
+  /**
+   * Retention (D-050): removes every stored event older than `days` (default 90), in every workspace. Job status
+   * lives on the jobs row, so nothing needs an old event; a stream resuming from a pruned id simply replays less.
+   */
+  async prune(days = JOB_EVENT_RETENTION_DAYS, at = now()): Promise<number> {
+    const cutoff = at - days * 24 * 60 * 60 * 1000;
+    const res = await this.db.deleteFrom('jobEvents').where('createdAt', '<', cutoff).executeTakeFirst();
     return Number(res.numDeletedRows);
   }
 }
