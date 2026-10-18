@@ -29,6 +29,11 @@ function str(v: unknown, fallback: string): string {
   return typeof v === 'string' && v.trim().length > 0 ? v : fallback;
 }
 
+/** Marketing items the mock returns: the job's count (1 to 20), else 1. */
+function mockCount(v: unknown): number {
+  return typeof v === 'number' && Number.isInteger(v) && v >= 1 ? Math.min(20, v) : 1;
+}
+
 function obj(v: unknown): Record<string, unknown> {
   return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 }
@@ -371,24 +376,21 @@ function buildOutput<S extends AiStage>(stage: S, input: AiStageInput): AiStageO
       break;
     case 'marketing':
       out = {
-        tiktok: [
-          {
-            hook: `${MOCK_MARK} Stop scrolling if you want ${title}.`,
-            beats: ['Problem', 'Turn', 'Payoff'],
-            on_screen: ['Hook', 'Tip'],
-            cta: 'Link in bio',
-            seconds: 30,
-            hashtags: ['#booktok', '#newbook'],
-          },
-        ],
-        instagram: [
-          {
-            caption: `${MOCK_MARK} New book: ${title}.`,
-            hashtags: ['#books', '#newbook'],
-            cta: 'Read the first chapter',
-            image_idea: `${MOCK_MARK} The book on a windowsill in morning light.`,
-          },
-        ],
+        // As many as the job asked for (the template's counts, D-049); one when it names none (a regenerate).
+        tiktok: Array.from({ length: mockCount(v['tiktokCount']) }, (_, i) => ({
+          hook: `${MOCK_MARK} Stop scrolling if you want ${title}.${i > 0 ? ` (${i + 1})` : ''}`,
+          beats: ['Problem', 'Turn', 'Payoff'],
+          on_screen: ['Hook', 'Tip'],
+          cta: 'Link in bio',
+          seconds: 30,
+          hashtags: ['#booktok', '#newbook'],
+        })),
+        instagram: Array.from({ length: mockCount(v['instagramCount']) }, (_, i) => ({
+          caption: `${MOCK_MARK} New book: ${title}.${i > 0 ? ` (${i + 1})` : ''}`,
+          hashtags: ['#books', '#newbook'],
+          cta: 'Read the first chapter',
+          image_idea: `${MOCK_MARK} The book on a windowsill in morning light.`,
+        })),
         email: {
           subjects: [`${MOCK_MARK} It is here`, `${MOCK_MARK} New book`, `${MOCK_MARK} Launch day`],
           preview: 'The book is out',

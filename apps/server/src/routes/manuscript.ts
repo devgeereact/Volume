@@ -6,7 +6,7 @@ import { AppError, parse } from '../http/errors.js';
 import { contextOf, findMatches, replaceMatches } from '../lib/find.js';
 import { lineDiff } from '../lib/text.js';
 import { NoteInputSchema, NotePatchSchema, SaveVersionSchema, type Section } from '../repos/manuscript.js';
-import { CODE_WRITTEN_KINDS } from '../jobs/book-data.js';
+import { advanceIfWritingComplete, CODE_WRITTEN_KINDS } from '../jobs/book-data.js';
 import { sectionGuardrails } from '../repos/run-info.js';
 import { LEDGER_KINDS } from '../ports/ai.js';
 import { accepted, idOf, writer } from './common.js';
@@ -98,6 +98,8 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
     const input: Parameters<typeof m.saveVersion>[2] = { bodyMd: body.bodyMd, content: body.content, source: 'human', note: body.note ?? null };
     if (body.baseVersionId !== undefined) input.baseVersionId = body.baseVersionId;
     const v = await m.saveVersion(req.ctx, id, input);
+    // D-048: the owner's save can finish the writing, which moves the book on to the editor.
+    await advanceIfWritingComplete(s.repos, req.ctx, v.projectId);
     await s.bus.publish(req.ctx.workspaceId, {
       projectId: v.projectId,
       type: 'section.saved',
@@ -118,6 +120,7 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const p = parse(VersionParams, req.params);
     const v = await m.restoreVersion(req.ctx, p.id, p.versionId);
+    await advanceIfWritingComplete(s.repos, req.ctx, v.projectId);
     await s.bus.publish(req.ctx.workspaceId, {
       projectId: v.projectId,
       type: 'section.saved',
@@ -337,6 +340,7 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
       versions.push({ sectionId: sec.id, versionId: v.id, count: found.length });
       replacements += found.length;
     }
+    if (versions.length > 0) await advanceIfWritingComplete(s.repos, req.ctx, id);
     return { replacements, sectionsChanged: versions.length, versions };
   });
 

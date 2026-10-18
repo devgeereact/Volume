@@ -113,9 +113,10 @@ export function planningRoutes(app: FastifyInstance, s: AppServices): void {
     const option = (set.options[body.index] ?? {}) as { title?: string; subtitle?: string };
     const title = body.title ?? option.title ?? null;
     const subtitle = body.subtitle ?? option.subtitle ?? null;
-    const book = await books.update(req.ctx, set.projectId, { title, subtitle });
-    await books.advanceStage(req.ctx, set.projectId, 'titles');
-    return { titleSet: set, book };
+    await books.update(req.ctx, set.projectId, { title, subtitle });
+    // D-048: a chosen title moves the book on to the blueprint step.
+    await books.advanceStage(req.ctx, set.projectId, 'blueprint');
+    return { titleSet: set, book: await books.require(req.ctx, set.projectId) };
   });
 
   // ---------- blueprints ----------

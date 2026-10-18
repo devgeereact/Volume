@@ -56,6 +56,11 @@ export interface RequestMeta {
   attempt?: number | undefined;
   /** Why the call was sent: the first answer, a JSON repair, or the automatic style rewrite. */
   purpose?: 'answer' | 'json-repair' | 'style-rewrite' | undefined;
+  /**
+   * How many items the prompt asks for (the task input's `count`, for example TikTok scripts or Instagram
+   * captions). The mock provider fills each top-level list of its sample answer to this length.
+   */
+  itemCount?: number | undefined;
 }
 
 export type MockScenario =

@@ -35,6 +35,8 @@ export interface ExportBook {
   interiorThemeId: string | null;
   coverStyleId: string | null;
   aiDisclosure: { text: string; images: string; translation: string };
+  /** What the book shows AI made (AI section versions, AI-made cover or spread pictures), whatever aiDisclosure says. */
+  aiEvidence?: { text: boolean; images: boolean };
   illustrativeLine: boolean;
   sections: ExportSection[];
   /** sha256 of all enabled section text in order, to spot stale exports. */

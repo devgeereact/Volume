@@ -345,7 +345,8 @@ export class BooksRepo {
     }
   }
 
-  async setStatus(ctx: RequestCtx, id: string, action: 'archive' | 'restore' | 'publish' | 'unpublish'): Promise<Book> {
+  /** publishedAt (ms): the owner's publish date for `publish`; now when not given. */
+  async setStatus(ctx: RequestCtx, id: string, action: 'archive' | 'restore' | 'publish' | 'unpublish', publishedAt?: number): Promise<Book> {
     const b = await this.require(ctx, id);
     const t = now();
     const set: Partial<ProjectsTable> = { updatedAt: t };
@@ -358,7 +359,7 @@ export class BooksRepo {
     } else if (action === 'publish') {
       if (b.status === 'archived') throw new AppError('invalid_state', 'Restore the book before marking it as published.');
       set.status = 'published';
-      set.publishedAt = b.publishedAt ?? t;
+      set.publishedAt = publishedAt ?? b.publishedAt ?? t;
     } else {
       set.status = 'active';
       set.publishedAt = null;

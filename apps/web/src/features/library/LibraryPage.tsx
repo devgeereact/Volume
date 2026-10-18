@@ -179,7 +179,7 @@ export default function LibraryPage() {
         />
       );
     return view === "covers" ? (
-      <PipelineView books={shown} live={liveInfo} penName={getPen} />
+      <PipelineView books={shown} live={liveInfo} penName={getPen} statusActions={api && canWrite} />
     ) : (
       <LedgerView
         books={shown}

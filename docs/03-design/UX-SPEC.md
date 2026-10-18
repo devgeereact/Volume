@@ -137,8 +137,8 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 9. Matter and metadata run as part of Write book; owner reviews listing fields in Blueprint (listing) or Export.
 10. Cover studio: brief, concepts, choose, typography, Build covers (wrap uses the real interior page count).
 11. Export: preflight, fix blocks, tick warnings, Build pack, download zip.
-12. Marketing: generate scripts, captions and email (can run any time after the blueprint).
-13. After upload to KDP, Library: Mark as published (adds to Also by).
+12. Marketing: generate scripts, captions and email once writing is complete (D-049: every section the AI or the owner writes has real text, placeholders do not count). Items already made stay visible; only Generate is locked. Counts come from the template (5 TikTok scripts and 5 Instagram captions).
+13. After upload to KDP, Export or the Library card: Mark as published, with a date of today or earlier (adds to Also by and the Published shelf). Archive sits beside it with an Undo.
 
 ### Regenerate a chapter
 

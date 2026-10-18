@@ -323,3 +323,19 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
 - **Options considered:** Clerk Organizations and roles (paid in production, ties data rules to Clerk); open sign-up (not safe on a shared host); encrypted per-account keys now (holds other people's secrets on a host with no key service).
 - **Consequences:** Other self-publishers cannot use their own OpenRouter credit until a later decision. A new env name goes in `.env.example` and `docs/07-operations/DEPLOYMENT.md`. Undo by leaving `ACCOUNTS_MODE` at `owner-only`.
 - **Note, 17 October 2026 (review fixes):** Other workspaces spend the instance owner's key, and their own caps are theirs to set. The instance owner now holds `budget.guest_workspaces_monthly_cap_usd` (stored on the instance workspace, default 0, which refuses their AI and image runs with `guest_ai_disabled`), enforced in the job runner's reservation path for every call. Only the instance owner sees or sets it, and only the instance owner sees backup status. One account has one membership; the instance owner's pending invitation wins at sign-in. Details in `docs/05-security/AUTH-MODEL.md`. Accepted with D-047.
+
+## D-048, 18 October 2026: book stage advances on title choice and when writing completes
+
+- **Status:** Accepted (owner delegated the choice, 18 October 2026).
+- **Context:** Stages are `idea, research, titles, blueprint, writing, editor, cover, export, marketing` (`apps/server/src/repos/books.ts:9`) and only move forward. Choosing a title leaves the book at `titles` (`apps/server/src/routes/planning.ts:117`); nothing sets `editor` or `marketing`, and picture books jump from `writing` to `export`. The Library and hub show stale stages.
+- **Decision:** Choosing a title advances to `blueprint`. A shared predicate, writing complete (every enabled section that the AI or the owner writes has a current version with real text; owner placeholders and empty bodies do not count), advances to `editor` after each section save, AI or owner. A picture book uses the same predicate once its story is saved. No migration: `projects.stage` is free text and the values exist.
+- **Options considered:** leave stages to the owner (stale today); derive the stage on read (breaks the forward-only history).
+- **Consequences:** Existing books move forward the next time a section is saved. Undo by removing the two advance calls.
+
+## D-049, 18 October 2026: one marketing gate, writing complete
+
+- **Status:** Accepted (owner delegated the choice, 18 October 2026).
+- **Context:** Marketing was gated three ways: the server opened it once any one section had text (`apps/server/src/routes/production.ts:36-42`), the web app once the stage passed `writing` (`apps/web/src/features/marketing/MarketingPage.tsx:60`), and UX-SPEC any time after the blueprint. Counts fell back to 3 while the spec says 5 (AC12.1, AC12.2) and the nonfiction template said 6 Instagram posts.
+- **Decision:** Marketing opens when writing is complete (the D-048 predicate). The server computes it and returns `writingComplete` on the book; the web app reads that field and nothing else. Counts come from the book template (`marketing` defaults), 5 TikTok scripts and 5 Instagram posts for every template unless the template says otherwise; the nonfiction template is corrected to 5. The pack carries the matter-stage back-cover blurb (falling back to the blueprint blurb) and the short bio as text files.
+- **Options considered:** any section written (scripts quote an unfinished book); after the blueprint (marketing with no text, against "scripts quote the finished chapters" in AI-PIPELINE).
+- **Consequences:** Marketing opens later for books still being written. Undo by changing the one predicate.

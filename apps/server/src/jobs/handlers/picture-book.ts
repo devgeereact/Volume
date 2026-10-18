@@ -2,7 +2,7 @@ import { seedFromKey } from '@volume/ai';
 import { promptTemplate } from '../../config/book-structure.js';
 import type { ExportFile, PictureSpreadInput } from '../../ports/export.js';
 import type { NewSectionInput, Section } from '../../repos/manuscript.js';
-import { buildExportBook, profileSummary, withOwnerPlaceholders } from '../book-data.js';
+import { advanceIfWritingComplete, buildExportBook, profileSummary, withOwnerPlaceholders } from '../book-data.js';
 import { datedPricesVars, plannedBodyCount, writtenSections } from '../book-checks.js';
 import { JobFailed } from '../errors.js';
 import {
@@ -261,7 +261,9 @@ export const pictureStoryHandler: JobHandler = async (jc) => {
       await repos.manuscript.saveVersion(jc.ctx, goodnight.id, { bodyMd: goodnightText, source: 'ai', promptRunId: res.promptRunId });
     if (!book.title && str(story.title)) await repos.books.update(jc.ctx, projectId, { title: str(story.title) });
     await repos.books.setAiDisclosure(jc.ctx, projectId, 'text', 'ai_generated');
+    // D-048: a picture book moves on to the editor once its story is saved (the same predicate as writingComplete).
     await repos.books.advanceStage(jc.ctx, projectId, 'writing');
+    await advanceIfWritingComplete(repos, jc.ctx, projectId);
     await jc.emit('book.updated', { projectId, part: 'spreads', step: 'story' });
     storyRan = true;
   }

@@ -161,6 +161,19 @@ function toExport(r: ExportsTable): ExportRecord {
 export class ProductionRepo {
   constructor(private readonly db: Db) {}
 
+  /** The matter-stage back-cover blurb (listings.back_blurb), or null when none is saved. */
+  async listingBackBlurb(ctx: RequestCtx, projectId: string): Promise<string | null> {
+    const r = await this.db
+      .selectFrom('listings')
+      .select('backBlurb')
+      .where('workspaceId', '=', ctx.workspaceId)
+      .where('projectId', '=', projectId)
+      .orderBy('updatedAt', 'desc')
+      .executeTakeFirst();
+    const v = r?.backBlurb;
+    return typeof v === 'string' && v.trim().length > 0 ? v : null;
+  }
+
   // covers
 
   async getCover(ctx: RequestCtx, projectId: string): Promise<Cover | null> {

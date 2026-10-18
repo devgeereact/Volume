@@ -173,7 +173,8 @@ describe('8. marketing needs written sections', () => {
     const id = b.body['id'] as string;
     const refused = await t.call<{ error: { code: string; message: string } }>('POST', `/api/v1/books/${id}/marketing`, {});
     expect(refused.status).toBe(409);
-    expect(refused.body.error.message).toMatch(/Write the book first/);
+    expect(refused.body.error.code).toBe('writing_incomplete');
+    expect(refused.body.error.message).toBe('Finish writing every chapter before marketing.');
     expect(await t.services.db.selectFrom('jobs').select('id').where('kind', '=', 'marketing').execute()).toHaveLength(0);
 
     await t.call('POST', `/api/v1/books/${id}/blueprints`, { chapterCount: 1 });
@@ -183,6 +184,12 @@ describe('8. marketing needs written sections', () => {
     expect((await t.call('POST', `/api/v1/books/${id}/marketing`, {})).status).toBe(409);
     await t.call('POST', `/api/v1/books/${id}/write`, {});
     await t.services.runner.runUntilIdle();
+    // No names to thank: the acknowledgements placeholder does not count as written, so marketing still waits.
+    expect((await t.call('POST', `/api/v1/books/${id}/marketing`, {})).status).toBe(409);
+    const tree = await t.call<{ front: Obj[] }>('GET', `/api/v1/books/${id}/sections`);
+    const thanks = tree.body.front.find((x) => x['kind'] === 'acknowledgements' && x['enabled'] === true);
+    expect(thanks).toBeDefined();
+    await t.call('POST', `/api/v1/sections/${thanks?.['id'] as string}/versions`, { bodyMd: '# Acknowledgements\n\nThank you, Sam.' });
     expect((await t.call('POST', `/api/v1/books/${id}/marketing`, {})).status).toBe(202);
   });
 });

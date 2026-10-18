@@ -179,7 +179,11 @@ export function toPenName(p: ApiProfile, defaultWriterModel = ""): PenName {
 
 /* ---------- Books ---------- */
 
-/** Server stage (stepper step) to the prototype's pipeline stage. */
+/**
+ * Server stage (stepper step) to the prototype's pipeline stage. The server's names differ for three steps:
+ * `titles` is `title`, `editor` is `editing` and `marketing` sits under `export`. Since D-048 the server
+ * reaches `blueprint` on title choice and `editor` once writing is complete.
+ */
 export function toStageId(book: Pick<ApiBook, "stage" | "status">): StageId {
   if (book.status === "published") return "published";
   switch (book.stage) {
@@ -231,6 +235,11 @@ function disclosureLabel(b: ApiBook): PublishedInfo["aiDisclosure"] {
   return "AI-assisted";
 }
 
+/** A template count from the server, or the D-049 default when it is missing. */
+function countOr(n: number | undefined, fallback: number): number {
+  return typeof n === "number" && Number.isInteger(n) && n >= 0 ? n : fallback;
+}
+
 function seriesOf(settings: Obj): Book["series"] {
   const s = obj(settings["series"]);
   const name = str(s["name"]);
@@ -243,6 +252,8 @@ function seriesOf(settings: Obj): Book["series"] {
  */
 export function toPrototypeBook(b: ApiBook | ApiBookDetail): Book {
   const stage = toStageId(b);
+  // The web pipeline has no Marketing column: a book on the server's marketing step sits under Export with its own line.
+  const line = stage === "export" && b.stage === "marketing" ? "Marketing" : STAGE_LINES[stage];
   const written = "totals" in b ? b.totals.words : 0;
   const running = "recentJobs" in b ? b.recentJobs.some((j) => j.status === "running" || j.status === "queued") : false;
   return {
@@ -252,7 +263,7 @@ export function toPrototypeBook(b: ApiBook | ApiBookDetail): Book {
     penNameId: b.profileId,
     template: toTemplateId(b.template),
     stage,
-    statusLine: running ? `${STAGE_LINES[stage]}, job running` : STAGE_LINES[stage],
+    statusLine: running ? `${line}, job running` : line,
     words: { written, target: b.wordTarget ?? 0 },
     cost: { spent: b.costToDateUsd, budget: b.budgetUsd },
     trim: b.trim,
@@ -271,6 +282,8 @@ export function toPrototypeBook(b: ApiBook | ApiBookDetail): Book {
       b.status === "published"
         ? { publishedOn: isoFromMs(b.publishedAt), marketplace: "", formats: [], aiDisclosure: disclosureLabel(b), packVersion: 0 }
         : null,
+    writingComplete: b.writingComplete === true,
+    marketingCounts: { tiktok: countOr(b.marketingCounts?.tiktok, 5), instagram: countOr(b.marketingCounts?.instagram, 5) },
   };
 }
 

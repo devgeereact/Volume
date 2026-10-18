@@ -132,6 +132,8 @@ describe('preflight and upload pack on the sample book', () => {
       claims: [{ chapter: 'Chapter 4', sentence: 'Feed every couple of weeks.', category: 'safety', check: 'label', status: 'open' }],
       ai: { aiWroteText: true, aiMadeImages: false },
       marketing: { launchEmail: 'Subject: The book is out', tiktokScripts: '  ' },
+      backCoverBlurb: 'Fresh herbs from the windowsill you already have.',
+      shortBio: 'Ada Green grows herbs in a small London flat.\n',
       date: new Date('2026-10-04T00:00:00Z'),
     });
     expect(pack.fileName).toBe('windowsill-herbs-kdp-pack-2026-10-04.zip');
@@ -145,8 +147,10 @@ describe('preflight and upload pack on the sample book', () => {
         'cover/windowsill-herbs-ebook-cover.jpg',
         `cover/windowsill-herbs-paperback-wrap-6x9-white-${pdf.pageCount}p.pdf`,
         'listing/ai-disclosure.txt',
+        'listing/back-cover-blurb.txt',
         'listing/description.html',
         'listing/metadata.txt',
+        'listing/short-bio.txt',
         'manuscript/windowsill-herbs-interior-6x9.pdf',
         'manuscript/windowsill-herbs.docx',
         'manuscript/windowsill-herbs.epub',
@@ -163,6 +167,10 @@ describe('preflight and upload pack on the sample book', () => {
     expect(await z.file('marketing/launch-email.txt')?.async('string')).toBe('Subject: The book is out\n');
     const readme = (await z.file('README.txt')?.async('string')) ?? '';
     expect(readme).toContain('marketing/    The launch email\n');
+    // Blurb and short bio as UTF-8 text with one trailing newline (D-049).
+    expect(await z.file('listing/back-cover-blurb.txt')?.async('string')).toBe('Fresh herbs from the windowsill you already have.\n');
+    expect(await z.file('listing/short-bio.txt')?.async('string')).toBe('Ada Green grows herbs in a small London flat.\n');
+    expect(readme).toContain('listing/      metadata, the HTML description, the back-cover blurb, the short bio and the AI disclosure note\n');
     expect(readme).not.toContain('Not written yet');
     expect(await z.file('listing/ai-disclosure.txt')?.async('string')).toContain('Text: AI-generated');
     expect(await z.file('reports/claims-to-verify.csv')?.async('string')).toContain('chapter,sentence,category,check needed,status');

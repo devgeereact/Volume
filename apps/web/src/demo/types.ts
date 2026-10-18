@@ -154,6 +154,10 @@ export interface Book {
   series: { name: string; number: number } | null;
   /** Set once the book is live on Amazon (the Published shelf). */
   published: PublishedInfo | null;
+  /** Every section is written (D-048). The one gate for marketing (D-049). */
+  writingComplete: boolean;
+  /** TikTok scripts and Instagram posts the template asks for (D-049). */
+  marketingCounts: { tiktok: number; instagram: number };
 }
 
 export interface PublishedFormat {

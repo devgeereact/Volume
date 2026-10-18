@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { BookStatusActions } from "../published/BookStatusActions";
+import { canMarkPublished } from "../published/publishDate";
 import { useQueryClient } from "@tanstack/react-query";
 import { sizeLabel } from "../../api/adapters";
 import { queryKeys, useBookJobs, useExports } from "../../api/hooks";
@@ -119,6 +121,7 @@ function ApiPictureExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
       canWrite={canWrite}
       stale={!!pdf?.stale}
       demo={false}
+      statusActions={canWrite ? <BookStatusActions bookId={bookId} title={book.title} showPublish={canMarkPublished(book)} /> : undefined}
       onBuild={() => {
         setStartError(null);
         setDoneError(null);

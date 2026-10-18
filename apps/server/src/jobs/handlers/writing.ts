@@ -2,6 +2,7 @@ import { findTemplateJunk, findUndatedPrices, tidyGlossaryMarkdown } from '@volu
 import { markdownToPlaintext, wordCount } from '../../lib/text.js';
 import { datedPricesVars, factsUsedIn, plannedBodyCount, templateChecks, writtenSections } from '../book-checks.js';
 import {
+  advanceIfWritingComplete,
   CHECKS_MISSING_CHECKER,
   CODE_WRITTEN_KINDS,
   loadTemplate,
@@ -355,6 +356,7 @@ export const writeSectionHandler: JobHandler = async (jc) => {
     await jc.emit('section.saved', { sectionId, versionId: version.id, version: version.version, wordCount: version.wordCount, source: version.source });
     await jc.emit('check.result', { sectionId, versionId: version.id, blocks: 1, warnings: 0, claims: 0 });
     await repos.manuscript.setSectionStatus(jc.ctx, sectionId, 'needs_attention');
+    await advanceIfWritingComplete(repos, jc.ctx, projectId);
     // The job did its part; the section shows as needing attention and the preflight blocks the pack until it is filled.
     return { result: { sectionId, versionId: version.id, wordCount: version.wordCount, placeholder: true } };
   };
@@ -453,6 +455,8 @@ export const writeSectionHandler: JobHandler = async (jc) => {
     styleRewrite: writing.guardrails?.styleRewrite ?? null,
   });
   await repos.books.setAiDisclosure(jc.ctx, projectId, 'text', 'ai_generated');
+  // D-048: the last section saved moves the book on to the editor.
+  await advanceIfWritingComplete(repos, jc.ctx, projectId);
   if (summary) await repos.manuscript.upsertLedger(jc.ctx, projectId, sectionId, version.id, summary.ledger);
   await jc.emit('section.saved', { sectionId, versionId: version.id, version: version.version, wordCount: version.wordCount, source: version.source });
   await jc.progress(0.8, 'Checking');

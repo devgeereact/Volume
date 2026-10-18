@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Check, CircleX, Download, FileArchive, FileText, Flag, Info } from "lucide-react";
 import type { PictureBookView } from "../../api/picture";
@@ -31,6 +32,8 @@ export interface PictureExportScreenProps {
   stale: boolean;
   demo: boolean;
   onBuild: () => void;
+  /** Book status actions (Mark as published, Archive) under the header, for a server book. */
+  statusActions?: ReactNode | undefined;
 }
 
 function SeverityChip({ severity }: { severity: PicturePreflightItem["severity"] }) {
@@ -113,6 +116,7 @@ export function PictureExportScreen(props: PictureExportScreenProps) {
     <div className="grid grid-cols-1 gap-8 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-10 lg:py-7">
       <div className="grid min-w-0 content-start gap-6">
         <PageHeader title="Export" summary="A full-bleed print PDF for a KDP paperback, and the pack with the listing and covers." />
+        {props.statusActions}
 
         {props.demo && (
           <Banner tone="info" title="Demo book">

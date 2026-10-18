@@ -18,6 +18,8 @@ export type ErrorCode =
   | 'invalid_state'
   | 'title_limit'
   | 'quality_gate'
+  | 'writing_incomplete'
+  | 'invalid_published_at'
   | 'not_implemented'
   | 'internal_error';
 
@@ -39,6 +41,9 @@ const STATUS: Record<ErrorCode, number> = {
   // Volume mode (P8-2): a slot over KDP's weekly title limit, and a book that has not passed preflight and claims review.
   title_limit: 409,
   quality_gate: 409,
+  // D-049: marketing waits until every written section has text. Publish date not a real past or present date.
+  writing_incomplete: 409,
+  invalid_published_at: 400,
   not_implemented: 501,
   internal_error: 500,
 };

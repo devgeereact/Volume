@@ -191,3 +191,15 @@ describe('stage runners with the mock provider', () => {
     expect(req?.resolution).toBe('2K');
   });
 });
+
+describe('marketing counts with the mock provider', () => {
+  it('returns as many TikTok scripts and Instagram captions as the input asks for', async () => {
+    const s = service();
+    const tiktok = await run(s, 'marketing.tiktok-scripts', { ...FULL_INPUT, count: 5, lengthSeconds: 30 });
+    expect((tiktok.output as { scripts: unknown[] }).scripts).toHaveLength(5);
+    const instagram = await run(s, 'marketing.instagram-captions', { ...FULL_INPUT, count: 5 });
+    expect((instagram.output as { captions: unknown[] }).captions).toHaveLength(5);
+    const seven = await run(s, 'marketing.tiktok-scripts', { ...FULL_INPUT, count: 7, lengthSeconds: 45 });
+    expect((seven.output as { scripts: unknown[] }).scripts).toHaveLength(7);
+  });
+});

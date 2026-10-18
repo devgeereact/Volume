@@ -340,6 +340,29 @@ export function useSetPublishedDetails() {
   });
 }
 
+/** Everything a status change (publish, archive, restore) shows on: the lists, the shelf, the archive and the book. */
+export function refreshBookStatus(qc: QueryClient, bookId: string): Promise<void> {
+  return invalidate(qc, queryKeys.books.all, queryKeys.book.detail(bookId), queryKeys.workspace.archive(), queryKeys.workspace.activityAll);
+}
+
+/** Marks a book published on a date (YYYY-MM-DD, not after today). The Published shelf reads the book lists. */
+export function usePublishBook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { bookId: string; publishedAt?: string | undefined }) => booksApi.publish(v.bookId, { publishedAt: v.publishedAt }),
+    onSuccess: (_b, v) => refreshBookStatus(qc, v.bookId),
+  });
+}
+
+/** Archive or restore a book (POST /books/:id/archive or /restore). */
+export function useBookStatusAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { bookId: string; action: "archive" | "restore" | "unpublish" }) => booksApi.action(v.bookId, v.action),
+    onSuccess: (_b, v) => refreshBookStatus(qc, v.bookId),
+  });
+}
+
 /** What a stage would cost before it runs. Cached under the book, so it refreshes with it. */
 export function useEstimate(
   bookId: string | undefined,

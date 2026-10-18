@@ -548,7 +548,7 @@
         "source": "ai",
         "promptId": "marketing.instagram-captions",
         "default": {
-          "count": 6
+          "count": 5
         }
       },
       {

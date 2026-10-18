@@ -290,7 +290,32 @@
   ],
   "packages": {
     "publishing": "same as nonfiction",
-    "marketing": "same as nonfiction"
+    "marketing": [
+      {
+        "id": "tiktok-scripts",
+        "title": "TikTok Scripts",
+        "source": "ai",
+        "promptId": "marketing.tiktok-scripts",
+        "default": {
+          "count": 5
+        }
+      },
+      {
+        "id": "instagram-captions",
+        "title": "Instagram Captions",
+        "source": "ai",
+        "promptId": "marketing.instagram-captions",
+        "default": {
+          "count": 5
+        }
+      },
+      {
+        "id": "launch-email",
+        "title": "Launch Email",
+        "source": "ai",
+        "promptId": "marketing.launch-email"
+      }
+    ]
   },
   "print": {
     "notes": "Fill-in pages need a generous inside margin (paperback.interiorMargins is unverified). Lined areas are drawn by the export, not typed as underscores."

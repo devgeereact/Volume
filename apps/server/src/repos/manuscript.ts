@@ -9,33 +9,6 @@ import { bool, flag, fromJson, newId, now, toJson } from '../lib/util.js';
 
 const Obj = z.record(z.string(), z.unknown());
 
-export const SECTION_KINDS = [
-  'half_title',
-  'title_page',
-  'copyright',
-  'dedication',
-  'epigraph',
-  'contents',
-  'foreword',
-  'preface',
-  'acknowledgements',
-  'introduction',
-  'part',
-  'chapter',
-  'conclusion',
-  'epilogue',
-  'appendix',
-  'resources',
-  'glossary',
-  'references',
-  'about_author',
-  'also_by',
-  'review_request',
-  'newsletter',
-  // Picture books (D-044): one section per spread, text in its versions, layout and picture in their own columns.
-  'spread',
-] as const;
-
 export const SaveVersionSchema = z.object({
   bodyMd: z.string().max(2_000_000),
   /** Editor document (TipTap JSON) when the client has one; Markdown stays the source for export. */
@@ -78,6 +51,12 @@ export interface Section {
   /** Spreads only: the spread's picture asset, null until it is made. */
   imageAssetId: string | null;
 }
+
+/** A section as the writing-complete predicate sees it (jobs/book-data.ts isWritingComplete). */
+export type WritingState = Pick<Section, 'kind' | 'enabled' | 'plan' | 'currentVersionId' | 'wordCount'> & {
+  /** Source of the current version (for example ai:writing, human, app:placeholder), null when there is none. */
+  currentSource: string | null;
+};
 
 export interface SectionVersion {
   id: string;
@@ -394,6 +373,93 @@ export class ManuscriptRepo {
       }
     }
     return out;
+  }
+
+  /** The fields the writing-complete predicate needs, for several books at once (Library list). */
+  async writingStateFor(ctx: RequestCtx, projectIds: readonly string[]): Promise<Map<string, WritingState[]>> {
+    const out = new Map<string, WritingState[]>();
+    for (const id of projectIds) out.set(id, []);
+    if (projectIds.length === 0) return out;
+    const rows = await this.db
+      .selectFrom('sections as s')
+      .leftJoin('sectionVersions as v', 'v.id', 's.currentVersionId')
+      .select(['s.projectId', 's.kind', 's.enabled', 's.plan', 's.currentVersionId', 'v.wordCount as currentWords', 'v.source as currentSource'])
+      .where('s.workspaceId', '=', ctx.workspaceId)
+      .where('s.projectId', 'in', [...projectIds])
+      .execute();
+    for (const r of rows) {
+      out.get(r.projectId)?.push({
+        kind: r.kind,
+        enabled: bool(r.enabled),
+        plan: fromJson(Obj, r.plan, {}),
+        currentVersionId: r.currentVersionId,
+        wordCount: Number(r.currentWords ?? 0),
+        currentSource: r.currentSource ?? null,
+      });
+    }
+    return out;
+  }
+
+  /**
+   * Evidence that AI made part of the book, whatever the stored disclosure says (preflight kdp.ai-disclosure).
+   * Text: any version of a switched-on section whose source is `ai` or starts with `ai:`, a restore counting as the
+   * version it restored (followed back through parentVersionId). Images: the built covers or a switched-on spread's
+   * picture, when the asset is marked AI-generated.
+   */
+  async aiEvidence(ctx: RequestCtx, projectId: string): Promise<{ text: boolean; images: boolean }> {
+    const sections = await this.db
+      .selectFrom('sections')
+      .select(['id', 'kind', 'imageAssetId'])
+      .where('workspaceId', '=', ctx.workspaceId)
+      .where('projectId', '=', projectId)
+      .where('enabled', '=', 1)
+      .execute();
+    const ids = sections.map((s) => s.id);
+    let text = false;
+    if (ids.length > 0) {
+      const versions = await this.db
+        .selectFrom('sectionVersions')
+        .select(['id', 'source', 'parentVersionId'])
+        .where('workspaceId', '=', ctx.workspaceId)
+        .where('projectId', '=', projectId)
+        .where('sectionId', 'in', ids)
+        .execute();
+      // The restore chain is followed only within these switched-on sections' versions. That is enough: a restore's
+      // parent is always a version of the same section (restoreVersion checks it), and copied books carry each
+      // version's own source (copyManuscript keeps it), so no AI version sits outside this set.
+      const byId = new Map(versions.map((v) => [v.id, v]));
+      const isAi = (source: string): boolean => source === 'ai' || source.startsWith('ai:');
+      text = versions.some((v) => {
+        let cur: { source: string; parentVersionId: string | null } | undefined = v;
+        const seen = new Set<string>();
+        while (cur && cur.source === 'restore' && cur.parentVersionId && !seen.has(cur.parentVersionId)) {
+          seen.add(cur.parentVersionId);
+          cur = byId.get(cur.parentVersionId);
+        }
+        return cur !== undefined && isAi(cur.source);
+      });
+    }
+    const cover = await this.db
+      .selectFrom('covers')
+      .select(['ebookAssetId', 'wrapAssetId'])
+      .where('workspaceId', '=', ctx.workspaceId)
+      .where('projectId', '=', projectId)
+      .executeTakeFirst();
+    const assetIds = [cover?.ebookAssetId, cover?.wrapAssetId, ...sections.filter((s) => s.kind === 'spread').map((s) => s.imageAssetId)].filter(
+      (x): x is string => typeof x === 'string' && x.length > 0,
+    );
+    let images = false;
+    if (assetIds.length > 0) {
+      const hit = await this.db
+        .selectFrom('assets')
+        .select('id')
+        .where('workspaceId', '=', ctx.workspaceId)
+        .where('id', 'in', assetIds)
+        .where('aiGenerated', '=', 1)
+        .executeTakeFirst();
+      images = hit !== undefined;
+    }
+    return { text, images };
   }
 
   async getSection(ctx: RequestCtx, id: string): Promise<Section | null> {
