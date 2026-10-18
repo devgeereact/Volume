@@ -4,6 +4,19 @@ User-visible changes, newest first. Dates in British format.
 
 ## 18 October 2026
 
+Production hub (D-048, D-049).
+
+#### Added
+- Mark as published with a date (today or earlier) and Archive, on the Export screen and on Library cards. Archive offers Undo.
+- The upload pack now carries the back-cover blurb and the short bio as text files in `listing/`.
+
+#### Changed
+- Choosing a title moves the book to Blueprint, and finishing every chapter moves it to Editor.
+- Marketing opens once writing is complete, the same rule on every screen. Items already made stay visible.
+- Marketing makes 5 TikTok scripts and 5 Instagram captions by default, set per book type.
+- The KDP AI disclosure check now looks at what the AI actually wrote or drew, not only the setting.
+- Back-cover blurbs are 120 to 200 words everywhere.
+
 The hosted app at volume.gakinz.com now runs the latest version: fiction, workbooks, picture books, Volume mode and invitations, plus the 17 October sign-in fix.
 
 ## 17 October 2026

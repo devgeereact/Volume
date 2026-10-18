@@ -1,3 +1,13 @@
+## Production hub, 18 October 2026 (Claude Code, lead with subagents)
+
+Branch `feat/production-hub` (from main 91011b6). Owner chose the hub and delegated the open choices; recorded as D-048 (stage advances) and D-049 (one marketing gate, writing complete; counts 5 and 5 from the template; pack blurb and short bio). Back-cover blurb is 120 to 200 words everywhere (`matter/back-cover.v6`).
+
+Done: stage to `blueprint` on title choice and to `editor` when writing is complete (placeholders and empty bodies do not count); marketing gate on server and web (items stay visible, only Generate locks); `writingComplete` and `marketingCounts` on books; publish with a date (any time zone's today) and archive with Undo on Export and Library cards; AI disclosure preflight from version sources and AI assets; `listing/back-cover-blurb.txt` and `listing/short-bio.txt` in the pack; models config and AI-PIPELINE, PROMPTS, UX-SPEC, EXPORT-SPEC drift fixed. Reviewer: 0 high, 5 medium, 8 low, all fixed.
+
+Proven (Node 26.8.1): doctor, typecheck, lint, format, docs, hooks, Vitest 898 passed and 2 skipped (core 151, AI 202, export 132, server 322, web 91), both builds, e2e 17 of 17 (new `tests/e2e/production-hub.spec.ts`). Screenshots: `../reports/volume/screenshots/production-hub/`.
+
+Next: owner reviews and merges the branch, then deploys per DEPLOYMENT.md (no new migrations). Behaviour change: an acknowledgements placeholder keeps a book out of `editor` and marketing until the owner fills it.
+
 ## Production deploy, 18 October 2026 (Claude Code)
 
 Main at aa5eb67 is live at https://volume.gakinz.com (release `20261018T105443Z`, rollback `20261016T224127Z`). Migrations 0006, 0008, 0009 applied after a cPanel backup. Auth bypass closed (`/%61pi/v1/health` 401). Owner confirmed sign-in, library, Settings (MySQL) and PDF export. Restart on this host means stopping the `lsnode` process (DEPLOYMENT.md).
