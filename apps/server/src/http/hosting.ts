@@ -88,17 +88,31 @@ export function contentSecurityPolicy(config: AppConfig, scriptHashes: string[])
   ].join('; ');
 }
 
+/** HSTS for the hosted app, subdomains included (D-050; the Clerk Frontend API host is a subdomain served over HTTPS). */
+export const HSTS = 'max-age=31536000; includeSubDomains';
+
+/**
+ * The security headers every response carries, whatever its type. onSend applies them to normal replies; the SSE
+ * streams, which write their own head after hijacking the reply, send the same set.
+ */
+export function baseSecurityHeaders(url: string, config: AppConfig): Record<string, string> {
+  const h: Record<string, string> = {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': isApiPath(url) ? 'no-referrer' : 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+    'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    // Private app: keep every page, file and API answer out of search results.
+    'X-Robots-Tag': 'noindex, nofollow',
+  };
+  if (config.production) h['Strict-Transport-Security'] = HSTS;
+  return h;
+}
+
 /** Headers on every response. Pages get the CSP; the API keeps no-referrer and no-store. */
 export function applySecurityHeaders(req: FastifyRequest, reply: FastifyReply, config: AppConfig, csp: string | null): void {
   const api = isApiPath(req.url);
-  void reply.header('X-Content-Type-Options', 'nosniff');
-  void reply.header('X-Frame-Options', 'DENY');
-  void reply.header('Referrer-Policy', api ? 'no-referrer' : 'strict-origin-when-cross-origin');
-  void reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-  void reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-  // Private app: keep every page, file and API answer out of search results.
-  void reply.header('X-Robots-Tag', 'noindex, nofollow');
-  if (config.production) void reply.header('Strict-Transport-Security', 'max-age=31536000');
+  void reply.headers(baseSecurityHeaders(req.url, config));
   if (!reply.hasHeader('Cache-Control')) {
     // Hashed bundles never change; pages and everything else are checked on every load. The API is never cached.
     const path = req.url.split('?')[0] ?? '';
