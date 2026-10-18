@@ -53,7 +53,7 @@ Every workspace other than the instance owner's spends the instance owner's Open
 
 ### Members
 
-- `GET /api/v1/members` lists members and pending invitations. `PATCH /api/v1/members/:userId` changes a role to `editor` or `viewer`. `DELETE /api/v1/members/:userId` removes a member and revokes the invitation that admitted them, so it cannot admit them again.
+- `GET /api/v1/members` lists members and pending invitations. `PATCH /api/v1/members/:userId` changes a role to `editor` or `viewer`. `DELETE /api/v1/members/:userId` with `{ "confirm": "REMOVE" }` removes a member and revokes the invitation that admitted them, so it cannot admit them again. An invited editor or viewer can leave with `POST /api/v1/me/leave` and `{ "confirm": "LEAVE" }`. The owner of a guest (self-publisher) workspace can delete it with all its data through `DELETE /api/v1/workspace` and `{ "confirm": "DELETE" }`; the instance owner's workspace cannot be deleted. An account left with no membership is deleted (D-050).
 - The owner cannot change or remove their own membership or another owner's. Owner accounts are set by the allowlist.
 - An invited member's membership is read on every request and never cached, so a role change or a removal takes effect on the next request. An open event stream (`/api/v1/events`, `/api/v1/books/:id/events`) re-checks the membership every 60 seconds and closes for a removed member.
 - `GET /api/v1/me` tells any signed-in account its own role, whether it is the instance owner and the accounts mode, so the web app can hide controls the role cannot use. It returns no other account's details.
