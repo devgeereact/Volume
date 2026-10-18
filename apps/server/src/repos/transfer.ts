@@ -18,7 +18,7 @@ export const PROJECT_FORMAT = 'volume-project';
 export const PROJECT_FORMAT_VERSION = 1;
 
 /** Tables under a book, in an order that respects their foreign keys. */
-const CHILD_TABLES = [
+export const CHILD_TABLES = [
   'researchRuns',
   'researchSources',
   'titleSets',

@@ -1,4 +1,4 @@
-import { crc32, deflateRawSync, inflateRawSync } from 'node:zlib';
+import { crc32, createDeflateRaw, deflateRawSync, inflateRawSync } from 'node:zlib';
 
 /**
  * A small zip writer and reader (deflate or stored, no zip64, no encryption), enough for project files.
@@ -73,6 +73,105 @@ export function writeZip(entries: readonly ZipEntry[], at = new Date()): Buffer 
   end.writeUInt32LE(central.length, 12);
   end.writeUInt32LE(offset, 16);
   return Buffer.concat([...locals, central, end]);
+}
+
+/** One entry of a streamed zip: its bytes arrive piece by piece, so a large file is never held whole in memory. */
+export interface ZipStreamEntry {
+  name: string;
+  source: () => AsyncIterable<Uint8Array | string> | Iterable<Uint8Array | string>;
+}
+
+const ZIP32_MAX = 0xffffffff;
+
+/**
+ * Writes a zip as a stream of buffers (deflate, sizes in a data descriptor after each entry, no zip64): memory stays
+ * near one input piece whatever the total size. Throws when the archive would pass the 4 GiB or 65,535 entry limits
+ * of a zip without zip64, which ends the stream.
+ */
+export async function* zipStream(entries: AsyncIterable<ZipStreamEntry> | Iterable<ZipStreamEntry>, at = new Date()): AsyncGenerator<Buffer> {
+  const { time, date } = dosTime(at);
+  const centrals: Buffer[] = [];
+  let offset = 0;
+  let count = 0;
+  for await (const e of entries) {
+    count += 1;
+    if (count > 0xffff) throw new Error('Too many files for one zip.');
+    const name = Buffer.from(e.name, 'utf8');
+    const head = Buffer.alloc(30);
+    head.writeUInt32LE(0x04034b50, 0);
+    head.writeUInt16LE(20, 4);
+    head.writeUInt16LE(0x0808, 6); // sizes in the data descriptor, UTF-8 names
+    head.writeUInt16LE(8, 8);
+    head.writeUInt16LE(time, 10);
+    head.writeUInt16LE(date, 12);
+    head.writeUInt16LE(name.length, 26);
+    const localOffset = offset;
+    yield Buffer.concat([head, name]);
+    offset += head.length + name.length;
+
+    let crc = 0;
+    let rawSize = 0;
+    let compSize = 0;
+    const deflater = createDeflateRaw();
+    const out: Buffer[] = [];
+    deflater.on('data', (b: Buffer) => out.push(b));
+    const ended = new Promise<void>((resolve, reject) => {
+      deflater.once('end', resolve);
+      deflater.once('error', reject);
+    });
+    const drain = (): Buffer | null => {
+      if (out.length === 0) return null;
+      const b = Buffer.concat(out.splice(0));
+      compSize += b.length;
+      return b;
+    };
+    for await (const piece of e.source()) {
+      const b = typeof piece === 'string' ? Buffer.from(piece, 'utf8') : Buffer.from(piece.buffer, piece.byteOffset, piece.byteLength);
+      if (b.length === 0) continue;
+      crc = crc32(b, crc);
+      rawSize += b.length;
+      await new Promise<void>((resolve, reject) => deflater.write(b, (err) => (err ? reject(err) : resolve())));
+      const chunk = drain();
+      if (chunk) yield chunk;
+    }
+    deflater.end();
+    await ended;
+    const tail = drain();
+    if (tail) yield tail;
+    if (rawSize > ZIP32_MAX || compSize > ZIP32_MAX) throw new Error('A file is too large for a zip without zip64.');
+    offset += compSize;
+    const desc = Buffer.alloc(16);
+    desc.writeUInt32LE(0x08074b50, 0);
+    desc.writeUInt32LE(crc >>> 0, 4);
+    desc.writeUInt32LE(compSize, 8);
+    desc.writeUInt32LE(rawSize, 12);
+    yield desc;
+    offset += desc.length;
+    if (offset > ZIP32_MAX) throw new Error('The zip is too large without zip64.');
+
+    const c = Buffer.alloc(46);
+    c.writeUInt32LE(0x02014b50, 0);
+    c.writeUInt16LE(20, 4);
+    c.writeUInt16LE(20, 6);
+    c.writeUInt16LE(0x0808, 8);
+    c.writeUInt16LE(8, 10);
+    c.writeUInt16LE(time, 12);
+    c.writeUInt16LE(date, 14);
+    c.writeUInt32LE(crc >>> 0, 16);
+    c.writeUInt32LE(compSize, 20);
+    c.writeUInt32LE(rawSize, 24);
+    c.writeUInt16LE(name.length, 28);
+    c.writeUInt32LE(localOffset, 42);
+    centrals.push(c, name);
+  }
+  const central = Buffer.concat(centrals);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(count, 8);
+  end.writeUInt16LE(count, 10);
+  end.writeUInt32LE(central.length, 12);
+  end.writeUInt32LE(offset, 16);
+  yield Buffer.concat([central, end]);
 }
 
 /** Reads every entry. Throws a plain Error for anything that is not a zip this module can read. */

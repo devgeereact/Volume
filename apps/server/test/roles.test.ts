@@ -188,14 +188,14 @@ describe('ACCOUNTS_MODE=invite', () => {
     expect(ch.body).toMatchObject({ role: 'viewer', email: 'editor@example.test' });
     expect((await t.call<Obj>('GET', '/api/v1/me', undefined, as('user_editor'))).body['role']).toBe('viewer');
     expect((await t.call('PATCH', `/api/v1/books/${bookId}`, { subtitle: 'x' }, as('user_editor'))).status).toBe(403);
-    expect((await t.call('DELETE', `/api/v1/members/${editorId}`, {}, as('user_owner'))).status).toBe(204);
+    expect((await t.call('DELETE', `/api/v1/members/${editorId}`, { confirm: 'REMOVE' }, as('user_owner'))).status).toBe(204);
     expect((await t.call('GET', '/api/v1/books', undefined, as('user_editor'))).status).toBe(403);
   });
 
   it("does not let the owner change or remove an owner's account, or a member of another workspace", async () => {
     expect((await t.call('PATCH', `/api/v1/members/${t.owner.userId}`, { role: 'viewer' }, as('user_owner'))).status).toBe(409);
-    expect((await t.call('DELETE', `/api/v1/members/${t.owner.userId}`, {}, as('user_owner'))).status).toBe(409);
-    expect((await t.call('DELETE', `/api/v1/members/${await userIdOf('user_pub')}`, {}, as('user_owner'))).status).toBe(404);
+    expect((await t.call('DELETE', `/api/v1/members/${t.owner.userId}`, { confirm: 'REMOVE' }, as('user_owner'))).status).toBe(409);
+    expect((await t.call('DELETE', `/api/v1/members/${await userIdOf('user_pub')}`, { confirm: 'REMOVE' }, as('user_owner'))).status).toBe(404);
     expect((await t.call('PATCH', `/api/v1/members/${await userIdOf('user_viewer')}`, { role: 'owner' }, as('user_owner'))).status).toBe(400);
   });
 
