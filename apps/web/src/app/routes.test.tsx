@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { Outlet, StaticRouterProvider, createStaticHandler, createStaticRouter, type RouteObject } from "react-router";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { routes, screenErrors } from "./routes";
 
 /** Every layout route (an element with children) must wrap its screens in one pathless error boundary. */
@@ -36,6 +36,68 @@ async function render(tree: RouteObject[], path: string): Promise<string> {
   const router = createStaticRouter(handler.dataRoutes, context);
   return renderToStaticMarkup(<StaticRouterProvider router={router} context={context} hydrate={false} />);
 }
+
+/** Every full path the router answers, in order. Index routes take their parent's path. */
+function routePaths(list: RouteObject[], parent = ""): string[] {
+  const out: string[] = [];
+  for (const r of list) {
+    const here = r.path === undefined ? parent : r.path.startsWith("/") || parent === "" ? r.path : `${parent.replace(/\/$/, "")}/${r.path}`;
+    if (r.index) out.push(`${here} (index)`);
+    else if (r.path !== undefined) out.push(here);
+    if (r.children) out.push(...routePaths(r.children, here));
+  }
+  return out;
+}
+
+const localPaths = [
+  "/",
+  "/library",
+  "/published",
+  "/profiles",
+  "/profiles/:profileId",
+  "/books/new",
+  "/new-book",
+  "/books/:bookId",
+  "/books/:bookId (index)",
+  "/books/:bookId/research",
+  "/books/:bookId/titles",
+  "/books/:bookId/blueprint",
+  "/books/:bookId/writing",
+  "/books/:bookId/editor/:sectionId?",
+  "/books/:bookId/cover",
+  "/books/:bookId/export",
+  "/books/:bookId/marketing",
+  "/settings/:tab?",
+  "/volume",
+  "/volume/batches/:batchId",
+  "/volume/schedule",
+  "/archive",
+  "/components",
+  "*",
+];
+
+async function loadRoutes(clerkKey: string): Promise<RouteObject[]> {
+  vi.resetModules();
+  vi.stubEnv("VITE_CLERK_PUBLISHABLE_KEY", clerkKey);
+  return (await import("./routes")).routes;
+}
+
+describe("route list", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("answers every screen path in a local build, including the style guide", async () => {
+    expect(routePaths(await loadRoutes(""))).toEqual(localPaths);
+  });
+
+  it("answers the same paths in a hosted build, without the style guide", async () => {
+    const hosted = routePaths(await loadRoutes("pk_test_example"));
+    expect(hosted).toEqual(localPaths.filter((p) => p !== "/components"));
+    expect(hosted).not.toContain("/components");
+  });
+});
 
 describe("route errors", () => {
   it("gives every layout route an error boundary for its screens, so the shell stays", () => {
