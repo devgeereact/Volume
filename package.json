@@ -29,7 +29,8 @@
     "doctor": "node scripts/doctor.mjs",
     "test:tooling": "node --test tests/integration/runtime.test.mjs",
     "docs:check": "node scripts/check-docs.mjs",
-    "build:release": "node scripts/build-release.mjs"
+    "build:release": "node scripts/build-release.mjs",
+    "deploy": "node scripts/deploy.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

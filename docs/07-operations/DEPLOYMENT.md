@@ -41,12 +41,24 @@ VITE_CLERK_PUBLISHABLE_KEY=<pk_live_...> npm run build:release -- --require-cler
 
 The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `migrate.mjs`), `web/`, `config/`, `prompts/`, `assets/`, `tmp/restart.txt`, `RELEASE.json` and a `package.json` with a lockfile pruned from the repository's own (no better-sqlite3, no dev tools). The publishable key is public; no secret enters the bundle.
 
-## Deploy steps (lead agent, approved per deploy)
+## Deploy (one command, from the Mac)
+
+`npm run deploy` (`scripts/deploy.mjs`, host facts in `deploy/production.json`) runs every step below and checks the result. Run it on `main`, clean and pushed, after CI on that commit has passed.
+
+| Command | Does |
+| --- | --- |
+| `npm run deploy -- --dry-run` | Reads the host and runs the preflight; changes nothing. |
+| `npm run deploy` | Builds, uploads to `releases/<utc>`, installs with Node 24, links the shared settings file, checks migrations, switches `current`, restarts and runs the live checks. A failed check switches back to the previous release by itself. |
+| `npm run deploy -- --migrate` | Same, and applies pending migrations. Without it the script stops before going live when any are pending. Take the cPanel database backup first. |
+| `npm run deploy -- --rollback` | Switches `current` to the release before it and restarts. |
+| `--no-ci-check` | Skips the CI check (use only when GitHub Actions cannot run). |
+
+It never deletes a release and never reads or copies the settings file (the link is a symlink). The steps it runs, for doing them by hand:
 
 1. Rsync `build/release/` to `~/apps/volume/releases/<utc>/`.
 2. On the host, inside that folder, with Node 24 (`export PATH=/opt/alt/alt-nodejs24/root/usr/bin:$PATH`; there is no `~/nodevenv/apps/volume/current`): `npm ci --omit=dev --no-audit --no-fund`.
-3. Link shared config: `ln -s ../../shared/.env .env` (optional when `VOLUME_ENV_FILE` is set).
-4. Back up the database (cPanel Backup or `mariadb-dump --defaults-file=<private temp file> --single-transaction --no-tablespaces`, run with `set -o pipefail` so a failed dump stops the step; the migration user has no `LOCK TABLES` grant), then migrate as the migration user: `node server/migrate.mjs status`, then `node server/migrate.mjs`. The app refuses to start while migrations are pending.
+3. Link shared config into the release: a symlink named after the settings file pointing at `../../shared/` (the app also finds it through `VOLUME_ENV_FILE`).
+4. Back up the database (cPanel Backup or `mariadb-dump --defaults-file=<private temp file> --single-transaction --no-tablespaces`, run with `set -o pipefail` so a failed dump stops the step; the migration user has no `LOCK TABLES` grant), then migrate as the migration user: `node server/migrate.mjs status` (exit 2 means pending), then `node server/migrate.mjs`. The app refuses to start while migrations are pending.
 5. Flip the link: `ln -sfn releases/<utc> ~/apps/volume/current`, then stop the running `lsnode` process (see Passenger settings above). Confirm the page loads the new `/assets/index-*.js` from `build/release/web/index.html`.
 6. Run the post-deploy checks below. Rollback: point `current` back at the previous release and stop the `lsnode` process. Migrations are additive, so the previous release still runs on the newer schema.
 
