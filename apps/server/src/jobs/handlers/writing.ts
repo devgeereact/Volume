@@ -604,16 +604,21 @@ export const editPassHandler: JobHandler = async (jc) => {
       selection: jc.payload['selection'] ?? null,
     },
   });
+  // A line or voice change that quotes text the section does not have (even loosely) could never be accepted: it is
+  // dropped instead of being offered as a sure conflict, and so is a change that changes nothing.
+  const exact = pass === 'line' || pass === 'voice';
+  const usable = res.output.suggestions.filter((s) => !exact || (s.start !== null && s.original.length > 0 && s.proposed !== s.original));
   const added = await repos.manuscript.addSuggestions(
     jc.ctx,
     section,
     current.id,
     pass,
-    res.output.suggestions.map((s) => ({ original: s.original, proposed: s.proposed, reason: s.reason, start: s.start, end: s.end })),
+    usable.map((s) => ({ original: s.original, proposed: s.proposed, reason: s.reason, start: s.start, end: s.end })),
     res.promptRunId,
   );
   await jc.emit('book.updated', { projectId: section.projectId, part: 'suggestions', sectionId, count: added.length });
-  return { result: { sectionId, suggestions: added.length } };
+  const dropped = res.output.suggestions.length - usable.length;
+  return { result: { sectionId, suggestions: added.length, ...(dropped > 0 ? { unplaced: dropped } : {}) } };
 };
 
 /**

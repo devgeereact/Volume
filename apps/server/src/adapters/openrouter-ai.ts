@@ -617,8 +617,71 @@ function span(markdown: string, needle: string | null): { start: number | null; 
   return i >= 0 ? { start: i, end: i + needle.length } : { start: null, end: null };
 }
 
+/** Characters a model often changes when it quotes the text back: curly quotes, dashes, spaces, ellipses. */
+const LOOSE_CHARS: Readonly<Record<string, string>> = {
+  '‘': "'",
+  '’': "'",
+  '‚': "'",
+  '‛': "'",
+  '“': '"',
+  '”': '"',
+  '„': '"',
+  '–': '-',
+  '—': '-',
+  '‑': '-',
+  '…': '...',
+};
+
+/**
+ * The text folded for a loose match (quotes, dashes and ellipses made plain, whitespace runs made one space, markdown
+ * emphasis marks dropped), with each folded character's offset in the original.
+ */
+function looseFold(s: string): { text: string; at: number[] } {
+  let text = '';
+  const at: number[] = [];
+  let space = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charAt(i);
+    if (c === '*' || c === '_') continue;
+    if (/\s/.test(c)) {
+      if (!space && text.length > 0) {
+        text += ' ';
+        at.push(i);
+      }
+      space = true;
+      continue;
+    }
+    space = false;
+    for (const ch of LOOSE_CHARS[c] ?? c) {
+      text += ch;
+      at.push(i);
+    }
+  }
+  return { text, at };
+}
+
+/**
+ * Where a quoted passage sits in the text: an exact match first, else a loose one (live acceptance run, 18 October
+ * 2026: 5 of 6 line edits on one chapter came back as conflicts because the model quoted the text with other quote
+ * marks or without its emphasis). `original` is the passage exactly as the text has it, so accepting it can apply.
+ */
+export function locateQuote(markdown: string, needle: string | null): { start: number | null; end: number | null; original: string | null } {
+  if (!needle) return { start: null, end: null, original: null };
+  const i = markdown.indexOf(needle);
+  if (i >= 0) return { start: i, end: i + needle.length, original: needle };
+  const want = looseFold(needle).text.trim();
+  if (!want) return { start: null, end: null, original: null };
+  const hay = looseFold(markdown);
+  const j = hay.text.indexOf(want);
+  if (j < 0) return { start: null, end: null, original: null };
+  const start = hay.at[j] ?? 0;
+  const end = (hay.at[j + want.length - 1] ?? start) + 1;
+  return { start, end, original: markdown.slice(start, end) };
+}
+
 function suggestion(markdown: string, original: string | null, proposed: unknown, reason: string): Rec {
-  return { original: original ?? '', proposed, reason, ...span(markdown, original) };
+  const found = locateQuote(markdown, original);
+  return { original: found.original ?? original ?? '', proposed, reason, start: found.start, end: found.end };
 }
 
 // ---------- errors ----------

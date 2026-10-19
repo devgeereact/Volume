@@ -13,6 +13,7 @@ import {
   createOpenRouterAi,
   dropNoneLines,
   fillPromptVariables,
+  locateQuote,
   type OpenRouterAiAdapter,
 } from '../src/adapters/openrouter-ai.js';
 import { storyInput } from '../src/jobs/picture-book.js';
@@ -198,5 +199,80 @@ describe('4. no literal "None" in the launch email', () => {
     expect(dropNoneLines('A\nNone\nB')).toBe('A\nB');
     expect(dropNoneLines('A\n  None.  \n\nB')).toBe('A\n\nB');
     expect(dropNoneLines('None of this is hard.\nNone')).toBe('None of this is hard.');
+  });
+});
+
+describe('5. editing: local JSON repair and suggestions that can be accepted', () => {
+  it('a line edit with trailing commas runs in one call, with no repair request', async () => {
+    const { ai, seen } = await recordingAdapter((id, raw) =>
+      id === 'editing.line-edit-uk'
+        ? '```json\n{"edited": "x", "changes": [{"before": "Old line.", "after": "New line.", "why": "Shorter", "kind": "clarity",},], "otherChangesByKind": {}, "unchangedOnPurpose": [],}\n```'
+        : raw,
+    );
+    const r = await ai.runStage('editing', { promptId: 'editing.line', variables: { pass: 'line', markdown: 'Old line.\n\nMore.' } }, { model: MODEL });
+    expect(seen).toHaveLength(1);
+    expect(r.output.suggestions[0]).toMatchObject({ original: 'Old line.', proposed: 'New line.', start: 0, end: 9 });
+  });
+
+  it('finds a quote the model sent with straight quotes, plain dashes or no emphasis, as the text has it', () => {
+    const md = 'She said “wait” and it’s **really** fine.\n\nNext  paragraph.';
+    const a = locateQuote(md, 'She said "wait" and it\'s really fine.');
+    expect(a.original).toBe('She said “wait” and it’s **really** fine.');
+    expect(md.slice(a.start ?? -1, a.end ?? -1)).toBe(a.original);
+    expect(locateQuote(md, 'Next paragraph.').original).toBe('Next  paragraph.');
+    expect(locateQuote(md, 'Not in the text.')).toEqual({ start: null, end: null, original: null });
+  });
+});
+
+/** Line edits through the real adapter (mock provider), every other stage through the mock adapter. */
+class EditingAi extends RecordingAi {
+  constructor(private readonly real: OpenRouterAiAdapter) {
+    super();
+  }
+  override async runStage<S extends AiStage>(stage: S, input: AiStageInput, opts?: RunStageOptions): Promise<AiStageResult<S>> {
+    if (stage === 'editing') return this.real.runStage(stage, input, { ...opts, model: MODEL });
+    return super.runStage(stage, input, opts);
+  }
+}
+
+describe('5. accepting several line edits in a row', () => {
+  it('applies each one in turn, including quotes the model changed, and drops a change it cannot place', async () => {
+    const TEXT = 'It’s the first line.\n\nThe **second** line stays short.\n\nA third line.';
+    const { ai: real } = await recordingAdapter((id, raw) =>
+      id === 'editing.line-edit-uk'
+        ? JSON.stringify({
+            edited: '',
+            changes: [
+              { before: "It's the first line.", after: 'This is the first line.', why: 'Clearer', kind: 'clarity' },
+              { before: 'The second line stays short.', after: 'The second line is short.', why: 'Shorter', kind: 'concision' },
+              { before: 'A third line.', after: 'The third line.', why: 'Flow', kind: 'flow' },
+              { before: 'A sentence the text never had.', after: 'Anything.', why: 'x', kind: 'x' },
+            ],
+            otherChangesByKind: {},
+            unchangedOnPurpose: [],
+          })
+        : raw,
+    );
+    t = await testApp({ ai: new EditingAi(real) });
+    const id = await newBook(t, { title: 'Side Projects' });
+    await t.call('POST', `/api/v1/books/${id}/blueprints`, { chapterCount: 2 });
+    await t.services.runner.runUntilIdle();
+    expect((await t.call('POST', `/api/v1/books/${id}/blueprint/approve`, {})).status).toBe(200);
+    const tree = await t.call<{ body: { id: string }[] }>('GET', `/api/v1/books/${id}/sections`);
+    const chapterId = tree.body.body[0]!.id;
+    expect((await t.call('POST', `/api/v1/sections/${chapterId}/versions`, { bodyMd: TEXT })).status).toBe(201);
+
+    await t.call('POST', `/api/v1/sections/${chapterId}/edit-pass`, { pass: 'line' });
+    await t.services.runner.runUntilIdle();
+    const open = await t.call<{ items: { id: string; pass: string; original: string }[] }>('GET', `/api/v1/sections/${chapterId}/suggestions?status=open`);
+    const line = open.body.items.filter((i) => i.pass === 'line');
+    expect(line).toHaveLength(3);
+    let body = '';
+    for (const s of line) {
+      const acc = await t.call<{ version: { bodyMd: string } }>('POST', `/api/v1/suggestions/${s.id}/accept`, {});
+      expect(acc.status, s.original).toBe(200);
+      body = acc.body.version.bodyMd;
+    }
+    expect(body).toBe('This is the first line.\n\nThe second line is short.\n\nThe third line.');
   });
 });
