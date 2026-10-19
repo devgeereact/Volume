@@ -31,7 +31,7 @@ Kysely with two dialects (D-015, D-019, D-038): SQLite through better-sqlite3 lo
 | Column | Type | Notes |
 |---|---|---|
 | pen_name | text not null | Display name on books |
-| legal_name | text | Private, never exported |
+| legal_name | text | Private, never in a project zip (only in the owner's whole-workspace export, D-050) |
 | imprint_name | text | Title page and copyright |
 | is_real_person | bool not null default 0 | Real-person flag |
 | illustrative_line_default | bool not null default 0 | Set to 1 when `is_real_person` turns on |
@@ -158,7 +158,7 @@ Quality gate: a batch book cannot be marked ready, have a slot confirmed, be pac
 
 ## AI runs and jobs
 
-**prompt_runs**: `project_id` (nullable), `job_id`, `stage text`, `prompt_id text` (for example `writing.chapter`), `prompt_version integer`, `prompt_hash text`, `provider text` (`openrouter`, `mock`), `model_slug text` (model that answered), `generation_id text` (OpenRouter id), `input_tokens integer`, `output_tokens integer`, `cost_usd real`, `latency_ms integer`, `status text` (`ok`, `error`, `invalid_output`, `cancelled`), `error text`, `output text` (raw response, kept for audit). Index `(project_id, created_at)`, `(workspace_id, created_at)` for monthly spend.
+**prompt_runs**: `project_id` (nullable), `job_id`, `stage text`, `prompt_id text` (for example `writing.chapter`), `prompt_version integer`, `prompt_hash text`, `provider text` (`openrouter`, `mock`), `model_slug text` (model that answered), `generation_id text` (OpenRouter id), `input_tokens integer`, `output_tokens integer`, `cost_usd real`, `latency_ms integer`, `status text` (`ok`, `error`, `invalid_output`, `cancelled`), `error text`, `output text` (raw response, kept for audit; `output`, `error` and `guardrails` are cleared when the book is deleted, D-050). Index `(project_id, created_at)`, `(workspace_id, created_at)` for monthly spend.
 
 **jobs**
 
@@ -183,7 +183,7 @@ Quality gate: a batch book cannot be marked ready, have a slot confirmed, be pac
 
 Indexes `(status, run_after, priority)`, `(project_id, created_at)`, `(parent_id)`.
 
-**job_events**: `job_id -> jobs`, `project_id`, `type text`, `data json`. The ULID `id` doubles as the SSE event id. Index `(project_id, id)`, `(workspace_id, id)`.
+**job_events**: `job_id -> jobs`, `project_id`, `type text`, `data json`. The ULID `id` doubles as the SSE event id. Deleted with the book, and after 90 days by a daily pass (D-050). Index `(project_id, id)`, `(workspace_id, id)`.
 
 ## Entity relationships
 

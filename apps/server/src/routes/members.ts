@@ -4,6 +4,7 @@ import type { AppServices } from '../app.js';
 import { assertInstanceOwner, isInstanceOwner } from '../auth/context.js';
 import { AppError, parse } from '../http/errors.js';
 import { InvitationInputSchema, MemberPatchSchema } from '../repos/members.js';
+import { assertConfirmed, CONFIRM } from './account.js';
 import { idOf, owner } from './common.js';
 
 const UserParams = z.object({ userId: z.string().min(1).max(64) });
@@ -54,6 +55,8 @@ export function memberRoutes(app: FastifyInstance, s: AppServices): void {
   app.delete('/members/:userId', async (req, reply) => {
     owner(req);
     const { userId } = parse(UserParams, req.params);
+    // D-050: removal needs { confirm: "REMOVE" }; an account left with no membership is deleted with it.
+    assertConfirmed(req.body, CONFIRM.removeMember);
     await r.remove(req.ctx, userId);
     return reply.code(204).send();
   });

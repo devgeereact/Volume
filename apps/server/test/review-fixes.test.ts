@@ -300,7 +300,7 @@ describe('SSE membership re-check (finding 17)', () => {
       const user = await t.handle.db.selectFrom('users').select('id').where('clerkUserId', '=', 'user_gone').executeTakeFirstOrThrow();
       const memberCtx = { workspaceId: t.owner.workspaceId, userId: user.id, role: 'viewer' as const };
       expect(await t.services.repos.members.isMember(memberCtx)).toBe(true);
-      expect((await t.call('DELETE', `/api/v1/members/${user.id}`, {}, as('user_owner'))).status).toBe(204);
+      expect((await t.call('DELETE', `/api/v1/members/${user.id}`, { confirm: 'REMOVE' }, as('user_owner'))).status).toBe(204);
       expect(await t.services.repos.members.isMember(memberCtx)).toBe(false);
     } finally {
       await t.close();

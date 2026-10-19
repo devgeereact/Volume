@@ -216,5 +216,6 @@ export const api = {
   post: <T>(path: string, body?: unknown, options?: RequestOptions) => apiRequest<T>("POST", path, body, options),
   patch: <T>(path: string, body: unknown, options?: RequestOptions) => apiRequest<T>("PATCH", path, body, options),
   put: <T>(path: string, body: unknown, options?: RequestOptions) => apiRequest<T>("PUT", path, body, options),
-  delete: <T = void>(path: string, options?: RequestOptions) => apiRequest<T>("DELETE", path, undefined, options),
+  /** DELETE, with an optional JSON body (the data-rights calls send a typed confirmation, D-050). */
+  delete: <T = void>(path: string, options?: RequestOptions, body?: unknown) => apiRequest<T>("DELETE", path, body, options),
 };

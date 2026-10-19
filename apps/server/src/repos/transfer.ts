@@ -18,7 +18,7 @@ export const PROJECT_FORMAT = 'volume-project';
 export const PROJECT_FORMAT_VERSION = 1;
 
 /** Tables under a book, in an order that respects their foreign keys. */
-const CHILD_TABLES = [
+export const CHILD_TABLES = [
   'researchRuns',
   'researchSources',
   'titleSets',
@@ -49,6 +49,19 @@ interface ProjectFile {
   profile: Row;
   tables: Partial<Record<ChildTable, Row[]>>;
   assets: Row[];
+}
+
+/**
+ * Private profile fields that never leave the server in a project zip (D-050, DATA-MODEL: the legal name is never
+ * exported). An import without them gets the column defaults (no legal name or location, not a real person).
+ */
+export const PRIVATE_PROFILE_FIELDS = ['legalName', 'location', 'isRealPerson'] as const;
+
+/** The profile row as a project zip carries it: the private fields removed. */
+export function exportableProfile(profile: Row): Row {
+  const out: Row = { ...profile };
+  for (const key of PRIVATE_PROFILE_FIELDS) delete out[key];
+  return out;
 }
 
 const RowSchema = z.record(z.string(), z.union([z.string(), z.number().finite(), z.null()]));
@@ -139,7 +152,7 @@ export class ProjectTransfer {
       version: PROJECT_FORMAT_VERSION,
       exportedAt: now(),
       project: project,
-      profile: profile,
+      profile: exportableProfile(profile),
       tables,
       assets: assets,
     };

@@ -145,3 +145,38 @@ describe('project import rollback', () => {
     expect(await snapshot(target)).toEqual(before);
   });
 });
+
+describe('project export privacy (D-050)', () => {
+  it('never carries the legal name, location or real-person flag, and imports without them', async () => {
+    const source = await testApp();
+    const target = await testApp();
+    apps.push(source, target);
+    const profile = await source.services.repos.profiles.create(source.owner, {
+      penName: 'Private author',
+      legalName: 'Jane Q Legal',
+      location: 'Hackney, London',
+      isRealPerson: true,
+    });
+    const book = await source.services.repos.books.create(
+      source.owner,
+      { profileId: profile.id, idea: 'Privacy test' },
+      { budgetUsd: 5, illustrativeLine: false },
+    );
+    const { zip } = await new ProjectTransfer(source.handle.db, source.services.blobs).exportProject(source.owner, book.id);
+    const manifest = readZip(zip).find((e) => e.name === 'project.json');
+    if (!manifest) throw new Error('Missing manifest');
+    const text = Buffer.from(manifest.data).toString('utf8');
+    expect(text).not.toContain('Jane Q Legal');
+    expect(text).not.toContain('Hackney');
+    const file = JSON.parse(text) as { profile: Record<string, unknown> };
+    expect(file.profile).not.toHaveProperty('legalName');
+    expect(file.profile).not.toHaveProperty('location');
+    expect(file.profile).not.toHaveProperty('isRealPerson');
+    expect(file.profile['penName']).toBe('Private author');
+
+    const result = await new ProjectTransfer(target.handle.db, target.services.blobs).importProject(target.owner, zip);
+    expect(result.profileCreated).toBe(true);
+    const imported = await target.services.repos.profiles.require(target.owner, result.profileId);
+    expect(imported).toMatchObject({ penName: 'Private author', legalName: null, location: null, isRealPerson: false });
+  });
+});

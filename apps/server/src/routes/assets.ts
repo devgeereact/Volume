@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Readable } from 'node:stream';
 import { z } from 'zod';
 import type { AppServices } from '../app.js';
+import { IMAGE_KINDS, sniffed } from '../files/magic.js';
 import { AppError, parse } from '../http/errors.js';
 import { idOf, writer } from './common.js';
 import { sendAsset } from './production.js';
@@ -40,13 +41,17 @@ export function assetRoutes(app: FastifyInstance, s: AppServices): void {
       const q = parse(UploadQuery, req.query);
       const mime = (q.mime ?? req.headers['content-type'] ?? 'application/octet-stream').split(';')[0]?.trim().toLowerCase() ?? '';
       if (!ALLOWED_MIME.has(mime)) throw new AppError('unsupported_media_type', 'This file type cannot be uploaded.');
+      if (IMAGE_KINDS.has(q.kind) && !mime.startsWith('image/'))
+        throw new AppError('unsupported_media_type', 'Pictures must be sent as PNG, JPEG or WebP images.');
       if (q.kind === 'import' && !/\.md$/i.test(q.filename)) throw new AppError('unsupported_media_type', 'Imports accept Markdown (.md) files only.');
       if (q.kind === 'author_photo' && (!q.profileId || !['image/jpeg', 'image/png'].includes(mime)))
         throw new AppError('validation_failed', 'Author photos need a saved profile and a JPEG or PNG image.');
       if (q.projectId) await s.repos.books.require(req.ctx, q.projectId);
       if (q.profileId) await s.repos.profiles.require(req.ctx, q.profileId);
-      const body = req.body as Readable | undefined;
-      if (!body) throw new AppError('validation_failed', 'The upload body is empty.');
+      const raw = req.body as Readable | undefined;
+      if (!raw) throw new AppError('validation_failed', 'The upload body is empty.');
+      // D-050: an image must start with its type's signature, or nothing is stored (415).
+      const body = sniffed(mime, raw as AsyncIterable<Uint8Array | string>);
       const meta = await s.blobs.put(
         req.ctx,
         {

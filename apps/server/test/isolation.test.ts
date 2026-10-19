@@ -3,6 +3,7 @@ import { sql } from 'kysely';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { ensureOwner, type RequestCtx } from '../src/auth/context.js';
+import { readZip } from '../src/lib/zip.js';
 import { registerRoutes } from '../src/routes/index.js';
 import { buildCovers, HOST, ORIGIN, str, testApp, type TestApp } from './helpers.js';
 
@@ -235,7 +236,7 @@ describe('workspace isolation', () => {
       ['POST', '/api/v1/books', { profileId: profile, idea: 'Borrowed pen name' }],
       ['PATCH', '/api/v1/settings', { default_profile_id: profile }],
       ['DELETE', `/api/v1/invitations/${first('invitations')}`, {}],
-      ['DELETE', `/api/v1/members/${a.userId}`, {}],
+      ['DELETE', `/api/v1/members/${a.userId}`, { confirm: 'REMOVE' }],
     ];
     for (const [method, url, body] of tries) {
       const res = await asB(method, url, body);
@@ -252,5 +253,40 @@ describe('workspace isolation', () => {
     expect((await asB('POST', '/api/v1/invitations', { email: 'new@example.test', role: 'owner' })).status).toBe(409);
     const s = JSON.parse((await asB('GET', '/api/v1/settings')).raw) as Obj;
     expect(s['openRouterCredit']).toBeNull();
+  });
+});
+
+describe('data rights across workspaces (D-050)', () => {
+  it("exports only B's own workspace, never a row or file of A", async () => {
+    if (!other) throw new Error('Workspace B app not built.');
+    const res = await other.inject({ method: 'GET', url: '/api/v1/workspace/export', headers: { host: HOST } });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toBe('application/zip');
+    const entries = readZip(res.rawPayload);
+    const names = entries.map((e) => e.name);
+    expect(names).toContain('workspace.json');
+    expect(names).toContain('tables/projects.json');
+    const text = entries.map((e) => `${e.name}\n${Buffer.from(e.data).toString('latin1')}`).join('\n');
+    expect(leaks(text)).toEqual([]);
+    expect(text).toContain('B book');
+    expect(text).toContain(b.workspaceId);
+  });
+
+  it("deletes B's guest workspace with all its rows and leaves A untouched", async () => {
+    const before = await snapshot();
+    expect((await asB('DELETE', '/api/v1/workspace', { confirm: 'delete' })).status).toBe(409);
+    expect((await asB('DELETE', '/api/v1/workspace', { confirm: 'DELETE' })).status).toBe(204);
+    for (const table of await tenantTables()) expect(await rowsOf(table, b.workspaceId), table).toEqual([]);
+    expect(await t.handle.db.selectFrom('workspaces').select('id').where('id', '=', b.workspaceId).execute()).toEqual([]);
+    expect(await t.handle.db.selectFrom('users').select('id').where('id', '=', b.userId).execute()).toEqual([]);
+    expect(await snapshot()).toBe(before);
+  });
+
+  it("refuses to delete the owner's own workspace", async () => {
+    const before = await snapshot();
+    const res = await t.call<{ error: { code: string } }>('DELETE', '/api/v1/workspace', { confirm: 'DELETE' });
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('forbidden');
+    expect(await snapshot()).toBe(before);
   });
 });

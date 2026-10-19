@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import { parse } from '../http/errors.js';
 import { JobInsights } from '../jobs/eta.js';
+import { baseSecurityHeaders } from '../http/hosting.js';
 import { openSseStream } from '../sse/stream.js';
 import { idOf, writer } from './common.js';
 
@@ -75,6 +76,8 @@ export function jobRoutes(app: FastifyInstance, s: AppServices): void {
       // A long-lived stream outlives the per-request membership check: re-check it, and close for a removed member.
       stillAllowed: () => s.repos.members.isMember(ctx),
       recheckMs: SSE_MEMBERSHIP_RECHECK_MS,
+      // Same nosniff, frame, referrer, robots and HSTS headers as every other answer (D-050).
+      headers: baseSecurityHeaders(req.url, s.config),
     });
   };
 

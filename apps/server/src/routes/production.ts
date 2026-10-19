@@ -7,6 +7,7 @@ import { bookWritingComplete, buildExportBook } from '../jobs/book-data.js';
 import { assertQualityGate, preflightReport } from '../jobs/quality-gate.js';
 import { EXPORT_KINDS } from '../ports/export.js';
 import { MARKETING_KINDS, MarketingPatchSchema } from '../repos/production.js';
+import { CoverBriefSchema, CoverTypographySchema } from './body-schemas.js';
 import { accepted, idOf, writer } from './common.js';
 
 function safeFilename(name: string): string {
@@ -54,7 +55,7 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const id = idOf(req);
     await s.repos.books.require(req.ctx, id);
-    const body = parse(z.object({ brief: z.record(z.string(), z.unknown()) }), req.body);
+    const body = parse(z.object({ brief: CoverBriefSchema }).strict(), req.body);
     return { cover: await p.upsertCover(req.ctx, id, { brief: body.brief, status: 'brief' }) };
   });
 
@@ -70,7 +71,7 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
   app.post('/books/:id/cover/choose', async (req) => {
     writer(req);
     const id = idOf(req);
-    const body = parse(z.object({ assetId: z.string().min(1).max(64), typography: z.record(z.string(), z.unknown()).optional() }), req.body);
+    const body = parse(z.object({ assetId: z.string().min(1).max(64), typography: CoverTypographySchema.optional() }).strict(), req.body);
     const cover = await p.getCover(req.ctx, id);
     if (!cover || !cover.concepts.some((c) => c.assetId === body.assetId))
       throw new AppError('validation_failed', 'That concept does not belong to this book.');

@@ -201,7 +201,7 @@ describe('public hosting', () => {
     expect(page.status).toBe(200);
     expect(page.raw).toContain('<div id="root">');
     expect(page.headers['cache-control']).toBe('no-cache');
-    expect(page.headers['strict-transport-security']).toBe('max-age=31536000');
+    expect(page.headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains');
     expect(page.headers['x-frame-options']).toBe('DENY');
     expect(page.headers['x-robots-tag']).toBe('noindex, nofollow');
     const csp = String(page.headers['content-security-policy']);
@@ -246,6 +246,25 @@ describe('public hosting', () => {
     } finally {
       await app.close();
       await handle.close();
+    }
+  });
+});
+
+describe('event streams', () => {
+  it('carry the same security headers as every other answer, HSTS included', async () => {
+    const res = await t.app.inject({ method: 'GET', url: '/api/v1/events', headers: as('user_owner'), payloadAsStream: true });
+    try {
+      expect(res.statusCode).toBe(200);
+      expect(String(res.headers['content-type'])).toMatch(/^text\/event-stream/);
+      expect(res.headers['cache-control']).toBe('no-cache, no-transform');
+      expect(res.headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains');
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
+      expect(res.headers['x-frame-options']).toBe('DENY');
+      expect(res.headers['referrer-policy']).toBe('no-referrer');
+      expect(res.headers['x-robots-tag']).toBe('noindex, nofollow');
+      expect(res.headers['permissions-policy']).toContain('camera=()');
+    } finally {
+      res.stream().destroy();
     }
   });
 });

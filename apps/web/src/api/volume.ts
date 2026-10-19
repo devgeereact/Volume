@@ -1,6 +1,6 @@
-/* Volume mode: who am I, members and invitations (owner only), batches and the title schedule
-   (apps/server/src/routes/members.ts, batches.ts, schedule.ts). */
-import { api, seg, type RequestOptions } from "./client";
+/* Volume mode: who am I, members and invitations (owner only), data rights (leave, delete, export), batches and
+   the title schedule (apps/server/src/routes/members.ts, account.ts, batches.ts, schedule.ts). */
+import { api, apiDownload, seg, type RequestOptions } from "./client";
 import { withPlainJobError } from "./jobErrors";
 import type {
   ApiBatchDetail,
@@ -31,7 +31,15 @@ export const volumeApi = {
   invite: (body: InvitationInput, o?: Opts) => api.post<ApiInvitation>("/invitations", body, o),
   revokeInvitation: (id: string, o?: Opts) => api.delete(`/invitations/${seg(id)}`, o),
   setMemberRole: (userId: string, role: MemberRole, o?: Opts) => api.patch<ApiMember>(`/members/${seg(userId)}`, { role }, o),
-  removeMember: (userId: string, o?: Opts) => api.delete(`/members/${seg(userId)}`, o),
+  /** D-050: the server needs { confirm: "REMOVE" }, typed by the owner. */
+  removeMember: (userId: string, confirm: string, o?: Opts) => api.delete(`/members/${seg(userId)}`, o, { confirm }),
+
+  /** D-050: an editor or viewer leaves this workspace. Owners get 409. */
+  leave: (confirm: string, o?: Opts) => api.post("/me/leave", { confirm }, o),
+  /** D-050: the owner of a guest workspace deletes it with every book and file. 403 for the instance workspace, 409 while a job runs. */
+  deleteWorkspace: (confirm: string, o?: Opts) => api.delete("/workspace", o, { confirm }),
+  /** D-050: the owner's zip of the whole workspace. 403 for editors and viewers, 409 while one runs, 429 when rate limited. */
+  exportWorkspace: (o?: Opts) => apiDownload("GET", "/workspace/export", "application/zip", o),
 
   batches: (o?: Opts) => api.get<ListResponse<ApiBatchSummary>>("/batches", o).then((r) => r.items),
   batch: (id: string, o?: Opts) => api.get<ApiBatchDetail>(`/batches/${seg(id)}`, o),

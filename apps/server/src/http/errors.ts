@@ -1,5 +1,6 @@
 import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { safeErr } from './log-safety.js';
 
 export type ErrorCode =
   | 'validation_failed'
@@ -127,8 +128,9 @@ export function registerErrorHandling(app: FastifyInstance, fallback?: NotFoundF
       void reply.code(fe.statusCode).send(errorBody('validation_failed', 'The request could not be read.'));
       return;
     }
-    // Log the error without the request body or headers. The response never carries the stack or the message.
-    req.log.error({ err: { message: err.message, name: err.name, stack: err.stack } }, 'request failed');
+    // Log the error's name, code and stack frames only: no message (it can hold user text), body or headers. The
+    // response never carries the stack or the message.
+    req.log.error({ err: safeErr(err) }, 'request failed');
     void reply.code(500).send(errorBody('internal_error', 'Something went wrong on the server. Try again.'));
   });
 }

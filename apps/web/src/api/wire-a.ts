@@ -344,7 +344,11 @@ export async function downloadProjectFile(bookId: string, title: string): Promis
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "") || "book";
-  const name = filename ?? `${slug}.volume.zip`;
+  return saveBlob(blob, filename ?? `${slug}.volume.zip`);
+}
+
+/** Hands a downloaded file to the browser's downloads under `name`, and returns the name. */
+export function saveBlob(blob: Blob, name: string): string {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

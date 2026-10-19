@@ -3,6 +3,7 @@ import type { RequestCtx, Role } from '../auth/context.js';
 import type { Db } from '../db/connect.js';
 import { AppError } from '../http/errors.js';
 import { newId, now } from '../lib/util.js';
+import { eraseOrphanAccounts } from './workspace-data.js';
 
 /** editor or viewer joins the inviting workspace; owner is a separate self-publisher with a new workspace (D-047). */
 export const INVITE_ROLES = ['owner', 'editor', 'viewer'] as const;
@@ -195,17 +196,35 @@ export class MembersRepo {
     return m;
   }
 
-  /** Removes the membership; the accepted invitation is marked revoked so it can never admit the account again. */
-  async remove(ctx: RequestCtx, userId: string): Promise<void> {
+  /**
+   * Removes the membership; the accepted invitation is marked revoked so it can never admit the account again.
+   * An account left with no membership is deleted (D-050). Returns whether the account was deleted.
+   */
+  async remove(ctx: RequestCtx, userId: string): Promise<{ accountDeleted: boolean }> {
     await this.requireOtherMember(ctx, userId);
-    await this.db.transaction().execute(async (trx) => {
-      await trx.deleteFrom('memberships').where('workspaceId', '=', ctx.workspaceId).where('userId', '=', userId).execute();
+    return this.dropMembership(ctx.workspaceId, userId);
+  }
+
+  /**
+   * The caller leaves the workspace (D-050). Owners cannot leave: the owner's own workspace keeps its owner, and a
+   * self-publisher deletes their workspace instead. The account is deleted when no membership is left.
+   */
+  async leave(ctx: RequestCtx): Promise<{ accountDeleted: boolean }> {
+    if (ctx.role === 'owner') throw new AppError('invalid_state', 'An owner cannot leave a workspace. Delete the workspace instead.');
+    if (!(await this.isMember(ctx))) throw new AppError('not_found', 'Member not found.');
+    return this.dropMembership(ctx.workspaceId, ctx.userId);
+  }
+
+  private dropMembership(workspaceId: string, userId: string): Promise<{ accountDeleted: boolean }> {
+    return this.db.transaction().execute(async (trx) => {
+      await trx.deleteFrom('memberships').where('workspaceId', '=', workspaceId).where('userId', '=', userId).execute();
       await trx
         .updateTable('invitations')
         .set({ status: 'revoked', pendingEmail: null, updatedAt: now() })
-        .where('workspaceId', '=', ctx.workspaceId)
+        .where('workspaceId', '=', workspaceId)
         .where('acceptedUserId', '=', userId)
         .execute();
+      return { accountDeleted: (await eraseOrphanAccounts(trx, [userId])) > 0 };
     });
   }
 }
