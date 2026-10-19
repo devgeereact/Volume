@@ -1660,6 +1660,10 @@ function claimFixInput(v: Rec): Rec {
       checkNeeded: text(claim['checkNeeded']),
       before: text(claim['before']),
       after: text(claim['after']),
+      paragraph: text(claim['paragraph']),
+      previousSentence: text(claim['previousSentence']),
+      nextSentence: text(claim['nextSentence']),
+      sectionTitle: text(claim['sectionTitle']),
     },
     fix: { instruction: text(v['instruction']) },
   };

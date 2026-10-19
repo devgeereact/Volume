@@ -89,6 +89,68 @@ export function aroundSentence(text: string, at: number, sentence: string): { be
   return { before: text.slice(Math.max(0, at - CONTEXT_CHARS), at), after: text.slice(at + sentence.length, at + sentence.length + CONTEXT_CHARS) };
 }
 
+const SENTENCE_RE = /[^.!?\n]+[.!?]+["'\u2019\u201D)]*|[^.!?\n]+$/g;
+
+function sentencesOf(text: string): string[] {
+  return (text.match(SENTENCE_RE) ?? []).map((x) => x.trim()).filter((x) => x.length > 0 && !x.startsWith('#'));
+}
+
+/**
+ * The paragraph holding the sentence and the sentences either side of it (across a paragraph break when the sentence
+ * opens or closes its paragraph), so a fix can join the text around it.
+ */
+export function paragraphAround(
+  text: string,
+  at: number,
+  sentence: string,
+): { paragraph: string; previousSentence: string | null; nextSentence: string | null } {
+  const end = at + sentence.length;
+  const pStart = text.lastIndexOf('\n\n', at);
+  const pEnd = text.indexOf('\n\n', end);
+  const paragraph = text.slice(pStart < 0 ? 0 : pStart + 2, pEnd < 0 ? text.length : pEnd).trim();
+  const previousSentence = sentencesOf(text.slice(Math.max(0, at - CONTEXT_CHARS), at)).at(-1) ?? null;
+  const nextSentence = sentencesOf(text.slice(end, end + CONTEXT_CHARS))[0] ?? null;
+  return { paragraph, previousSentence, nextSentence };
+}
+
+const wordSet = (t: string): Set<string> =>
+  new Set(
+    t
+      .toLowerCase()
+      .replace(MARKER_RE, ' ')
+      .match(/[a-z0-9']+/g) ?? [],
+  );
+
+/** How much of `part` (its distinct words) appears in `whole`, 0 to 1. */
+export function coverage(part: string, whole: string): number {
+  const x = wordSet(part);
+  const y = wordSet(whole);
+  if (x.size === 0) return 0;
+  let both = 0;
+  for (const w of x) if (y.has(w)) both += 1;
+  return both / x.size;
+}
+
+/** Word overlap of two texts (Jaccard over lower-case words), 0 to 1. */
+export function similarity(a: string, b: string): number {
+  const words = (t: string): Set<string> =>
+    new Set(
+      t
+        .toLowerCase()
+        .replace(MARKER_RE, ' ')
+        .match(/[a-z0-9']+/g) ?? [],
+    );
+  const x = words(a);
+  const y = words(b);
+  if (x.size === 0 || y.size === 0) return 0;
+  let both = 0;
+  for (const w of x) if (y.has(w)) both += 1;
+  return both / (x.size + y.size - both);
+}
+
+/** Options closer than this to each other count as the same option; closer than this to a neighbour, a repeat. */
+export const NEAR_DUPLICATE = 0.8;
+
 /** Source numbers cited with [[S<n>]] markers in a text. */
 export function markersIn(text: string): number[] {
   return [...text.matchAll(MARKER_RE)].map((m) => Number(m[1]));
@@ -122,7 +184,8 @@ function numbersIn(text: string): string[] {
  * The zero-invention check on the model's options. An option is dropped when it cites a source marker the book does not
  * have, carries a link, holds a number that is in neither the sentence nor a source it cites, adds an amount in words
  * ("one in five", "half of") or a house-style guardrail pattern (according to, studies show, award words, a
- * percentage ...) the sentence does not have, repeats the sentence unchanged or repeats another option. `remove` always has empty text; `attribute` with no valid marker still needs a
+ * percentage ...) the sentence does not have, repeats the sentence unchanged, is a near-duplicate of an option already
+ * kept, or repeats the sentence before or after it (the passage would then say the same thing twice). `remove` always has empty text; `attribute` with no valid marker still needs a
  * source. At most three are kept.
  */
 export function vetOptions(
@@ -130,7 +193,9 @@ export function vetOptions(
   sentence: string,
   sources: readonly { title: string | null; excerpt: string | null }[],
   style: CompiledHouseStyle,
+  around: { previousSentence?: string | null; nextSentence?: string | null } = {},
 ): { kept: ClaimFixOption[]; dropped: number } {
+  const neighbours = [around.previousSentence, around.nextSentence].filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
   const kept: ClaimFixOption[] = [];
   const allowed = new Set(numbersIn(sentence));
   const sentenceAmounts = new Set(amountWordsIn(sentence));
@@ -148,6 +213,9 @@ export function vetOptions(
     if (amountWordsIn(text).some((a) => !sentenceAmounts.has(a))) continue;
     if ([...guardrailIdsIn(text, style)].some((id) => !sentencePatterns.has(id))) continue;
     if (seen.has(text)) continue;
+    if (text && kept.some((k) => k.text && similarity(k.text, text) >= NEAR_DUPLICATE)) continue;
+    // A neighbour of four words or more whose words the option mostly repeats: the passage would say it twice.
+    if (text && neighbours.some((n) => similarity(n, text) >= NEAR_DUPLICATE || (wordSet(n).size >= 4 && coverage(n, text) >= NEAR_DUPLICATE))) continue;
     seen.add(text);
     const needsSource = o.needsSource || (o.approach === 'attribute' && cited.length === 0);
     kept.push({ text, approach: o.approach, rationale: o.rationale.trim(), needsSource });
@@ -183,13 +251,24 @@ export async function claimFixVariables(
   instruction: string | null,
 ): Promise<Record<string, unknown>> {
   const book = await repos.books.require(ctx, claim.projectId);
+  const section = claim.sectionId ? await repos.manuscript.getSection(ctx, claim.sectionId) : null;
+  const blueprint = book.approvedBlueprintId ? await repos.planning.blueprintById(ctx, book.approvedBlueprintId) : null;
+  const tone = blueprint?.data['tone'];
   return {
+    ...(typeof tone === 'string' && tone.trim() ? { tone } : {}),
     title: book.title,
     subtitle: book.subtitle,
     bookTypeId: book.bookTypeId,
     profile: await profileSummary(repos, ctx, book.profileId, book),
     sources: await bookSources(repos, ctx, claim.projectId),
-    claim: { sentence: claim.sentence, category: claim.category, checkNeeded: claim.checkNeeded, ...aroundSentence(text, at, claim.sentence) },
+    claim: {
+      sentence: claim.sentence,
+      category: claim.category,
+      checkNeeded: claim.checkNeeded,
+      sectionTitle: section?.title ?? null,
+      ...aroundSentence(text, at, claim.sentence),
+      ...paragraphAround(text, at, claim.sentence),
+    },
     instruction,
   };
 }

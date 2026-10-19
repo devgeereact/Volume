@@ -99,6 +99,43 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
   // ---------- claim fixes ----------
 
   /**
+   * Claims across this book: every claim (open by default; `status=all` for every status), oldest books included,
+   * with its section and whether its sentence is still in the section's current text, ordered as the book reads.
+   * 200 { counts: { open, verified, softened, removed, author_experience }, items: [{ ...claim, section, inCurrentText }] }.
+   */
+  app.get('/books/:id/claims/overview', async (req) => {
+    const p = parse(z.object({ id: Id }), req.params);
+    const q = parse(z.object({ status: z.enum(['open', 'verified', 'softened', 'removed', 'author_experience', 'all']).optional() }), req.query);
+    await s.repos.books.require(req.ctx, p.id);
+    const all = await m.listClaims(req.ctx, { projectId: p.id });
+    const counts = { open: 0, verified: 0, softened: 0, removed: 0, author_experience: 0 } as Record<string, number>;
+    for (const c of all) counts[c.status] = (counts[c.status] ?? 0) + 1;
+    const want = q.status ?? 'open';
+    const chosen = want === 'all' ? all : all.filter((c) => c.status === want);
+    const sections = new Map((await m.listSections(req.ctx, p.id)).map((x) => [x.id, x]));
+    const texts = new Map<string, string>();
+    const textOf = async (sectionId: string): Promise<string> => {
+      if (!texts.has(sectionId)) texts.set(sectionId, (await m.currentVersion(req.ctx, sectionId))?.bodyMd ?? '');
+      return texts.get(sectionId) ?? '';
+    };
+    const items: (Claim & {
+      section: { id: string; title: string | null; kind: string; number: number | null; enabled: boolean; position: number } | null;
+      inCurrentText: boolean;
+    })[] = [];
+    for (const c of chosen) {
+      const sec = c.sectionId ? sections.get(c.sectionId) : undefined;
+      items.push({
+        ...c,
+        section: sec ? { id: sec.id, title: sec.title, kind: sec.kind, number: sec.number, enabled: sec.enabled, position: sec.position } : null,
+        inCurrentText: sec ? (await textOf(sec.id)).includes(c.sentence) : false,
+      });
+    }
+    const start = (c: (typeof items)[number]): number => (typeof c.location['start'] === 'number' ? c.location['start'] : 0);
+    items.sort((a, b) => (a.section?.position ?? Infinity) - (b.section?.position ?? Infinity) || start(a) - start(b));
+    return { counts, items };
+  });
+
+  /**
    * 202 with the claim_fix job and its estimate. The job's result is { claimId, sectionId, baseVersionId, sentence, options }.
    * 409 conflict { jobId } while a claim_fix job for the same claim is unfinished; one lock per claim makes the check
    * and the enqueue one step, so a double click cannot pay twice.

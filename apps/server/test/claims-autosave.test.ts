@@ -1,7 +1,16 @@
 // house-style:off (test data quotes claims on purpose)
 import { afterEach, describe, expect, it } from 'vitest';
 import { sql } from 'kysely';
-import { amountWordsIn, claimStatusFor, locateSentence, spliceSentence, vetOptions, type ClaimFixOption } from '../src/jobs/claim-fix.js';
+import {
+  amountWordsIn,
+  claimStatusFor,
+  locateSentence,
+  paragraphAround,
+  similarity,
+  spliceSentence,
+  vetOptions,
+  type ClaimFixOption,
+} from '../src/jobs/claim-fix.js';
 import { CHECKS_MISSING_CHECKER, houseStyle, withOwnerPlaceholders, withPackCovers } from '../src/jobs/book-data.js';
 import { AUTOSAVE_WINDOW_MS, sessionStartOf } from '../src/repos/manuscript.js';
 import type { PreflightReport } from '../src/ports/export.js';
@@ -148,6 +157,36 @@ describe('claim fix helpers', () => {
     // An option adding it to a sentence without it is dropped; the same amount already in the sentence may stay.
     expect(vetOptions([opt(text, 'soften')], 'Night shifts are hard on sleep.', [], style).kept).toEqual([]);
     expect(vetOptions([opt(`Perhaps ${text.charAt(0).toLowerCase()}${text.slice(1)}`, 'soften')], text, [], style).kept).toHaveLength(1);
+  });
+
+  it('finds the paragraph and the sentences either side', () => {
+    const text = '# Title\n\nFirst idea here. The claim sits here. Then a follow-up.\n\nNext paragraph starts.';
+    const at = text.indexOf('The claim');
+    expect(paragraphAround(text, at, 'The claim sits here.')).toEqual({
+      paragraph: 'First idea here. The claim sits here. Then a follow-up.',
+      previousSentence: 'First idea here.',
+      nextSentence: 'Then a follow-up.',
+    });
+    const last = text.indexOf('Then a');
+    expect(paragraphAround(text, last, 'Then a follow-up.').nextSentence).toBe('Next paragraph starts.');
+  });
+
+  it('drops near-duplicate options and options that repeat the sentence before or after', () => {
+    expect(similarity('Many nurses find sleep hard.', 'Many nurses find sleep hard!')).toBe(1);
+    const { kept } = vetOptions(
+      [
+        opt('Many night nurses find sleep hard after a shift.', 'soften'),
+        opt('Many night nurses find sleep hard after their shift.', 'generalise'),
+        opt('The ward was quiet at three in the morning.', 'reframe'),
+        opt('Sleep after a night shift takes practice.', 'reframe'),
+        opt('Then the phone rang and nobody slept.', 'reframe'),
+      ],
+      'Most night nurses sleep badly for years.',
+      [],
+      style,
+      { previousSentence: 'The ward was quiet at three in the morning.', nextSentence: 'Then the phone rang.' },
+    );
+    expect(kept.map((o) => o.text)).toEqual(['Many night nurses find sleep hard after a shift.', 'Sleep after a night shift takes practice.']);
   });
 
   it('leaves ordinary words alone', () => {
@@ -317,6 +356,31 @@ describe('POST /books/:id/claims/:claimId/suggest and /apply', () => {
     expect(r.body.claim.status).toBe('softened');
     expect(r.body.version).toMatchObject({ source: 'owner:claim-fix' });
     expect(r.body.version.bodyMd).toContain('In my own words.');
+  });
+});
+
+describe('GET /books/:id/claims/overview', () => {
+  it('lists the book’s claims with their section, counts and whether the sentence is still there', async () => {
+    t = await testApp();
+    const { bookId, chapterId } = await writtenBook(t);
+    const before = await t.call<{
+      counts: Record<string, number>;
+      items: (ClaimView & { section: { id: string; title: string } | null; inCurrentText: boolean })[];
+    }>('GET', `/api/v1/books/${bookId}/claims/overview`);
+    expect(before.status).toBe(200);
+    expect(before.body.counts['open']).toBe(before.body.items.length);
+    expect(before.body.items.length).toBeGreaterThan(0);
+    expect(before.body.items.every((c) => c.status === 'open' && c.section !== null && c.inCurrentText)).toBe(true);
+    const claim = before.body.items.find((c) => c.sectionId === chapterId)!;
+    await t.call('POST', `/api/v1/books/${bookId}/claims/${claim.id}/apply`, { text: '', approach: 'remove' });
+    const after = await t.call<{ counts: Record<string, number>; items: (ClaimView & { inCurrentText: boolean })[] }>(
+      'GET',
+      `/api/v1/books/${bookId}/claims/overview?status=all`,
+    );
+    expect(after.body.counts['removed']).toBe(1);
+    expect(after.body.items.find((c) => c.id === claim.id)).toMatchObject({ status: 'removed', inCurrentText: false });
+    expect((await t.call('GET', `/api/v1/books/${bookId}/claims/overview?status=nope`)).status).toBe(400);
+    expect((await t.call('GET', '/api/v1/books/01NOTABOOK0000000000000000/claims/overview')).status).toBe(404);
   });
 });
 

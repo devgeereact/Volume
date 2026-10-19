@@ -26,6 +26,13 @@ describe('editing.claim-fix', () => {
     expect(text).toContain('[S1]');
     expect(text).toContain('Never add a statistic');
     expect(text).toContain('Never state a personal fact, relationship');
+    // The passage around the sentence goes in too, fenced, with the chapter and the voice.
+    expect(text).toMatch(/<data label="claim.paragraph">\s*It was three in the morning\. Most night nurses/);
+    expect(text).toMatch(/<data label="claim.previousSentence">\s*It was three in the morning\.\s*<\/data>/);
+    expect(text).toMatch(/<data label="claim.nextSentence">\s*Then the phone rang\.\s*<\/data>/);
+    expect(text).toContain('Chapter (may be empty): The Hours Nobody Warns You About');
+    expect(text).toContain('the same length as the sentence or shorter');
+    expect(text).toContain('Never replace them with generic filler');
   });
 
   it('accepts only the five approaches', () => {
