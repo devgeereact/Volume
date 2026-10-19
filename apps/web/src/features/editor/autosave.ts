@@ -249,3 +249,15 @@ export function autosaveText(s: AutosaveStatus, time: (at: number) => string): s
       return "";
   }
 }
+
+/**
+ * True when a draft from this browser was typed on older text than the section holds now: another version,
+ * or the same autosave since updated in place (another tab). Restoring it must then save a new named
+ * version, never update the autosave in place, so the newer text stays in the version list.
+ */
+export function draftBehind(
+  draft: Pick<LocalDraft, "baseVersionId" | "baseRevision">,
+  current: { versionId: string | null; revision: number | null },
+): boolean {
+  return draft.baseVersionId !== current.versionId || draft.baseRevision !== current.revision;
+}

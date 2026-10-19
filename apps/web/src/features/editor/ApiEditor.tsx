@@ -75,7 +75,7 @@ import { autosaveText } from "./autosave";
 import { ClaimRewrite } from "./ClaimRewrite";
 import { DiffText } from "./DiffText";
 import { draftStore, useSectionAutosave } from "./useSectionAutosave";
-import { draftKey, type LocalDraft } from "./autosave";
+import { draftBehind, draftKey, type LocalDraft } from "./autosave";
 
 /* Editor on the Volume server (API mode). The same galley, tree and inspector as the demo editor, with
    the text, versions, suggestions, claims and author notes read from and saved to the server. Typing
@@ -393,22 +393,52 @@ function Body({
     else if (local) draftStore.remove(draftKey(sectionId, userId));
   }, [ready, sectionId, doc, userId]);
   /** The server has text newer than the one the draft was typed on. */
-  const recoveredBehind =
-    choosing &&
-    (recovered.baseVersionId !== doc?.versionId || (recovered.baseRevision !== null && doc.revision !== null && recovered.baseRevision !== doc.revision));
+  const recoveredBehind = choosing && !!doc && draftBehind(recovered, { versionId: doc.versionId, revision: doc.revision });
   const [compareDraft, setCompareDraft] = useState(false);
 
-  function restoreLocal() {
-    if (!recovered || recovered.sectionId !== sectionId) return;
+  const [restoring, setRestoring] = useState(false);
+  async function restoreLocal() {
+    if (!recovered || recovered.sectionId !== sectionId || !doc) return;
+    const md = recovered.bodyMd;
+    if (recoveredBehind) {
+      // Newer text exists: keep it in history by saving the draft as a new named version on top of it.
+      setRestoring(true);
+      try {
+        const v = await save.mutateAsync({
+          bookId,
+          sectionId,
+          input: { bodyMd: md, note: "Restored my text from this browser", baseVersionId: doc.versionId },
+        });
+        setDrafts({});
+        setDoc({
+          sectionId,
+          versionId: v.id,
+          version: v.version,
+          revision: v.updatedAt ?? null,
+          autosaved: false,
+          blocks: blocksFromMarkdown(md, v.id.slice(-8)),
+          savedMd: md,
+        });
+        autosave.reset(md, v.id, v.updatedAt ?? null);
+        setRecovered(null);
+        setCompareDraft(false);
+        setAnnounce(`Your text from this browser is saved as version ${v.version}. The newer text is the version before it in the list.`);
+      } catch (e) {
+        setProblem({
+          conflict: isApiError(e) && e.isConflict,
+          text:
+            isApiError(e) && e.isConflict ? "The section changed again while restoring, so nothing was saved. Compare again." : `Not saved. ${errorText(e)}`,
+        });
+      } finally {
+        setRestoring(false);
+      }
+      return;
+    }
     setDrafts({});
-    setDoc((d) => (d && d.sectionId === sectionId ? { ...d, blocks: blocksFromMarkdown(recovered.bodyMd, `r${Date.now().toString(36)}`) } : d));
+    setDoc((d) => (d && d.sectionId === sectionId ? { ...d, blocks: blocksFromMarkdown(md, `r${Date.now().toString(36)}`) } : d));
     setRecovered(null);
     setCompareDraft(false);
-    setAnnounce(
-      recoveredBehind
-        ? "Your text from this browser is back. It saves in a moment as a new version; the newer text stays in the version list."
-        : "Your text from this browser is back. It saves in a moment.",
-    );
+    setAnnounce("Your text from this browser is back. It saves in a moment.");
   }
   function discardLocal() {
     if (userId) draftStore.remove(draftKey(sectionId, userId));
@@ -1312,7 +1342,7 @@ function Body({
                         Compare and choose
                       </Button>
                     ) : (
-                      <Button size="sm" variant="primary" onClick={restoreLocal}>
+                      <Button size="sm" variant="primary" onClick={() => void restoreLocal()}>
                         Restore my text
                       </Button>
                     )}
@@ -1490,7 +1520,7 @@ function Body({
             <Button variant="ghost" onClick={discardLocal}>
               Keep the newer text
             </Button>
-            <Button variant="primary" onClick={restoreLocal}>
+            <Button variant="primary" loading={restoring} loadingLabel="Saving" onClick={() => void restoreLocal()}>
               Keep mine as a new version
             </Button>
           </>

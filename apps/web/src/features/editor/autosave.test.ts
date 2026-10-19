@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { autosaveText, browserDraftStore, createAutosaver, draftKey, type AutosaveStatus, type DraftStore, type LocalDraft } from "./autosave";
+import { autosaveText, browserDraftStore, createAutosaver, draftBehind, draftKey, type AutosaveStatus, type DraftStore, type LocalDraft } from "./autosave";
 
 function memoryStore(): DraftStore & { data: Map<string, LocalDraft> } {
   const data = new Map<string, LocalDraft>();
@@ -203,5 +203,26 @@ describe("browserDraftStore", () => {
     expect(s.read("k")).toEqual({ bodyMd: "x", baseVersionId: "v1", baseRevision: 7, at: 5 });
     m.set("j", "{not json");
     expect(s.read("j")).toBeNull();
+  });
+});
+
+describe("draftBehind", () => {
+  const draft = { baseVersionId: "v3", baseRevision: 100 };
+
+  it("is current only when the version and its revision both match", () => {
+    expect(draftBehind(draft, { versionId: "v3", revision: 100 })).toBe(false);
+  });
+
+  it("is behind when another version is current", () => {
+    expect(draftBehind(draft, { versionId: "v4", revision: 100 })).toBe(true);
+  });
+
+  it("is behind when the same autosave was updated in place since (another tab)", () => {
+    expect(draftBehind(draft, { versionId: "v3", revision: 250 })).toBe(true);
+  });
+
+  it("is behind when either revision is unknown, so restoring never updates in place blind", () => {
+    expect(draftBehind({ baseVersionId: "v3", baseRevision: null }, { versionId: "v3", revision: 100 })).toBe(true);
+    expect(draftBehind(draft, { versionId: "v3", revision: null })).toBe(true);
   });
 });
