@@ -181,6 +181,14 @@ export const TASKS = {
     output: O.RewriteSelectionOutput,
     guardrails: 'full',
   }),
+  'editing.claim-fix': def({
+    promptId: 'editing.claim-fix',
+    group: 'editing',
+    kind: 'json',
+    input: I.ClaimFixInput,
+    output: O.ClaimFixOutput,
+    guardrails: 'full',
+  }),
   'writing.weave-note': def({
     promptId: 'writing.weave-note',
     group: 'writing',
