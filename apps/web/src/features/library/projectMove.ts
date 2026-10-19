@@ -39,6 +39,7 @@ export function projectImportErrorText(error: unknown): string {
   if (error.status === 429 || error.code === "rate_limited") return "Too many imports in the last minute. Wait a minute, then try again.";
   if (error.status === 403 || error.code === "forbidden") return "Only an owner or editor can import a project. Ask the owner for editor access.";
   if (error.status === 404 || error.code === "not_found") return "That pen name is not in this workspace. Choose another one.";
+  if (error.code === "conflict") return "Another import is still running in this workspace. Wait for it to finish, then try again.";
   if (error.status === 409 || error.code === "invalid_state") return "That pen name is archived. Restore it in Profiles, or choose another one.";
   if (error.status === 400 || error.code === "validation_failed")
     return "This project file could not be read. It may be damaged or from an older Volume. Download it again on the other Volume, then try again.";
