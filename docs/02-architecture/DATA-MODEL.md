@@ -158,7 +158,7 @@ Quality gate: a batch book cannot be marked ready, have a slot confirmed, be pac
 
 ## AI runs and jobs
 
-**prompt_runs**: `project_id` (nullable), `job_id`, `stage text`, `prompt_id text` (for example `writing.chapter`), `prompt_version integer`, `prompt_hash text`, `provider text` (`openrouter`, `mock`), `model_slug text` (model that answered), `generation_id text` (OpenRouter id), `input_tokens integer`, `output_tokens integer`, `cost_usd real`, `latency_ms integer`, `status text` (`ok`, `error`, `invalid_output`, `cancelled`), `error text`, `output text` (raw response, kept for audit; `output` and `error` are cleared when the book is deleted, D-050). Index `(project_id, created_at)`, `(workspace_id, created_at)` for monthly spend.
+**prompt_runs**: `project_id` (nullable), `job_id`, `stage text`, `prompt_id text` (for example `writing.chapter`), `prompt_version integer`, `prompt_hash text`, `provider text` (`openrouter`, `mock`), `model_slug text` (model that answered), `generation_id text` (OpenRouter id), `input_tokens integer`, `output_tokens integer`, `cost_usd real`, `latency_ms integer`, `status text` (`ok`, `error`, `invalid_output`, `cancelled`), `error text`, `output text` (raw response, kept for audit; `output`, `error` and `guardrails` are cleared when the book is deleted, D-050). Index `(project_id, created_at)`, `(workspace_id, created_at)` for monthly spend.
 
 **jobs**
 
