@@ -73,7 +73,7 @@ export function OwnCoverPanel({
       {has[slot] && (
         <p className="flex items-center gap-1.5 text-small text-success">
           <Check size={14} strokeWidth={2} aria-hidden />
-          Your file is in use.
+          Your file is in use. Building covers keeps it and makes only the other one.
         </p>
       )}
       {canWrite && (

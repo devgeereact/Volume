@@ -4,7 +4,7 @@ import { VolumeExportAdapter } from '../src/adapters/volume-export.js';
 import { buildExportBook } from '../src/jobs/book-data.js';
 import { matchesSignature } from '../src/files/magic.js';
 import type { ExportBook } from '../src/ports/export.js';
-import { HOST, ORIGIN, str, testApp, type TestApp } from './helpers.js';
+import { buildCovers, HOST, ORIGIN, str, testApp, type TestApp } from './helpers.js';
 
 // "Use my own cover" (live acceptance 18 October 2026, defect 4): there was no way to pack a book without a paid AI
 // cover. The owner uploads an eBook cover (JPEG or TIFF) and a wrap PDF, attaches them, and preflight checks them.
@@ -76,6 +76,54 @@ describe('own cover uploads', () => {
     const off = await t.call<{ cover: Obj }>('POST', `/api/v1/books/${bookId}/cover/own`, { wrapAssetId: null });
     expect(off.body.cover).toMatchObject({ ebookAssetId: ebookId, wrapAssetId: null, wrapSpec: { ownEbook: true } });
     expect((off.body.cover['wrapSpec'] as Obj)['ownWrap']).toBeUndefined();
+  });
+});
+
+describe('which assets can be attached', () => {
+  it('refuses an asset of another book, of the wrong kind and of another workspace', async () => {
+    const p = await t.call<Obj>('POST', '/api/v1/profiles', { penName: 'Other Author', bioThirdPerson: 'Other Author writes too.' });
+    const other = await t.call<Obj>('POST', '/api/v1/books', { profileId: p.body['id'], idea: 'Quiet evenings', title: 'Quiet Evenings' });
+    const otherBook = str(other.body['id']);
+    const foreign = await upload('own_ebook_cover', 'cover.jpg', 'image/jpeg', JPEG, otherBook);
+    expect(foreign.status).toBe(201);
+    const refused = await t.call<Obj>('POST', `/api/v1/books/${bookId}/cover/own`, { ebookAssetId: str(foreign.body['id']) });
+    expect(refused.status).toBe(400);
+
+    const photo = await upload('interior_image', 'pic.jpg', 'image/jpeg', JPEG);
+    expect(photo.status).toBe(201);
+    expect((await t.call('POST', `/api/v1/books/${bookId}/cover/own`, { ebookAssetId: str(photo.body['id']) })).status).toBe(400);
+
+    // Same book id, but stored under another workspace: the owner's workspace cannot see it.
+    const ws = '01OTHERWORKSPACE0000000000';
+    const at = Date.now();
+    await t.handle.db.insertInto('workspaces').values({ id: ws, name: 'Other', slug: 'other-own-cover', createdAt: at, updatedAt: at }).execute();
+    const elsewhere = await t.services.blobs.put(
+      { ...t.owner, workspaceId: ws },
+      { kind: 'own_ebook_cover', filename: 'cover.jpg', mime: 'image/jpeg', projectId: bookId },
+      JPEG,
+    );
+    expect((await t.call('POST', `/api/v1/books/${bookId}/cover/own`, { ebookAssetId: elsewhere.id })).status).toBe(400);
+    const cover = await t.call<{ cover: Obj }>('GET', `/api/v1/books/${bookId}/cover`);
+    expect(cover.body.cover['ebookAssetId']).not.toBe(elsewhere.id);
+  });
+});
+
+describe('a cover build next to an own cover', () => {
+  it('keeps the owner eBook cover, builds only the wrap, and refuses when both are the owner own', async () => {
+    const p = await t.call<Obj>('POST', '/api/v1/profiles', { penName: 'Build Author', bioThirdPerson: 'Build Author writes.' });
+    const b = await t.call<Obj>('POST', '/api/v1/books', { profileId: p.body['id'], idea: 'Slow walks', title: 'Slow Walks' });
+    const id = str(b.body['id']);
+    const ebook = await upload('own_ebook_cover', 'cover.jpg', 'image/jpeg', JPEG, id);
+    const ownId = str(ebook.body['id']);
+    await t.call('POST', `/api/v1/books/${id}/cover/own`, { ebookAssetId: ownId });
+    await buildCovers(t, id);
+    const after = await t.call<{ cover: Obj }>('GET', `/api/v1/books/${id}/cover`);
+    expect(after.body.cover).toMatchObject({ ebookAssetId: ownId, status: 'final', wrapSpec: { ownEbook: true } });
+    expect(after.body.cover['wrapAssetId']).toBeTruthy();
+
+    const wrap = await upload('own_wrap_pdf', 'wrap.pdf', 'application/pdf', PDF, id);
+    await t.call('POST', `/api/v1/books/${id}/cover/own`, { wrapAssetId: str(wrap.body['id']) });
+    expect((await t.call('POST', `/api/v1/books/${id}/cover/build`, {})).status).toBe(409);
   });
 });
 

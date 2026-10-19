@@ -85,6 +85,8 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     const id = idOf(req);
     const cover = await p.getCover(req.ctx, id);
     if (!cover?.chosenAssetId) throw new AppError('invalid_state', 'Choose a cover concept first.');
+    if (cover.wrapSpec['ownEbook'] === true && cover.wrapSpec['ownWrap'] === true && cover.ebookAssetId && cover.wrapAssetId)
+      throw new AppError('invalid_state', 'Both covers are your own uploads. Take one out to build that one from the concept.');
     const job = await s.queue.enqueue(req.ctx, { kind: 'cover_build', projectId: id, payload: {} });
     return accepted(reply, job);
   });
