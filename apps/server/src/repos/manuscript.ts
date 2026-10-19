@@ -720,20 +720,20 @@ export class ManuscriptRepo {
       const t = now();
       const open = cur && cur.source === OWNER_AUTOSAVE_SOURCE && cur.createdBy === ctx.userId && t - Number(cur.createdAt) < AUTOSAVE_WINDOW_MS;
       // The autosave the editor started from has been updated in place since (another tab or window): a conflict.
-      if (cur && open && input.baseRevision !== undefined && input.baseRevision !== Number(cur.updatedAt)) {
-        throw new AppError('conflict', 'This section changed in another tab or window. Compare both versions and choose one.', {
-          currentVersionId: cur.id,
+      const revisionConflict = (currentRevision: number): AppError =>
+        new AppError('conflict', 'This section changed in another tab or window. Compare both versions and choose one.', {
+          currentVersionId: cur?.id ?? null,
           baseVersionId: input.baseVersionId,
-          currentRevision: Number(cur.updatedAt),
+          currentRevision,
           baseRevision: input.baseRevision,
         });
-      }
+      if (cur && open && input.baseRevision !== undefined && input.baseRevision !== Number(cur.updatedAt)) throw revisionConflict(Number(cur.updatedAt));
       if (cur && open && input.baseRevision !== undefined) {
         // Each in-place update moves the revision on, even within the same millisecond.
         const revision = Math.max(t, Number(cur.updatedAt) + 1);
         const plaintext = markdownToPlaintext(input.bodyMd);
         const words = wordCount(plaintext);
-        await trx
+        const updated = await trx
           .updateTable('sectionVersions')
           .set({
             content: toJson(input.content ?? null),
@@ -745,7 +745,13 @@ export class ManuscriptRepo {
           })
           .where('id', '=', cur.id)
           .where('workspaceId', '=', ctx.workspaceId)
-          .execute();
+          // Compare and set: a save that landed since the read above changed updatedAt, so this one changes nothing.
+          .where('updatedAt', '=', cur.updatedAt)
+          .executeTakeFirst();
+        if (Number(updated.numUpdatedRows) === 0) {
+          const now2 = await trx.selectFrom('sectionVersions').select('updatedAt').where('id', '=', cur.id).executeTakeFirst();
+          throw revisionConflict(Number(now2?.updatedAt ?? 0));
+        }
         await trx
           .updateTable('sections')
           .set({ status: words > 0 ? 'done' : 'empty', updatedAt: t })

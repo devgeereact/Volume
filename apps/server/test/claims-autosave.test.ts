@@ -1,7 +1,7 @@
 // house-style:off (test data quotes claims on purpose)
 import { afterEach, describe, expect, it } from 'vitest';
 import { sql } from 'kysely';
-import { claimStatusFor, locateSentence, spliceSentence, vetOptions, type ClaimFixOption } from '../src/jobs/claim-fix.js';
+import { amountWordsIn, claimStatusFor, locateSentence, spliceSentence, vetOptions, type ClaimFixOption } from '../src/jobs/claim-fix.js';
 import { CHECKS_MISSING_CHECKER, houseStyle, withOwnerPlaceholders, withPackCovers } from '../src/jobs/book-data.js';
 import { AUTOSAVE_WINDOW_MS, sessionStartOf } from '../src/repos/manuscript.js';
 import type { PreflightReport } from '../src/ports/export.js';
@@ -120,6 +120,38 @@ describe('claim fix helpers', () => {
     // A pattern or amount the sentence already has may stay.
     const half = vetOptions([opt('Perhaps half of night nurses find sleep hard.', 'soften')], 'Half of night nurses sleep badly.', [], style);
     expect(half.kept).toHaveLength(1);
+  });
+
+  it.each([
+    ['Seventy per cent of nurses sleep badly.', 'seventy per cent'],
+    ['Eighty percent of nurses sleep badly.', 'eighty per cent'],
+    ['Twenty-five per cent of shifts run late.', 'twenty five per cent'],
+    ['Ninety-nine percent of readers agree.', 'ninety nine per cent'],
+    ['Sixty in every hundred nurses say so.', 'sixty in every hundred'],
+    ['Nine in every ten nurses sleep badly.', 'nine in every ten'],
+    ['One in five nurses sleeps badly.', 'one in five'],
+    ['One in a million people have it.', 'one in a million'],
+    ['Night nurses are three times more likely to sleep badly.', 'three times more'],
+    ['They are ten times less likely to rest.', 'ten times less'],
+    ['A quarter of nurses sleep badly.', 'a quarter of'],
+    ['A third of nurses sleep badly.', 'a third of'],
+    ['A fifth of nurses sleep badly.', 'a fifth of'],
+    ['Two thirds of nurses sleep badly.', 'two thirds of'],
+    ['Half of nurses sleep badly.', 'half of'],
+    ['The majority of nurses sleep badly.', 'the majority of'],
+    ['A minority of nurses sleep well.', 'a minority of'],
+    ['Most of the nurses sleep badly.', 'most of'],
+    ['Thousands of nurses sleep badly.', 'thousands of'],
+    ['Sleep loss doubles the risk, twice over.', 'twice'],
+  ])('finds the amount in words in "%s"', (text, amount) => {
+    expect(amountWordsIn(text)).toContain(amount);
+    // An option adding it to a sentence without it is dropped; the same amount already in the sentence may stay.
+    expect(vetOptions([opt(text, 'soften')], 'Night shifts are hard on sleep.', [], style).kept).toEqual([]);
+    expect(vetOptions([opt(`Perhaps ${text.charAt(0).toLowerCase()}${text.slice(1)}`, 'soften')], text, [], style).kept).toHaveLength(1);
+  });
+
+  it('leaves ordinary words alone', () => {
+    expect(amountWordsIn('No one in an office sleeps at night. Most nurses rest when they can.')).toEqual([]);
   });
 
   it('maps a fix to the claim status', () => {
@@ -318,6 +350,14 @@ describe('PUT /books/:id/sections/:sectionId/autosave', () => {
     expect(otherTab.status).toBe(409);
     expect(otherTab.body.error.details).toMatchObject({ currentVersionId: first.body.id, currentRevision: second.body.updatedAt });
     expect(second.body.updatedAt).toBeGreaterThan((first.body as unknown as { updatedAt: number }).updatedAt);
+
+    // Two saves from the same user on the same revision at once: one lands, the other is a conflict.
+    const rev = second.body.updatedAt;
+    const [x, y] = await Promise.all([
+      t.call('PUT', url, { bodyMd: '# One\n\nTab A.', baseVersionId: first.body.id, baseRevision: rev }),
+      t.call('PUT', url, { bodyMd: '# One\n\nTab B.', baseVersionId: first.body.id, baseRevision: rev }),
+    ]);
+    expect([x.status, y.status].sort()).toEqual([200, 409]);
 
     // A stale base is a conflict carrying the current version id.
     const stale = await t.call<{ error: { code: string; details: { currentVersionId: string } } }>('PUT', url, { bodyMd: 'x', baseVersionId: start.id });

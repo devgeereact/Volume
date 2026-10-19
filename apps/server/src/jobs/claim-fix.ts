@@ -22,17 +22,28 @@ const CONTEXT_CHARS = 800;
 const MARKER_RE = /\[\[S(\d+)\]\]/g;
 const NUMBER_RE = /\d+(?:[.,]\d+)*/g;
 /**
- * Amounts in words that read as a statistic ("one in five", "half of", "a third of", "thousands of", "twice"). The
- * house-style guardrail patterns only see digits, so an option that adds one of these is dropped like a new figure.
+ * Amounts in words that read as a statistic: "one in five", "nine in every ten", "seventy per cent", "three times more
+ * likely", "half of", "a third of", "most of", "thousands of", "twice". The house-style guardrail patterns only see
+ * digits, so an option that adds one of these is dropped like a new figure.
  */
-const NUMBER_WORD = '(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|a|an)';
+const UNIT = 'one|two|three|four|five|six|seven|eight|nine';
+const TEEN = 'ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen';
+const TENS = 'twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety';
+/** A number in words up to ninety-nine, or a hundred. */
+const NUMBER_WORD = `(?:(?:${TENS})(?:[- ](?:${UNIT}))?|${TEEN}|${UNIT}|zero|a hundred|one hundred)`;
+const BIG = 'hundred|thousand|million|billion';
 const AMOUNT_WORDS_RE = new RegExp(
   [
-    `\\b${NUMBER_WORD}\\s+(?:in|out of)\\s+(?:two|three|four|five|six|seven|eight|nine|ten|twenty|fifty|a hundred|a thousand|a million|hundred|thousand|million)\\b`,
-    '\\b(?:half|a third|a quarter|two thirds|three quarters|a majority|the majority|a fifth|a tenth)\\s+of\\b',
+    // "one in five", "nine in every ten", "one out of a hundred", "one in a million"
+    `\\b${NUMBER_WORD}\\s+(?:in|out of)\\s+(?:every\\s+)?(?:${NUMBER_WORD}|a (?:${BIG})|${BIG})\\b`,
+    // "three times more likely", "twice as", "ten times less"
+    `\\b(?:${NUMBER_WORD}|\\d+(?:\\.\\d+)?)\\s+times\\s+(?:more|less|as|higher|lower|greater|fewer|likelier)\\b`,
+    // "seventy per cent", "twenty-five percent", "a hundred per cent"
+    `\\b(?:${NUMBER_WORD}|${BIG})\\s+(?:per ?cent|percent)\\b`,
+    // "half of", "a quarter of", "two thirds of", "the majority of", "most of", "a minority of"
+    '\\b(?:half|a (?:quarter|third|fifth|tenth)|(?:two|three|four) (?:thirds|quarters|fifths)|(?:the |a )?(?:majority|minority)|most)\\s+of\\b',
     '\\b(?:dozens|hundreds|thousands|millions|billions)\\s+of\\b',
     '\\b(?:twice|double|triple|treble|tenfold|hundredfold)\\b',
-    `\\b(?:${NUMBER_WORD}|hundred|thousand|million|billion)\\s+(?:per ?cent|percent)\\b`,
   ].join('|'),
   'gi',
 );
@@ -85,7 +96,13 @@ export function markersIn(text: string): number[] {
 
 /** Amounts in words in a text, lower case with single spaces. */
 export function amountWordsIn(text: string): string[] {
-  return (text.match(AMOUNT_WORDS_RE) ?? []).map((m) => m.toLowerCase().replace(/\s+/g, ' '));
+  return (text.match(AMOUNT_WORDS_RE) ?? []).map((m) =>
+    m
+      .toLowerCase()
+      .replace(/-/g, ' ')
+      .replace(/\bpercent\b/g, 'per cent')
+      .replace(/\s+/g, ' '),
+  );
 }
 
 /** Ids of the house-style guardrail patterns (according to, studies show, award words, percentages ...) a text hits. */
