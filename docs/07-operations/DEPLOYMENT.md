@@ -93,7 +93,7 @@ Once the hosted app holds books, never copy the database again (`db:copy-to-mysq
 2. On https://volume.gakinz.com, signed in as the owner or an editor, choose Import project in Settings or the Library, pick the pen name the book should belong to, and choose the zip.
 3. The hosted app checks the zip and makes a new book with new ids under that pen name, marked "Moved from another Volume on <date>". Nothing that is already there changes. Build export files (PDF, EPUB, pack) again on the host.
 
-The zip must be under `MAX_UPLOAD_BYTES` (50 MB unless set), and the expanded files under 256 MB. Imports are limited to 5 per minute per visitor. API: `POST /api/v1/books/import-project`, multipart/form-data with `profileId` and `file`.
+The zip must be under `MAX_UPLOAD_BYTES` (50 MB unless set), and the expanded files under 160 MB. Imports are limited to 5 per minute per visitor. API: `POST /api/v1/books/import-project`, multipart/form-data with `profileId` and `file`.
 
 ## Post-deploy checks
 

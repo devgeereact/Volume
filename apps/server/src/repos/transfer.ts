@@ -9,6 +9,8 @@ import { AppError, notFound } from '../http/errors.js';
 import { readZip, writeZip, type ZipEntry, type ZipReadLimits } from '../lib/zip.js';
 import { newId, now } from '../lib/util.js';
 import { APP_VERSION } from '../lib/version.js';
+import { AiDisclosureSchema, BOOK_STATUSES, BookSettingsSchema, isValidIsbn, ListPricesSchema, STAGES, TRIMS } from './books.js';
+import { SettingsRepo } from './settings.js';
 
 /**
  * Moving a book between Volume databases (D-051): POST /books/:id/export-project writes a zip with manifest.json
@@ -25,14 +27,79 @@ export const PROJECT_FORMAT_VERSION = 1;
 export const MANIFEST_FORMAT_VERSION = 1;
 
 /**
- * Limits on an uploaded project zip (zip bombs): at most 5,000 entries, 128 MB per expanded file and 256 MB expanded
- * in total. The compressed upload is capped separately by MAX_UPLOAD_BYTES.
+ * Limits on an uploaded project zip (zip bombs): at most 5,000 entries, 64 MB per expanded file and 160 MB expanded
+ * in total, all held in memory during one import. The compressed upload is capped separately by MAX_UPLOAD_BYTES.
  */
 export const PROJECT_ZIP_LIMITS: Required<ZipReadLimits> = {
   maxEntries: 5000,
-  maxEntryBytes: 128 * 1024 * 1024,
-  maxTotalBytes: 256 * 1024 * 1024,
+  maxEntryBytes: 64 * 1024 * 1024,
+  maxTotalBytes: 160 * 1024 * 1024,
 };
+
+/** The most a book's AI budget may be, as in BookInputSchema. */
+const MAX_BUDGET_USD = 10000;
+
+/** A JSON text column whose parsed value must match a schema. */
+const jsonText = (schema: z.ZodType) =>
+  z.string().refine((text) => {
+    try {
+      return schema.safeParse(JSON.parse(text)).success;
+    } catch {
+      return false;
+    }
+  });
+
+/** The imported book row checked with the same rules as a book created or edited in this Volume. */
+const ImportedProjectSchema = z.looseObject({
+  status: z.enum(BOOK_STATUSES),
+  stage: z.enum(STAGES),
+  trim: z.enum(TRIMS),
+  paper: z.enum(['white', 'cream']),
+  template: z.string().min(1).max(64),
+  idea: z.string().max(20000).nullable(),
+  notes: z.string().max(50000).nullable(),
+  title: z.string().max(255).nullable(),
+  subtitle: z.string().max(255).nullable(),
+  isbnPaperback: z.string().max(20).refine(isValidIsbn).nullable(),
+  isbnEbook: z.string().max(20).refine(isValidIsbn).nullable(),
+  edition: z.string().max(100).nullable(),
+  publicationYear: z.number().int().min(1900).max(2200).nullable(),
+  wordTarget: z.number().int().min(0).max(1000000).nullable(),
+  budgetUsd: z.number().finite(),
+  settings: jsonText(BookSettingsSchema),
+  aiDisclosure: jsonText(AiDisclosureSchema),
+  listPrices: jsonText(ListPricesSchema).nullable().optional(),
+  marketplace: z
+    .string()
+    .regex(/^amazon\.[a-z.]{2,12}$/i)
+    .max(40)
+    .nullable()
+    .optional(),
+});
+
+/**
+ * Which table each link column points at. A link must name a row of that table in the same zip (or be null), so an
+ * edited zip cannot, say, approve a section as the blueprint.
+ */
+const LINK_TARGETS: Record<string, string> = {
+  profileId: 'authorProfiles',
+  approvedBlueprintId: 'blueprints',
+  researchRunId: 'researchRuns',
+  partId: 'sections',
+  sectionId: 'sections',
+  currentVersionId: 'sectionVersions',
+  baseVersionId: 'sectionVersions',
+  wovenVersionId: 'sectionVersions',
+  versionId: 'sectionVersions',
+  imageAssetId: 'assets',
+  referenceAssetId: 'assets',
+  chosenAssetId: 'assets',
+  ebookAssetId: 'assets',
+  wrapAssetId: 'assets',
+  assetId: 'assets',
+};
+/** parentVersionId points at the same table it sits in (blueprints or section versions). */
+const SELF_LINKS = new Set(['parentVersionId']);
 
 /** File types an imported asset may declare. PNG, JPEG, WebP, PDF and zip are checked against their first bytes. */
 const IMPORT_MIME = new Set([
@@ -380,6 +447,15 @@ export class ProjectTransfer {
     ids.set(String(file.project['id']), bookId);
     for (const t of CHILD_TABLES) for (const r of file.tables[t] ?? []) ids.set(String(r['id']), newId());
 
+    // Budget (the spending cap): only the owner may bring a book's own cap; anyone else gets the workspace default.
+    const settings = await new SettingsRepo(this.db).all(ctx);
+    const imported = Number(file.project['budgetUsd']);
+    const budgetUsd =
+      ctx.role === 'owner' && Number.isFinite(imported) ? Math.min(MAX_BUDGET_USD, Math.max(0, imported)) : (settings['budget.book_default_usd'] ?? 15);
+    // The approved blueprint must be a blueprint in the zip that is itself approved.
+    const approved = file.project['approvedBlueprintId'];
+    const approvedOk = (file.tables.blueprints ?? []).some((b) => b['id'] === approved && b['status'] === 'approved');
+
     const t = now();
     let rows = 0;
     let assetCount = 0;
@@ -401,6 +477,8 @@ export class ProjectTransfer {
         archivedAt: null,
         // Spend stays with the Volume that paid for it; the budget cap starts again here.
         costToDateUsd: 0,
+        budgetUsd,
+        approvedBlueprintId: approvedOk ? map(file.project)['approvedBlueprintId'] : null,
         settings: withOrigin(file.project['settings'], t),
       };
       await trx
@@ -499,6 +577,16 @@ export class ProjectTransfer {
       }
     }
     if (file.project['profileId'] !== file.profile['id']) throw new AppError('validation_failed', 'This project has an invalid author reference.');
+    if (!ImportedProjectSchema.safeParse(file.project).success) throw new AppError('validation_failed', 'This project has invalid book settings.');
+    const idsOf = new Map(groups.map((g) => [g.name, new Set(g.rows.map((r) => String(r['id'])))]));
+    for (const group of groups)
+      for (const row of group.rows)
+        for (const [key, value] of Object.entries(row)) {
+          if (value === null || value === undefined) continue;
+          const target = SELF_LINKS.has(key) ? group.name : LINK_TARGETS[key];
+          if (target && (typeof value !== 'string' || !idsOf.get(target)?.has(value)))
+            throw new AppError('validation_failed', `This project has an invalid ${key} reference.`);
+        }
     for (const group of groups)
       for (const row of group.rows)
         for (const [key, value] of Object.entries(row)) {
@@ -528,7 +616,7 @@ export class ProjectTransfer {
       else if (k === 'id') out[k] = ids.get(String(v)) ?? newId();
       else if (k.endsWith('Id') && !KEEP_IDS.has(k)) out[k] = typeof v === 'string' ? (ids.get(v) ?? null) : null;
       else if (k === 'approvedBy') out[k] = v === null ? null : ctx.userId;
-      else if (JSON_KEYS.has(k) && typeof v === 'string') out[k] = v.replace(ULID, (m) => ids.get(m) ?? m);
+      else if (JSON_KEYS.has(k) && typeof v === 'string') out[k] = remapJson(v, ids);
       else out[k] = v;
     }
     out['updatedAt'] = t;
@@ -551,4 +639,30 @@ function withOrigin(settings: unknown, at: number): string {
 async function* once(data: Uint8Array): AsyncGenerator<Uint8Array> {
   await Promise.resolve();
   yield data;
+}
+
+const WHOLE_ULID = /^[0-9A-HJKMNP-TV-Z]{26}$/;
+
+/**
+ * Ids inside a JSON column: an id of a moved row gets its new id; an id field (a key ending in id or ids) naming a
+ * row that did not move becomes null, so nothing points into another Volume. Other text is left as it is.
+ */
+export function remapJson(text: string, ids: Map<string, string>): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return text.replace(ULID, (m) => ids.get(m) ?? m);
+  }
+  const walk = (value: unknown, idKey: boolean): unknown => {
+    if (typeof value === 'string') {
+      if (WHOLE_ULID.test(value)) return ids.get(value) ?? (idKey ? null : value);
+      return value.replace(ULID, (m) => ids.get(m) ?? m);
+    }
+    if (Array.isArray(value)) return value.map((v) => walk(v, idKey));
+    if (typeof value === 'object' && value !== null)
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, walk(v, /(^|[a-z_])(id|ids|Id|Ids)$/.test(k))]));
+    return value;
+  };
+  return JSON.stringify(walk(parsed, false));
 }

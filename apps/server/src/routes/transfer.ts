@@ -1,6 +1,6 @@
 import { parseManuscript, serialiseManuscript } from '@volume/core';
 import type { Readable } from 'node:stream';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import { AppError, parse } from '../http/errors.js';
@@ -13,6 +13,9 @@ import { idOf, writer } from './common.js';
 
 /** Project imports per client IP per minute (on top of the global write limit). */
 export const PROJECT_IMPORT_RATE = { max: 5, timeWindow: 60_000 };
+
+/** Imports running at once in this process: one per workspace, two in all (each holds a whole zip in memory). */
+export const MAX_IMPORTS_RUNNING = 2;
 
 const ImportFields = z.object({ profileId: z.string().trim().min(1).max(64) }).strict();
 
@@ -114,6 +117,7 @@ export function transferRoutes(app: FastifyInstance, s: AppServices): void {
   // Moving a book from another Volume (D-051). multipart/form-data with two parts: profileId (a pen name in the
   // caller's workspace) and file (the project zip from export-project). Always makes a new book; nothing existing
   // is changed. Owner or editor. Nothing from the zip is logged.
+  const importing = new Set<string>();
   void app.register((scope) => {
     // Fastify collects the body as one buffer and answers 413 past the limit, before this parser runs.
     const bodyLimit = s.config.maxUploadBytes + 64 * 1024;
@@ -121,6 +125,22 @@ export function transferRoutes(app: FastifyInstance, s: AppServices): void {
 
     scope.post('/books/import-project', { bodyLimit, config: { rateLimit: PROJECT_IMPORT_RATE } }, async (req, reply) => {
       writer(req);
+      // A browser always says where a form post comes from: an Origin header (checked against APP_ORIGIN when the
+      // request starts) or Sec-Fetch-Site same-origin. Without either, refuse, so no other page can send a zip here.
+      if (req.headers.origin === undefined && req.headers['sec-fetch-site'] !== 'same-origin')
+        throw new AppError('forbidden', 'Import a project from the Volume app.');
+      const workspaceId = req.ctx.workspaceId;
+      if (importing.has(workspaceId)) throw new AppError('conflict', 'An import is already running in this workspace. Wait for it to finish.');
+      if (importing.size >= MAX_IMPORTS_RUNNING) throw new AppError('conflict', 'Volume is busy with other imports. Try again in a minute.');
+      importing.add(workspaceId);
+      try {
+        return await importOne(req, reply);
+      } finally {
+        importing.delete(workspaceId);
+      }
+    });
+
+    const importOne = async (req: FastifyRequest, reply: FastifyReply) => {
       const body = req.body;
       const type = req.headers['content-type'] ?? '';
       if (!Buffer.isBuffer(body) || !/^multipart\/form-data/i.test(type))
@@ -145,7 +165,7 @@ export function transferRoutes(app: FastifyInstance, s: AppServices): void {
         assets: result.assets,
         book: await s.repos.books.require(req.ctx, result.bookId),
       };
-    });
+    };
     return Promise.resolve();
   });
 }

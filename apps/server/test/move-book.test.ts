@@ -1,11 +1,12 @@
 // Moving a book to another Volume (D-051): export-project, then POST /books/import-project on a second app with its
 // own SQLite database. Mock AI only, no live calls.
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createHash } from 'node:crypto';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ensureOwner } from '../src/auth/context.js';
 import { parseMultipart } from '../src/lib/multipart.js';
 import { readZip, writeZip, type ZipEntry } from '../src/lib/zip.js';
 import { newId, now } from '../src/lib/util.js';
-import { ProjectTransfer, type ProjectManifest } from '../src/repos/transfer.js';
+import { ProjectTransfer, remapJson, type ProjectManifest } from '../src/repos/transfer.js';
 import { buildCovers, HOST, ORIGIN, str, testApp, testConfig, type TestApp } from './helpers.js';
 
 type Obj = Record<string, unknown>;
@@ -49,6 +50,31 @@ async function importZip(t: TestApp, data: Buffer, profileId: string, remoteAddr
 
 function rezip(entries: ZipEntry[], change: (entries: ZipEntry[]) => ZipEntry[]): Buffer {
   return writeZip(change(entries.map((e) => ({ name: e.name, data: Buffer.from(e.data) }))));
+}
+
+/** Changes project.json (and, optionally, files) and writes a manifest that matches, as a careful forger would. */
+function forge(change: (file: { project: Obj; tables: Record<string, Obj[]>; assets: Obj[] }, files: Map<string, Buffer>) => void): Buffer {
+  const entries = readZip(zip);
+  const files = new Map(entries.filter((e) => e.name.startsWith('assets/')).map((e) => [e.name, Buffer.from(e.data)]));
+  const projectEntry = entries.find((e) => e.name === 'project.json');
+  if (!projectEntry) throw new Error('No project.json');
+  const file = JSON.parse(Buffer.from(projectEntry.data).toString()) as { project: Obj; tables: Record<string, Obj[]>; assets: Obj[] };
+  change(file, files);
+  const out: ZipEntry[] = [{ name: 'project.json', data: Buffer.from(JSON.stringify(file)) }, ...[...files].map(([name, data]) => ({ name, data }))];
+  const manifest = JSON.parse(Buffer.from(entries.find((e) => e.name === 'manifest.json')?.data ?? []).toString()) as ProjectManifest;
+  manifest.files = out.map((e) => ({ name: e.name, bytes: e.data.byteLength, sha256: createHash('sha256').update(e.data).digest('hex') }));
+  return writeZip([{ name: 'manifest.json', data: Buffer.from(JSON.stringify(manifest)) }, ...out]);
+}
+
+async function counts(t: TestApp): Promise<number[]> {
+  const db = t.handle.db;
+  return [
+    (await db.selectFrom('projects').select('id').execute()).length,
+    (await db.selectFrom('sections').select('id').execute()).length,
+    (await db.selectFrom('sectionVersions').select('id').execute()).length,
+    (await db.selectFrom('assets').select('id').execute()).length,
+    (await db.selectFrom('assetChunks').select('assetId').execute()).length,
+  ];
 }
 
 /** Rows of a book's table with ids, links, workspace and times taken out, so two Volumes can be compared. */
@@ -363,6 +389,114 @@ describe('POST /books/import-project (D-051)', () => {
     } finally {
       await t.close();
     }
+  });
+});
+
+describe('import hardening (D-051 review)', () => {
+  it("gives an editor's import the workspace default budget, and clamps the owner's", async () => {
+    const huge = forge((f) => {
+      f.project['budgetUsd'] = 999999;
+    });
+    const editor = await testApp({ auth: (owner) => ({ resolve: () => Promise.resolve({ ...owner, role: 'editor' }) }) });
+    try {
+      const p = await editor.services.repos.profiles.create(editor.owner, { penName: 'Editor pen' });
+      const res = await importZip(editor, huge, p.id);
+      expect(res.status).toBe(201);
+      expect((res.body['book'] as Obj)['budgetUsd']).toBe((await editor.services.repos.settings.all(editor.owner))['budget.book_default_usd'] ?? 15);
+    } finally {
+      await editor.close();
+    }
+    const owner = await importZip(target, huge, targetProfileId);
+    expect((owner.body['book'] as Obj)['budgetUsd']).toBe(10000);
+  });
+
+  it('refuses a book row that breaks the book rules or a link to the wrong kind of row', async () => {
+    const before = await counts(target);
+    const badStage = forge((f) => {
+      f.project['stage'] = 'published-everywhere';
+    });
+    const badSettings = forge((f) => {
+      f.project['settings'] = JSON.stringify({ coverConcepts: 99 });
+    });
+    const wrongLink = forge((f) => {
+      f.project['approvedBlueprintId'] = f.tables['sections']?.[0]?.['id'] ?? null;
+    });
+    for (const data of [badStage, badSettings, wrongLink]) expect((await importZip(target, data, targetProfileId)).status).toBe(400);
+    expect(await counts(target)).toEqual(before);
+  });
+
+  it('rolls back every row, file and chunk when a file fails its signature mid-import', async () => {
+    const before = await counts(target);
+    const fake = Buffer.from('this is not a PNG at all');
+    const data = forge((f, files) => {
+      const png = f.assets.find((a) => a['mime'] === 'image/png');
+      if (!png) throw new Error('No PNG');
+      files.set(`assets/${String(png['id'])}`, fake);
+      png['bytes'] = fake.length;
+      png['sha256'] = createHash('sha256').update(fake).digest('hex');
+    });
+    const res = await importZip(target, data, targetProfileId);
+    expect(res.status).toBe(415);
+    expect(await counts(target)).toEqual(before);
+  });
+
+  it('needs an Origin header or Sec-Fetch-Site same-origin', async () => {
+    const { payload, type } = form({ profileId: targetProfileId }, { name: 'a.zip', data: zip });
+    const send = (extra: Record<string, string>) =>
+      target.app.inject({
+        method: 'POST',
+        url: '/api/v1/books/import-project',
+        headers: { host: HOST, 'content-type': type, ...extra },
+        payload,
+        remoteAddress: nextIp(),
+      });
+    expect((await send({})).statusCode).toBe(403);
+    expect((await send({ 'sec-fetch-site': 'cross-site' })).statusCode).toBe(403);
+    expect((await send({ 'sec-fetch-site': 'same-origin' })).statusCode).toBe(201);
+  });
+
+  it('runs one import at a time per workspace', async () => {
+    // Hold the first import open until the second has been answered.
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const original = ProjectTransfer.prototype.importProject;
+    const spy = vi.spyOn(ProjectTransfer.prototype, 'importProject').mockImplementationOnce(async function (this: ProjectTransfer, ...args) {
+      await held;
+      return original.apply(this, args);
+    });
+    try {
+      const first = importZip(target, zip, targetProfileId);
+      await vi.waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+      expect((await importZip(target, zip, targetProfileId)).status).toBe(409);
+      release();
+      expect((await first).status).toBe(201);
+      expect((await importZip(target, zip, targetProfileId)).status).toBe(201);
+    } finally {
+      release();
+      spy.mockRestore();
+    }
+  });
+
+  it('maps moved ids inside JSON and clears ids of rows that did not move', () => {
+    const moved = newId();
+    const gone = newId();
+    const ids = new Map([[moved, 'NEW']]);
+    const out = JSON.parse(
+      remapJson(
+        JSON.stringify([
+          { assetId: moved, prompt: 'x' },
+          { asset_id: gone, note: `kept ${gone}` },
+        ]),
+        ids,
+      ),
+    ) as Obj[];
+    expect(out).toEqual([
+      { assetId: 'NEW', prompt: 'x' },
+      { asset_id: null, note: `kept ${gone}` },
+    ]);
   });
 });
 
