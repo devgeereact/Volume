@@ -31,8 +31,9 @@ export interface DraftStore {
 
 const PREFIX = "volume:draft:";
 
-export function draftKey(sectionId: string): string {
-  return `${PREFIX}${sectionId}`;
+/** One draft per user and section, so two accounts on one browser never see each other's typing. */
+export function draftKey(sectionId: string, userId: string): string {
+  return `${PREFIX}${encodeURIComponent(userId)}:${sectionId}`;
 }
 
 /** localStorage, where every call is wrapped so a full or blocked store never stops typing. */
@@ -75,8 +76,9 @@ function safeLocalStorage(): Storage | null {
 }
 
 export interface AutosaveOptions {
-  /** Section id, for the local draft key. */
+  /** Section and user, for the local draft key. */
   sectionId: string;
+  userId: string;
   /** The text as last loaded or saved. */
   savedMd: string;
   /** The version the next save builds on. */
@@ -115,7 +117,7 @@ export function createAutosaver(o: AutosaveOptions): Autosaver {
   const now = o.now ?? (() => Date.now());
   const setTimer = o.setTimer ?? ((fn: () => void, ms: number) => setTimeout(fn, ms));
   const clearTimer = o.clearTimer ?? ((t: unknown) => clearTimeout(t as ReturnType<typeof setTimeout>));
-  const key = draftKey(o.sectionId);
+  const key = draftKey(o.sectionId, o.userId);
   let saved = o.savedMd;
   let base = o.baseVersionId;
   let latest = o.savedMd;

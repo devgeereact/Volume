@@ -18,6 +18,7 @@ function setup(save: (md: string, base: string | null) => Promise<{ versionId: s
   const saved: string[] = [];
   const a = createAutosaver({
     sectionId: "s1",
+    userId: "u1",
     savedMd: "one",
     baseVersionId: "v1",
     save,
@@ -75,13 +76,13 @@ describe("autosave", () => {
     const save = vi.fn(() => new Promise<{ versionId: string }>((r) => (resolve = r)));
     const { a, store } = setup(save);
     a.change("two");
-    expect(store.data.get(draftKey("s1"))).toEqual({ bodyMd: "two", baseVersionId: "v1", at: 1000 });
+    expect(store.data.get(draftKey("s1", "u1"))).toEqual({ bodyMd: "two", baseVersionId: "v1", at: 1000 });
     const done = a.flush();
     expect(a.status().kind).toBe("saving");
-    expect(store.data.has(draftKey("s1"))).toBe(true);
+    expect(store.data.has(draftKey("s1", "u1"))).toBe(true);
     resolve({ versionId: "v2" });
     await done;
-    expect(store.data.has(draftKey("s1"))).toBe(false);
+    expect(store.data.has(draftKey("s1", "u1"))).toBe(false);
   });
 
   it("keeps the draft when typing went on during a save, and saves that too", async () => {
@@ -93,13 +94,13 @@ describe("autosave", () => {
     a.change("two more");
     resolve({ versionId: "v2" });
     await first;
-    expect(store.data.get(draftKey("s1"))?.bodyMd).toBe("two more");
+    expect(store.data.get(draftKey("s1", "u1"))?.bodyMd).toBe("two more");
     expect(a.status().kind).toBe("pending");
     await vi.advanceTimersByTimeAsync(2000);
     resolve({ versionId: "v3" });
     await vi.advanceTimersByTimeAsync(0);
     expect(save.mock.calls[1]).toEqual(["two more", "v2"]);
-    expect(store.data.has(draftKey("s1"))).toBe(false);
+    expect(store.data.has(draftKey("s1", "u1"))).toBe(false);
   });
 
   it("stops on a conflict, keeps the draft and saves nothing more until reset", async () => {
@@ -111,10 +112,10 @@ describe("autosave", () => {
     a.change("mine again");
     await vi.advanceTimersByTimeAsync(10_000);
     expect(save).toHaveBeenCalledTimes(1);
-    expect(store.data.get(draftKey("s1"))?.bodyMd).toBe("mine again");
+    expect(store.data.get(draftKey("s1", "u1"))?.bodyMd).toBe("mine again");
     a.reset("theirs", "v9");
     expect(a.status().kind).toBe("idle");
-    expect(store.data.has(draftKey("s1"))).toBe(false);
+    expect(store.data.has(draftKey("s1", "u1"))).toBe(false);
     expect(a.dirty()).toBe(false);
   });
 
@@ -151,6 +152,12 @@ describe("autosave", () => {
     expect(save).not.toHaveBeenCalled();
     expect(store.data.size).toBe(0);
     expect(a.status().kind).toBe("idle");
+  });
+});
+
+describe("draftKey", () => {
+  it("keeps users apart", () => {
+    expect(draftKey("s1", "u1")).not.toBe(draftKey("s1", "u2"));
   });
 });
 

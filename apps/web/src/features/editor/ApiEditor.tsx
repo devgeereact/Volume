@@ -24,6 +24,7 @@ import {
   useWriteSection,
   useBookFind,
   useEstimate,
+  useMe,
   useRememberJob,
   useTextChanged,
 } from "../../api/hooks";
@@ -72,6 +73,7 @@ import type { SuggestionState } from "./useManuscript";
 import { VersionDrawer } from "./VersionDrawer";
 import { autosaveText } from "./autosave";
 import { ClaimRewrite } from "./ClaimRewrite";
+import { DiffText } from "./DiffText";
 import { draftStore, useSectionAutosave } from "./useSectionAutosave";
 import { draftKey, type LocalDraft } from "./autosave";
 
@@ -352,15 +354,21 @@ function Body({
   const target = apiBook?.wordTarget ?? apiSections.reduce((n, s) => n + (s.enabled ? (s.wordTarget ?? 0) : 0), 0);
 
   /* ---------- Saving ---------- */
+  const me = useMe();
+  // Drafts are kept per user; without /me (an old server) they share one key in this browser.
+  const userId = me.data?.userId ?? (me.isError ? "unknown" : null);
   const autosave = useSectionAutosave({
     bookId,
     sectionId,
+    userId,
     doc: ready ? doc : null,
     onSaved: (md, v, savedSection) => {
       setDoc((d) => (d && d.sectionId === savedSection ? { ...d, versionId: v.id, version: v.version, savedMd: md } : d));
     },
   });
-  const typingAllowed = canWrite && !review;
+  // While a draft from this browser waits for the owner's choice, the page is read only: nothing saves over either text.
+  const choosing = !!recovered && recovered.sectionId === sectionId;
+  const typingAllowed = canWrite && !review && !choosing;
   useEffect(() => {
     if (ready && typingAllowed) autosave.change(liveMd);
   }, [ready, typingAllowed, liveMd, autosave]);
@@ -368,23 +376,33 @@ function Body({
   // A copy typed in this browser that never reached the server: offer it back once per section.
   const checkedDraft = useRef<string | null>(null);
   useEffect(() => {
-    if (!ready || checkedDraft.current === sectionId) return;
+    if (!ready || !userId || checkedDraft.current === sectionId) return;
     checkedDraft.current = sectionId;
-    const local = draftStore.read(draftKey(sectionId));
+    const local = draftStore.read(draftKey(sectionId, userId));
     if (local && local.bodyMd !== doc.savedMd) setRecovered({ ...local, sectionId });
-    else if (local) draftStore.remove(draftKey(sectionId));
-  }, [ready, sectionId, doc]);
+    else if (local) draftStore.remove(draftKey(sectionId, userId));
+  }, [ready, sectionId, doc, userId]);
+  /** The server has text newer than the one the draft was typed on. */
+  const recoveredBehind = choosing && recovered.baseVersionId !== doc?.versionId;
+  const [compareDraft, setCompareDraft] = useState(false);
 
   function restoreLocal() {
     if (!recovered || recovered.sectionId !== sectionId) return;
     setDrafts({});
     setDoc((d) => (d && d.sectionId === sectionId ? { ...d, blocks: blocksFromMarkdown(recovered.bodyMd, `r${Date.now().toString(36)}`) } : d));
     setRecovered(null);
-    setAnnounce("Your text from this browser is back. It saves in a moment.");
+    setCompareDraft(false);
+    setAnnounce(
+      recoveredBehind
+        ? "Your text from this browser is back. It saves in a moment as a new version; the newer text stays in the version list."
+        : "Your text from this browser is back. It saves in a moment.",
+    );
   }
   function discardLocal() {
-    draftStore.remove(draftKey(sectionId));
+    if (userId) draftStore.remove(draftKey(sectionId, userId));
     setRecovered(null);
+    setCompareDraft(false);
+    setAnnounce("Kept the text on the server. The copy in this browser is gone.");
   }
 
   // Leaving the page with text not yet on the server: save it and ask the browser to wait.
@@ -1244,24 +1262,30 @@ function Body({
                 list), or load the newer text and drop yours.
               </Banner>
             )}
-            {recovered && recovered.sectionId === sectionId && (
+            {choosing && (
               <Banner
                 tone="attention"
                 title="Unsaved text from this browser"
                 className="mb-4"
                 action={
                   <span className="flex flex-wrap gap-1.5">
-                    <Button size="sm" variant="primary" onClick={restoreLocal}>
-                      Restore my text
-                    </Button>
+                    {recoveredBehind ? (
+                      <Button size="sm" variant="primary" onClick={() => setCompareDraft(true)}>
+                        Compare and choose
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="primary" onClick={restoreLocal}>
+                        Restore my text
+                      </Button>
+                    )}
                     <Button size="sm" variant="ghost" onClick={discardLocal}>
-                      Discard it
+                      Keep the saved text
                     </Button>
                   </span>
                 }
               >
                 {`You typed this at ${formatTime(new Date(recovered.at).toISOString())} and it did not reach the server.`}
-                {recovered.baseVersionId !== doc?.versionId ? " The section has changed since, so restoring saves your text as the newest version." : ""}
+                {recoveredBehind ? " The section has newer text since then, so compare the two before you choose." : ""} The page is read only until you choose.
               </Banner>
             )}
             {notice}
@@ -1285,7 +1309,7 @@ function Body({
               >
                 <EditorCanvas
                   section={{ ...section, blocks: shownBlocks }}
-                  readOnly={!canWrite}
+                  readOnly={!canWrite || choosing}
                   insertKinds={insertKinds}
                   onInsert={onInsert}
                   onRemoveBlock={onRemoveBlock}
@@ -1374,7 +1398,9 @@ function Body({
               bookId={bookId}
               claim={c}
               estimate={claimEstimate.data ?? null}
-              estimateLoading={claimEstimate.isPending && claimEstimate.fetchStatus !== "idle"}
+              estimateLoading={claimEstimate.isFetching}
+              estimateError={claimEstimate.isError ? errorText(claimEstimate.error) : null}
+              onRetryEstimate={() => void claimEstimate.refetch()}
               beforeApply={saveFirst}
               onReload={() => {
                 void reloadSection();
@@ -1413,6 +1439,30 @@ function Body({
               : `${openClaims} ${openClaims === 1 ? "claim is" : "claims are"} still open. Preflight warns about ${openClaims === 1 ? "it" : "them"} until you check ${openClaims === 1 ? "it" : "them"}.`}
           </li>
         </ul>
+      </Modal>
+
+      <Modal
+        open={compareDraft && choosing}
+        onClose={() => setCompareDraft(false)}
+        size="lg"
+        title="Choose which text to keep"
+        description="The section changed after you typed this. Removed words are the newer text on the server; added words are yours from this browser."
+        footer={
+          <>
+            <Button variant="ghost" onClick={discardLocal}>
+              Keep the newer text
+            </Button>
+            <Button variant="primary" onClick={restoreLocal}>
+              Keep mine as a new version
+            </Button>
+          </>
+        }
+      >
+        {compareDraft && choosing && doc && (
+          <div className="max-h-[60vh] overflow-y-auto rounded-md border border-border bg-sheet p-4 font-book text-[15px] leading-[23px] whitespace-pre-wrap text-ink">
+            <DiffText before={doc.savedMd} after={recovered.bodyMd} />
+          </div>
+        )}
       </Modal>
 
       <Modal

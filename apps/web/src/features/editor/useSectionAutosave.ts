@@ -29,10 +29,12 @@ export const draftStore = browserDraftStore();
 export function useSectionAutosave(o: {
   bookId: string;
   sectionId: string;
+  /** The signed-in user, for the local draft key; null holds autosave until it is known. */
+  userId: string | null;
   doc: { sectionId: string; savedMd: string; versionId: string | null } | null;
   onSaved: (bodyMd: string, v: ApiSectionVersion, sectionId: string) => void;
 }) {
-  const { bookId, sectionId, doc } = o;
+  const { bookId, sectionId, doc, userId } = o;
   const mutation = useAutosaveSection();
   const [status, setStatus] = useState<AutosaveStatus>({ kind: "idle" });
   const ref = useRef<{ sectionId: string; a: Autosaver } | null>(null);
@@ -46,11 +48,12 @@ export function useSectionAutosave(o: {
 
   // Create when the section's text is on screen; on leaving the section (or the screen), save what is left.
   useEffect(() => {
-    if (!ready || !doc) return;
+    if (!ready || !doc || !userId) return;
     if (ref.current?.sectionId === sectionId) return;
     const versions = new Map<string, ApiSectionVersion>();
     const a = createAutosaver({
       sectionId,
+      userId,
       savedMd: doc.savedMd,
       baseVersionId: doc.versionId,
       store: draftStore,
@@ -68,7 +71,7 @@ export function useSectionAutosave(o: {
     });
     ref.current = { sectionId, a };
     setStatus({ kind: "idle" });
-  }, [ready, doc, sectionId, bookId]);
+  }, [ready, doc, sectionId, bookId, userId]);
 
   useEffect(
     () => () => {
