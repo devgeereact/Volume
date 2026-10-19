@@ -3,7 +3,7 @@ import { BookStatusActions } from "../published/BookStatusActions";
 import { canMarkPublished } from "../published/publishDate";
 import { useCanWrite } from "../../lib/access";
 import { lazy, Suspense, useMemo, useState } from "react";
-import { Download, FileArchive, FileImage, FileText, FileType, Package, RotateCw, Sparkles } from "lucide-react";
+import { ArrowRightLeft, Download, FileArchive, FileImage, FileText, FileType, Package, RotateCw, Sparkles } from "lucide-react";
 import {
   Banner,
   Button,
@@ -24,6 +24,8 @@ import { useCover, useExports, usePreflight, useStartExports } from "../../api/h
 import { productionApi } from "../../api/production";
 import type { ApiBookDetail, ApiExportRecord, ApiPreflightItem } from "../../api/types";
 import { errorText, jobStatusText, useJobWatch } from "../../api/wire-c";
+import { downloadProjectFile } from "../../api/wire-a";
+import { MOVE_EXPLAINER, originNoteOf } from "../library/projectMove";
 import { cn } from "../../lib/cn";
 import { formatRelative } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
@@ -84,6 +86,22 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   const [finished, setFinished] = useState<string | null>(null);
   const [selected, setSelected] = useState("pack");
   const [announce, setAnnounce] = useState("");
+  const [moving, setMoving] = useState(false);
+  const [moveProblem, setMoveProblem] = useState<string | null>(null);
+  const origin = originNoteOf(apiBook?.settings);
+
+  async function downloadProject() {
+    setMoving(true);
+    setMoveProblem(null);
+    try {
+      const name = await downloadProjectFile(bookId, book.title);
+      setAnnounce(`${name} is in your downloads.`);
+    } catch (e) {
+      setMoveProblem(errorText(e));
+    } finally {
+      setMoving(false);
+    }
+  }
 
   const watch = useJobWatch(bookId, jobId, (w) => {
     setJobId(null);
@@ -172,6 +190,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   return (
     <>
       <PageHeader title="Export" summary="Check, build and download the KDP upload pack." />
+      {origin && <p className="mt-2 text-small text-ink-secondary">{origin}</p>}
       {canWrite && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Button variant="secondary" onClick={() => setPricing(true)}>
@@ -388,6 +407,25 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
             </p>
             <p className="mt-2 text-small text-ink-secondary">Saved in the pack with the listing.</p>
           </section>
+
+          {canWrite && (
+            <section aria-labelledby="move-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
+              <h2 id="move-title" className="flex items-center gap-2 font-book text-heading text-ink">
+                <ArrowRightLeft size={18} aria-hidden className="text-ink-secondary" />
+                Move this book
+              </h2>
+              <p className="mt-2 max-w-[68ch] text-body text-ink">{MOVE_EXPLAINER}</p>
+              <p className="mt-1 text-small text-ink-secondary">Then use Import project in the other Volume&rsquo;s library.</p>
+              <Button className="mt-4" variant="secondary" icon={FileArchive} loading={moving} loadingLabel="Preparing" onClick={() => void downloadProject()}>
+                Download project (to move this book)
+              </Button>
+              {moveProblem && (
+                <Banner tone="error" title="Project file not made" className="mt-4">
+                  {moveProblem}
+                </Banner>
+              )}
+            </section>
+          )}
 
           <Suspense fallback={null}>
             <ApiRoyalties trim={apiBook?.trim} listPrices={apiBook?.listPrices} pdf={pdf} epub={latest.get("epub")} />

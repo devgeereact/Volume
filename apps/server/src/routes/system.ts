@@ -10,6 +10,7 @@ import { INSTANCE_ONLY_SETTINGS, SettingsPatchSchema, type SettingValues } from 
 import { assertInstanceOwner, isInstanceOwner } from '../auth/context.js';
 import { GUEST_CAP_KEY } from '../jobs/runner.js';
 import { owner } from './common.js';
+import { APP_VERSION } from '../lib/version.js';
 
 const startedAt = Date.now();
 const CREDIT_TTL_MS = 5 * 60 * 1000;
@@ -103,7 +104,7 @@ export function systemRoutes(app: FastifyInstance, s: AppServices): void {
     }
     return {
       status: db === 'ok' ? 'ok' : 'degraded',
-      version: '0.0.0',
+      version: APP_VERSION,
       uptimeS: Math.round((Date.now() - startedAt) / 1000),
       database: { client: s.dbClient, status: db },
       ai: { provider: s.ai.provider },

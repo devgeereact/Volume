@@ -154,7 +154,7 @@ function isAbort(e: unknown): boolean {
   return typeof e === "object" && e !== null && (e as { name?: unknown }).name === "AbortError";
 }
 
-/** Low-level request. `body` is sent as JSON when given; a raw Blob is sent as-is (uploads only). */
+/** Low-level request. `body` is sent as JSON when given; a raw Blob or FormData is sent as-is (uploads only). */
 export async function apiRequest<T>(
   method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
   path: string,
@@ -163,7 +163,10 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json", ...(await authHeaders()) };
   let payload: BodyInit | undefined;
-  if (body instanceof Blob) {
+  if (typeof FormData !== "undefined" && body instanceof FormData) {
+    // The browser sets multipart/form-data with its boundary.
+    payload = body;
+  } else if (body instanceof Blob) {
     payload = body;
     headers["Content-Type"] = body.type || "application/octet-stream";
   } else if (body !== undefined) {
@@ -216,5 +219,6 @@ export const api = {
   post: <T>(path: string, body?: unknown, options?: RequestOptions) => apiRequest<T>("POST", path, body, options),
   patch: <T>(path: string, body: unknown, options?: RequestOptions) => apiRequest<T>("PATCH", path, body, options),
   put: <T>(path: string, body: unknown, options?: RequestOptions) => apiRequest<T>("PUT", path, body, options),
-  delete: <T = void>(path: string, options?: RequestOptions) => apiRequest<T>("DELETE", path, undefined, options),
+  /** DELETE, with an optional JSON body (the data-rights calls send a typed confirmation, D-050). */
+  delete: <T = void>(path: string, options?: RequestOptions, body?: unknown) => apiRequest<T>("DELETE", path, body, options),
 };

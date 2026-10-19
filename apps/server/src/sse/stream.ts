@@ -20,6 +20,8 @@ export interface SseOptions {
    */
   stillAllowed?: () => Promise<boolean>;
   recheckMs?: number;
+  /** Security headers the rest of the API sends from onSend (a hijacked reply skips onSend). The stream's own win. */
+  headers?: Record<string, string>;
 }
 
 export function formatEvent(e: BusEvent): string {
@@ -41,6 +43,7 @@ const ULID_RE = /^[0-9A-HJKMNP-TV-Z]{26}$/;
  */
 export async function openSseStream(sink: SseSink, opts: SseOptions): Promise<() => void> {
   sink.writeHead(200, {
+    ...opts.headers,
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform',
     Connection: 'keep-alive',

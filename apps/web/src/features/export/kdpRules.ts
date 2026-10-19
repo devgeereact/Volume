@@ -60,6 +60,8 @@ const ebookCover = obj(rule("ebook.cover").values, "ebook.cover");
 const ideal = obj(ebookCover.idealPx, "ebook.idealPx");
 export const ebookCoverPx = { width: n(ideal.width, "ebook.w"), height: n(ideal.height, "ebook.h") };
 export const ebookMinRatio = n(ebookCover.minHeightToWidthRatio, "ebook.ratio");
+export const ebookCoverMaxMb = n(ebookCover.maxFileSizeMB, "ebook.maxMb");
+export const ebookCoverTypes = arr(ebookCover.fileTypes, "ebook.fileTypes").map(String);
 
 const trimPages = obj(rule("paperback.trimAndPages").values, "trimAndPages");
 const sixByNine = obj(trimPages.sixByNineBlackWhite, "sixByNine");

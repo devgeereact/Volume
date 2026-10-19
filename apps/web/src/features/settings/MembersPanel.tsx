@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { MailPlus, Trash2, UserRound, X } from "lucide-react";
 import { Banner, Button, IconButton, Input, Modal, Select, Skeleton } from "../../components/ui";
 import type { ApiInvitation, ApiMember, InviteRole, MemberRole } from "../../api/types";
 import { isApiError } from "../../api/client";
 import { apiErrorText, useWireMode } from "../../api/wire-a";
-import { roleHints, roleLabels, useWiredMembers, type VolumeMe } from "../../api/wire-d";
+import { CONFIRM_WORDS, isTyped, roleHints, roleLabels, useWiredMembers, type VolumeMe } from "../../api/wire-d";
 import { formatDate } from "../../lib/format";
 import { InlineStatus, PanelHeader } from "./PanelHeader";
 
@@ -39,7 +39,16 @@ export function MembersPanel({ me }: { me: VolumeMe }) {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyRow, setBusyRow] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<Pending | null>(null);
+  const [confirm, setConfirmState] = useState<Pending | null>(null);
+  const [typed, setTyped] = useState("");
+  const typedRef = useRef<HTMLInputElement>(null);
+  function setConfirm(next: Pending | null) {
+    setTyped("");
+    setConfirmState(next);
+  }
+  // Removing a member asks for a typed word (D-050); withdrawing an invitation does not.
+  const needsWord = confirm?.kind === "member";
+  const wordTyped = !needsWord || isTyped(typed, CONFIRM_WORDS.removeMember);
 
   const roleOptions = [
     { value: "editor", label: roleLabels.editor, hint: "Writes books" },
@@ -90,13 +99,13 @@ export function MembersPanel({ me }: { me: VolumeMe }) {
   }
 
   function doConfirm() {
-    if (!confirm) return;
+    if (!confirm || !wordTyped) return;
     const c = confirm;
     const key = c.kind === "member" ? c.member.userId : c.invitation.id;
     setBusyRow(key);
     setError(null);
     setStatus(null);
-    const work = c.kind === "member" ? data.remove(c.member.userId) : data.revoke(c.invitation.id);
+    const work = c.kind === "member" ? data.remove(c.member.userId, typed) : data.revoke(c.invitation.id);
     work.then(
       () => {
         setBusyRow(null);
@@ -253,6 +262,7 @@ export function MembersPanel({ me }: { me: VolumeMe }) {
         onClose={() => setConfirm(null)}
         size="sm"
         closeOnScrim={false}
+        initialFocus={needsWord ? typedRef : undefined}
         title={confirm?.kind === "member" ? `Remove ${confirm.member.displayName}?` : "Withdraw this invitation?"}
         description={
           confirm?.kind === "member"
@@ -266,12 +276,39 @@ export function MembersPanel({ me }: { me: VolumeMe }) {
             <Button variant="ghost" onClick={() => setConfirm(null)}>
               Keep
             </Button>
-            <Button variant="danger" icon={Trash2} loading={busyRow !== null} loadingLabel="Removing" onClick={doConfirm}>
+            <Button
+              variant="danger"
+              icon={Trash2}
+              loading={busyRow !== null}
+              loadingLabel="Removing"
+              disabledReason={wordTyped ? undefined : `Type ${CONFIRM_WORDS.removeMember} first.`}
+              onClick={doConfirm}
+            >
               {confirm?.kind === "member" ? "Remove member" : "Withdraw invitation"}
             </Button>
           </>
         }
-      />
+      >
+        {needsWord && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              doConfirm();
+            }}
+          >
+            <Input
+              ref={typedRef}
+              label={`Type ${CONFIRM_WORDS.removeMember} to confirm`}
+              hint="If they belong to no other workspace, their account is deleted too."
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+            />
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

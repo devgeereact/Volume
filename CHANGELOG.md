@@ -4,17 +4,36 @@ User-visible changes, newest first. Dates in British format.
 
 ## 19 October 2026
 
-Claims, autosave and reruns (D-052).
+Moving a book between Volumes (D-051); claims, autosave and reruns (D-052).
 
 #### Added
+- Import project: bring one book from another Volume (for example from the Mac to the hosted app) under a pen name you choose. The import always makes a new book, marked "Moved from another Volume on <date>", and changes nothing that is already there.
+- Project zips now carry a manifest with a checksum for every file; an import refuses a zip that was changed or damaged.
+- Library: an Import project button next to Import manuscript (owners and editors). It asks for the zip and a pen name, preselects the profile you are filtering by, and explains each refusal in plain words.
+- Export screen: Move this book, with Download project (to move this book). Owners and editors only.
+- Export screen: a moved book shows its origin note, for example "Moved from another Volume on 19 October 2026."
+- Web app manifest, app icons (including an Apple touch icon) and a browser bar colour for light and dark themes.
 - Fix a claim to verify from the report: three suggested rewrites (soften, generalise, cite a research source, reframe or remove) that add no new facts, figures or sources. Pick one, edit it or write your own.
 - The editor saves your work as you type. A long editing session stays one version, and Versions shows the version from before you started.
 - Missing summaries and checks show what a rerun would cost, and a second click while one is running does not start another.
 
 #### Changed
+- Project zips no longer carry built export files or spend. Build the PDF, EPUB and pack again after a move.
+- The Use this title button holds while the choice saves, so a title cannot be chosen twice.
+- Smooth scrolling respects the system's reduced motion setting.
+- A screen error now stays inside the app, with a link back to the Library.
 - The export checks offer "Run it again" for a section whose summary or checks are missing, and say you can upload your own cover when the pack has none.
 
 ## 18 October 2026
+
+Own covers and export checks (live acceptance fixes).
+
+#### Added
+- Use my own cover: on the Cover screen, upload a front cover image for the eBook (JPEG or TIFF) and a full paperback wrap PDF instead of paying for AI concepts. The upload pack uses them as they are, a cover build keeps them, and the export preflight checks them against KDP's rules (size from the real page count, resolution, fonts, spine text).
+- The preflight now checks the listing title, subtitle and description and the back-cover blurb for dashes, banned phrases and US spellings (these block), the blurb's word range (a warning), and the marketing posts and email (a warning).
+
+#### Fixed
+- A symbol the book fonts do not have, such as an arrow or a tick, no longer blocks the upload pack. Print files show "to", "->", "[x]" and similar instead, maths symbols use an embedded fallback font, and emoji are left out. The export notes list each swap.
 
 Production hub (D-048, D-049).
 
@@ -30,6 +49,19 @@ Production hub (D-048, D-049).
 - Back-cover blurbs are 120 to 200 words everywhere.
 
 The hosted app at volume.gakinz.com now runs the latest version: fiction, workbooks, picture books, Volume mode and invitations, plus the 17 October sign-in fix.
+
+Data rights and retention (D-050).
+
+#### Added
+- Settings, Your account: the owner can download all the workspace's data as one zip. It includes private profile details, so keep it safe.
+- Editors and viewers can leave a workspace from Settings, Your account, after typing LEAVE.
+- The owner of a separate self-publisher workspace can delete it, with every book and file, after typing DELETE. It waits while a job runs. The main workspace of a Volume cannot be deleted.
+
+#### Changed
+- Removing a member now asks the owner to type REMOVE. A removed or departing person whose account belongs to no other workspace has the account deleted too.
+- Deleting a book also deletes its AI output and its job history.
+- Job history is kept for 90 days, then deleted.
+- A book's project zip no longer carries the pen name's legal name or location.
 
 ## 17 October 2026
 

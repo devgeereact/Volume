@@ -525,6 +525,15 @@ export interface ImportedProject {
   book: ApiBook;
 }
 
+/** POST /books/import-project answers 201 with this (D-051). The book's settings carry origin.note. */
+export interface ImportedBookProject {
+  bookId: string;
+  profileId: string;
+  rows: number;
+  assets: number;
+  book: ApiBook;
+}
+
 export interface BookListQuery {
   profileId?: string;
   stage?: ApiStage;
@@ -1384,7 +1393,7 @@ export interface ApiJobDetail extends ApiJob {
 
 /* ---------- Assets ---------- */
 
-export type AssetKind = "author_photo" | "import" | "logo" | "interior_image" | "cover_concept" | "other";
+export type AssetKind = "author_photo" | "import" | "logo" | "interior_image" | "cover_concept" | "own_ebook_cover" | "own_wrap_pdf" | "other";
 
 export interface ApiAssetMeta {
   id: string;

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { AppServices } from '../app.js';
+import { accountRoutes } from './account.js';
 import { assetRoutes } from './assets.js';
 import { batchRoutes } from './batches.js';
 import { bookRoutes } from './books.js';
@@ -30,6 +31,7 @@ export function registerRoutes(app: FastifyInstance, s: AppServices): void {
   assetRoutes(app, s);
   transferRoutes(app, s);
   memberRoutes(app, s);
+  accountRoutes(app, s);
   batchRoutes(app, s);
   scheduleRoutes(app, s);
   spreadRoutes(app, s);

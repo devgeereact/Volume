@@ -13,16 +13,32 @@
  *
  * Run it with the rest from the repo root:   npm run e2e
  *
- * It runs on the main test server (no injected failure), so it passes in any order and alone. The profile
+ * It runs on its own server pair (slow mock AI, own database; see playwright.config.ts), so it passes in any order
+ * and alone, and shares no jobs, profiles or settings with another spec. The profile
  * is made through the API (setup, not the thing under test); everything else goes through the screens. The
  * API is read only to assert what was saved and to wait on jobs.
  */
 import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { expect, test, type Locator } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Locator } from "@playwright/test";
 import { downloadDir } from "./paths.mjs";
-import { getJson, JOB_WAIT, pdfPages, postJson, type ExportRecord, type Items, type PreflightItem } from "./helpers";
+import {
+  getJson as getFrom,
+  JOB_WAIT,
+  pdfPages,
+  PICTURE_API,
+  PICTURE_ORIGIN,
+  postJson as postTo,
+  type ExportRecord,
+  type Items,
+  type PreflightItem,
+} from "./helpers";
+
+/* This spec runs on the picture-book server pair (playwright.config.ts), so these two read and write there. */
+const getJson = <T>(request: APIRequestContext, route: string): Promise<T> => getFrom<T>(request, route, PICTURE_API);
+const postJson = <T>(request: APIRequestContext, route: string, data: unknown): Promise<T> =>
+  postTo<T>(request, route, data, [200, 201, 202], { api: PICTURE_API, origin: PICTURE_ORIGIN });
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -146,12 +162,14 @@ test("a picture book goes from the wizard to a downloaded 24 page print PDF", as
     // Watch the run panel from inside the page, so a fast run cannot slip between two polls: every progress value and
     // every step line the bar shows is recorded as it changes.
     await page.evaluate(() => {
-      const seen = { values: [] as number[], lines: [] as string[], steps: 0, states: [] as string[] };
+      const seen = { values: [] as number[], lines: [] as string[], steps: 0, states: [] as string[], heading: "", barLabel: "" };
       (window as unknown as { __runSeen: typeof seen }).__runSeen = seen;
       const read = () => {
         const panel = document.querySelector('section[aria-labelledby="run-title"]');
         if (!panel) return;
+        seen.heading ||= panel.querySelector("h2#run-title")?.textContent?.trim() ?? "";
         const bar = panel.querySelector('[role="progressbar"]');
+        seen.barLabel ||= bar?.getAttribute("aria-label") ?? "";
         const v = Number(bar?.getAttribute("aria-valuenow"));
         if (bar && Number.isFinite(v) && seen.values[seen.values.length - 1] !== v) seen.values.push(v);
         const line = panel.querySelector("p.text-body span")?.textContent?.trim();
@@ -166,10 +184,19 @@ test("a picture book goes from the wizard to a downloaded 24 page print PDF", as
     });
     await stepButton("Write the story").click();
 
-    // Live progress: the run panel, its bar and the three steps show while the server works.
+    // Live progress: the run panel, its bar and the three steps show while the server works. On the main e2e server the
+    // whole run takes about 80 ms, so the panel is on screen for well under a tenth of a second: a slow runner (GitHub
+    // macOS) finishes the run before the browser draws it. This server adds a delay to every mock AI call so the run lasts
+    // a couple of seconds. The check reads what the in-page watcher recorded, which sees every change as it happens.
     const run = main.locator('section[aria-labelledby="run-title"]');
-    await expect(run.getByRole("heading", { name: "Making the picture book" })).toBeVisible({ timeout: JOB_WAIT });
-    await expect(run.getByRole("progressbar", { name: "Picture book progress" })).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __runSeen: { heading: string } }).__runSeen.heading), {
+        timeout: JOB_WAIT,
+        message: "the run panel showed at least once",
+      })
+      .toBe("Making the picture book");
+    const shown = await page.evaluate(() => (window as unknown as { __runSeen: { barLabel: string } }).__runSeen);
+    expect(shown.barLabel, "the progress bar is named").toBe("Picture book progress");
 
     // The run ends: the board has ten spreads, each with a picture, and the character sheet is filled in.
     await expect(run).toBeHidden({ timeout: 150_000 });

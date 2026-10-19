@@ -1,3 +1,4 @@
+import { encodeTime } from 'ulid';
 import type { Db } from '../db/connect.js';
 import { newId, now, toJson, type OpenString } from '../lib/util.js';
 
@@ -41,6 +42,9 @@ export interface PublishInput {
 }
 
 type Listener = (e: BusEvent) => void;
+
+/** Stored job events older than this are deleted daily (D-050). */
+export const JOB_EVENT_RETENTION_DAYS = 90;
 
 export class EventBus {
   private readonly listeners = new Map<string, Set<Listener>>();
@@ -135,19 +139,23 @@ export class EventBus {
     });
   }
 
-  /** Removes stored events older than `days`, keeping the last event of each job. */
-  async prune(days = 30): Promise<number> {
-    const cutoff = now() - days * 24 * 60 * 60 * 1000;
-    const keep = this.db
-      .selectFrom('jobEvents')
-      .select((eb) => eb.fn.max('id').as('id'))
-      .where('jobId', 'is not', null)
-      .groupBy('jobId');
-    const res = await this.db
-      .deleteFrom('jobEvents')
-      .where('createdAt', '<', cutoff)
-      .where('id', 'not in', this.db.selectFrom(keep.as('k')).select('k.id'))
-      .executeTakeFirst();
-    return Number(res.numDeletedRows);
+  /**
+   * Retention (D-050): removes every stored event older than `days` (default 90), in every workspace. Job status
+   * lives on the jobs row, so nothing needs an old event; a stream resuming from a pruned id simply replays less.
+   */
+  async prune(days = JOB_EVENT_RETENTION_DAYS, at = now(), batch = 1000): Promise<number> {
+    // Ids are ULIDs made when the event is stored, so the time cutoff is an id cutoff: every id below the cutoff's
+    // time prefix is older. Walking the primary key in bounded batches avoids a full scan (there is no created_at
+    // index) and keeps each delete short, so MySQL never holds a long lock.
+    const cutoffId = `${encodeTime(Math.max(0, at - days * 24 * 60 * 60 * 1000), 10)}0000000000000000`;
+    let total = 0;
+    for (;;) {
+      const ids = (await this.db.selectFrom('jobEvents').select('id').where('id', '<', cutoffId).orderBy('id').limit(batch).execute()).map((r) => r.id);
+      if (ids.length === 0) break;
+      const res = await this.db.deleteFrom('jobEvents').where('id', 'in', ids).executeTakeFirst();
+      total += Number(res.numDeletedRows);
+      if (ids.length < batch) break;
+    }
+    return total;
   }
 }

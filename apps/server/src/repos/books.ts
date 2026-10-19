@@ -12,7 +12,7 @@ export const BOOK_STATUSES = ['active', 'published', 'archived'] as const;
 /** Paperback trims the API accepts (config/kdp-rules paperback.trimSizes.list, plus 8x10 kept from before). */
 export const TRIMS = ['5x8', '5.25x8', '5.5x8.5', '6x9', '7x10', '8.5x11', '8x10', '8.5x8.5'] as const;
 
-const AiDisclosureSchema = z.object({
+export const AiDisclosureSchema = z.object({
   text: z.enum(['ai_generated', 'ai_assisted', 'none']),
   images: z.enum(['ai_generated', 'ai_assisted', 'none']),
   translation: z.enum(['ai_generated', 'ai_assisted', 'none']),
@@ -410,7 +410,7 @@ export class BooksRepo {
   /**
    * Deletes an archived book for good after the owner typed its exact title (docs/03, Deletes). Child rows go
    * with the project (on delete cascade); its files, jobs and events are removed here. AI spend rows stay
-   * (unlinked) so the month's spend stays right.
+   * (unlinked) so the month's spend stays right, but their raw output and error text are cleared (D-050).
    */
   async deleteArchived(ctx: RequestCtx, id: string, confirm: string): Promise<void> {
     const b = await this.require(ctx, id);
@@ -427,11 +427,20 @@ export class BooksRepo {
     if (active) throw new AppError('invalid_state', 'A job is still running for this book. Cancel it, then delete the book.');
     await this.db.transaction().execute(async (trx) => {
       const w = ctx.workspaceId;
+      const jobIds = (await trx.selectFrom('jobs').select('id').where('projectId', '=', id).where('workspaceId', '=', w).execute()).map((j) => j.id);
       await trx.deleteFrom('projects').where('id', '=', id).where('workspaceId', '=', w).execute();
       await trx.deleteFrom('assets').where('projectId', '=', id).where('workspaceId', '=', w).execute();
       await trx.deleteFrom('jobEvents').where('projectId', '=', id).where('workspaceId', '=', w).execute();
+      // Retention (D-050): the raw AI output, error text and guardrail hits (they quote matched text) go with the book;
+      // cost, tokens and model stay for spend.
+      const scrub = { projectId: null, jobId: null, output: null, error: null, guardrails: null, updatedAt: now() };
+      await trx.updateTable('promptRuns').set(scrub).where('projectId', '=', id).where('workspaceId', '=', w).execute();
+      for (let i = 0; i < jobIds.length; i += 500) {
+        const slice = jobIds.slice(i, i + 500);
+        await trx.deleteFrom('jobEvents').where('jobId', 'in', slice).where('workspaceId', '=', w).execute();
+        await trx.updateTable('promptRuns').set(scrub).where('jobId', 'in', slice).where('workspaceId', '=', w).execute();
+      }
       await trx.deleteFrom('jobs').where('projectId', '=', id).where('workspaceId', '=', w).execute();
-      await trx.updateTable('promptRuns').set({ projectId: null, jobId: null }).where('projectId', '=', id).where('workspaceId', '=', w).execute();
     });
   }
 

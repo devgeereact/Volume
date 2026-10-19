@@ -26,6 +26,7 @@ import {
 import { ArtCover } from "./ArtCover";
 import { conceptsFor, layoutCover, withPalette, type CoverBrief, type TitlePosition } from "./concepts";
 import { BriefCard, CoverInspector } from "./CoverPage";
+import { OwnCoverPanel } from "./OwnCoverPanel";
 import { WrapPreview } from "./WrapPreview";
 
 /* Cover studio on the Volume server (API mode): the brief is saved with PUT /cover/brief, concepts and
@@ -592,6 +593,14 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
               )}
             </section>
           )}
+
+          <OwnCoverPanel
+            bookId={bookId}
+            cover={cover}
+            canWrite={canWrite}
+            wrapHint={`${Number(wrap.width.toFixed(4))} x ${inches(wrap.height, 3)} for ${pages} ${paper} pages${realPages === null ? " (an estimate until the interior PDF is exported)" : ""}`}
+            onAnnounce={setAnnounce}
+          />
         </div>
 
         <CoverInspector book={book} pages={pages} paper={paper} interiorExists={realPages !== null} built={built} />

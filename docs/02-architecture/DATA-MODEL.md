@@ -31,7 +31,7 @@ Kysely with two dialects (D-015, D-019, D-038): SQLite through better-sqlite3 lo
 | Column | Type | Notes |
 |---|---|---|
 | pen_name | text not null | Display name on books |
-| legal_name | text | Private, never exported |
+| legal_name | text | Private, never in a project zip (only in the owner's whole-workspace export, D-050) |
 | imprint_name | text | Title page and copyright |
 | is_real_person | bool not null default 0 | Real-person flag |
 | illustrative_line_default | bool not null default 0 | Set to 1 when `is_real_person` turns on |
@@ -158,7 +158,7 @@ Quality gate: a batch book cannot be marked ready, have a slot confirmed, be pac
 
 ## AI runs and jobs
 
-**prompt_runs**: `project_id` (nullable), `job_id`, `stage text`, `prompt_id text` (for example `writing.chapter`), `prompt_version integer`, `prompt_hash text`, `provider text` (`openrouter`, `mock`), `model_slug text` (model that answered), `generation_id text` (OpenRouter id), `input_tokens integer`, `output_tokens integer`, `cost_usd real`, `latency_ms integer`, `status text` (`ok`, `error`, `invalid_output`, `cancelled`), `error text`, `output text` (raw response, kept for audit). Index `(project_id, created_at)`, `(workspace_id, created_at)` for monthly spend.
+**prompt_runs**: `project_id` (nullable), `job_id`, `stage text`, `prompt_id text` (for example `writing.chapter`), `prompt_version integer`, `prompt_hash text`, `provider text` (`openrouter`, `mock`), `model_slug text` (model that answered), `generation_id text` (OpenRouter id), `input_tokens integer`, `output_tokens integer`, `cost_usd real`, `latency_ms integer`, `status text` (`ok`, `error`, `invalid_output`, `cancelled`), `error text`, `output text` (raw response, kept for audit; `output`, `error` and `guardrails` are cleared when the book is deleted, D-050). Index `(project_id, created_at)`, `(workspace_id, created_at)` for monthly spend.
 
 **jobs**
 
@@ -183,7 +183,7 @@ Quality gate: a batch book cannot be marked ready, have a slot confirmed, be pac
 
 Indexes `(status, run_after, priority)`, `(project_id, created_at)`, `(parent_id)`.
 
-**job_events**: `job_id -> jobs`, `project_id`, `type text`, `data json`. The ULID `id` doubles as the SSE event id. Index `(project_id, id)`, `(workspace_id, id)`.
+**job_events**: `job_id -> jobs`, `project_id`, `type text`, `data json`. The ULID `id` doubles as the SSE event id. Deleted with the book, and after 90 days by a daily pass (D-050). Index `(project_id, id)`, `(workspace_id, id)`.
 
 ## Entity relationships
 
@@ -228,3 +228,15 @@ erDiagram
 - `projects.ai_disclosure.text` becomes `ai_generated` as soon as any version of a switched-on section has an `ai` or `ai:*` source (a restore counts as the version it restored), and cannot be set lower while one exists (FACTS 5.5: AI-generated "even if you applied substantial edits afterwards"). `images` follows `assets.ai_generated` on cover and interior assets.
 - `about_author` sections never hold their own text: export reads `author_profiles.bio_third_person`.
 - `also_by` lists projects of the same profile with status `published`, newest first.
+
+## Moving a book between Volumes (D-051)
+
+A book moves as a project zip, never by copying the database. `POST /api/v1/books/:id/export-project` writes:
+
+- `manifest.json`: `format` (`volume-project`), `formatVersion` (1), `appVersion`, `exportedAt`, `source.penName` (the pen name only), and `files`, one `{ name, bytes, sha256 }` per other entry.
+- `project.json`: the `projects` row (with `cost_to_date_usd` set to 0), the `author_profiles` row without `legal_name`, `location` and `is_real_person` (D-050), and every row under the book in `research_runs`, `research_sources`, `title_sets`, `blueprints` (every version), `sections`, `picture_characters`, `section_versions` (current and history), `suggestions`, `author_notes`, `story_ledger`, `check_results`, `claims`, `covers`, `listings` and `marketing_items`, plus the `assets` rows.
+- `assets/<asset id>`: the bytes of every file of the book (covers, wraps, concepts, the owner's own pictures, spreads, character references, imports) and the pen name's author photo.
+
+Not in the zip: `jobs`, `job_events`, `prompt_runs`, spend, `exports` rows and built export files (kind `export`); `prompt_run_id`, `job_id` and `parent_job_id` are cleared.
+
+`POST /api/v1/books/import-project` checks the manifest (format version, a size and sha256 for every entry, nothing unlisted), the entry names (`manifest.json`, `project.json`, `assets/<id>` only), the limits (5,000 entries, 64 MB per expanded file, 160 MB expanded in total, the upload under `MAX_UPLOAD_BYTES`), each row against the migrated columns, the book row against the book rules (status, stage, trim, paper, settings, AI disclosure, prices, ISBNs), every link against the table it must point at, and each file against its row's size, sha256 and declared type (PNG, JPEG, WebP, PDF and zip by their first bytes). It then writes, in one transaction, a new `projects` row and new rows and files with new ULIDs, keeping every link between them, under the caller's workspace and the chosen profile. `budget_usd` is the book's own cap clamped to 0 to 10,000 when the owner imports, and the workspace default (`budget.book_default_usd`) for an editor. `approved_blueprint_id` is kept only when it names an approved blueprint in the zip. Ids inside JSON columns are mapped to the new ids; an id field naming a row that did not move becomes null. The book's `settings.origin` holds `{ note: "Moved from another Volume on <date>.", movedAt }`. It never updates or replaces an existing row. File bytes live in `asset_chunks` (D-015), so a failed import rolls the files back with the rows.

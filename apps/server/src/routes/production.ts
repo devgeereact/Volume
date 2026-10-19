@@ -8,6 +8,7 @@ import { KeyedLock } from '../lib/keyed-lock.js';
 import { assertQualityGate, preflightReport } from '../jobs/quality-gate.js';
 import { EXPORT_KINDS } from '../ports/export.js';
 import { MARKETING_KINDS, MarketingPatchSchema } from '../repos/production.js';
+import { CoverBriefSchema, CoverTypographySchema } from './body-schemas.js';
 import { accepted, idOf, writer } from './common.js';
 
 function safeFilename(name: string): string {
@@ -56,7 +57,7 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const id = idOf(req);
     await s.repos.books.require(req.ctx, id);
-    const body = parse(z.object({ brief: z.record(z.string(), z.unknown()) }), req.body);
+    const body = parse(z.object({ brief: CoverBriefSchema }).strict(), req.body);
     return { cover: await p.upsertCover(req.ctx, id, { brief: body.brief, status: 'brief' }) };
   });
 
@@ -72,7 +73,7 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
   app.post('/books/:id/cover/choose', async (req) => {
     writer(req);
     const id = idOf(req);
-    const body = parse(z.object({ assetId: z.string().min(1).max(64), typography: z.record(z.string(), z.unknown()).optional() }), req.body);
+    const body = parse(z.object({ assetId: z.string().min(1).max(64), typography: CoverTypographySchema.optional() }).strict(), req.body);
     const cover = await p.getCover(req.ctx, id);
     if (!cover || !cover.concepts.some((c) => c.assetId === body.assetId))
       throw new AppError('validation_failed', 'That concept does not belong to this book.');
@@ -86,8 +87,54 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     const id = idOf(req);
     const cover = await p.getCover(req.ctx, id);
     if (!cover?.chosenAssetId) throw new AppError('invalid_state', 'Choose a cover concept first.');
+    if (cover.wrapSpec['ownEbook'] === true && cover.wrapSpec['ownWrap'] === true && cover.ebookAssetId && cover.wrapAssetId)
+      throw new AppError('invalid_state', 'Both covers are your own uploads. Take one out to build that one from the concept.');
     const job = await s.queue.enqueue(req.ctx, { kind: 'cover_build', projectId: id, payload: {} });
     return accepted(reply, job);
+  });
+
+  /**
+   * "Use my own cover": put the owner's uploaded eBook cover (asset kind own_ebook_cover) and paperback wrap (kind
+   * own_wrap_pdf) in place of built covers, or take them out again with null. The pack then uses them as uploaded and
+   * the final preflight checks them against config/kdp-rules (ownCovers). wrapSpec.ownEbook and ownWrap record which.
+   */
+  app.post('/books/:id/cover/own', async (req) => {
+    writer(req);
+    const id = idOf(req);
+    await s.repos.books.require(req.ctx, id);
+    const AssetRef = z.string().min(1).max(64).nullable().optional();
+    const body = parse(
+      z
+        .object({ ebookAssetId: AssetRef, wrapAssetId: AssetRef })
+        .refine((b) => b.ebookAssetId !== undefined || b.wrapAssetId !== undefined, { message: 'Send ebookAssetId, wrapAssetId or both.' }),
+      req.body,
+    );
+    const cover = await p.getCover(req.ctx, id);
+    const spec: Record<string, unknown> = { ...(cover?.wrapSpec ?? {}) };
+    const patch: Parameters<typeof p.upsertCover>[2] = {};
+    const slots = [
+      { value: body.ebookAssetId, field: 'ebookAssetId', kind: 'own_ebook_cover', flag: 'ownEbook', name: 'eBook cover' },
+      { value: body.wrapAssetId, field: 'wrapAssetId', kind: 'own_wrap_pdf', flag: 'ownWrap', name: 'paperback wrap' },
+    ] as const;
+    for (const slot of slots) {
+      if (slot.value === undefined) continue;
+      if (slot.value === null) {
+        // Only an own file is taken out; a built cover stays until it is built again.
+        if (spec[slot.flag] === true) patch[slot.field] = null;
+        delete spec[slot.flag];
+        continue;
+      }
+      const asset = await s.blobs.get(req.ctx, slot.value);
+      if (!asset || asset.projectId !== id || asset.kind !== slot.kind)
+        throw new AppError('validation_failed', `Upload your ${slot.name} to this book first (asset kind ${slot.kind}).`);
+      patch[slot.field] = slot.value;
+      spec[slot.flag] = true;
+    }
+    // The built wrap's page count and the test-model mark describe built covers, not the owner's own wrap.
+    if (spec['ownWrap'] === true) for (const k of ['pages', 'trim', 'paper', 'ink']) delete spec[k];
+    if (spec['ownWrap'] === true && spec['ownEbook'] === true) delete spec['mock'];
+    patch.wrapSpec = spec;
+    return { cover: await p.upsertCover(req.ctx, id, patch) };
   });
 
   // ---------- exports ----------

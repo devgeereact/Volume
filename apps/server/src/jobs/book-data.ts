@@ -204,7 +204,14 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
     claims,
     datedPrices: hasDatedPrices(structure),
     marketing: await marketingText(repos, ctx, projectId),
+    ownCover: await ownCoverOf(repos, ctx, projectId),
   };
+}
+
+/** Which cover files are the owner's own uploads (cover.wrapSpec ownEbook and ownWrap, set by POST /cover/own). */
+async function ownCoverOf(repos: Repos, ctx: RequestCtx, projectId: string): Promise<{ ebook: boolean; wrap: boolean }> {
+  const cover = await repos.production.getCover(ctx, projectId);
+  return { ebook: !!cover?.ebookAssetId && cover.wrapSpec['ownEbook'] === true, wrap: !!cover?.wrapAssetId && cover.wrapSpec['ownWrap'] === true };
 }
 
 /**

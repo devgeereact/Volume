@@ -24,6 +24,7 @@ import {
 } from '@volume/core';
 import { withBrowser } from './browser.ts';
 import { fontFaceCss, isVariableOnly, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
+import { normalisePrintStrings, normalisePrintText, symbolFallbackCss, withSymbolFallback } from './print-glyphs.ts';
 import { ornamentSvg } from './ornaments.ts';
 
 function sniff(buf: Buffer): string {
@@ -47,7 +48,8 @@ function coverFonts(style: CoverStyle, lib: FontLibrary, warnings: string[]): Fo
   const author = resolveFamily(lib, style.fonts.author, title, warnings, fo);
   const fams = [...new Set([title, subtitle, author])];
   return {
-    css: fontFaceCss(lib, fams, [style.weights.title, style.weights.subtitle, style.weights.author, 400]),
+    // The maths fallback too, so a symbol in a title or blurb never prints as a Type 3 system font.
+    css: `${fontFaceCss(lib, fams, [style.weights.title, style.weights.subtitle, style.weights.author, 400])}\n${symbolFallbackCss(lib)}`,
     title,
     subtitle,
     author,
@@ -146,15 +148,16 @@ export interface EbookCoverResult {
   warnings: string[];
 }
 
-export async function exportEbookCover(meta: BookMeta, style: CoverStyle = DEFAULT_COVER_STYLE, opts: EbookCoverOptions = {}): Promise<EbookCoverResult> {
+export async function exportEbookCover(source: BookMeta, style: CoverStyle = DEFAULT_COVER_STYLE, opts: EbookCoverOptions = {}): Promise<EbookCoverResult> {
+  const meta = normalisePrintStrings(source); // no Type 3 fallback fonts for symbols the cover fonts lack
   const spec = opts.rules ? ebookCoverSpec(opts.rules) : { widthPx: 1600, heightPx: 2560 };
   const W = spec.widthPx;
   const H = spec.heightPx;
   const warnings: string[] = [];
   const f = coverFonts(style, opts.fonts ?? loadFontLibrary(), warnings);
-  const html = `<!doctype html><html lang="${escapeHtml(meta.language)}"><head><meta charset="utf-8"><style>${f.css}
+  const html = withSymbolFallback(`<!doctype html><html lang="${escapeHtml(meta.language)}"><head><meta charset="utf-8"><style>${f.css}
 html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
-${frontCss(style, f)}</style></head><body>${frontHtml(meta, style, opts.background ? dataUrl(opts.background) : undefined)}${FIT_SCRIPT}</body></html>`;
+${frontCss(style, f)}</style></head><body>${frontHtml(meta, style, opts.background ? dataUrl(opts.background) : undefined)}${FIT_SCRIPT}</body></html>`);
   const { png, fitted } = await withBrowser(opts.browser, async (browser) => {
     const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
     try {
@@ -215,7 +218,8 @@ export interface WrapResult {
   warnings: string[];
 }
 
-export async function exportPaperbackWrap(meta: BookMeta, style: CoverStyle = DEFAULT_COVER_STYLE, opts: WrapOptions): Promise<WrapResult> {
+export async function exportPaperbackWrap(source: BookMeta, style: CoverStyle = DEFAULT_COVER_STYLE, opts: WrapOptions): Promise<WrapResult> {
+  const meta = normalisePrintStrings(source); // no Type 3 fallback fonts for symbols the cover fonts lack
   const trimKey = opts.trim ?? '6x9';
   const trim = parseTrimKey(trimKey);
   const size = wrapSizeIn(
@@ -247,12 +251,12 @@ export async function exportPaperbackWrap(meta: BookMeta, style: CoverStyle = DE
     t
       ? t
           .split(/\n\s*\n/)
-          .map((p) => `<p>${escapeHtml(p.trim())}</p>`)
+          .map((p) => `<p>${escapeHtml(normalisePrintText(p.trim()))}</p>`)
           .join('')
       : '';
   const spineFont = Math.min(16, Math.max(5, (size.spineIn - 2 * clearance) * 72 * 0.62));
   const c = style.colours;
-  const html = `<!doctype html><html lang="${escapeHtml(meta.language)}"><head><meta charset="utf-8"><style>${f.css}
+  const html = withSymbolFallback(`<!doctype html><html lang="${escapeHtml(meta.language)}"><head><meta charset="utf-8"><style>${f.css}
 @page { size: ${size.widthIn}in ${size.heightIn}in; margin: 0; }
 html, body { margin: 0; width: ${size.widthIn}in; height: ${size.heightIn}in; font-synthesis: none; }
 * { box-sizing: border-box; }
@@ -271,7 +275,7 @@ ${frontCss(style, f)}
 <div class="back"><div class="text">${paras(opts.blurb)}${opts.shortBio ? `<div class="bio">${paras(opts.shortBio)}</div>` : ''}</div><div class="barcode"></div></div>
 <div class="spine">${spineText ? `<div class="st">${escapeHtml(meta.title)}<span class="au">&#8195;${escapeHtml(meta.author)}</span></div>` : ''}</div>
 <div class="frontpanel">${frontHtml(meta, style, opts.background ? dataUrl(opts.background) : undefined)}</div>
-</div>${FIT_SCRIPT}</body></html>`;
+</div>${FIT_SCRIPT}</body></html>`);
 
   const W = size.widthIn * 72;
   const H = size.heightIn * 72;

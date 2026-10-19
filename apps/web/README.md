@@ -126,6 +126,8 @@ Settings tabs, in screen order (`settingsTabs` in `screens.ts`; Settings, the br
 | `backups` | Data and backups |
 | `house-style` | House style |
 | `kdp-rules` | KDP rules |
+| `members` | Members (owner only, with `ACCOUNTS_MODE=invite`) |
+| `account` | Your account (download all data, leave, delete a guest workspace; D-050) |
 | `about` | About |
 
 Several screens take `?state=loading`, `?state=empty` or `?state=error` to show their other states (a "Prototype only" control at the foot of the screen sets it).

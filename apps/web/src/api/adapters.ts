@@ -348,7 +348,9 @@ export function toTitleOptions(set: ApiTitleSet): TitleOption[] {
 
 function chapterData(c: unknown): BlueprintChapterData {
   const o = obj(c);
+  // Keep the planner's other keys (promise, opening_hook, story_ideas, source_ids): edits and Restore send them back.
   return {
+    ...o,
     number: num(o["number"]),
     title: str(o["title"]),
     part: typeof o["part"] === "number" ? o["part"] : null,

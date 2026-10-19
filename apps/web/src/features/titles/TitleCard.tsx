@@ -15,6 +15,36 @@ interface TitleCardProps {
   onSave: (title: string, subtitle: string) => void;
   /** Fresh from a regeneration: ink in once. */
   fresh: boolean;
+  /** This option is being saved as the book's title. */
+  saving?: boolean | undefined;
+  /** Another option is being saved, so this one waits. */
+  busy?: boolean | undefined;
+}
+
+/** Why the choose button is held, or undefined when it can be pressed. */
+export function chooseHeldReason({ invalid, saving, busy }: { invalid: boolean; saving: boolean; busy: boolean }): string | undefined {
+  if (invalid) return "Fix this option before you choose it.";
+  if (busy && !saving) return "Wait until the other title is saved.";
+  return undefined;
+}
+
+/** Use this title. While the choice saves it shows Saving, is marked busy and ignores further presses. */
+export function ChooseTitleButton({
+  invalid,
+  saving = false,
+  busy = false,
+  onChoose,
+}: {
+  invalid: boolean;
+  saving?: boolean;
+  busy?: boolean;
+  onChoose: () => void;
+}) {
+  return (
+    <Button size="sm" onClick={onChoose} loading={saving} loadingLabel="Saving" disabledReason={chooseHeldReason({ invalid, saving, busy })}>
+      Use this title
+    </Button>
+  );
 }
 
 /** Character count against the KDP limit as a short line and a hairline meter. */
@@ -36,7 +66,7 @@ export function CharCounter({ length, className }: { length: number; className?:
 }
 
 /** One title option: title and subtitle, counter, checks, favourite, inline edit and choose. */
-export function TitleCard({ option, directionName, favourite, onFavourite, onChoose, onSave, fresh }: TitleCardProps) {
+export function TitleCard({ option, directionName, favourite, onFavourite, onChoose, onSave, fresh, saving = false, busy = false }: TitleCardProps) {
   const canWrite = useCanWrite();
   const [editing, setEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState(option.title);
@@ -160,9 +190,7 @@ export function TitleCard({ option, directionName, favourite, onFavourite, onCho
                 <Check size={16} strokeWidth={2} aria-hidden /> Chosen title
               </p>
             ) : canWrite ? (
-              <Button size="sm" onClick={onChoose} disabledReason={invalid ? "Fix this option before you choose it." : undefined}>
-                Use this title
-              </Button>
+              <ChooseTitleButton invalid={invalid} saving={saving} busy={busy} onChoose={onChoose} />
             ) : null}
           </div>
         </>

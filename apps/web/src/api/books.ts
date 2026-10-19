@@ -13,6 +13,7 @@ import type {
   BookPatch,
   Estimate,
   EstimateInput,
+  ImportedBookProject,
   ImportedProject,
   PublishInput,
   ListResponse,
@@ -53,6 +54,16 @@ export const booksApi = {
       ...o,
       query: { profileId: profileId ?? undefined },
     }),
+
+  /** Moves a book in from another Volume (D-051): a new book under `profileId` from the zip that exportProject made.
+      Owner or editor. 400 validation_failed, 403, 404 for a profile outside the workspace, 409 invalid_state for an
+      archived pen name, 413, 415 and 429. */
+  importProjectFile: (file: Blob, profileId: string, o?: Opts) => {
+    const form = new FormData();
+    form.append("profileId", profileId);
+    form.append("file", file, file instanceof File ? file.name : "project.zip");
+    return apiRequest<ImportedBookProject>("POST", "/books/import-project", form, o);
+  },
 
   /* library feeds */
   activity: (limit = 30, o?: Opts) => api.get<ListResponse<ApiActivityItem>>("/activity", { ...o, query: { limit } }),

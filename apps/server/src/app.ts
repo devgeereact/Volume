@@ -1,5 +1,5 @@
 import rateLimit from '@fastify/rate-limit';
-import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyRequest, type FastifyServerOptions } from 'fastify';
 import { MockAiAdapter } from './adapters/mock-ai.js';
 import { MockExportAdapter } from './adapters/mock-export.js';
 import { ensureOwner, StubAuthProvider, type AuthProvider, type RequestCtx } from './auth/context.js';
@@ -8,9 +8,11 @@ import type { AppConfig } from './config/env.js';
 import type { Db, DbHandle } from './db/connect.js';
 import { BlobStore, DEFAULT_CHUNK_BYTES } from './files/blob-store.js';
 import { AppError, errorBody, registerErrorHandling } from './http/errors.js';
+import { errSerializer, hashIp, logUrl, safeErr } from './http/log-safety.js';
 import { applySecurityHeaders, clientIp, isApiPath, isPublicHealth, PUBLIC_HEALTH_PATH, registerWebApp, sendSpaIndex } from './http/hosting.js';
 import { defaultHandlers } from './jobs/handlers/index.js';
 import { JobQueue } from './jobs/queue.js';
+import { RetentionService } from './jobs/retention.js';
 import { JobRunner, type HandlerMap, type JobServices, type RunnerOptions } from './jobs/runner.js';
 import type { AiPort } from './ports/ai.js';
 import type { ExportPort } from './ports/export.js';
@@ -18,6 +20,9 @@ import { createRepos } from './repos/index.js';
 import { createTextChecker } from './jobs/guardrails.js';
 import { registerRoutes } from './routes/index.js';
 import { EventBus } from './sse/bus.js';
+
+/** Most time to receive one whole request, in milliseconds. */
+export const REQUEST_TIMEOUT_MS = 300_000;
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -31,6 +36,8 @@ export interface AppServices extends JobServices {
   ownerCtx: RequestCtx;
   dbClient: 'sqlite' | 'mysql';
   backups: BackupService;
+  /** Daily deletion of job events older than 90 days (D-050). */
+  retention: RetentionService;
   /** Checks the OpenRouter key with OpenRouter's key status (null when no key is set). Never returns the key. */
   openRouterKeyCheck: OpenRouterKeyCheck | null;
 }
@@ -51,7 +58,7 @@ export interface BuildAppOptions {
   startJobs?: boolean;
   logger?: NonNullable<FastifyServerOptions['logger']>;
   chunkBytes?: number;
-  /** Run the nightly SQLite backup while the app runs (default: the same as startJobs). */
+  /** Run the nightly SQLite backup and the daily retention pass while the app runs (default: the same as startJobs). */
   nightlyBackups?: boolean;
   /** POST /settings/openrouter/test uses this (index.ts builds it from the key; tests pass a fake). */
   openRouterKeyCheck?: OpenRouterKeyCheck | null;
@@ -68,9 +75,22 @@ const REDACT = [
   '*.OPENROUTER_API_KEY',
 ];
 
+/**
+ * The server logger (D-050, Fastify serializers: https://fastify.dev/docs/latest/Reference/Logging/#serializers):
+ * request lines carry the method, the path without its query (search text stays out) and a short salted hash of the
+ * visitor's IP; errors carry their name and code only, never the message, which can hold user text.
+ */
 export function defaultLogger(config: AppConfig): NonNullable<FastifyServerOptions['logger']> {
   if (config.logLevel === 'silent') return false;
-  return { level: config.logLevel, redact: { paths: REDACT, censor: '[redacted]' } };
+  return {
+    level: config.logLevel,
+    redact: { paths: REDACT, censor: '[redacted]' },
+    serializers: {
+      req: (req: FastifyRequest) => ({ method: req.method, url: logUrl(req.url), ip: hashIp(clientIp(req, config.trustProxy)) }),
+      res: (reply) => ({ statusCode: reply.statusCode ?? 0 }),
+      err: errSerializer,
+    },
+  };
 }
 
 export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyInstance; services: AppServices }> {
@@ -78,6 +98,9 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
   const app = Fastify({
     logger: opts.logger ?? defaultLogger(config),
     bodyLimit: config.maxJsonBytes,
+    // The whole request (a project zip upload included) must arrive within 5 minutes, Node's own default, which
+    // Fastify's 0 would otherwise switch off (https://fastify.dev/docs/latest/Reference/Server/#requesttimeout).
+    requestTimeout: REQUEST_TIMEOUT_MS,
     // Behind Passenger and Cloudflare (TRUST_PROXY, on in production) the visitor's IP and protocol come from proxy headers.
     trustProxy: config.trustProxy,
   });
@@ -121,6 +144,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
   const runnerOpts: RunnerOptions = { ...opts.runner, log: app.log };
   const runner = new JobRunner(jobServices, opts.handlers ?? defaultHandlers, runnerOpts);
   const backups = new BackupService(db, handle.dialect, config.dataDir);
+  const retention = new RetentionService(bus);
   const services: AppServices = {
     ...jobServices,
     config,
@@ -128,6 +152,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
     ownerCtx,
     dbClient: handle.dialect,
     backups,
+    retention,
     openRouterKeyCheck: opts.openRouterKeyCheck ?? null,
   };
   if (config.authMode === 'clerk' && !opts.auth) throw new Error('AUTH_MODE=clerk needs the Clerk auth provider.');
@@ -206,6 +231,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
 
   app.addHook('onClose', async () => {
     backups.stop();
+    retention.stop();
     await runner.stop();
     // The real exporter holds one shared Chromium; it is released here.
     await jobServices.exporter.close?.();
@@ -213,9 +239,9 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
 
   if (opts.startJobs ?? config.jobsEnabled) await runner.start();
   if (opts.nightlyBackups ?? opts.startJobs ?? config.jobsEnabled) {
+    retention.start({ log: (msg, deleted, failed) => (failed ? app.log.warn(msg) : app.log.info({ deleted }, msg)) });
     backups.startNightly(repos.settings, ownerCtx, {
-      log: (msg, err) =>
-        err ? app.log.warn({ err: { message: err instanceof Error ? err.message : typeof err === 'string' ? err : 'Unknown error' } }, msg) : app.log.info(msg),
+      log: (msg, err) => (err ? app.log.warn({ err: safeErr(err) }, msg) : app.log.info(msg)),
     });
   }
   return { app, services };

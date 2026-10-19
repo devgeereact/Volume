@@ -933,6 +933,21 @@ export function useBuildCover() {
   });
 }
 
+/** "Use my own cover": attach (asset id) or take out (null) the owner's eBook cover and wrap. */
+export function useOwnCover() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { bookId: string; ebookAssetId?: string | null; wrapAssetId?: string | null }) => {
+      const { bookId, ...input } = v;
+      return productionApi.ownCover(bookId, input);
+    },
+    onSuccess: (r, v) => {
+      qc.setQueryData(queryKeys.book.cover(v.bookId), r);
+      void invalidate(qc, queryKeys.book.preflight(v.bookId));
+    },
+  });
+}
+
 /* ---------- Export ---------- */
 
 export function usePreflight(bookId: string | undefined) {
@@ -1073,9 +1088,19 @@ export function useSetMemberRole() {
 export function useRemoveMember() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => volumeApi.removeMember(userId),
+    mutationFn: (v: { userId: string; confirm: string }) => volumeApi.removeMember(v.userId, v.confirm),
     onSuccess: () => invalidate(qc, queryKeys.volume.members()),
   });
+}
+
+/** POST /me/leave. Nothing to refresh: the caller no longer belongs here, so the screen shows its own end state. */
+export function useLeaveWorkspace() {
+  return useMutation({ mutationFn: (confirm: string) => volumeApi.leave(confirm) });
+}
+
+/** DELETE /workspace. Nothing to refresh: the workspace is gone, so the screen shows its own end state. */
+export function useDeleteWorkspace() {
+  return useMutation({ mutationFn: (confirm: string) => volumeApi.deleteWorkspace(confirm) });
 }
 
 export function useBatches(options: QueryOptions = {}) {

@@ -32,6 +32,7 @@ import {
 } from '@volume/core';
 import { withBrowser } from './browser.ts';
 import { fontFaceCss, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
+import { normalisePrintStrings } from './print-glyphs.ts';
 
 /** Default trim for picture books (D-044); the owner can pick another trim from the rules file. */
 export const PICTURE_BOOK_DEFAULT_TRIM: TrimKey = '8.5x8.5';
@@ -252,7 +253,7 @@ export async function exportPictureBookPdf(doc: PictureBookDoc, rules: KdpRules,
   const trim = parseTrimKey(trimKey);
   const g = pictureBookGeometry(rules, trim, pictureBookPages(doc).length);
   const fonts = opts.fonts ?? loadFontLibrary();
-  const built = await buildPictureBookHtml(doc, g, { ...opts, fonts });
+  const built = await buildPictureBookHtml(normalisePrintStrings(doc), g, { ...opts, fonts }); // symbols the fonts lack print as Type 3
   const { pdf, layout } = await withBrowser(opts.browser, async (browser) => {
     const ctx = await browser.newContext();
     try {

@@ -42,3 +42,13 @@ export const inkIn = {
   initial: { opacity: 0, y: 2 },
   animate: { opacity: 1, y: 0, transition: { duration: dur.base, ease: ease.out } },
 };
+
+/** True when the reader has asked the system for reduced motion. Read at call time, so it follows a live change. */
+export function prefersReducedMotion(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** Scroll behaviour for scrollIntoView and scrollTo: smooth, or an instant jump under reduced motion. */
+export function scrollBehavior(): ScrollBehavior {
+  return prefersReducedMotion() ? "auto" : "smooth";
+}

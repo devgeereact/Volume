@@ -98,6 +98,10 @@ export const coverBuildHandler: JobHandler = async (jc) => {
   if (!projectId) throw new JobFailed('Cover job is missing its book.');
   const cover = await repos.production.getCover(jc.ctx, projectId);
   if (!cover?.chosenAssetId) throw new JobFailed('Choose a cover concept first.', 'invalid_state');
+  // The owner's own covers ("use my own cover") stay: a build makes only the slots that are not the owner's.
+  const keepEbook = cover.wrapSpec['ownEbook'] === true && !!cover.ebookAssetId;
+  const keepWrap = cover.wrapSpec['ownWrap'] === true && !!cover.wrapAssetId;
+  if (keepEbook && keepWrap) return { result: { skipped: 'own covers in use', ebookAssetId: cover.ebookAssetId, wrapAssetId: cover.wrapAssetId } };
   const book = await buildExportBook(repos, jc.ctx, projectId, jc.services.configDir, jc.services.blobs);
   const art = await blobs.read(jc.ctx, cover.chosenAssetId);
   // The same blurb as the pack: the matter stage's, else the blueprint's (D-049).
@@ -105,7 +109,9 @@ export const coverBuildHandler: JobHandler = async (jc) => {
 
   // The wrap needs the real interior page count: use the latest print PDF, or build one now.
   const exports = await repos.production.listExports(jc.ctx, projectId);
-  let pageCount = exports.find((e) => e.kind === 'pdf_print' && e.status === 'done' && e.manuscriptHash === book.manuscriptHash)?.pageCount ?? null;
+  let pageCount: number | null = keepWrap
+    ? 0
+    : (exports.find((e) => e.kind === 'pdf_print' && e.status === 'done' && e.manuscriptHash === book.manuscriptHash)?.pageCount ?? null);
   // A picture book prints in premium colour, so its spine uses the colour rule (paperback.spine.widthPerPage.colour).
   const picture = isPictureBook(await pictureStructure(jc.services.configDir, await repos.books.require(jc.ctx, projectId)));
   if (pageCount === null) {
@@ -122,31 +128,41 @@ export const coverBuildHandler: JobHandler = async (jc) => {
     } else pageCount = (await exporter.buildPdf(book, { signal: jc.signal })).pageCount ?? 24;
   }
 
-  await jc.progress(0.3, 'Building the eBook cover');
   const input = { book, artwork: { mime: art.meta.mime, data: art.data }, typography: cover.typography, coverStyleId: book.coverStyleId };
-  const ebook = await exporter.buildEbookCover(input, { signal: jc.signal });
-  await jc.checkpoint();
-  await jc.progress(0.6, 'Building the paperback wrap');
-  const wrap = await exporter.buildWrapCover({ ...input, pageCount, backBlurb, ...(picture ? { ink: PICTURE_INK } : {}) }, { signal: jc.signal });
-  const ebookAsset = await blobs.put(
-    jc.ctx,
-    { kind: 'cover_ebook', filename: ebook.filename, mime: ebook.mime, projectId, aiGenerated: art.meta.aiGenerated },
-    ebook.data,
-  );
-  const wrapAsset = await blobs.put(
-    jc.ctx,
-    { kind: 'cover_wrap', filename: wrap.filename, mime: wrap.mime, projectId, aiGenerated: art.meta.aiGenerated },
-    wrap.data,
-  );
+  let ebookAssetId = cover.ebookAssetId;
+  let wrapAssetId = cover.wrapAssetId;
+  let mock = false;
+  if (!keepEbook) {
+    await jc.progress(0.3, 'Building the eBook cover');
+    const ebook = await exporter.buildEbookCover(input, { signal: jc.signal });
+    mock ||= ebook.mock;
+    ebookAssetId = (
+      await blobs.put(jc.ctx, { kind: 'cover_ebook', filename: ebook.filename, mime: ebook.mime, projectId, aiGenerated: art.meta.aiGenerated }, ebook.data)
+    ).id;
+    await jc.checkpoint();
+  }
+  if (!keepWrap) {
+    await jc.progress(0.6, 'Building the paperback wrap');
+    const wrap = await exporter.buildWrapCover({ ...input, pageCount, backBlurb, ...(picture ? { ink: PICTURE_INK } : {}) }, { signal: jc.signal });
+    mock ||= wrap.mock;
+    wrapAssetId = (
+      await blobs.put(jc.ctx, { kind: 'cover_wrap', filename: wrap.filename, mime: wrap.mime, projectId, aiGenerated: art.meta.aiGenerated }, wrap.data)
+    ).id;
+  }
   await repos.production.upsertCover(jc.ctx, projectId, {
-    ebookAssetId: ebookAsset.id,
-    wrapAssetId: wrapAsset.id,
-    wrapSpec: { trim: book.trim, paper: book.paper, pages: pageCount, ...(picture ? { ink: PICTURE_INK } : {}), mock: ebook.mock || wrap.mock },
+    ebookAssetId,
+    wrapAssetId,
+    wrapSpec: {
+      ...(keepWrap ? {} : { trim: book.trim, paper: book.paper, pages: pageCount, ...(picture ? { ink: PICTURE_INK } : {}) }),
+      ...(keepEbook ? { ownEbook: true } : {}),
+      ...(keepWrap ? { ownWrap: true } : {}),
+      mock,
+    },
     status: 'final',
   });
   if (art.meta.aiGenerated) await repos.books.setAiDisclosure(jc.ctx, projectId, 'images', 'ai_generated');
-  await jc.emit('cover.updated', { projectId, status: 'final', ebookAssetId: ebookAsset.id, wrapAssetId: wrapAsset.id });
-  return { result: { ebookAssetId: ebookAsset.id, wrapAssetId: wrapAsset.id } };
+  await jc.emit('cover.updated', { projectId, status: 'final', ebookAssetId, wrapAssetId });
+  return { result: { ebookAssetId, wrapAssetId, kept: { ebook: keepEbook, wrap: keepWrap } } };
 };
 
 /**
