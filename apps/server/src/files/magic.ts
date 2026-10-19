@@ -2,7 +2,8 @@ import { AppError } from '../http/errors.js';
 
 /**
  * Image uploads must be what they claim (D-050): the first bytes are checked against the declared type before
- * anything is stored. Signatures: PNG (RFC 2083 / ISO 15948), JPEG SOI marker FF D8 FF, WebP RIFF....WEBP.
+ * anything is stored. Signatures: PNG (RFC 2083 / ISO 15948), JPEG SOI marker FF D8 FF, WebP RIFF....WEBP, PDF %PDF-.
+ * Kinds that hold pictures do not take application/octet-stream, so an image cannot skip the check that way.
  */
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -16,6 +17,8 @@ const SIGNATURES: Record<string, { need: number; test: (head: Buffer) => boolean
     test: (h) => h.subarray(0, 4).toString('latin1') === 'RIFF' && h.subarray(8, 12).toString('latin1') === 'WEBP',
     label: 'WebP',
   },
+  // PDF files begin with the %PDF- header (ISO 32000-1, 7.5.2).
+  'application/pdf': { need: 5, test: (h) => h.subarray(0, 5).toString('latin1') === '%PDF-', label: 'PDF' },
 };
 
 /** Checks a whole buffer's first bytes against the declared type. */
@@ -36,7 +39,7 @@ export async function* sniffed(mime: string, source: AsyncIterable<Uint8Array | 
     for await (const piece of source) yield typeof piece === 'string' ? Buffer.from(piece) : piece;
     return;
   }
-  const refuse = (): AppError => new AppError('unsupported_media_type', `This file is not a ${sig.label} image, although it was sent as one.`);
+  const refuse = (): AppError => new AppError('unsupported_media_type', `This file is not a ${sig.label} file, although it was sent as one.`);
   let head: Buffer = Buffer.alloc(0);
   let checked = false;
   for await (const piece of source) {
@@ -53,3 +56,6 @@ export async function* sniffed(mime: string, source: AsyncIterable<Uint8Array | 
   }
   if (!checked) throw refuse();
 }
+
+/** Upload kinds that hold pictures: they must declare an image type, never application/octet-stream. */
+export const IMAGE_KINDS: ReadonlySet<string> = new Set(['logo', 'interior_image', 'author_photo', 'cover_concept']);

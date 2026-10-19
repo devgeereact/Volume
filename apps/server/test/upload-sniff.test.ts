@@ -87,6 +87,19 @@ describe('POST /assets', () => {
     expect(res.status).toBe(415);
   });
 
+  it('checks the %PDF- header of a PDF', async () => {
+    expect((await upload('application/pdf', Buffer.from('%PDF-1.7\n%...'), 'kind=other&filename=a.pdf')).status).toBe(201);
+    expect((await upload('application/pdf', HTML, 'kind=other&filename=a.pdf')).status).toBe(415);
+  });
+
+  it('takes application/octet-stream only for kinds that are not pictures', async () => {
+    for (const kind of ['logo', 'interior_image', 'cover_concept']) {
+      const res = await upload('application/octet-stream', PNG, `kind=${kind}&filename=f.png`);
+      expect(res.status, kind).toBe(415);
+    }
+    expect((await upload('application/octet-stream', HTML, 'kind=other&filename=f.bin')).status).toBe(201);
+  });
+
   it('leaves Markdown imports alone', async () => {
     expect((await upload('text/markdown', Buffer.from('# Title\n\nText.'), 'kind=import&filename=book.md')).status).toBe(201);
   });
