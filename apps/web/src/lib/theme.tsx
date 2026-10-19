@@ -36,6 +36,16 @@ interface ThemeContextValue {
   toggle: () => void;
 }
 
+/** Paints the browser bar with the canvas token of the theme on screen. index.html starts it from the
+    system setting; this keeps it right after a saved choice or a system change. */
+function syncThemeColour(): void {
+  const canvas = getComputedStyle(document.documentElement).getPropertyValue("--vol-canvas").trim();
+  if (!canvas) return;
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
+    meta.content = canvas;
+  });
+}
+
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -45,6 +55,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    syncThemeColour();
   }, [theme]);
 
   const setTheme = useCallback((t: Theme) => {

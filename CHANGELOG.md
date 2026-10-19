@@ -2,6 +2,16 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 19 October 2026
+
+#### Added
+- Web app manifest, app icons (including an Apple touch icon) and a browser bar colour for light and dark themes.
+
+#### Changed
+- The Use this title button holds while the choice saves, so a title cannot be chosen twice.
+- Smooth scrolling respects the system's reduced motion setting.
+- A screen error now stays inside the app, with a link back to the Library.
+
 ## 18 October 2026
 
 Production hub (D-048, D-049).
