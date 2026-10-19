@@ -1,3 +1,13 @@
+## Public landing, how it works and sign-in, 19 October 2026 (Claude Code)
+
+Branch `feat/landing-hero` (PR #16), rebuilt on main. Decision D-053 (D-051 is move-a-book, D-052 is PR #14). Owner asked to merge #17, #16, #14 in that order and deploy.
+
+Done: signed-out visitors on a hosted build see the landing hero at `/`, How it works at `/how-it-works` and a branded sign-in at `/sign-in` (and any other path). Signed-in and local builds reach the pages at `/welcome` and `/how-it-works`. Built with GSAP 3.15 (SplitText, ScrambleText), Lenis 1.3.27 and adapted React Bits components in `apps/web/src/site/`.
+
+Proven on the rebased branch (Node 26.8.1): typecheck, lint, format:check PASS; Vitest 1,095 passed, 4 skipped; web build PASS; e2e 17 of 17. Browser at 1440 and 390, dark, reduced motion (first build). Screenshots: `../reports/volume/screenshots/landing-hero/`.
+
+Next: check the themed Clerk form on the host after deploy. Owner: restore GitHub Actions (no runs are created for any push; account-level).
+
 ## Merge and deploy, 19 October 2026 (Claude Code)
 
 Owner asked to merge the open PRs and deploy. Merged #7, #8, #9, #11, #10, #12, #13 into main (a7bff19); #11 and #13 retargeted from `feat/server-hardening` to main; #13 conflicts (CHANGELOG, `files/magic.ts`) resolved by keeping both sides, and its test fixed for the listing job from #10. Draft #14 left for the owner. Deployed a7bff19 as release `20261019T103759Z` (rollback `20261018T131543Z`) with `--migrate --no-ci-check` after the owner's cPanel backup; migration 0010 applied.

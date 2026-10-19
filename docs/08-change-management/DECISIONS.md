@@ -367,3 +367,15 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
   3. Multipart is read by a small in-house reader (`apps/server/src/lib/multipart.ts`) over Fastify's buffered body, so no new package is needed.
 - **Options considered:** copy the database again with `--replace` (wipes the host); merge databases row by row (id clashes, other workspaces at risk); `@fastify/multipart` (a new package, not named in the docs).
 - **Consequences:** Books move one at a time, and their export files are built again on the target. Old zips without a manifest still import through `POST /api/v1/projects/import`; the new route needs the manifest. Undo by removing the route; the zip stays readable by the older route.
+## D-053, 19 October 2026: public landing, how it works and branded sign-in
+
+- **Status:** Accepted (owner asked for the pages and chose signed-out routing, 19 October 2026).
+- **Context:** A signed-out visitor to the hosted app saw only the word Volume above Clerk's stock sign-in form. The owner asked for a landing page with only a hero (from the "Volume Hero" artifact), How it works as its own hero page, and a sign-in page in Volume's look, built with GSAP, Lenis and React Bits.
+- **Decision:**
+  1. Signed-out visitors on a hosted build get their own small router (`apps/web/src/site/PublicSite.tsx`): the landing hero at `/`, `/how-it-works`, and the branded sign-in at `/sign-in` and at every other path, so a deep link opens where it pointed after sign-in. Signed-in users keep `/` as the Library. Inside the app (signed in, or a local build) the same pages are at `/welcome` and `/how-it-works`; `/sign-in` sends a signed-in user to `/` and shows a local-build note when there is no Clerk key.
+  2. The app router is created when the app first renders behind sign-in (`createAppRouter` in `Application.tsx`), so it starts from the address reached while signed out.
+  3. New web dependencies, pinned: `gsap` 3.15.0, `@gsap/react` 2.1.2, `lenis` 1.3.27. They load only with the public pages (a lazy chunk); the app screens keep motion/react. React Bits SplitText, ShinyText and DecryptedText are adapted into `apps/web/src/site/bits/` (MIT, credited in each file), not installed.
+  4. The Clerk form is themed through `appearance.variables` set to the `--vol-*` tokens, so light and dark both follow.
+  5. Copy stays truthful: the sample book is labelled as sample content, the pages say Volume is a private studio with access by invitation, and `noindex` stays.
+- **Options considered:** landing at `/` for everyone with the Library only at `/library` (changes existing behaviour and tests); building with motion/react only (no new packages, but not what the owner asked for).
+- **Consequences:** about 34 kB gzip of extra script for signed-out visitors only. Undo by restoring the old signed-out branch in `HostedAuth.tsx` and removing `apps/web/src/site/` and the three routes.

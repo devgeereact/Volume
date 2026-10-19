@@ -4,6 +4,8 @@ Updated 17 October 2026 (rows rechecked; first written 6 October after the local
 
 | Item | Remaining work | Status |
 |---|---|---|
+| Two failing e2e specs (19 October 2026) | `phase8-batch-failure` and `restart` failed while port 5313 was held by another project's PHP test server (the restart spec needs it). With the port free, e2e is 17 of 17 on main a7bff19 and on the rebased landing branch. | Closed |
+| Branded sign-in on the host | The themed Clerk form (D-053) is checked only in a local build, where sign-in is off. The real form with the live key is NOT TESTED until a hosted build. | NOT TESTED |
 | Humanizer live acceptance | New versions of all 32 prompts pass mock integration, server and browser checks. Actual prose quality needs a fresh authorised live run after the owner reloads/restarts the existing server. Earlier free-route errors remain unresolved. | NOT TESTED live |
 | Live AI acceptance | Owner approved free-only testing. Live titles and three-chapter blueprint pass on Nvidia; full writing failed on summary truncation with both tested Nvidia summary models (fix in D-035: larger summary budget and prompt v4, mock tests PASS, live rerun NOT TESTED). Both requested Gemma routes returned upstream invalid-key errors. Recorded cost zero. Production-model quality, research citations and AI covers remain unverified. [Free validation](../reports/volume/qa/reports/FREE-AI-VALIDATION-2026-10-06.md). | PARTIAL |
 | MySQL on cPanel | Production database from 16 October 2026 (D-038). Migrations, repos, a 3.5 MB blob copy and the release on a runtime-only user PASS against a local throwaway MariaDB 12.3; CI repeats this on MariaDB 11.4. The host database, its users and a restore drill are NOT TESTED until the lead deploys. | PARTIAL |
