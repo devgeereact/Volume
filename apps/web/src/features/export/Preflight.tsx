@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Check, CircleX, Flag, RotateCw } from "lucide-react";
 import { Button, Checkbox, Loader } from "../../components/ui";
@@ -15,12 +16,14 @@ interface PreflightProps {
   onTick: (id: string, on: boolean) => void;
   running: boolean;
   onRun: () => void;
+  /** API mode: an action in place of the Fix link (for example Run checks again); null keeps the link. */
+  renderFix?: ((row: PreflightRow) => ReactNode) | undefined;
 }
 
 const areaOrder: PreflightItem["area"][] = ["Manuscript", "Listing", "Interior", "Cover", "eBook"];
 
 /** Preflight ledger: pass, warn or fail per check, grouped by area, with Fix links and a tick for each warning. */
-export function Preflight({ rows, ticked, onTick, running, onRun }: PreflightProps) {
+export function Preflight({ rows, ticked, onTick, running, onRun, renderFix }: PreflightProps) {
   const counts = {
     pass: rows.filter((r) => r.result === "pass").length,
     warn: rows.filter((r) => r.result === "warn").length,
@@ -67,7 +70,9 @@ export function Preflight({ rows, ticked, onTick, running, onRun }: PreflightPro
                       <Checkbox className="mt-1" label="I have checked this" checked={Boolean(ticked[r.id])} onChange={(v) => onTick(r.id, v)} />
                     )}
                   </div>
-                  {r.fixLabel && r.fixRoute && r.result !== "pass" && !r.checking ? (
+                  {r.result !== "pass" && !r.checking && renderFix?.(r) ? (
+                    renderFix(r)
+                  ) : r.fixLabel && r.fixRoute && r.result !== "pass" && !r.checking ? (
                     <Link
                       to={r.fixRoute}
                       className="col-start-2 inline-flex h-8 items-center self-start justify-self-start rounded-sm px-2 text-small font-semibold text-select underline-offset-2 hover:underline sm:col-start-3 hit-44"
