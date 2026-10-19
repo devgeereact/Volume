@@ -93,6 +93,7 @@ describe('own paperback wrap (rules paperback.cover, paperback.spine.*)', () => 
     const wrapPdf = await wrap(other.widthIn, other.heightIn, { w: 1200, h: 900 });
     const r = await report({ interiorPdf: await interior(pages), wrapPdf, ownCovers: { wrap: true } });
     expect(item(r, 'wrap.size')?.level).toBe('fail');
+    expect(item(r, 'wrap.size')?.detail).toContain('tolerance is unverified');
     expect(item(r, 'wrap.dpi')?.level).toBe('fail');
     expect(item(r, 'wrap.dpi')?.detail).toContain('1200 x 900 px');
   });

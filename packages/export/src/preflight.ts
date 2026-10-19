@@ -336,6 +336,8 @@ function isAllowedIsbn(ruleId: string | undefined, match: string, allowed: Reado
   return allowed.has(isbnDigits(match));
 }
 const near = (a: number, b: number, tol: number) => Math.abs(a - b) <= tol;
+/** Wrap size tolerance in inches: Volume's own (no KDP rounding rule in config/kdp-rules), so unverified. */
+const WRAP_TOLERANCE_IN = 0.001;
 
 export async function runPreflight(input: PreflightInput): Promise<PreflightReport> {
   const items: CheckItem[] = [];
@@ -598,12 +600,14 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
     } else {
       const want = wrapSizeIn(rules, pb ? { trim, pages, paper: input.paper, ink: pb.ink } : { trim, pages, paper: input.paper });
       const got = info.pageSizes[0];
-      const ok = got !== undefined && near(got.widthPt / 72, want.widthIn, 0.001) && near(got.heightPt / 72, want.heightIn, 0.001);
+      // config/kdp-rules gives no rounding or tolerance for the cover size (checked 19 October 2026), so this
+      // 0.001 in tolerance is Volume's own and unverified: KDP's template may round differently.
+      const ok = got !== undefined && near(got.widthPt / 72, want.widthIn, WRAP_TOLERANCE_IN) && near(got.heightPt / 72, want.heightIn, WRAP_TOLERANCE_IN);
       add({
         id: 'wrap.size',
         label: 'Wrap size matches the formula',
         level: ok ? 'pass' : 'fail',
-        detail: `${got ? `${(got.widthPt / 72).toFixed(4)} x ${(got.heightPt / 72).toFixed(4)} in` : 'no page'}; formula for ${pages} pages on ${pb ? `${pb.ink} colour` : input.paper}: ${want.widthIn.toFixed(4)} x ${want.heightIn.toFixed(4)} in (spine ${want.spineIn.toFixed(4)} in).`,
+        detail: `${got ? `${(got.widthPt / 72).toFixed(4)} x ${(got.heightPt / 72).toFixed(4)} in` : 'no page'}; formula for ${pages} pages on ${pb ? `${pb.ink} colour` : input.paper}: ${want.widthIn.toFixed(4)} x ${want.heightIn.toFixed(4)} in (spine ${want.spineIn.toFixed(4)} in).${ok ? '' : ` Volume allows ${WRAP_TOLERANCE_IN} in either way; the KDP rules give no rounding, so that tolerance is unverified: compare with KDP's cover calculator.`}`,
         factIds: ['3.8', '3.9'],
       });
     }
@@ -807,10 +811,10 @@ function houseFindings(texts: { where: string; text: string }[], style: Compiled
   );
 }
 
-/** D-049: a back-cover blurb is 120 to 200 words when the template sets no range (the nonfiction template's own). */
+/** The nonfiction template's back-cover-blurb range (packages.publishing limits.words), for templates that set none (the workbook, "same as nonfiction"). */
 const DEFAULT_BLURB_WORDS = { min: 120, max: 200 };
 
-/** The word range for the back-cover blurb: the template's packages.publishing back-cover-blurb limits, else D-049. */
+/** The word range for the back-cover blurb: the template's packages.publishing back-cover-blurb limits.words, else the nonfiction template's. */
 export function blurbWordRange(template: unknown): { min?: number; max?: number } {
   const publishing = isObj(template) && isObj(template.packages) ? template.packages.publishing : undefined;
   const item: unknown = Array.isArray(publishing) ? (publishing as unknown[]).find((p) => isObj(p) && p.id === 'back-cover-blurb') : undefined;
