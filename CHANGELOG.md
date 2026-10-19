@@ -9,6 +9,9 @@ Moving a book between Volumes (D-051).
 #### Added
 - Import project: bring one book from another Volume (for example from the Mac to the hosted app) under a pen name you choose. The import always makes a new book, marked "Moved from another Volume on <date>", and changes nothing that is already there.
 - Project zips now carry a manifest with a checksum for every file; an import refuses a zip that was changed or damaged.
+- Library: an Import project button next to Import manuscript (owners and editors). It asks for the zip and a pen name, preselects the profile you are filtering by, and explains each refusal in plain words.
+- Export screen: Move this book, with Download project (to move this book). Owners and editors only.
+- Export screen: a moved book shows its origin note, for example "Moved from another Volume on 19 October 2026."
 
 #### Changed
 - Project zips no longer carry built export files or spend. Build the PDF, EPUB and pack again after a move.
