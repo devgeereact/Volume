@@ -642,7 +642,9 @@ function looseFold(s: string): { text: string; at: number[] } {
   let space = false;
   for (let i = 0; i < s.length; i++) {
     const c = s.charAt(i);
-    if (c === '*' || c === '_') continue;
+    // Emphasis marks are dropped; an underscore inside a word (snake_case) is part of the word and stays.
+    if (c === '*') continue;
+    if (c === '_' && !(/[\p{L}\p{N}]/u.test(s.charAt(i - 1)) && /[\p{L}\p{N}]/u.test(s.charAt(i + 1)))) continue;
     if (/\s/.test(c)) {
       if (!space && text.length > 0) {
         text += ' ';
@@ -674,14 +676,40 @@ export function locateQuote(markdown: string, needle: string | null): { start: n
   const hay = looseFold(markdown);
   const j = hay.text.indexOf(want);
   if (j < 0) return { start: null, end: null, original: null };
-  const start = hay.at[j] ?? 0;
-  const end = (hay.at[j + want.length - 1] ?? start) + 1;
+  let start = hay.at[j] ?? 0;
+  let end = (hay.at[j + want.length - 1] ?? start) + 1;
+  // Keep the emphasis marks whole: a passage that opens or closes inside **bold** or _italic_ takes in the marks next
+  // to it, so replacing it never leaves half a pair behind.
+  const marks = (x: string) => (x.match(/\*+/g)?.length ?? 0) + (x.match(/(?<![\p{L}\p{N}])_+|_+(?![\p{L}\p{N}])/gu)?.length ?? 0);
+  for (let n = 0; n < 4 && marks(markdown.slice(start, end)) % 2 === 1; n++) {
+    const pre = markdown.slice(0, start).match(/[*_]+$/)?.[0] ?? '';
+    const post = markdown.slice(end).match(/^[*_]+/)?.[0] ?? '';
+    if (pre) start -= pre.length;
+    else if (post) end += post.length;
+    else break;
+  }
+  while (/[*_]/.test(markdown.charAt(start - 1)) && /[*_]/.test(markdown.charAt(end)) && marks(markdown.slice(start, end)) % 2 === 0) {
+    const pre = markdown.slice(0, start).match(/[*_]+$/)?.[0] ?? '';
+    const post = markdown.slice(end).match(/^[*_]+/)?.[0] ?? '';
+    if (!pre || pre !== post) break;
+    start -= pre.length;
+    end += post.length;
+  }
   return { start, end, original: markdown.slice(start, end) };
+}
+
+/** True when the text has bold or italic marks (**, *, or _ at a word edge). */
+function hasEmphasis(s: string): boolean {
+  return /\*|(?<![\p{L}\p{N}])_|_(?![\p{L}\p{N}])/u.test(s);
 }
 
 function suggestion(markdown: string, original: string | null, proposed: unknown, reason: string): Rec {
   const found = locateQuote(markdown, original);
-  return { original: found.original ?? original ?? '', proposed, reason, start: found.start, end: found.end };
+  const kept = found.original ?? original ?? '';
+  // The model often quotes and rewrites without the marks: say so, so accepting does not lose bold or italics unseen.
+  const drops = hasEmphasis(kept) && typeof proposed === 'string' && !hasEmphasis(proposed);
+  const why = drops ? `${reason} The change drops bold or italic marks from the text; add them back if they matter.`.trim() : reason;
+  return { original: kept, proposed, reason: why, start: found.start, end: found.end };
 }
 
 // ---------- errors ----------
