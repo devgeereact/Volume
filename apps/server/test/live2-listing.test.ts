@@ -5,10 +5,11 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as VolumeAi from '@volume/ai';
 import type { AiProvider } from '@volume/ai';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MOCK_MATTER_BLURB, MOCK_MATTER_DESCRIPTION, MockAiAdapter } from '../src/adapters/mock-ai.js';
 import { createOpenRouterAi, estimatePlan, SUMMARY_WORDS, type OpenRouterAiAdapter } from '../src/adapters/openrouter-ai.js';
 import { buildExportBook } from '../src/jobs/book-data.js';
+import { KeyedLock } from '../src/lib/keyed-lock.js';
 import type { AiCostEstimate, AiPort, AiStage, AiStageInput, AiStageResult, RunStageOptions } from '../src/ports/ai.js';
 import { LISTING_PROMPT_CALLS } from '../src/routes/estimate.js';
 import { listingVariables } from '../src/jobs/listing-input.js';
@@ -247,5 +248,50 @@ describe("4. the owner's listing edits always win", () => {
     expect(second.body.error.code).toBe('conflict');
     await t.services.runner.runUntilIdle();
     expect((await t.call('POST', `/api/v1/books/${id}/listing`, {})).status).toBe(202);
+  });
+
+  it('two POST /books/:id/listing at once (a double click) queue exactly one job', async () => {
+    t = await testApp({ ai: new ListingAi() });
+    const id = await newBook(t);
+    await t.call('POST', `/api/v1/books/${id}/write`, {});
+    await t.services.runner.runUntilIdle();
+    const before = (await t.services.queue.list(t.owner, { projectId: id, kind: 'listing' })).length;
+    // Widen the window between the check and the enqueue, so without the lock both requests would pass the check.
+    const queue = t.services.queue;
+    const list = queue.list.bind(queue);
+    const slow = vi.spyOn(queue, 'list').mockImplementation(async (ctx, filter) => {
+      const rows = await list(ctx, filter);
+      if (filter.active) await new Promise((r) => setTimeout(r, 30));
+      return rows;
+    });
+    const both = await Promise.all([t.call('POST', `/api/v1/books/${id}/listing`, {}), t.call('POST', `/api/v1/books/${id}/listing`, {})]);
+    expect(both.map((r) => r.status).sort()).toEqual([202, 409]);
+    slow.mockRestore();
+    expect(await t.services.queue.list(t.owner, { projectId: id, kind: 'listing', active: true })).toHaveLength(1);
+    expect((await t.services.queue.list(t.owner, { projectId: id, kind: 'listing' })).length).toBe(before + 1);
+  });
+});
+
+describe('KeyedLock', () => {
+  it('runs one step per key at a time, keeps going after a failure, and leaves other keys alone', async () => {
+    const lock = new KeyedLock();
+    const order: string[] = [];
+    const step =
+      (name: string, ms: number, fail = false) =>
+      async () => {
+        order.push(`${name} start`);
+        await new Promise((r) => setTimeout(r, ms));
+        order.push(`${name} end`);
+        if (fail) throw new Error(name);
+        return name;
+      };
+    const a = lock.run('book', step('a', 20, true));
+    const b = lock.run('book', step('b', 1));
+    const c = lock.run('other', step('c', 1));
+    await expect(a).rejects.toThrow('a');
+    expect(await b).toBe('b');
+    expect(await c).toBe('c');
+    expect(order.indexOf('b start')).toBeGreaterThan(order.indexOf('a end'));
+    expect(order.indexOf('c start')).toBeLessThan(order.indexOf('a end'));
   });
 });
