@@ -54,4 +54,14 @@ describe('3. blueprint title cleanup on save and approve', () => {
     expect(book.body['title']).toBe(CLEAN_TITLE);
     expect(String(book.body['title'])).not.toContain(NB);
   });
+
+  it('owner edits keep their wording and spelling: only look-alike hyphens and spaces are tidied', async () => {
+    t = await testApp();
+    const id = await bookWithBlueprint(t);
+    const res = await t.call<{ data: Obj }>('PATCH', `/api/v1/books/${id}/blueprint`, { parts: { title: `Intrigue:  The Color${NB}Plan ` } });
+    expect(res.status).toBe(200);
+    expect(res.body.data['title']).toBe('Intrigue: The Color-Plan');
+    expect((await t.call('POST', `/api/v1/books/${id}/blueprint/approve`, {})).status).toBe(200);
+    expect((await t.call<Obj>('GET', `/api/v1/books/${id}`)).body['title']).toBe('Intrigue: The Color-Plan');
+  });
 });

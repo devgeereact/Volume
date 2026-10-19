@@ -3,8 +3,8 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import { AppError, parse } from '../http/errors.js';
 import { approveBlueprint } from '../jobs/approve-blueprint.js';
-import { bookChapterCount, houseStyle } from '../jobs/book-data.js';
-import { cleanBlueprintTitles } from '../jobs/house-style-fix.js';
+import { bookChapterCount } from '../jobs/book-data.js';
+import { cleanBlueprintTitles, tidyTitleChars } from '../jobs/house-style-fix.js';
 import { BlueprintPartKeySchema, BlueprintSchema } from '../ports/ai.js';
 import { accepted, idOf, writer } from './common.js';
 
@@ -179,8 +179,8 @@ export function planningRoutes(app: FastifyInstance, s: AppServices): void {
         'The blueprint is not complete.',
         v.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
       );
-    // The title is tidied as the title options are (odd hyphens, labels, house style), so approval keeps it clean.
-    const data = cleanBlueprintTitles(v.data, houseStyle(s.configDir));
+    // Owner text: only look-alike hyphens and spaces are tidied in the title; wording and spelling stay as typed.
+    const data = cleanBlueprintTitles(v.data, tidyTitleChars);
     return planning.addBlueprintVersion(req.ctx, id, data, { source: 'human', note: body.note ?? 'Edited by the owner', parentVersionId: latest.id });
   });
 

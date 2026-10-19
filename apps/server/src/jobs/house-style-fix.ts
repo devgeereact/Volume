@@ -191,29 +191,35 @@ export function fixHouseStyleDeep<T>(value: T, style: CompiledHouseStyle, skip: 
 const TITLE_LABEL = /^\s*(?:promise|intrigue|direct[- ]label|metaphor|how[- ]to)\s*:\s*/i;
 
 /**
- * A title or subtitle as the AI gave it, tidied: a leading formula label ("Intrigue: ...") removed, non-breaking and
- * other unusual hyphens made plain, spaces collapsed and trimmed, and dashes and US spellings fixed to house style
- * (live acceptance run, 18 October 2026).
+ * A title or subtitle with only its characters tidied: non-breaking and other look-alike hyphens made plain, and
+ * spaces collapsed and trimmed. Wording and spelling stay as written, so this is safe on the owner's own text.
  */
-export function cleanTitleText(s: string, style: CompiledHouseStyle): string {
-  const plain = s
-    .replace(TITLE_LABEL, '')
-    .replace(/[‐‑‒]/g, '-')
+export function tidyTitleChars(s: string): string {
+  return s
+    .replace(/[\u2010\u2011\u2012]/g, '-')
     .replace(/[\s\u00a0]+/g, ' ')
     .trim();
-  return fixHouseStyle(plain, style).text.trim();
 }
 
 /**
- * A blueprint with its title and subtitle tidied as cleanTitleText does. Every save and the approval run it, so
- * approving a blueprint never brings back the odd hyphens the title options had removed (live acceptance run,
- * 19 October 2026: approving an edited blueprint put the U+2011 hyphens back in the book title).
+ * A title or subtitle as the AI gave it, tidied: a leading formula label ("Intrigue: ...") removed, look-alike
+ * hyphens made plain, spaces collapsed and trimmed, and dashes and US spellings fixed to house style (live acceptance
+ * run, 18 October 2026). For AI output only; owner text gets tidyTitleChars.
  */
-export function cleanBlueprintTitles<T extends Record<string, unknown>>(data: T, style: CompiledHouseStyle): T {
+export function cleanTitleText(s: string, style: CompiledHouseStyle): string {
+  return fixHouseStyle(tidyTitleChars(s.replace(TITLE_LABEL, '')), style).text.trim();
+}
+
+/**
+ * A blueprint with its title and subtitle passed through `clean`: cleanTitleText for an AI blueprint, tidyTitleChars
+ * for the owner's edits and on approval, so approving never brings back the odd hyphens the title options had removed
+ * (live acceptance run, 19 October 2026: approving an edited blueprint put the U+2011 hyphens back in the book title).
+ */
+export function cleanBlueprintTitles<T extends Record<string, unknown>>(data: T, clean: (s: string) => string): T {
   const out: Record<string, unknown> = { ...data };
   for (const k of ['title', 'subtitle']) {
     const v = data[k];
-    if (typeof v === 'string') out[k] = cleanTitleText(v, style);
+    if (typeof v === 'string') out[k] = clean(v);
   }
   return out as T;
 }

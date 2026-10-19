@@ -115,7 +115,7 @@ export const blueprintHandler: JobHandler = async (jc) => {
   });
   // House style auto-fix on the AI's plan, blurb and listing; keywords and categories are search terms, left alone.
   const style = houseStyle(jc.services.configDir);
-  const styled = cleanBlueprintTitles(fixHouseStyleDeep(res.output, style, BLUEPRINT_KEEP).value, style);
+  const styled = cleanBlueprintTitles(fixHouseStyleDeep(res.output, style, BLUEPRINT_KEEP).value, (x) => cleanTitleText(x, style));
   // The plan must add up to the book's word target within 10%; otherwise every target is rescaled to fit.
   const fitted = fitWordTargets(styled, wordTarget);
   const bp = await repos.planning.addBlueprintVersion(jc.ctx, projectId, fitted, { source: 'ai:blueprint', promptRunId: res.promptRunId });
