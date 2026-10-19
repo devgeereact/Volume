@@ -7,7 +7,7 @@ import * as VolumeAi from '@volume/ai';
 import type { AiProvider } from '@volume/ai';
 import { afterEach, describe, expect, it } from 'vitest';
 import { MockAiAdapter } from '../src/adapters/mock-ai.js';
-import { createOpenRouterAi, distinctItems, tiktokBeat, type OpenRouterAiAdapter } from '../src/adapters/openrouter-ai.js';
+import { createOpenRouterAi, distinctItems, estimatePlan, tiktokBeat, type OpenRouterAiAdapter } from '../src/adapters/openrouter-ai.js';
 import { distinctMarketing, tidyBeatLines } from '../src/jobs/handlers/production.js';
 import type { AiPort, AiStage, AiStageInput, AiStageResult, RunStageOptions } from '../src/ports/ai.js';
 import { str, testApp, type TestApp } from './helpers.js';
@@ -178,6 +178,18 @@ describe('1. marketing items are distinct', () => {
     const keys = (s: string): string[] => [s];
     expect(await distinctItems(['A b.', 'a B', 'c', 'd', 'e'], 3, [], keys, () => Promise.resolve(['x']))).toEqual(['A b.', 'c', 'd']);
     expect(await distinctItems(['a', 'b'], 2, ['B!'], keys, () => Promise.resolve(['b', 'c']))).toEqual(['a', 'c']);
+  });
+
+  it('prices the duplicate retry at the high end of the marketing estimate', async () => {
+    const plan = estimatePlan('marketing', { variables: { title: 'Side Projects', kinds: ['tiktok_script', 'instagram_caption', 'launch_email'] } });
+    expect(plan.map((p) => [p.task, p.times, p.highTimes ?? p.times])).toEqual([
+      ['marketing.tiktok-scripts', 1, 2],
+      ['marketing.instagram-captions', 1, 2],
+      ['marketing.launch-email', 1, 1],
+    ]);
+    const { ai } = await recordingAdapter();
+    const e = await ai.estimate('marketing', { variables: { title: 'Side Projects', kinds: ['instagram_caption'] } }, { model: MODEL });
+    expect(e.highUsd).toBeGreaterThan(e.lowUsd * 1.5);
   });
 
   it('distinctMarketing drops a repeat of the same kind only', () => {

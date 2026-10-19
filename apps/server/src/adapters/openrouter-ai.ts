@@ -1446,7 +1446,7 @@ export class OpenRouterAiAdapter implements AiPort {
     return { lowUsd: result.low, highUsd: result.high * (HIGH_ESTIMATE_MARGIN[stage] ?? 1) };
   }
 
-  private sumEstimates(steps: { task: string; input: Rec; times: number }[], model: string | undefined): { low: number; high: number; unknown: boolean } {
+  private sumEstimates(steps: EstimateStep[], model: string | undefined): { low: number; high: number; unknown: boolean } {
     let low = 0;
     let high = 0;
     let unknown = false;
@@ -1455,7 +1455,7 @@ export class OpenRouterAiAdapter implements AiPort {
         const est = estimateTask(this.service, s.task, this.prepare(s.task, s.input, undefined), model ? { model } : {});
         if (est.estimateUsd === null) unknown = true;
         low += (est.estimateUsd ?? 0) * s.times;
-        high += (est.highUsd ?? est.estimateUsd ?? 0) * s.times;
+        high += (est.highUsd ?? est.estimateUsd ?? 0) * (s.highTimes ?? s.times);
       } catch {
         // An input the prompt cannot render fails clearly in runStage; the estimate stays at what is known.
         unknown = true;
@@ -1925,7 +1925,18 @@ function marketingPlan(v: Rec): { task: string; input: Rec }[] {
 }
 
 /** The calls a stage will make, for the budget check. Later calls that need earlier answers use placeholders. */
-export function estimatePlan(stage: AiStage, input: AiStageInput): { task: string; input: Rec; times: number }[] {
+/** One prompt an estimate prices: `times` calls at the low end, `highTimes` (when set) at the high end. */
+export interface EstimateStep {
+  task: string;
+  input: Rec;
+  times: number;
+  highTimes?: number;
+}
+
+/** Marketing list prompts that may be asked once more for the items a duplicate answer left out. */
+const MARKETING_LIST_TASKS: ReadonlySet<string> = new Set(['marketing.tiktok-scripts', 'marketing.instagram-captions']);
+
+export function estimatePlan(stage: AiStage, input: AiStageInput): EstimateStep[] {
   const v = input.variables;
   switch (stage) {
     case 'research':
@@ -1974,7 +1985,8 @@ export function estimatePlan(stage: AiStage, input: AiStageInput): { task: strin
         { task: 'cover.cover-image', input: coverImageInput(v, null, null, COVER_ASPECT_RATIO), times: conceptCountOf(v) },
       ];
     case 'marketing':
-      return marketingPlan(v).map((s) => ({ ...s, times: 1 }));
+      // The high end allows the one retry each list step may make for duplicates (distinctItems).
+      return marketingPlan(v).map((s) => ({ ...s, times: 1, ...(MARKETING_LIST_TASKS.has(s.task) ? { highTimes: 2 } : {}) }));
     case 'picture_story':
     case 'scene_prompts':
     case 'character_reference':
