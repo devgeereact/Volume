@@ -30,6 +30,9 @@ export interface ClaimRewriteProps {
   /** What one suggestion costs, read before the owner asks (null while unknown). */
   estimate: CostRange | null;
   estimateLoading: boolean;
+  /** Why the cost could not be worked out (null when it was). Asking stays off until a cost shows. */
+  estimateError: string | null;
+  onRetryEstimate: () => void;
   /** Saves any typing first, so the apply builds on the text the owner sees. False stops the apply. */
   beforeApply: () => Promise<boolean>;
   /** Reload the section and the claim list after a 409. */
@@ -37,7 +40,17 @@ export interface ClaimRewriteProps {
   onAnnounce: (text: string) => void;
 }
 
-export function ClaimRewrite({ bookId, claim, estimate, estimateLoading, beforeApply, onReload, onAnnounce }: ClaimRewriteProps) {
+export function ClaimRewrite({
+  bookId,
+  claim,
+  estimate,
+  estimateLoading,
+  estimateError,
+  onRetryEstimate,
+  beforeApply,
+  onReload,
+  onAnnounce,
+}: ClaimRewriteProps) {
   const [step, setStep] = useState<Step>({ at: "closed" });
   const [instruction, setInstruction] = useState("");
   const [draft, setDraft] = useState("");
@@ -142,9 +155,23 @@ export function ClaimRewrite({ bookId, claim, estimate, estimateLoading, beforeA
 
       {step.at === "ask" && (
         <>
-          <p className="text-small text-ink-secondary" role="status">
-            {estimateLoading ? "Working out the cost" : cost ? `Three options, ${cost}.` : "The cost shows once it starts."}
-          </p>
+          {estimateError && !estimateLoading ? (
+            <Banner
+              tone="error"
+              title="Could not work out the cost"
+              action={
+                <Button size="sm" icon={RotateCw} onClick={onRetryEstimate}>
+                  Try again
+                </Button>
+              }
+            >
+              {`${estimateError} Nothing is spent until the cost shows.`}
+            </Banner>
+          ) : (
+            <p className="text-small text-ink-secondary" role="status">
+              {estimateLoading || !cost ? "Working out the cost" : `Three options, ${cost}.`}
+            </p>
+          )}
           <Textarea
             label="What to aim for (optional)"
             hint="For example: keep it personal, or name the kind of source."
@@ -153,7 +180,15 @@ export function ClaimRewrite({ bookId, claim, estimate, estimateLoading, beforeA
             onChange={(e) => setInstruction(e.target.value)}
           />
           <div className="flex flex-wrap gap-1.5">
-            <Button size="sm" variant="primary" icon={Sparkles} loading={suggest.isPending} loadingLabel="Asking" onClick={() => void ask()}>
+            <Button
+              size="sm"
+              variant="primary"
+              icon={Sparkles}
+              loading={suggest.isPending}
+              loadingLabel="Asking"
+              disabledReason={cost ? undefined : "The cost shows first."}
+              onClick={() => void ask()}
+            >
               {cost ? `Suggest options (${cost})` : "Suggest options"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setStep({ at: "closed" })}>
