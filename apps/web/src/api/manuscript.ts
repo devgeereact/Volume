@@ -55,8 +55,8 @@ export const manuscriptApi = {
   /** Coalesces typing into one version for a few minutes; 409 conflict (details.currentVersionId) on a stale base. */
   autosave: (bookId: string, sectionId: string, input: AutosaveInput, o?: Opts) =>
     api.put<ApiSectionVersion>(`/books/${seg(bookId)}/sections/${seg(sectionId)}/autosave`, input, o),
-  /** Runs the section checks again (202 with the estimate), 409 when a run is already going. */
-  rerunChecks: (bookId: string, sectionId: string, o?: Opts) => api.post<EstimatedJob>(`/books/${seg(bookId)}/sections/${seg(sectionId)}/rerun-checks`, {}, o),
+  /** Runs the post-write steps again (summary and checks) on the saved text, as a job (POST /sections/:id/recheck). */
+  rerunChecks: (sectionId: string, o?: Opts) => api.post<EstimatedJob>(`/sections/${seg(sectionId)}/recheck`, {}, o),
   diff: (sectionId: string, from: string, to?: string, o?: Opts) => api.get<SectionDiff>(`/sections/${seg(sectionId)}/diff`, { ...o, query: { from, to } }),
 
   /* writing jobs (202) */

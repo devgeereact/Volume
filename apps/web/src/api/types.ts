@@ -1172,7 +1172,7 @@ export interface ApiPreflightItem {
 export interface PreflightFix {
   route?: string;
   label: string;
-  /** "rerun-checks": run the section checks again (POST /books/:id/sections/:sectionId/rerun-checks). */
+  /** "rerun-checks": run the section checks again (POST /sections/:sectionId/recheck). */
   action?: "rerun-checks" | OpenString;
   sectionId?: string;
   anchor?: string;
