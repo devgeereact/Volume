@@ -18,6 +18,44 @@ export const SaveVersionSchema = z.object({
   baseVersionId: z.string().nullable().optional(),
 });
 
+export const AutosaveSchema = z.object({
+  bodyMd: z.string().max(2_000_000),
+  content: z.unknown().optional(),
+  /** The version the editor holds; null for a section with no text yet. A mismatch returns 409 conflict. */
+  baseVersionId: z.string().max(64).nullable(),
+});
+
+/** Version source of the editor's autosave. */
+export const OWNER_AUTOSAVE_SOURCE = 'owner:autosave';
+/** An autosave younger than this, by the same user and still current, is updated in place instead of adding a version. */
+export const AUTOSAVE_WINDOW_MS = 5 * 60 * 1000;
+
+/** Sources of text the owner wrote: an explicit save (`human`) or an `owner:` save such as an autosave or a claim fix. */
+export function isOwnerSource(source: string): boolean {
+  return source === 'human' || source.startsWith('owner:');
+}
+
+/**
+ * The version before the current edit session: walks back from the current version through the run of the same user's
+ * autosaves and returns the parent of the oldest. With no autosave run it is the current version's parent.
+ */
+export function sessionStartOf(
+  versions: readonly { id: string; source: string; parentVersionId: string | null; createdBy: string | null }[],
+  currentVersionId: string | null,
+): string | null {
+  const byId = new Map(versions.map((v) => [v.id, v]));
+  let cur = currentVersionId ? byId.get(currentVersionId) : undefined;
+  if (!cur) return null;
+  const seen = new Set<string>([cur.id]);
+  for (;;) {
+    const parent: (typeof versions)[number] | undefined = cur.parentVersionId ? byId.get(cur.parentVersionId) : undefined;
+    if (!parent || seen.has(parent.id) || parent.source !== OWNER_AUTOSAVE_SOURCE || !cur.createdBy || parent.createdBy !== cur.createdBy) break;
+    seen.add(parent.id);
+    cur = parent;
+  }
+  return cur.parentVersionId;
+}
+
 export const NoteInputSchema = z.object({
   note: z.string().trim().min(1).max(20000),
   position: z.number().int().min(0).nullable().optional(),
@@ -72,7 +110,11 @@ export interface SectionVersion {
   promptRunId: string | null;
   summary: string | null;
   note: string | null;
+  /** The user who saved an owner version (migration 0011); null for AI, app and older versions. */
+  createdBy: string | null;
   createdAt: number;
+  /** Later than createdAt only for an autosave updated in place. */
+  updatedAt: number;
 }
 
 function toSection(r: SectionsTable, words = 0): Section {
@@ -113,7 +155,9 @@ function toVersion(r: SectionVersionsTable): SectionVersion {
     promptRunId: r.promptRunId,
     summary: r.summary,
     note: r.note,
+    createdBy: r.createdBy,
     createdAt: Number(r.createdAt),
+    updatedAt: Number(r.updatedAt),
   };
 }
 
@@ -270,6 +314,8 @@ export interface SaveVersionInput {
   status?: string;
   /** The automatic style rewrite of the AI run that wrote this text, kept with the version's guardrail report. */
   styleRewrite?: AiGuardrails['styleRewrite'];
+  /** The user saving an owner version (explicit save, autosave, claim fix). */
+  createdBy?: string | null;
 }
 
 /** Works out the code guardrail report for a book's text as it is saved (set by the app; see jobs/guardrails.ts). */
@@ -339,7 +385,7 @@ export class ManuscriptRepo {
 
   /**
    * Who wrote each section: 'app' for pages code writes (title page, copyright, contents, about the author and the
-   * other code-written kinds passed in), 'owner' when every version is a human one, otherwise 'ai' (also for
+   * other code-written kinds passed in), 'owner' when every version is the owner's (isOwnerSource), otherwise 'ai' (also for
    * sections not written yet, which the writer will fill).
    */
   async writtenBy(
@@ -361,7 +407,7 @@ export class ManuscriptRepo {
       for (const r of rows) {
         const c = counts.get(r.sectionId) ?? { all: 0, human: 0 };
         c.all += Number(r.n);
-        if (r.source === 'human') c.human += Number(r.n);
+        if (isOwnerSource(r.source)) c.human += Number(r.n);
         counts.set(r.sectionId, c);
       }
     }
@@ -561,27 +607,37 @@ export class ManuscriptRepo {
 
   // ---------- versions ----------
 
+  /** The code guardrail report for a section's new text, worked out before a save's transaction. */
+  private async guardrailsFor(ctx: RequestCtx, sectionId: string, bodyMd: string, styleRewrite?: AiGuardrails['styleRewrite']): Promise<AiGuardrails | null> {
+    if (!this.textChecker) return null;
+    const owner = await this.db
+      .selectFrom('sections')
+      .select(['projectId'])
+      .where('id', '=', sectionId)
+      .where('workspaceId', '=', ctx.workspaceId)
+      .executeTakeFirst();
+    let guardrails = owner ? await this.textChecker(ctx, owner.projectId, bodyMd) : null;
+    if (guardrails && styleRewrite) guardrails = { ...guardrails, styleRewrite };
+    return guardrails;
+  }
+
+  private static conflict(currentVersionId: string | null, baseVersionId: string | null): AppError {
+    return new AppError('conflict', 'This section changed since you opened it. Compare both versions and choose one.', { currentVersionId, baseVersionId });
+  }
+
   async saveVersion(ctx: RequestCtx, sectionId: string, input: SaveVersionInput): Promise<SectionVersion> {
     // The guardrail report is worked out before the transaction (the checker reads the book, profile and sources).
-    let guardrails: AiGuardrails | null = null;
-    if (this.textChecker) {
-      const owner = await this.db
-        .selectFrom('sections')
-        .select(['projectId'])
-        .where('id', '=', sectionId)
-        .where('workspaceId', '=', ctx.workspaceId)
-        .executeTakeFirst();
-      if (owner) guardrails = await this.textChecker(ctx, owner.projectId, input.bodyMd);
-      if (guardrails && input.styleRewrite) guardrails = { ...guardrails, styleRewrite: input.styleRewrite };
-    }
-    const save = async (trx: Db): Promise<SectionVersion> => {
+    const guardrails = await this.guardrailsFor(ctx, sectionId, input.bodyMd, input.styleRewrite);
+    const save = (trx: Db): Promise<SectionVersion> => this.insertVersion(trx, ctx, sectionId, input, guardrails);
+    return this.db.isTransaction ? save(this.db) : this.db.transaction().execute(save);
+  }
+
+  private async insertVersion(trx: Db, ctx: RequestCtx, sectionId: string, input: SaveVersionInput, guardrails: AiGuardrails | null): Promise<SectionVersion> {
+    {
       const section = await trx.selectFrom('sections').selectAll().where('id', '=', sectionId).where('workspaceId', '=', ctx.workspaceId).executeTakeFirst();
       if (!section) throw notFound('Section');
       if (input.baseVersionId !== undefined && input.baseVersionId !== section.currentVersionId) {
-        throw new AppError('conflict', 'This section changed since you opened it. Compare both versions and choose one.', {
-          currentVersionId: section.currentVersionId,
-          baseVersionId: input.baseVersionId,
-        });
+        throw ManuscriptRepo.conflict(section.currentVersionId, input.baseVersionId);
       }
       const last = await trx
         .selectFrom('sectionVersions')
@@ -612,6 +668,7 @@ export class ManuscriptRepo {
           summary: input.summary ?? null,
           note: input.note ?? null,
           guardrails: guardrails ? toJson(guardrails) : null,
+          createdBy: input.createdBy ?? null,
           createdAt: t,
           updatedAt: t,
         })
@@ -625,20 +682,96 @@ export class ManuscriptRepo {
       await trx.updateTable('projects').set({ updatedAt: t }).where('id', '=', section.projectId).where('workspaceId', '=', ctx.workspaceId).execute();
       const row = await trx.selectFrom('sectionVersions').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
       return toVersion(row);
+    }
+  }
+
+  /**
+   * The editor's autosave. Saves an `owner:autosave` version, or, when the current version is this user's own autosave
+   * from less than AUTOSAVE_WINDOW_MS ago, updates that version in place so a long edit session does not pile up
+   * versions. Any other save (explicit save, restore, AI) makes a version that is not an autosave and so closes the
+   * window. A baseVersionId that is not the current version is a 409 conflict carrying the current version id.
+   */
+  async autosave(
+    ctx: RequestCtx,
+    sectionId: string,
+    input: { bodyMd: string; content?: unknown; baseVersionId: string | null },
+  ): Promise<{ version: SectionVersion; coalesced: boolean }> {
+    const guardrails = await this.guardrailsFor(ctx, sectionId, input.bodyMd);
+    const run = async (trx: Db): Promise<{ version: SectionVersion; coalesced: boolean }> => {
+      const section = await trx.selectFrom('sections').selectAll().where('id', '=', sectionId).where('workspaceId', '=', ctx.workspaceId).executeTakeFirst();
+      if (!section) throw notFound('Section');
+      if (input.baseVersionId !== section.currentVersionId) throw ManuscriptRepo.conflict(section.currentVersionId, input.baseVersionId);
+      const cur = section.currentVersionId
+        ? await trx
+            .selectFrom('sectionVersions')
+            .selectAll()
+            .where('id', '=', section.currentVersionId)
+            .where('workspaceId', '=', ctx.workspaceId)
+            .executeTakeFirst()
+        : undefined;
+      const t = now();
+      if (cur && cur.source === OWNER_AUTOSAVE_SOURCE && cur.createdBy === ctx.userId && t - Number(cur.createdAt) < AUTOSAVE_WINDOW_MS) {
+        const plaintext = markdownToPlaintext(input.bodyMd);
+        const words = wordCount(plaintext);
+        await trx
+          .updateTable('sectionVersions')
+          .set({
+            content: toJson(input.content ?? null),
+            bodyMd: input.bodyMd,
+            plaintext,
+            wordCount: words,
+            guardrails: guardrails ? toJson(guardrails) : null,
+            updatedAt: t,
+          })
+          .where('id', '=', cur.id)
+          .where('workspaceId', '=', ctx.workspaceId)
+          .execute();
+        await trx
+          .updateTable('sections')
+          .set({ status: words > 0 ? 'done' : 'empty', updatedAt: t })
+          .where('id', '=', sectionId)
+          .where('workspaceId', '=', ctx.workspaceId)
+          .execute();
+        await trx.updateTable('projects').set({ updatedAt: t }).where('id', '=', section.projectId).where('workspaceId', '=', ctx.workspaceId).execute();
+        const row = await trx.selectFrom('sectionVersions').selectAll().where('id', '=', cur.id).executeTakeFirstOrThrow();
+        return { version: toVersion(row), coalesced: true };
+      }
+      const version = await this.insertVersion(
+        trx,
+        ctx,
+        sectionId,
+        { bodyMd: input.bodyMd, content: input.content, source: OWNER_AUTOSAVE_SOURCE, note: 'Autosave', createdBy: ctx.userId },
+        guardrails,
+      );
+      return { version, coalesced: false };
     };
-    return this.db.isTransaction ? save(this.db) : this.db.transaction().execute(save);
+    return this.db.isTransaction ? run(this.db) : this.db.transaction().execute(run);
   }
 
   async listVersions(ctx: RequestCtx, sectionId: string): Promise<Omit<SectionVersion, 'content' | 'bodyMd' | 'plaintext'>[]> {
     await this.requireSection(ctx, sectionId);
     const rows = await this.db
       .selectFrom('sectionVersions')
-      .select(['id', 'sectionId', 'projectId', 'version', 'wordCount', 'source', 'parentVersionId', 'promptRunId', 'summary', 'note', 'createdAt'])
+      .select([
+        'id',
+        'sectionId',
+        'projectId',
+        'version',
+        'wordCount',
+        'source',
+        'parentVersionId',
+        'promptRunId',
+        'summary',
+        'note',
+        'createdBy',
+        'createdAt',
+        'updatedAt',
+      ])
       .where('workspaceId', '=', ctx.workspaceId)
       .where('sectionId', '=', sectionId)
       .orderBy('version', 'desc')
       .execute();
-    return rows.map((r) => ({ ...r, createdAt: Number(r.createdAt) }));
+    return rows.map((r) => ({ ...r, createdAt: Number(r.createdAt), updatedAt: Number(r.updatedAt) }));
   }
 
   async getVersion(ctx: RequestCtx, versionId: string): Promise<SectionVersion | null> {

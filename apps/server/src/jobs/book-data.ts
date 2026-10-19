@@ -377,7 +377,14 @@ export async function withOwnerPlaceholders(repos: Repos, ctx: RequestCtx, proje
     ];
     for (const m of missing) {
       if (!open.some((c) => c.checker === m.checker) || report.items.some((i) => i.id === m.id)) continue;
-      report.items.push({ id: m.id, area: 'body', severity: 'block', message: m.message, fix: { route: 'writing', label: 'Open the section' } });
+      report.items.push({
+        id: m.id,
+        area: 'body',
+        severity: 'block',
+        message: m.message,
+        // POST /books/:id/sections/:sectionId/rerun-checks queues only the missing steps.
+        fix: { route: 'writing', label: 'Run it again', action: 'rerun-checks', sectionId: s.id },
+      });
       report.blocks += 1;
       report.ok = false;
     }
@@ -409,21 +416,36 @@ export async function withOwnerPlaceholders(repos: Repos, ctx: RequestCtx, proje
   return report;
 }
 
+/** Where the owner can upload a finished cover instead of building one: the Cover screen's own-cover panel. */
+export const OWN_COVER_FIX = { route: 'cover', label: 'Upload your own cover', anchor: 'own-cover' } as const;
+const OWN_COVER_HINT = 'or upload your own cover';
+
 /**
  * The KDP pack needs a cover: with no eBook cover and no paperback wrap the pack is blocked (item cover.files) while
  * the single manuscript files still export (live run 3 built a pack with no cover folder). Added unless the
- * exporter's own report already has the item. Returns the same report.
+ * exporter's own report already has the item. Every cover.files block or warning (the exporter's too) also says the
+ * owner can upload their own cover, with a fix pointing at the own-cover panel. Returns the same report.
  */
 export function withPackCovers(report: PreflightReport, covers: { ebook: boolean; wrap: boolean }): PreflightReport {
-  if (covers.ebook || covers.wrap || report.items.some((i) => i.id === 'cover.files')) return report;
-  report.items.push({
-    id: 'cover.files',
-    area: 'cover',
-    severity: 'block',
-    message: 'KDP pack covers: No eBook cover or paperback wrap yet. Build the covers in the cover studio. Single files still export.',
-    fix: { route: 'cover', label: 'Open the cover studio' },
-  });
-  report.blocks += 1;
-  report.ok = false;
+  if (!covers.ebook && !covers.wrap && !report.items.some((i) => i.id === 'cover.files')) {
+    report.items.push({
+      id: 'cover.files',
+      area: 'cover',
+      severity: 'block',
+      message: 'KDP pack covers: No eBook cover or paperback wrap yet. Build the covers in the cover studio. Single files still export.',
+      fix: { route: 'cover', label: 'Open the cover studio' },
+    });
+    report.blocks += 1;
+    report.ok = false;
+  }
+  for (const item of report.items) {
+    if (item.id !== 'cover.files' || (item.severity !== 'block' && item.severity !== 'warn')) continue;
+    if (!item.message.includes(OWN_COVER_HINT)) {
+      item.message = item.message.includes('Build the covers in the cover studio.')
+        ? item.message.replace('Build the covers in the cover studio.', `Build the covers in the cover studio ${OWN_COVER_HINT}.`)
+        : `${item.message} Build it in the cover studio ${OWN_COVER_HINT}.`;
+    }
+    item.fix = { ...OWN_COVER_FIX };
+  }
   return report;
 }

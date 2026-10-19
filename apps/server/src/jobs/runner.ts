@@ -108,6 +108,7 @@ const LANES: { name: string; max: number; kinds: JobKind[] }[] = [
       'marketing',
       'listing',
       'rewrite_selection',
+      'claim_fix',
       'picture_story',
       'picture_characters',
       'spread_image',
@@ -135,6 +136,7 @@ const STAGE_TO_CONFIG: Record<AiStage, string> = {
   picture_story: 'writing',
   scene_prompts: 'cover_brief',
   character_reference: 'cover_brief',
+  claim_fix: 'editing',
 };
 
 const ModelChoice = z.union([z.string().min(1), z.object({ model: z.string().min(1) })]);

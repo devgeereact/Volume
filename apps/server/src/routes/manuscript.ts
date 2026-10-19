@@ -5,7 +5,7 @@ import type { RequestCtx } from '../auth/context.js';
 import { AppError, parse } from '../http/errors.js';
 import { contextOf, findMatches, replaceMatches } from '../lib/find.js';
 import { lineDiff } from '../lib/text.js';
-import { NoteInputSchema, NotePatchSchema, SaveVersionSchema, type Section } from '../repos/manuscript.js';
+import { NoteInputSchema, NotePatchSchema, SaveVersionSchema, sessionStartOf, type Section } from '../repos/manuscript.js';
 import { advanceIfWritingComplete, CODE_WRITTEN_KINDS } from '../jobs/book-data.js';
 import { sectionGuardrails } from '../repos/run-info.js';
 import { LEDGER_KINDS } from '../ports/ai.js';
@@ -95,7 +95,13 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const id = idOf(req);
     const body = parse(SaveVersionSchema, req.body);
-    const input: Parameters<typeof m.saveVersion>[2] = { bodyMd: body.bodyMd, content: body.content, source: 'human', note: body.note ?? null };
+    const input: Parameters<typeof m.saveVersion>[2] = {
+      bodyMd: body.bodyMd,
+      content: body.content,
+      source: 'human',
+      note: body.note ?? null,
+      createdBy: req.ctx.userId,
+    };
     if (body.baseVersionId !== undefined) input.baseVersionId = body.baseVersionId;
     const v = await m.saveVersion(req.ctx, id, input);
     // D-048: the owner's save can finish the writing, which moves the book on to the editor.
@@ -109,7 +115,16 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
     return v;
   });
 
-  app.get('/sections/:id/versions', async (req) => ({ items: await m.listVersions(req.ctx, idOf(req)) }));
+  /**
+   * Versions, newest first. previousVersionId is the version before the current edit session (before the run of the
+   * same user's autosaves that ends at the current version), for "restore what I had before I started editing".
+   */
+  app.get('/sections/:id/versions', async (req) => {
+    const id = idOf(req);
+    const items = await m.listVersions(req.ctx, id);
+    const section = await m.requireSection(req.ctx, id);
+    return { items, currentVersionId: section.currentVersionId, previousVersionId: sessionStartOf(items, section.currentVersionId) };
+  });
 
   app.get('/sections/:id/versions/:versionId', async (req) => {
     const p = parse(VersionParams, req.params);

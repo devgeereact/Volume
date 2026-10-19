@@ -276,6 +276,19 @@ const CASES: { stage: AiStage; input: AiStageInput; expect: string[]; fake?: Fak
     },
     expect: ['children.character-reference'],
   },
+  {
+    stage: 'claim_fix',
+    input: {
+      promptId: 'editing.claim-fix',
+      variables: {
+        title: 'Calm Mornings',
+        claim: { sentence: 'Most people wake at six.', category: 'statistic', checkNeeded: 'A sleep survey', before: 'Morning.', after: 'Then tea.' },
+        sources: [],
+        instruction: null,
+      },
+    },
+    expect: ['editing.claim-fix'],
+  },
 ];
 
 describe('OpenRouter AI adapter: stage mapping', () => {

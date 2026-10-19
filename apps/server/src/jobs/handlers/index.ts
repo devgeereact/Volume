@@ -1,5 +1,6 @@
 import type { HandlerMap } from '../runner.js';
 import { batchBookHandler, batchRunHandler } from './batch.js';
+import { claimFixHandler } from './claims.js';
 import { blueprintHandler, blueprintPartHandler, researchHandler, titlesHandler } from './planning.js';
 import { pictureBookHandler, pictureCharactersHandler, pictureExportHandler, pictureStoryHandler, spreadImageHandler } from './picture-book.js';
 import { coverBuildHandler, coverConceptsHandler, exportPackHandler, listingHandler, marketingHandler } from './production.js';
@@ -20,6 +21,7 @@ export const defaultHandlers: HandlerMap = {
   listing: listingHandler,
   export_pack: exportPackHandler,
   rewrite_selection: rewriteSelectionHandler,
+  claim_fix: claimFixHandler,
   batch_run: batchRunHandler,
   batch_book: batchBookHandler,
   picture_book: pictureBookHandler,

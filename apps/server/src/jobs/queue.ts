@@ -28,6 +28,8 @@ export const JOB_KINDS = [
   'listing',
   'export_pack',
   'rewrite_selection',
+  // Fix options for one claim to verify (editing.claim-fix); the result is the options, nothing is saved.
+  'claim_fix',
   // Volume mode (P8-2): a batch parent and one child per book.
   'batch_run',
   'batch_book',
@@ -216,6 +218,18 @@ export class JobQueue {
   }
 
   /** Internal lookup for the runner (no workspace filter: the runner serves every workspace). */
+  /** Jobs of a book that are not finished yet and work on one section (their payload's sectionId). */
+  async activeForSection(ctx: RequestCtx, projectId: string, sectionId: string): Promise<Job[]> {
+    const rows = await this.db
+      .selectFrom('jobs')
+      .selectAll()
+      .where('workspaceId', '=', ctx.workspaceId)
+      .where('projectId', '=', projectId)
+      .where('status', 'not in', [...TERMINAL])
+      .execute();
+    return rows.map(toJob).filter((j) => j.payload['sectionId'] === sectionId);
+  }
+
   async getById(id: string): Promise<Job | null> {
     const row = await this.db.selectFrom('jobs').selectAll().where('id', '=', id).executeTakeFirst();
     return row ? toJob(row) : null;

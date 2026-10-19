@@ -275,6 +275,8 @@ export interface SectionVersionsTable extends Tenant {
   note: string | null;
   /** The code guardrail report for this version's text, as JSON (migration 0004). Null on older rows. */
   guardrails: JsonText | null;
+  /** The user who saved an owner version (migration 0011). Null for AI, app and older rows. */
+  createdBy: string | null;
 }
 
 export interface SuggestionsTable extends Tenant {

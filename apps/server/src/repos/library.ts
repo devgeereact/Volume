@@ -87,6 +87,7 @@ const JOB_LABEL: Readonly<Record<string, string>> = {
   marketing: 'Marketing pack',
   export_pack: 'Export',
   rewrite_selection: 'Rewrite of a selection',
+  claim_fix: 'Claim fix options',
   noop: 'Job',
 };
 

@@ -25,6 +25,8 @@ export const AI_STAGES = [
   'picture_story',
   'scene_prompts',
   'character_reference',
+  // Fix options for one sentence on the claims-to-verify report (editing.claim-fix, editing model).
+  'claim_fix',
 ] as const;
 export type AiStage = (typeof AI_STAGES)[number];
 
@@ -194,6 +196,14 @@ export const EditingOutputSchema = z.object({
   ),
 });
 
+/** How a claim fix changes the sentence (editing.claim-fix). */
+export const CLAIM_FIX_APPROACHES = ['soften', 'generalise', 'attribute', 'reframe', 'remove'] as const;
+export type ClaimFixApproach = (typeof CLAIM_FIX_APPROACHES)[number];
+
+export const ClaimFixOutputSchema = z.object({
+  options: z.array(z.object({ text: z.string(), approach: z.enum(CLAIM_FIX_APPROACHES), rationale: z.string().default(''), needsSource: z.boolean() })),
+});
+
 export const WeaveOutputSchema = z.object({
   markdown: z.string().min(1),
   /** Ids of the notes the model actually used. */
@@ -287,6 +297,7 @@ export interface AiStageOutputMap {
   picture_story: z.infer<typeof PictureStoryOutputSchema>;
   scene_prompts: z.infer<typeof ScenePromptsOutputSchema>;
   character_reference: z.infer<typeof CharacterReferenceOutputSchema>;
+  claim_fix: z.infer<typeof ClaimFixOutputSchema>;
 }
 
 export const AI_OUTPUT_SCHEMAS: { [S in AiStage]: z.ZodType<AiStageOutputMap[S]> } = {
@@ -305,6 +316,7 @@ export const AI_OUTPUT_SCHEMAS: { [S in AiStage]: z.ZodType<AiStageOutputMap[S]>
   picture_story: PictureStoryOutputSchema,
   scene_prompts: ScenePromptsOutputSchema,
   character_reference: CharacterReferenceOutputSchema,
+  claim_fix: ClaimFixOutputSchema,
 };
 
 // ---------- port types ----------

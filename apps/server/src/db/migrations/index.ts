@@ -8,6 +8,7 @@ import * as m0006 from './0006_picture_books.js';
 import * as m0008 from './0008_volume_mode.js';
 import * as m0009 from './0009_invitations.js';
 import * as m0010 from './0010_listing_source.js';
+import * as m0011 from './0011_version_author.js';
 import { columnTypes, type Dialect, type MigrationContext, type MigrationDb } from './types.js';
 
 interface DialectMigration {
@@ -27,6 +28,7 @@ const ALL: [string, DialectMigration][] = [
   ['0008_volume_mode', m0008],
   ['0009_invitations', m0009],
   ['0010_listing_source', m0010],
+  ['0011_version_author', m0011],
 ];
 
 /**
