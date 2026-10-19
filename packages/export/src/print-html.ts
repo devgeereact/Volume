@@ -19,6 +19,7 @@ import {
 } from '@volume/core';
 import { fontFaceCss, resolveFamily, type FontLibrary } from './fonts.ts';
 import { ornamentSvg } from './ornaments.ts';
+import { glyphWarning, normaliseBookGlyphs, symbolFallbackCss, withSymbolFallback } from './print-glyphs.ts';
 
 export interface PrintHtmlOptions {
   trim: TrimKey;
@@ -176,8 +177,12 @@ function openerHtml(s: Section, theme: InteriorTheme): string {
   return `<div class="opener ${theme.opener.style}" data-opener="${s.id}">${orn ? `<div class="orn">${orn}</div>` : ''}${ruleTop}${numeral}${theme.opener.style === 'number' ? '' : kicker}<h1 class="st">${escapeHtml(title)}</h1>${theme.opener.style === 'rule' ? '' : rule}</div>`;
 }
 
-export function buildPrintHtml(book: BookDoc, theme: InteriorTheme, lib: FontLibrary, opts: PrintHtmlOptions): PrintHtml {
+export function buildPrintHtml(source: BookDoc, theme: InteriorTheme, lib: FontLibrary, opts: PrintHtmlOptions): PrintHtml {
   const warnings: string[] = [];
+  // Symbols no embedded font has would print as Type 3 system fonts (preflight interior.fonts).
+  const { book, replaced } = normaliseBookGlyphs(source);
+  const glyphNote = glyphWarning(replaced);
+  if (glyphNote) warnings.push(glyphNote);
   const secs = enabledSections(book);
   const trim = parseTrimKey(opts.trim);
   const m = marginsFor(theme, opts.trim, opts.kdpMinInsideIn);
@@ -263,7 +268,8 @@ export function buildPrintHtml(book: BookDoc, theme: InteriorTheme, lib: FontLib
   const lineH = theme.leading;
   const startId = numberingStartId ? `#${numberingStartId}` : '.no-numbering';
 
-  const css = `
+  const css = `${symbolFallbackCss(lib)}
+${withSymbolFallback(`
 ${fontCss}
 @page {
   size: ${trim.widthIn}in ${trim.heightIn}in;
@@ -384,7 +390,7 @@ figcaption { font-size: ${theme.sizes.smallPt}pt; margin-top: 4pt; color: ${them
 .fill-in .wl { border-bottom: 0.6pt solid #888; height: 22pt; }
 p.dropcap::first-letter { float: left; font-family: '${display}'; font-weight: ${theme.weights.display}; font-size: ${(dc.lines * lineH * 0.98).toFixed(2)}em; line-height: 0.85; margin: 0.06em 0.08em 0 0; color: ${theme.colours.accent}; }
 h1.st { string-set: sectitle content(text); }
-`;
+`)}`;
 
   const html = `<!doctype html><html lang="${escapeHtml(book.meta.language)}"><head><meta charset="utf-8"><title>${escapeHtml(book.meta.subtitle ? `${book.meta.title}: ${book.meta.subtitle}` : book.meta.title)}</title><style>${css}</style></head><body${theme.opener.dropFolio ? ' data-drop-folio="1"' : ''}>${parts.join('\n')}</body></html>`;
   return { html, numberingStartId, warnings };

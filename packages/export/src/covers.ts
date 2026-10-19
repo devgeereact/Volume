@@ -24,6 +24,7 @@ import {
 } from '@volume/core';
 import { withBrowser } from './browser.ts';
 import { fontFaceCss, isVariableOnly, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
+import { normalisePrintStrings, normalisePrintText } from './print-glyphs.ts';
 import { ornamentSvg } from './ornaments.ts';
 
 function sniff(buf: Buffer): string {
@@ -146,7 +147,8 @@ export interface EbookCoverResult {
   warnings: string[];
 }
 
-export async function exportEbookCover(meta: BookMeta, style: CoverStyle = DEFAULT_COVER_STYLE, opts: EbookCoverOptions = {}): Promise<EbookCoverResult> {
+export async function exportEbookCover(source: BookMeta, style: CoverStyle = DEFAULT_COVER_STYLE, opts: EbookCoverOptions = {}): Promise<EbookCoverResult> {
+  const meta = normalisePrintStrings(source); // no Type 3 fallback fonts for symbols the cover fonts lack
   const spec = opts.rules ? ebookCoverSpec(opts.rules) : { widthPx: 1600, heightPx: 2560 };
   const W = spec.widthPx;
   const H = spec.heightPx;
@@ -215,7 +217,8 @@ export interface WrapResult {
   warnings: string[];
 }
 
-export async function exportPaperbackWrap(meta: BookMeta, style: CoverStyle = DEFAULT_COVER_STYLE, opts: WrapOptions): Promise<WrapResult> {
+export async function exportPaperbackWrap(source: BookMeta, style: CoverStyle = DEFAULT_COVER_STYLE, opts: WrapOptions): Promise<WrapResult> {
+  const meta = normalisePrintStrings(source); // no Type 3 fallback fonts for symbols the cover fonts lack
   const trimKey = opts.trim ?? '6x9';
   const trim = parseTrimKey(trimKey);
   const size = wrapSizeIn(
@@ -247,7 +250,7 @@ export async function exportPaperbackWrap(meta: BookMeta, style: CoverStyle = DE
     t
       ? t
           .split(/\n\s*\n/)
-          .map((p) => `<p>${escapeHtml(p.trim())}</p>`)
+          .map((p) => `<p>${escapeHtml(normalisePrintText(p.trim()))}</p>`)
           .join('')
       : '';
   const spineFont = Math.min(16, Math.max(5, (size.spineIn - 2 * clearance) * 72 * 0.62));
