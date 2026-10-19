@@ -2,7 +2,7 @@
 // back to a system font, which it writes into the PDF as Type 3 and preflight blocks (`interior.fonts`). The writer
 // can emit any character, so before rendering the print HTML:
 // 1. symbols no print font has (the Latin subsets of the OFL fonts in assets/fonts and @fontsource) become plain text
-//    or a covered look-alike: "→" becomes "to", a tick "√", a cross "×";
+//    or a covered look-alike that keeps the meaning: "→" becomes "to", "⇒" "->", "↔" "<->", a tick "[x]", a cross "×";
 // 2. maths symbols (≤ ≥ ≠ ≈ ∞ √ and so on) fall back to Lora's maths subset (OFL, @fontsource/lora), embedded as a
 //    subset like every other print font (symbolFallbackCss).
 // Coverage was read from each font's cmap (19 October 2026): every Latin subset lacks the arrows (Lora lacks ↑ and ↓
@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import type { BookDoc } from '@volume/core';
 import type { FontLibrary } from './fonts.ts';
 
-/** Words replace arrows; covered look-alikes replace ticks, crosses, boxes and bullets. */
+/** Words or ASCII arrows replace arrows; covered look-alikes replace ticks, crosses, boxes and bullets. */
 const WORD: Record<string, string> = {
   '→': 'to',
   '⟶': 'to',
@@ -21,15 +21,15 @@ const WORD: Record<string, string> = {
   '➝': 'to',
   '➞': 'to',
   '➡': 'to',
-  '⇒': 'so',
-  '⇨': 'to',
-  '←': 'from',
-  '⟵': 'from',
-  '⬅': 'from',
-  '⇐': 'from',
-  '↔': 'and',
-  '⇔': 'and',
-  '⟷': 'and',
+  '⇒': '->',
+  '⇨': '->',
+  '←': '<-',
+  '⟵': '<-',
+  '⬅': '<-',
+  '⇐': '<-',
+  '↔': '<->',
+  '⇔': '<->',
+  '⟷': '<->',
   '↑': 'up',
   '⬆': 'up',
   '↗': 'up',
@@ -38,10 +38,10 @@ const WORD: Record<string, string> = {
   '↘': 'down',
 };
 const SYMBOL: Record<string, string> = {
-  '✓': '√',
-  '✔': '√',
-  '☑': '√',
-  '✅': '√',
+  '✓': '[x]',
+  '✔': '[x]',
+  '☑': '[x]',
+  '✅': '[x]',
   '✗': '×',
   '✘': '×',
   '❌': '×',
@@ -74,8 +74,11 @@ const SYMBOL: Record<string, string> = {
 
 const WORD_RE = new RegExp(`[ \\t]*[${Object.keys(WORD).join('')}][\\uFE0E\\uFE0F]?[ \\t]*`, 'gu');
 const SYMBOL_RE = new RegExp(`[${Object.keys(SYMBOL).join('')}][\\uFE0E\\uFE0F]?`, 'gu');
-/** Emoji and pictographs above U+1F000: no print font has them, and they carry no words. */
-const EMOJI_RE = /[ \t]?(?:[\u{1F000}-\u{1FAFF}](?:[\u{1F3FB}-\u{1F3FF}]|\uFE0F|\u200D)*)+/gu;
+/**
+ * Emoji and pictographs no print font has, and which carry no words: U+1F000 to U+1FAFF, the miscellaneous symbols and
+ * dingbats (U+2600 to U+27BF) and U+2B00 to U+2BFF. Ticks, crosses, stars and arrows in those blocks are mapped first.
+ */
+const EMOJI_RE = /[ \t]?(?:(?:[\u{1F000}-\u{1FAFF}]|[\u2600-\u27BF]|[\u2B00-\u2BFF])(?:[\u{1F3FB}-\u{1F3FF}]|\uFE0F|\u200D)*)+/gu;
 
 export interface GlyphReplacement {
   from: string;

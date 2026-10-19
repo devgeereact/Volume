@@ -1,11 +1,12 @@
 // house-style:off (symbols quoted as fixtures)
 import type { Browser } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { DEFAULT_INTERIOR_THEME, type BookDoc } from '@volume/core';
+import { DEFAULT_COVER_STYLE, DEFAULT_INTERIOR_THEME, type BookDoc } from '@volume/core';
 import { loadHouseStyle, loadKdpRules } from '@volume/core/node';
 import {
   acquireBrowser,
   buildPrintHtml,
+  exportPaperbackWrap,
   exportPrintPdf,
   inspectPdf,
   loadFontLibrary,
@@ -27,12 +28,16 @@ describe('normalisePrintText', () => {
     expect(normalisePrintText('→ Next: list three ideas.')).toBe('Next: list three ideas.');
     expect(normalisePrintText('Costs ↑')).toBe('Costs up');
     expect(normalisePrintText('(→ page 3)')).toBe('(to page 3)');
+    expect(normalisePrintText('Cost ⇒ price')).toBe('Cost -> price');
+    expect(normalisePrintText('UK ↔ US')).toBe('UK <-> US');
+    expect(normalisePrintText('Input ← output')).toBe('Input <- output');
   });
 
   it('replaces ticks, crosses, boxes, bullets and emoji, and counts each', () => {
     const seen = new Map();
-    expect(normalisePrintText('✓ Budget set ✗ No receipts ☐ Ask ● Note 🚀', seen)).toBe('√ Budget set × No receipts [ ] Ask • Note');
+    expect(normalisePrintText('✓ Budget set ✗ No receipts ☐ Ask ● Note 🚀', seen)).toBe('[x] Budget set × No receipts [ ] Ask • Note');
     expect([...seen.keys()]).toEqual(['✓', '✗', '☐', '●', '🚀']);
+    expect(normalisePrintText('Done ✅ and ☀ sunny ❤ ⭐')).toBe('Done [x] and sunny');
   });
 
   it('leaves smart quotes, the pound sign and ordinary text alone', () => {
@@ -106,5 +111,13 @@ describe('print PDF with arrows, ticks, smart quotes and maths', () => {
       now: new Date('2026-10-19T12:00:00Z'),
     });
     expect(report.items.find((i) => i.id === 'interior.fonts')?.level).toBe('pass');
+  }, 120_000);
+
+  it('keeps the paperback wrap free of Type 3 fonts with symbols in the title and blurb', async () => {
+    const meta = { ...loadMiniBook().meta, title: 'Spend ≤ £10 → Save', subtitle: '✓ Plan ⇒ launch' };
+    const r = await exportPaperbackWrap(meta, DEFAULT_COVER_STYLE, { rules: loadKdpRules(), pages: 120, paper: 'white', browser, blurb: 'Costs ↑ ≈ 5% ✅' });
+    const info = await inspectPdf(r.pdf);
+    expect(info.fonts.filter((f) => !f.embedded || f.type3)).toEqual([]);
+    expect(info.pageText.join(' ')).toContain('≤');
   }, 120_000);
 });
