@@ -1,4 +1,5 @@
 import { ImportManuscriptDialog } from "./ImportManuscriptDialog";
+import { ImportProjectDialog } from "./ImportProjectDialog";
 import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -62,6 +63,7 @@ export default function LibraryPage() {
   const mode = useWireMode();
   const api = mode === "api";
   const [importOpen, setImportOpen] = useState(false);
+  const [projectOpen, setProjectOpen] = useState(false);
   const pens = usePenNames(mode, penNames);
   const wired = useWiredBooks(mode, demoActive);
   const apiState = pens.state === "error" || wired.state === "error" ? "error" : pens.state === "loading" || wired.state === "loading" ? "loading" : "ready";
@@ -128,6 +130,11 @@ export default function LibraryPage() {
       {mode === "api" && (
         <Button variant="secondary" onClick={() => setImportOpen(true)}>
           Import manuscript
+        </Button>
+      )}
+      {mode === "api" && (
+        <Button variant="secondary" onClick={() => setProjectOpen(true)}>
+          Import project
         </Button>
       )}
       <Button variant="primary" icon={Plus} onClick={() => void navigate("/books/new")}>
@@ -239,6 +246,7 @@ export default function LibraryPage() {
 
       {renderBooks()}
       {importOpen && <ImportManuscriptDialog profiles={pens.list} onClose={() => setImportOpen(false)} />}
+      {projectOpen && canWrite && <ImportProjectDialog profiles={pens.list} filterId={penId} onClose={() => setProjectOpen(false)} />}
 
       {state === "ready" && byPen.length > 0 && <TodayStrip bookIds={new Set(byPen.map((b) => b.id))} items={today} />}
     </div>
