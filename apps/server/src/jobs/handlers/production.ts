@@ -5,6 +5,7 @@ import { bookMarketingCounts, buildExportBook, houseStyle, profileSummary, withO
 import { fixHouseStyleDeep } from '../house-style-fix.js';
 import { writtenSections, writtenSummaries } from '../book-checks.js';
 import { JobFailed } from '../errors.js';
+import { dedupeKey } from '../../lib/util.js';
 import { isPictureBook, pageCount as picturePageCount, PICTURE_INK, pictureStructure, SPREAD_KIND } from '../picture-book.js';
 import type { JobHandler } from '../runner.js';
 
@@ -159,6 +160,22 @@ export function tidyBeatLines(body: string): string {
     .join('\n');
 }
 
+/** The line an item is known by: a script's hook, else the first line of its body. */
+function openingLine(m: { hook: string | null; body: string }): string {
+  return (m.hook?.trim() || m.body.split('\n').find((l) => l.trim().length > 0) || '').trim();
+}
+
+/** Marketing items with any repeat of an earlier item of the same kind (same text once folded) left out. */
+export function distinctMarketing<T extends { kind: string; hook: string | null; body: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((i) => {
+    const key = `${i.kind}:${dedupeKey(i.hook)}:${dedupeKey(i.body)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /** Marketing fields the house style fix leaves alone (hashtags are search terms, kind is a code). */
 const MARKETING_KEEP: ReadonlySet<string> = new Set(['kind', 'hashtags']);
 
@@ -182,6 +199,9 @@ export const marketingHandler: JobHandler = async (jc) => {
   // (live run 3: two TikTok scripts described methods the book never covered).
   const counts = await bookMarketingCounts(jc.services.configDir, book);
   const taught = writtenSummaries(await writtenSections(repos, jc.ctx, projectId));
+  // Regenerating one item: the openings of the book's other items of that kind, so the new one differs from them.
+  const siblings = target ? (await repos.production.listMarketing(jc.ctx, projectId, { kind: target.kind })).filter((m) => m.id !== target.id) : [];
+  const avoid = siblings.map(openingLine).filter((x) => x.length > 0);
   const res = await jc.runAi('marketing', {
     promptId: 'marketing.launch-pack',
     variables: {
@@ -193,7 +213,7 @@ export const marketingHandler: JobHandler = async (jc) => {
       previousSummaries: taught,
       kinds,
       // Counts from the book's template (D-049, 5 and 5 unless it says otherwise); one item when regenerating one.
-      ...(target ? { count: 1, instruction: jc.payload['instruction'] ?? null } : { tiktokCount: counts.tiktok, instagramCount: counts.instagram }),
+      ...(target ? { count: 1, instruction: jc.payload['instruction'] ?? null, avoid } : { tiktokCount: counts.tiktok, instagramCount: counts.instagram }),
       profile: await profileSummary(repos, jc.ctx, book.profileId, book),
     },
   });
@@ -251,7 +271,8 @@ export const marketingHandler: JobHandler = async (jc) => {
   const fixed = fixHouseStyleDeep(items, houseStyle(jc.services.configDir), MARKETING_KEEP).value.map((i) =>
     i.kind === 'tiktok_script' ? { ...i, body: tidyBeatLines(i.body) } : i,
   );
-  items.splice(0, items.length, ...fixed);
+  // Dedupe on save: the same post twice in one answer is kept once (live acceptance run, 19 October 2026).
+  items.splice(0, items.length, ...distinctMarketing(fixed));
   if (target) {
     const next = items.find((i) => i.kind === target.kind);
     if (!next) throw new JobFailed('The model returned nothing for this item. Try again.', 'invalid_output');

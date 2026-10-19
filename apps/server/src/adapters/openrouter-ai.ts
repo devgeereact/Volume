@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ConfigError } from '../config/env.js';
 import { JobFailed } from '../jobs/errors.js';
-import { sha256Hex } from '../lib/util.js';
+import { dedupeKey, sha256Hex } from '../lib/util.js';
 import {
   AI_OUTPUT_SCHEMAS,
   attachPartialUsage,
@@ -1409,32 +1409,23 @@ export class OpenRouterAiAdapter implements AiPort {
     const out: Rec = { tiktok: [], instagram: [], email: null };
     let first = true;
     for (const step of plan) {
-      const r = await run.call(step.task, step.input, { primary: first, pinVersion: first });
+      const pin = first;
+      const r = await run.call(step.task, step.input, { primary: first, pinVersion: pin });
       first = false;
       const o = rec(r.output);
+      // Asks once more for the items a duplicate answer left out (a free model wrote five identical captions in the
+      // live acceptance run of 19 October 2026), telling it which openings the book has now.
+      const again = async (missing: number, avoid: string[]): Promise<Rec> => {
+        const variety = { ...rec(step.input['variety']), avoid };
+        return rec((await run.call(step.task, { ...step.input, count: missing, variety }, { pinVersion: pin })).output);
+      };
+      const wanted = Math.max(1, Math.round(firstNum(step.input['count']) ?? 1));
+      const avoid = strList(rec(step.input['variety'])['avoid']);
       if (step.task === 'marketing.tiktok-scripts') {
-        out['tiktok'] = list(o['scripts'])
-          .filter(isRec)
-          .map((s) => {
-            const beats = list(s['beats']).filter(isRec);
-            return {
-              hook: firstText(...strList(s['hooks']), s['title']),
-              beats: beats.map(tiktokBeat).filter((x): x is string => x !== null),
-              on_screen: [text(s['onScreenTextHook']), ...beats.map((b) => text(b['show']))].filter((x): x is string => x !== null),
-              cta: firstText(s['cta']) ?? '',
-              seconds: Math.round(firstNum(step.input['lengthSeconds']) ?? 30),
-              hashtags: strList(s['hashtags']),
-            };
-          });
+        const seconds = Math.round(firstNum(step.input['lengthSeconds']) ?? 30);
+        out['tiktok'] = await distinctItems(tiktokItems(o, seconds), wanted, avoid, TIKTOK_KEYS, async (n, used) => tiktokItems(await again(n, used), seconds));
       } else if (step.task === 'marketing.instagram-captions') {
-        out['instagram'] = list(o['captions'])
-          .filter(isRec)
-          .map((c) => ({
-            caption: [text(c['firstLine']), text(c['body'])].filter(Boolean).join('\n\n'),
-            hashtags: strList(c['hashtags']),
-            cta: firstText(c['cta']) ?? '',
-            image_idea: firstText(c['imageIdea']) ?? '',
-          }));
+        out['instagram'] = await distinctItems(instagramItems(o), wanted, avoid, INSTAGRAM_KEYS, async (n, used) => instagramItems(await again(n, used)));
       } else {
         out['email'] = {
           subjects: strList(o['subjectLines']),
@@ -1785,6 +1776,97 @@ export function tiktokBeat(b: Rec): string | null {
   return /[\p{L}\p{N}]/u.test(time) ? `${time}: ${say}` : say;
 }
 
+interface TiktokItem {
+  hook: string | null;
+  beats: string[];
+  on_screen: string[];
+  cta: string;
+  seconds: number;
+  hashtags: string[];
+}
+interface InstagramItem {
+  caption: string;
+  hashtags: string[];
+  cta: string;
+  image_idea: string;
+}
+
+function tiktokItems(o: Rec, seconds: number): TiktokItem[] {
+  return list(o['scripts'])
+    .filter(isRec)
+    .map((s) => {
+      const beats = list(s['beats']).filter(isRec);
+      return {
+        hook: firstText(...strList(s['hooks']), s['title']),
+        beats: beats.map(tiktokBeat).filter((x): x is string => x !== null),
+        on_screen: [text(s['onScreenTextHook']), ...beats.map((b) => text(b['show']))].filter((x): x is string => x !== null),
+        cta: firstText(s['cta']) ?? '',
+        seconds,
+        hashtags: strList(s['hashtags']),
+      };
+    });
+}
+
+function instagramItems(o: Rec): InstagramItem[] {
+  return list(o['captions'])
+    .filter(isRec)
+    .map((c) => ({
+      caption: [text(c['firstLine']), text(c['body'])].filter(Boolean).join('\n\n'),
+      hashtags: strList(c['hashtags']),
+      cta: firstText(c['cta']) ?? '',
+      image_idea: firstText(c['imageIdea']) ?? '',
+    }));
+}
+
+/** The parts of a script that make it the same script: its hook and its beats. */
+const TIKTOK_KEYS = (t: TiktokItem): string[] => [t.hook ?? '', t.beats.join(' ')];
+/** The parts of a caption that make it the same post: its first line and its body. */
+const INSTAGRAM_KEYS = (c: InstagramItem): string[] => {
+  const [head = '', ...rest] = c.caption.split('\n\n');
+  return [head, rest.join(' ')];
+};
+
+/** The opening an item is known by in a "do not repeat" list: the script's hook or the caption's first line. */
+function openingOf(keys: string[]): string {
+  return keys.find((k) => k.trim().length > 0) ?? '';
+}
+
+/**
+ * Items with duplicates removed: an item is a duplicate when its hook or first line, or its body, matches an earlier
+ * item's or one of the openings in `avoid` (the book's other items, when one is regenerated). When a duplicate was
+ * dropped and fewer than `wanted` remain, `retry` is called once for the missing number with every opening so far,
+ * and its new distinct items are added. Never more than `wanted`.
+ */
+export async function distinctItems<T>(
+  items: T[],
+  wanted: number,
+  avoid: readonly string[],
+  keysOf: (item: T) => string[],
+  retry: (missing: number, avoid: string[]) => Promise<T[]>,
+): Promise<T[]> {
+  const seen = new Set(avoid.map(dedupeKey).filter(Boolean));
+  const kept: T[] = [];
+  let dropped = 0;
+  const take = (list: T[]): void => {
+    for (const item of list) {
+      if (kept.length >= wanted) return;
+      const keys = keysOf(item).map(dedupeKey).filter(Boolean);
+      if (keys.some((k) => seen.has(k))) {
+        dropped += 1;
+        continue;
+      }
+      for (const k of keys) seen.add(k);
+      kept.push(item);
+    }
+  };
+  take(items);
+  if (dropped > 0 && kept.length < wanted) {
+    const used = [...avoid, ...kept.map((i) => openingOf(keysOf(i)))].filter((x) => x.trim().length > 0);
+    take(await retry(wanted - kept.length, used));
+  }
+  return kept;
+}
+
 /** TikTok scripts and Instagram captions when the job names no count (AC12.1, AC12.2; the job sends the template's). */
 const MARKETING_COUNT_DEFAULT = 5;
 
@@ -1804,15 +1886,25 @@ export function dropNoneLines(s: string): string {
 function marketingPlan(v: Rec): { task: string; input: Rec }[] {
   const kinds = Array.isArray(v['kinds']) ? strList(v['kinds']) : ['tiktok_script', 'instagram_caption', 'launch_email'];
   const base = baseInput(v);
+  // The owner's instruction for a regenerate and the openings of the book's other items (marketing v6 prompts).
+  const variety = { instruction: text(v['instruction']), avoid: strList(v['avoid']) };
   const steps: { task: string; input: Rec }[] = [];
   if (kinds.includes('tiktok_script')) {
     steps.push({
       task: 'marketing.tiktok-scripts',
-      input: { ...base, count: firstNum(v['tiktokCount'], v['count']) ?? MARKETING_COUNT_DEFAULT, lengthSeconds: firstNum(v['lengthSeconds']) ?? 30 },
+      input: {
+        ...base,
+        count: firstNum(v['tiktokCount'], v['count']) ?? MARKETING_COUNT_DEFAULT,
+        lengthSeconds: firstNum(v['lengthSeconds']) ?? 30,
+        variety,
+      },
     });
   }
   if (kinds.includes('instagram_caption')) {
-    steps.push({ task: 'marketing.instagram-captions', input: { ...base, count: firstNum(v['instagramCount'], v['count']) ?? MARKETING_COUNT_DEFAULT } });
+    steps.push({
+      task: 'marketing.instagram-captions',
+      input: { ...base, count: firstNum(v['instagramCount'], v['count']) ?? MARKETING_COUNT_DEFAULT, variety },
+    });
   }
   if (kinds.includes('launch_email')) {
     const kdp = v['kdpSelect'];

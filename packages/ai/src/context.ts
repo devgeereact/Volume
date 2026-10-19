@@ -31,6 +31,8 @@ export const FENCED_VARIABLES: ReadonlySet<string> = new Set([
   'categoriesSeen',
   'rewrite.instruction',
   'regenerate.instruction',
+  'variety.instruction',
+  'variety.avoid',
 ]);
 
 export interface PackLevel {

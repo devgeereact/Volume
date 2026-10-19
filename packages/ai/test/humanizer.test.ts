@@ -24,6 +24,9 @@ const HUMANIZER_VERSION: Record<string, number> = {
   'matter.back-cover': 5,
   'matter.amazon-description': 5,
   'blueprint.blueprint': 5,
+  // Distinct items of 19 October 2026 (second live acceptance run): v6 adds the variety inputs.
+  'marketing.tiktok-scripts': 5,
+  'marketing.instagram-captions': 5,
 };
 /** Prompts whose latest version moved to another model stage on purpose, with that stage. */
 const STAGE_MOVED: Record<string, string> = {

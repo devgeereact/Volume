@@ -214,8 +214,13 @@ export const CoverImageInput = Base.extend({
   concept: json,
   cover: z.object({ target: str, aspectRatio: str }),
 });
-export const TiktokInput = Base.extend({ count: z.number(), lengthSeconds: z.number() });
-export const InstagramInput = Base.extend({ count: z.number() });
+/**
+ * Marketing variety (marketing v6 prompts): the owner's instruction when one item is regenerated, and the openings of
+ * items the book already has, sent as {{variety.instruction}} and {{variety.avoid}} so a new item does not repeat them.
+ */
+export const MarketingVariety = z.object({ instruction: opt(str), avoid: opt(strs) });
+export const TiktokInput = Base.extend({ count: z.number(), lengthSeconds: z.number(), variety: opt(MarketingVariety) });
+export const InstagramInput = Base.extend({ count: z.number(), variety: opt(MarketingVariety) });
 export const LaunchEmailInput = Base.extend({
   description: str,
   launchDate: str,

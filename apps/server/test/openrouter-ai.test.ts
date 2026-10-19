@@ -246,6 +246,16 @@ const CASES: { stage: AiStage; input: AiStageInput; expect: string[]; fake?: Fak
         profile: PROFILE,
       },
     },
+    // Distinct items, so the adapter makes no second call for duplicates.
+    fake: {
+      edit: (id, v) => {
+        const o = v as Record<string, Record<string, unknown>[]>;
+        if (id === 'marketing.tiktok-scripts') return { scripts: (o['scripts'] ?? []).map((x, i) => ({ ...x, hooks: [`Hook ${i + 1}`], beats: [] })) };
+        if (id === 'marketing.instagram-captions')
+          return { captions: (o['captions'] ?? []).map((x, i) => ({ ...x, firstLine: `First line ${i + 1}`, body: `Body ${i + 1}` })) };
+        return v;
+      },
+    },
     expect: ['marketing.tiktok-scripts', 'marketing.instagram-captions', 'marketing.launch-email'],
   },
   {
