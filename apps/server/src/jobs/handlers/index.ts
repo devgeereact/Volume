@@ -2,7 +2,7 @@ import type { HandlerMap } from '../runner.js';
 import { batchBookHandler, batchRunHandler } from './batch.js';
 import { blueprintHandler, blueprintPartHandler, researchHandler, titlesHandler } from './planning.js';
 import { pictureBookHandler, pictureCharactersHandler, pictureExportHandler, pictureStoryHandler, spreadImageHandler } from './picture-book.js';
-import { coverBuildHandler, coverConceptsHandler, exportPackHandler, marketingHandler } from './production.js';
+import { coverBuildHandler, coverConceptsHandler, exportPackHandler, listingHandler, marketingHandler } from './production.js';
 import { editPassHandler, rewriteSelectionHandler, weaveNotesHandler, writeBookHandler, writeSectionHandler } from './writing.js';
 
 export const defaultHandlers: HandlerMap = {
@@ -17,6 +17,7 @@ export const defaultHandlers: HandlerMap = {
   cover_concepts: coverConceptsHandler,
   cover_build: coverBuildHandler,
   marketing: marketingHandler,
+  listing: listingHandler,
   export_pack: exportPackHandler,
   rewrite_selection: rewriteSelectionHandler,
   batch_run: batchRunHandler,

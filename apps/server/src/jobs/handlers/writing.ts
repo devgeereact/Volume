@@ -80,6 +80,8 @@ export const writeBookHandler: JobHandler = async (jc) => {
     await repos.manuscript.setSectionStatus(jc.ctx, s.id, 'queued');
     previous = child.id;
   }
+  // Then the matter stage writes the listing from the finished chapters (AC7.2, AI-PIPELINE stage 7).
+  if (sections.length > 0) await jc.enqueueChild({ kind: 'listing', projectId, payload: {}, dependsOnJobId: previous });
   await repos.books.advanceStage(jc.ctx, projectId, 'writing');
   if (sections.length === 0) return { result: { sections: 0 } };
   return { waitForChildren: true, result: { sections: sections.length } };

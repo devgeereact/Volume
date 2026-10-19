@@ -24,6 +24,8 @@ export const JOB_KINDS = [
   'cover_concepts',
   'cover_build',
   'marketing',
+  // The matter stage's listing (Amazon description, back-cover blurb, keywords, categories), after the book is written.
+  'listing',
   'export_pack',
   'rewrite_selection',
   // Volume mode (P8-2): a batch parent and one child per book.

@@ -119,6 +119,7 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
     ? await repos.planning.blueprintById(ctx, book.approvedBlueprintId)
     : await repos.planning.latestBlueprint(ctx, projectId);
   const bp = blueprint?.data ?? {};
+  const listing = await repos.production.getListing(ctx, projectId);
   const text = (v: unknown): string | null => (typeof v === 'string' && v.trim().length > 0 ? v : null);
   const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : []);
   const titleOf = new Map(
@@ -160,11 +161,11 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
       ]),
     ].filter((k) => !sections.some((s) => s.kind === k)),
     summary: text(bp['summary']),
+    // The matter stage's listing wins; the blueprint's planning drafts are the fallback (D-049, pack listing/ files).
     listing: {
-      description: text(bp['description_draft']),
-      keywords: strings(bp['keywords']),
-      categories: strings(bp['categories']),
-      // The matter-stage blurb wins; the blueprint's is the fallback (D-049, pack listing/back-cover-blurb.txt).
+      description: listing?.descriptionHtml?.trim() ? listing.descriptionHtml : text(bp['description_draft']),
+      keywords: listing?.keywords.length ? listing.keywords : strings(bp['keywords']),
+      categories: listing?.categories.length ? listing.categories : strings(bp['categories']),
       backBlurb: (await repos.production.listingBackBlurb(ctx, projectId)) ?? text(bp['back_blurb']),
     },
     aiEvidence: await repos.manuscript.aiEvidence(ctx, projectId),

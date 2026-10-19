@@ -143,6 +143,28 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     return accepted(reply, job);
   });
 
+  // ---------- listing (matter stage) ----------
+
+  /** The listing the matter stage wrote (null before it has run); the pack falls back to the blueprint drafts. */
+  app.get('/books/:id/listing', async (req) => {
+    const id = idOf(req);
+    await s.repos.books.require(req.ctx, id);
+    return { listing: await p.getListing(req.ctx, id) };
+  });
+
+  /** Writes the listing again from the finished chapters: Amazon description, back-cover blurb, keywords, categories. */
+  app.post('/books/:id/listing', async (req, reply) => {
+    writer(req);
+    const id = idOf(req);
+    parse(z.object({}).strict().optional(), req.body);
+    await s.repos.books.require(req.ctx, id);
+    if (!(await bookWritingComplete(s.repos, req.ctx, id))) {
+      throw new AppError('writing_incomplete', 'Finish writing every chapter before writing the listing.');
+    }
+    const job = await s.queue.enqueue(req.ctx, { kind: 'listing', projectId: id, payload: {} });
+    return accepted(reply, job);
+  });
+
   app.get('/books/:id/marketing', async (req) => {
     const id = idOf(req);
     await s.repos.books.require(req.ctx, id);

@@ -79,6 +79,8 @@ All routes use server-resolved owner/workspace context. Requests are validated b
 | POST | `/api/v1/books/:id/exports` | `apps/server/src/routes/production.ts` |
 | GET | `/api/v1/books/:id/exports` | `apps/server/src/routes/production.ts` |
 | GET | `/api/v1/exports/:id/download` | `apps/server/src/routes/production.ts` |
+| GET | `/api/v1/books/:id/listing` | `apps/server/src/routes/production.ts` |
+| POST | `/api/v1/books/:id/listing` | `apps/server/src/routes/production.ts` |
 | POST | `/api/v1/books/:id/marketing` | `apps/server/src/routes/production.ts` |
 | GET | `/api/v1/books/:id/marketing` | `apps/server/src/routes/production.ts` |
 | GET | `/api/v1/marketing` | `apps/server/src/routes/production.ts` |

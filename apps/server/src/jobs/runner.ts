@@ -106,6 +106,7 @@ const LANES: { name: string; max: number; kinds: JobKind[] }[] = [
       'edit_pass',
       'cover_concepts',
       'marketing',
+      'listing',
       'rewrite_selection',
       'picture_story',
       'picture_characters',

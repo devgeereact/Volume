@@ -3,7 +3,7 @@ import { EXPORT_KINDS } from '../../ports/export.js';
 import type { MarketingExtras } from '../../repos/production.js';
 import { bookMarketingCounts, buildExportBook, houseStyle, profileSummary, withOwnerPlaceholders, withPackCovers } from '../book-data.js';
 import { fixHouseStyleDeep } from '../house-style-fix.js';
-import { writtenSections, writtenSummaries } from '../book-checks.js';
+import { datedPricesVars, plannedBodyCount, writtenSections, writtenSummaries } from '../book-checks.js';
 import { JobFailed } from '../errors.js';
 import { dedupeKey } from '../../lib/util.js';
 import { isPictureBook, pageCount as picturePageCount, PICTURE_INK, pictureStructure, SPREAD_KIND } from '../picture-book.js';
@@ -99,8 +99,8 @@ export const coverBuildHandler: JobHandler = async (jc) => {
   if (!cover?.chosenAssetId) throw new JobFailed('Choose a cover concept first.', 'invalid_state');
   const book = await buildExportBook(repos, jc.ctx, projectId, jc.services.configDir, jc.services.blobs);
   const art = await blobs.read(jc.ctx, cover.chosenAssetId);
-  const listing = await repos.planning.latestBlueprint(jc.ctx, projectId);
-  const backBlurb = typeof listing?.data['back_blurb'] === 'string' ? listing.data['back_blurb'] : '';
+  // The same blurb as the pack: the matter stage's, else the blueprint's (D-049).
+  const backBlurb = book.listing?.backBlurb ?? '';
 
   // The wrap needs the real interior page count: use the latest print PDF, or build one now.
   const exports = await repos.production.listExports(jc.ctx, projectId);
@@ -296,6 +296,55 @@ export function packBlockedReason(report: PreflightReport): string {
   const more = blocks.length > 1 ? ` ${blocks.length - 1} more ${blocks.length === 2 ? 'problem' : 'problems'} in the preflight report.` : '';
   return `The upload pack was not built. ${first.replace(/\.$/, '')}.${more} The other files are built and ready to download.`;
 }
+
+/** Listing fields the house style fix leaves alone: search terms. */
+const LISTING_KEEP: ReadonlySet<string> = new Set(['keywords', 'categories']);
+
+/**
+ * The matter stage (docs/02-architecture/AI-PIPELINE.md stage 7): matter.amazon-description, matter.keywords-categories
+ * and matter.back-cover write the listing from the written chapters, and it is saved for the pack, which prefers it to
+ * the blueprint's planning drafts (D-049). Runs as the last child of write_book and from POST /books/:id/listing.
+ * Before the second live acceptance run (19 October 2026) no job called this stage, so the selling blurb prompts were
+ * never used.
+ */
+export const listingHandler: JobHandler = async (jc) => {
+  const { repos } = jc.services;
+  const projectId = jc.job.projectId;
+  if (!projectId) throw new JobFailed('Listing job is missing its book.');
+  const book = await repos.books.require(jc.ctx, projectId);
+  const blueprint = book.approvedBlueprintId
+    ? await repos.planning.blueprintById(jc.ctx, book.approvedBlueprintId)
+    : await repos.planning.latestBlueprint(jc.ctx, projectId);
+  const written = await writtenSections(repos, jc.ctx, projectId);
+  const research = (await repos.planning.listRuns(jc.ctx, projectId)).find((r) => r.status === 'done')?.output ?? null;
+  const sources = await repos.planning.listSources(jc.ctx, { projectId, useInBook: true });
+  const print = (await repos.production.listExports(jc.ctx, projectId)).find((e) => e.kind === 'pdf_print' && e.status === 'done');
+  const res = await jc.runAi('matter_metadata', {
+    variables: {
+      title: book.title,
+      subtitle: book.subtitle,
+      bookTypeId: book.bookTypeId,
+      summary: blueprint?.data['summary'] ?? null,
+      blueprint: blueprint?.data ?? null,
+      previousSummaries: writtenSummaries(written),
+      research,
+      sources: sources.map((s) => ({ title: s.title, url: s.url, excerpt: s.excerpt })),
+      ...(print?.pageCount ? { pageCount: print.pageCount } : {}),
+      ...(await datedPricesVars(jc.services.configDir, book, written, await plannedBodyCount(repos, jc.ctx, projectId))),
+      profile: await profileSummary(repos, jc.ctx, book.profileId, book),
+    },
+  });
+  const out = fixHouseStyleDeep(res.output, houseStyle(jc.services.configDir), LISTING_KEEP).value;
+  const listing = await repos.production.saveListing(jc.ctx, projectId, {
+    descriptionHtml: out.description_html.trim() || null,
+    backBlurb: out.back_blurb.trim() || null,
+    shortBio: typeof out['short_bio'] === 'string' && out['short_bio'].trim() ? out['short_bio'].trim() : null,
+    categories: out.categories,
+    keywords: out.keywords,
+  });
+  await jc.emit('book.updated', { projectId, part: 'listing' });
+  return { result: { listing: { description: listing.descriptionHtml !== null, backBlurb: listing.backBlurb !== null, keywords: listing.keywords.length } } };
+};
 
 const BUILDERS: Record<ExportKind, 'buildPdf' | 'buildDocx' | 'buildEpub' | 'buildTxt' | 'buildMd'> = {
   pdf_print: 'buildPdf',
