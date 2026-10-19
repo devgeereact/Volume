@@ -186,3 +186,34 @@ export function fixHouseStyleDeep<T>(value: T, style: CompiledHouseStyle, skip: 
   };
   return { value: walk(value) as T, fixes };
 }
+
+/** Formula labels the title prompt asks for (titles.title-options), sometimes copied into the text. */
+const TITLE_LABEL = /^\s*(?:promise|intrigue|direct[- ]label|metaphor|how[- ]to)\s*:\s*/i;
+
+/**
+ * A title or subtitle as the AI gave it, tidied: a leading formula label ("Intrigue: ...") removed, non-breaking and
+ * other unusual hyphens made plain, spaces collapsed and trimmed, and dashes and US spellings fixed to house style
+ * (live acceptance run, 18 October 2026).
+ */
+export function cleanTitleText(s: string, style: CompiledHouseStyle): string {
+  const plain = s
+    .replace(TITLE_LABEL, '')
+    .replace(/[‐‑‒]/g, '-')
+    .replace(/[\s\u00a0]+/g, ' ')
+    .trim();
+  return fixHouseStyle(plain, style).text.trim();
+}
+
+/**
+ * A blueprint with its title and subtitle tidied as cleanTitleText does. Every save and the approval run it, so
+ * approving a blueprint never brings back the odd hyphens the title options had removed (live acceptance run,
+ * 19 October 2026: approving an edited blueprint put the U+2011 hyphens back in the book title).
+ */
+export function cleanBlueprintTitles<T extends Record<string, unknown>>(data: T, style: CompiledHouseStyle): T {
+  const out: Record<string, unknown> = { ...data };
+  for (const k of ['title', 'subtitle']) {
+    const v = data[k];
+    if (typeof v === 'string') out[k] = cleanTitleText(v, style);
+  }
+  return out as T;
+}
