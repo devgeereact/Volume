@@ -6,7 +6,10 @@ Every screen uses the app shell from `docs/03-design/DESIGN-SYSTEM.md`: left nav
 
 | Route | Screen |
 |---|---|
-| `/` | Library |
+| `/` | Library (signed in). Signed-out visitors on a hosted build see the landing hero here (D-051) |
+| `/welcome` | Landing hero, inside the app (D-051) |
+| `/how-it-works` | How it works hero: the seven stages on a sample book (D-051) |
+| `/sign-in` | Branded sign-in. Signed out, every other path shows it too; signed in, it opens the Library (D-051) |
 | `/profiles` | Profiles |
 | `/profiles/:id` | Profile editor (`/profiles/new` to add) |
 | `/books/new` | New book wizard |

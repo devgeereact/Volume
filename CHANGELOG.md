@@ -12,6 +12,9 @@ Moving a book between Volumes (D-051).
 - Library: an Import project button next to Import manuscript (owners and editors). It asks for the zip and a pen name, preselects the profile you are filtering by, and explains each refusal in plain words.
 - Export screen: Move this book, with Download project (to move this book). Owners and editors only.
 - Export screen: a moved book shows its origin note, for example "Moved from another Volume on 19 October 2026."
+- A landing page for signed-out visitors: one hero with the sample book, its cover opening on the way in, and a manuscript sheet with a claim flagged for checking.
+- How it works, its own page: a sample book runs through the seven stages and ends with the upload pack.
+- A sign-in page in Volume's look, with the brand panel on the left and the sign-in form in the app's colours, light and dark.
 - Web app manifest, app icons (including an Apple touch icon) and a browser bar colour for light and dark themes.
 
 #### Changed

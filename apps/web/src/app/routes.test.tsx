@@ -50,6 +50,9 @@ function routePaths(list: RouteObject[], parent = ""): string[] {
 }
 
 const localPaths = [
+  "/welcome",
+  "/how-it-works",
+  "/sign-in",
   "/",
   "/library",
   "/published",
@@ -97,12 +100,19 @@ describe("route list", () => {
     expect(hosted).toEqual(localPaths.filter((p) => p !== "/components"));
     expect(hosted).not.toContain("/components");
   });
+
+  it("gives signed-out visitors the landing hero, how it works and sign-in for any other path", async () => {
+    const { publicRoutes } = await import("../site/PublicSite");
+    expect(routePaths(publicRoutes)).toEqual(["/", "/how-it-works", "/welcome", "*"]);
+    expect(layoutsWithoutBoundary(publicRoutes)).toEqual([]);
+  });
 });
 
 describe("route errors", () => {
   it("gives every layout route an error boundary for its screens, so the shell stays", () => {
     expect(layoutsWithoutBoundary(routes)).toEqual([]);
-    const shell = routes[0];
+    expect(routes.every((r) => r.errorElement !== undefined || r.element !== undefined)).toBe(true);
+    const shell = routes.find((r) => r.path === undefined && r.element !== undefined);
     expect(shell?.errorElement).toBeDefined();
   });
 

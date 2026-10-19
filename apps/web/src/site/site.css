@@ -1,0 +1,290 @@
+/* Public pages (landing, how it works, sign-in). Colours are @volume/ui tokens, except the sample
+   book's cloth and paper, which are content (like cover palettes in the data). */
+
+/* The Volume mark: a closed book seen from the spine, gilt edge on the right. */
+.site-mark {
+  display: inline-block;
+  width: 14px;
+  height: 22px;
+  border-radius: 2px 3px 3px 2px;
+  background: currentColor;
+  box-shadow: inset -3px 0 0 var(--vol-accent);
+}
+
+/* Gold button sheen (React Bits ShinyText idea, applied to the button face). */
+.site-sheen {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.site-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform: translateX(-120%);
+  background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.55) 50%, transparent 70%);
+  animation: site-sheen 4.5s ease-in-out 2s infinite;
+}
+@keyframes site-sheen {
+  0%,
+  70% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+/* ShinyText: a light band across text that keeps its own colour. */
+.shiny-text {
+  background-image: linear-gradient(110deg, currentColor 42%, var(--vol-accent-hover) 50%, currentColor 58%);
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shiny-text var(--shiny-speed, 5s) ease-in-out infinite;
+}
+@keyframes shiny-text {
+  0%,
+  40% {
+    background-position: 130% 0;
+  }
+  100% {
+    background-position: -30% 0;
+  }
+}
+
+/* Live dot with a soft ring. */
+.site-live-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--vol-accent);
+  box-shadow: 0 0 0 4px var(--vol-accent-wash);
+  animation: site-pulse 1.8s ease-in-out infinite;
+}
+@keyframes site-pulse {
+  50% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+/* Writing caret on the manuscript sheet. */
+.site-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--vol-accent-text);
+  animation: site-blink 1s steps(1) infinite;
+}
+@keyframes site-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Warm lamp glow behind the book. */
+.site-lamp {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  max-width: 100%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(235 178 65 / 0.28), transparent);
+  pointer-events: none;
+}
+:root[data-theme="dark"] .site-lamp {
+  background: radial-gradient(closest-side, rgb(235 178 65 / 0.16), transparent);
+}
+
+/* The 3D cloth-bound book. --t is the thickness, animated on the way in. */
+.site-book-stage {
+  perspective: 1400px;
+}
+.site-book-tilt,
+.site-book-float {
+  transform-style: preserve-3d;
+}
+.site-book {
+  --t: 30px;
+  --w: 270px;
+  --h: 392px;
+  position: relative;
+  width: var(--w);
+  height: var(--h);
+  transform-style: preserve-3d;
+  transform: rotateY(-26deg) rotateX(8deg);
+}
+.site-book[data-size="sm"] {
+  --w: 190px;
+  --h: 276px;
+  --t: 22px;
+}
+@media (max-width: 480px) {
+  .site-book[data-size="md"] {
+    --w: 210px;
+    --h: 305px;
+  }
+}
+.site-book .face {
+  position: absolute;
+  backface-visibility: hidden;
+}
+.site-book .front,
+.site-book .back {
+  inset: 0;
+  border-radius: 3px 8px 8px 3px;
+  background:
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 0.025) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(-45deg, rgb(0 0 0 / 0.08) 0 2px, transparent 2px 5px), linear-gradient(160deg, #283252, #1a2238 60%);
+}
+.site-book .front {
+  overflow: hidden;
+  box-shadow: inset 6px 0 10px -6px rgb(0 0 0 / 0.6);
+}
+.site-book .back {
+  transform: rotateY(180deg) translateZ(calc(var(--t) / 2));
+}
+.site-book .cover-pos {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: translateZ(calc(var(--t) / 2));
+}
+.site-book .cover-hinge {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform-origin: left center;
+}
+.site-book .endpaper {
+  inset: 0;
+  border-radius: 8px 3px 3px 8px;
+  transform: rotateY(180deg);
+  background:
+    radial-gradient(circle at 30% 30%, rgb(235 178 65 / 0.22) 0 2px, transparent 3px) 0 0 / 18px 18px,
+    linear-gradient(160deg, #222b47, #1a2238);
+  box-shadow: inset -8px 0 14px -8px rgb(0 0 0 / 0.6);
+}
+.site-book .titlepage {
+  inset: 4px 6px 4px 2px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 28px 20px;
+  border-radius: 1px 4px 4px 1px;
+  transform: translateZ(calc(var(--t) / 2 - 1px));
+  background: linear-gradient(90deg, #e9e3d3, #fbf8ef 8%, #fdfbf5);
+  color: #1a2033;
+  text-align: center;
+}
+.site-book .spine {
+  top: 0;
+  left: calc(var(--t) / -2);
+  display: grid;
+  place-items: center;
+  width: var(--t);
+  height: 100%;
+  overflow: hidden;
+  border-radius: 2px;
+  transform: rotateY(-90deg);
+  background: linear-gradient(90deg, #121829, #283252 45%, #121829);
+}
+.site-book .spine span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  opacity: var(--tn, 1);
+}
+.site-book .pages {
+  top: 5px;
+  right: calc(var(--t) / -2 + 1px);
+  width: calc(var(--t) - 2px);
+  height: calc(100% - 10px);
+  transform: rotateY(90deg);
+  background: repeating-linear-gradient(90deg, #fbf8ef 0 1px, #e7e1d2 1px 2px);
+}
+.site-book .top {
+  top: calc(var(--t) / -2 + 1px);
+  left: 3px;
+  width: calc(100% - 9px);
+  height: calc(var(--t) - 2px);
+  transform: rotateX(90deg);
+  background: repeating-linear-gradient(0deg, #fbf8ef 0 1px, #e7e1d2 1px 2px);
+}
+.site-book .cover {
+  position: absolute;
+  inset: 18px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 26px 18px 22px;
+  border: 1.5px solid var(--vol-accent);
+  outline: 1px solid rgb(235 178 65 / 0.45);
+  outline-offset: 4px;
+  color: var(--vol-accent);
+  text-align: center;
+}
+.site-book[data-size="sm"] .cover {
+  inset: 12px;
+  padding: 18px 12px 16px;
+}
+.site-book .orn {
+  position: relative;
+  width: 54px;
+  height: 1px;
+  margin: 14px auto 0;
+  background: var(--vol-accent);
+}
+.site-book .orn::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  background: var(--vol-accent);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.site-book .foil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
+  background: linear-gradient(115deg, transparent 35%, rgb(255 240 200 / 0.18) 48%, transparent 60%);
+}
+.site-book-shadow {
+  position: absolute;
+  bottom: 28px;
+  width: 300px;
+  max-width: 80%;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(16 20 34 / 0.32), transparent);
+  filter: blur(4px);
+}
+
+/* How it works: the stage rail. */
+.site-rail li {
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-sheen::after,
+  .site-live-dot,
+  .site-caret,
+  .shiny-text {
+    animation: none;
+  }
+  .shiny-text {
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}
