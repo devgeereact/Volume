@@ -85,6 +85,36 @@ export async function bookMarketingCounts(configDir: string, book: Pick<Book, 'b
 }
 
 /** Gathers everything the exporter needs. About the author is the profile bio, verbatim. */
+/** The blueprint's listing fields, as the owner edits them in the blueprint (PATCH /books/:id/blueprint). */
+export const LISTING_FIELDS = ['description_draft', 'keywords', 'categories', 'back_blurb'] as const;
+export type ListingField = (typeof LISTING_FIELDS)[number];
+
+/**
+ * The listing fields the owner wrote or changed by hand in this blueprint's history: a `human` version whose value
+ * differs from its parent's (or a `human` version with no parent that has a value). The owner's text always wins over
+ * the matter stage's, which never overwrites it (review of the listing job, 19 October 2026).
+ */
+export async function ownerListingFields(
+  repos: Repos,
+  ctx: RequestCtx,
+  blueprint: { source: string; data: Record<string, unknown>; parentVersionId: string | null } | null,
+): Promise<Set<ListingField>> {
+  const out = new Set<ListingField>();
+  const filled = (v: unknown): boolean => (typeof v === 'string' ? v.trim().length > 0 : Array.isArray(v) && v.length > 0);
+  let cur = blueprint;
+  for (let guard = 0; cur && guard < 500; guard += 1) {
+    const parent = cur.parentVersionId ? await repos.planning.blueprintById(ctx, cur.parentVersionId).catch(() => null) : null;
+    if (cur.source === 'human') {
+      for (const f of LISTING_FIELDS) {
+        const mine = cur.data[f];
+        if (parent ? JSON.stringify(mine ?? null) !== JSON.stringify(parent.data[f] ?? null) : filled(mine)) out.add(f);
+      }
+    }
+    cur = parent;
+  }
+  return out;
+}
+
 export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: string, configDir: string, blobs?: BlobStore): Promise<ExportBook> {
   const book = await repos.books.require(ctx, projectId);
   const profile = await repos.profiles.require(ctx, book.profileId);
@@ -119,6 +149,8 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
     ? await repos.planning.blueprintById(ctx, book.approvedBlueprintId)
     : await repos.planning.latestBlueprint(ctx, projectId);
   const bp = blueprint?.data ?? {};
+  const listing = await repos.production.getListing(ctx, projectId);
+  const owner = await ownerListingFields(repos, ctx, blueprint);
   const text = (v: unknown): string | null => (typeof v === 'string' && v.trim().length > 0 ? v : null);
   const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : []);
   const titleOf = new Map(
@@ -160,12 +192,13 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
       ]),
     ].filter((k) => !sections.some((s) => s.kind === k)),
     summary: text(bp['summary']),
+    // The owner's own blueprint edits win; then the matter stage's listing; then the blueprint's planning drafts
+    // (D-049, pack listing/ files).
     listing: {
-      description: text(bp['description_draft']),
-      keywords: strings(bp['keywords']),
-      categories: strings(bp['categories']),
-      // The matter-stage blurb wins; the blueprint's is the fallback (D-049, pack listing/back-cover-blurb.txt).
-      backBlurb: (await repos.production.listingBackBlurb(ctx, projectId)) ?? text(bp['back_blurb']),
+      description: !owner.has('description_draft') && listing?.descriptionHtml?.trim() ? listing.descriptionHtml : text(bp['description_draft']),
+      keywords: !owner.has('keywords') && listing?.keywords.length ? listing.keywords : strings(bp['keywords']),
+      categories: !owner.has('categories') && listing?.categories.length ? listing.categories : strings(bp['categories']),
+      backBlurb: (!owner.has('back_blurb') ? text(listing?.backBlurb) : null) ?? text(bp['back_blurb']),
     },
     aiEvidence: await repos.manuscript.aiEvidence(ctx, projectId),
     claims,

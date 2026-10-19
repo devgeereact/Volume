@@ -2,7 +2,9 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import { parse } from '../http/errors.js';
+import { SUMMARY_WORDS } from '../adapters/openrouter-ai.js';
 import { CODE_WRITTEN_KINDS, profileSummary } from '../jobs/book-data.js';
+import { listingVariables } from '../jobs/listing-input.js';
 import { conceptCount } from '../jobs/handlers/production.js';
 import { assertSpreadCount, matterStartsOn, pictureSettings, picturePlan, requirePictureBook, spreadSections, storyInput } from '../jobs/picture-book.js';
 import { imageReservationUsd } from '../jobs/runner.js';
@@ -45,6 +47,9 @@ const PER_SECTION: ReadonlySet<AiStage> = new Set(['writing', 'summarise', 'chec
  * settings pick (book, then profile, then workspace, then config defaults: D-019). Writing a section also runs the
  * summary and the checks, so a writing estimate includes them (each with its own model).
  */
+/** Prompts the listing job's matter stage sends: matter.amazon-description, matter.keywords-categories, matter.back-cover. */
+export const LISTING_PROMPT_CALLS = 3;
+
 export function estimateRoutes(app: FastifyInstance, s: AppServices): void {
   app.post('/books/:id/estimate', async (req) => {
     const id = idOf(req);
@@ -79,12 +84,13 @@ export function estimateRoutes(app: FastifyInstance, s: AppServices): void {
     let low = 0;
     let high = 0;
     let calls = 0;
-    const add = async (stage: AiStage, input: AiStageInput): Promise<void> => {
+    /** Adds one stage run; `promptCalls` is how many prompts that run sends (the matter stage sends three). */
+    const add = async (stage: AiStage, input: AiStageInput, promptCalls = 1): Promise<void> => {
       const model = await modelFor(stage);
       const e = await s.ai.estimate(stage, input, model ? { model } : {});
       low += e.lowUsd;
       high += e.highUsd;
-      calls += 1;
+      calls += promptCalls;
     };
 
     let sectionCount: number | null = null;
@@ -124,11 +130,20 @@ export function estimateRoutes(app: FastifyInstance, s: AppServices): void {
           // Each written section is then summarised and checked.
           const target = ' word'.repeat(Math.max(200, Math.min(sec.wordTarget ?? 2500, 20000)));
           await add('summarise', { promptId: 'checks.summarise-and-ledger', variables: { markdown: target, section: { title: sec.title } }, projectId: id });
-          await add('checks', { promptId: 'checks.claims-and-consistency', variables: { markdown: target, section: { title: sec.title } }, projectId: id });
+          // The checks stage sends two prompts (checks.claims and checks.consistency).
+          await add('checks', { promptId: 'checks.claims-and-consistency', variables: { markdown: target, section: { title: sec.title } }, projectId: id }, 2);
         } else {
           const notes = body.stage === 'weave' ? await s.repos.manuscript.listNotes(req.ctx, { sectionId: sec.id, status: 'open' }) : [];
           await add(body.stage, { variables: { ...v, pass: 'line', notes: notes.map((n) => ({ id: n.id, note: n.note })) }, projectId: id });
         }
+      }
+      // Writing the book (no section list, as POST /books/:id/write does) ends with the listing job: the matter stage's
+      // three prompts (amazon-description, keywords-categories, back-cover), with the planned chapters as context.
+      if (body.stage === 'writing' && !body.sectionIds && chosen.length > 0) {
+        // The same variables the listing job sends; each section still to write stands in with a summary the size
+        // the summary stage writes.
+        const pending = chosen.map((x) => ({ id: x.id, kind: x.kind, number: x.number, title: x.title ?? '', summary: 'word '.repeat(SUMMARY_WORDS).trim() }));
+        await add('matter_metadata', { variables: await listingVariables(s.repos, s.configDir, req.ctx, book, pending), projectId: id }, LISTING_PROMPT_CALLS);
       }
     } else {
       const extra: Record<string, unknown> = {};

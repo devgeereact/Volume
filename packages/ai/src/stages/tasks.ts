@@ -23,7 +23,8 @@ export interface TaskDef<In extends z.ZodType = z.ZodType, Out extends z.ZodType
   styleRewrite?: boolean | undefined;
   /**
    * House-style guardrail pattern ids not run on this task's answer. Fiction chapters skip `quoted-testimonial`,
-   * because a line of dialogue followed by a character's full name is the story, not a testimonial.
+   * because a line of dialogue followed by a character's full name is the story, not a testimonial. Fiction and picture
+   * books also skip `author-anecdote`: a narrator's "I remembered" is the story, not the author's history.
    */
   skipRules?: readonly string[] | undefined;
 }
@@ -113,7 +114,7 @@ export const TASKS = {
     input: I.ChapterWriteInput,
     output: O.MarkdownOutput,
     guardrails: 'full',
-    skipRules: ['quoted-testimonial'],
+    skipRules: ['quoted-testimonial', 'author-anecdote'],
   }),
   'writing.chapter-workbook': def({
     promptId: 'writing.chapter-workbook',
@@ -130,7 +131,7 @@ export const TASKS = {
     input: I.ExtendSectionInput,
     output: O.MarkdownOutput,
     guardrails: 'full',
-    skipRules: ['quoted-testimonial'],
+    skipRules: ['quoted-testimonial', 'author-anecdote'],
   }),
   'writing.introduction': def({
     promptId: 'writing.introduction',
@@ -301,6 +302,7 @@ export const TASKS = {
     input: I.PictureBookStoryInput,
     output: O.PictureBookStoryOutput,
     guardrails: 'full',
+    skipRules: ['author-anecdote'],
   }),
   'children.scene-prompts': def({
     promptId: 'children.scene-prompts',

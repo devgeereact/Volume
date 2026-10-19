@@ -25,6 +25,14 @@ describe('structured output', () => {
     expect(() => extractJson('no json here')).toThrow();
   });
 
+  it('repairs trailing commas, an unclosed fence and a byte order mark locally (live acceptance run, 18 October 2026)', () => {
+    expect(extractJson('```json\n{"a": [1, 2,],}\n```')).toEqual({ a: [1, 2] });
+    expect(extractJson('```json\n{"a": "x, ]",\n}')).toEqual({ a: 'x, ]' });
+    expect(extractJson('﻿{"a": 1}')).toEqual({ a: 1 });
+    expect(() => extractJson('')).toThrow();
+    expect(() => extractJson('{"a": [1, 2')).toThrow();
+  });
+
   it('reports zod issues with paths', () => {
     const v = validateJson(schema, '{"title":"x","count":"two","tags":[]}');
     expect(v.ok).toBe(false);

@@ -68,3 +68,11 @@ export function affected(result: { numUpdatedRows?: bigint; numDeletedRows?: big
 /** Any string, for open unions such as `'a' | 'b' | OpenString`: the known values stay as editor hints,
     which a plain `| string` would swallow. */
 export type OpenString = string & Record<never, never>;
+
+/** Text folded for a duplicate test: lower case, letters and digits only, single spaces. */
+export function dedupeKey(s: string | null | undefined): string {
+  return (s ?? '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}

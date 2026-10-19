@@ -7,6 +7,7 @@ import * as m0005 from './0005_clerk_identity.js';
 import * as m0006 from './0006_picture_books.js';
 import * as m0008 from './0008_volume_mode.js';
 import * as m0009 from './0009_invitations.js';
+import * as m0010 from './0010_listing_source.js';
 import { columnTypes, type Dialect, type MigrationContext, type MigrationDb } from './types.js';
 
 interface DialectMigration {
@@ -25,6 +26,7 @@ const ALL: [string, DialectMigration][] = [
   // 0007 is reserved for another phase 6 or 7 package (docs/08-change-management/plans/PHASES-6-8.md).
   ['0008_volume_mode', m0008],
   ['0009_invitations', m0009],
+  ['0010_listing_source', m0010],
 ];
 
 /**

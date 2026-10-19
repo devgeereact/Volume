@@ -2,6 +2,7 @@ import type { RequestCtx } from '../auth/context.js';
 import { loadBookStructure, type StructureSection } from '../config/book-structure.js';
 import { AppError } from '../http/errors.js';
 import { BlueprintSchema, type Blueprint } from '../ports/ai.js';
+import { tidyTitleChars } from './house-style-fix.js';
 import type { Repos } from '../repos/index.js';
 import type { NewSectionInput } from '../repos/manuscript.js';
 import type { EventBus } from '../sse/bus.js';
@@ -149,7 +150,10 @@ export async function approveBlueprint(s: ApproveServices, ctx: RequestCtx, id: 
     );
   if (v.data.chapters.length === 0) throw new AppError('validation_failed', 'The blueprint has no chapters.');
   const approved = await planning.approveBlueprint(ctx, bp.id);
-  await books.setApprovedBlueprint(ctx, id, approved.id, v.data.title || null, v.data.subtitle ?? null);
+  // Blueprints saved before the title fix (or edited by hand) may still hold look-alike hyphens: only those and stray
+  // spaces are tidied here, the wording stays (live acceptance run, 19 October 2026).
+  const title = tidyTitleChars(v.data.title);
+  await books.setApprovedBlueprint(ctx, id, approved.id, title || null, tidyTitleChars(v.data.subtitle));
   const sections = await syncSections(s, ctx, id, v.data);
   await books.advanceStage(ctx, id, 'writing');
   await s.bus.publish(ctx.workspaceId, { projectId: id, type: 'book.updated', data: { projectId: id, part: 'blueprint', approved: approved.id } });

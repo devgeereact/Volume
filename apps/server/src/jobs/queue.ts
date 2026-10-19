@@ -24,6 +24,8 @@ export const JOB_KINDS = [
   'cover_concepts',
   'cover_build',
   'marketing',
+  // The matter stage's listing (Amazon description, back-cover blurb, keywords, categories), after the book is written.
+  'listing',
   'export_pack',
   'rewrite_selection',
   // Volume mode (P8-2): a batch parent and one child per book.
@@ -195,9 +197,15 @@ export class JobQueue {
     return job;
   }
 
-  async list(ctx: RequestCtx, filter: { projectId?: string; parentId?: string; status?: string; limit?: number }): Promise<Job[]> {
+  async list(
+    ctx: RequestCtx,
+    filter: { projectId?: string; parentId?: string; status?: string; kind?: string; active?: boolean; limit?: number },
+  ): Promise<Job[]> {
     let q = this.db.selectFrom('jobs').selectAll().where('workspaceId', '=', ctx.workspaceId);
     if (filter.projectId) q = q.where('projectId', '=', filter.projectId);
+    if (filter.kind) q = q.where('kind', '=', filter.kind);
+    // active: only jobs that have not finished (any status outside TERMINAL).
+    if (filter.active) q = q.where('status', 'not in', [...TERMINAL]);
     if (filter.parentId) q = q.where('parentId', '=', filter.parentId);
     if (filter.status) q = q.where('status', '=', filter.status);
     const rows = await q

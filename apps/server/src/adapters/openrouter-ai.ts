@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ConfigError } from '../config/env.js';
 import { JobFailed } from '../jobs/errors.js';
-import { sha256Hex } from '../lib/util.js';
+import { dedupeKey, sha256Hex } from '../lib/util.js';
 import {
   AI_OUTPUT_SCHEMAS,
   attachPartialUsage,
@@ -294,7 +294,10 @@ export function bookInput(v: Rec): Rec {
   const out: Rec = {};
   const idea = firstText(v['idea'], b['idea']);
   const notes = firstText(v['notes'], b['notes']);
-  put(out, 'idea', idea && notes ? `${idea}\n\nOwner notes: ${notes}` : (idea ?? notes));
+  // The author's brief goes as its own field ({{book.authorBrief}}); fillPromptVariables folds it into the idea for a
+  // prompt version that does not read it yet.
+  put(out, 'idea', idea ?? notes);
+  put(out, 'authorBrief', notes);
   put(out, 'type', firstText(v['bookTypeId'], v['bookType'], b['type'], b['bookTypeId']));
   put(out, 'variant', firstText(v['variant'], b['variant']));
   put(out, 'genre', firstText(v['genre'], b['genre']));
@@ -429,9 +432,24 @@ function filledByPackage(name: string): boolean {
   return name.startsWith('houseStyle.') || name.startsWith('kdp.') || name === 'goLiveNote' || name === 'patternHits';
 }
 
+/**
+ * A prompt that does not read {{book.authorBrief}} gets the brief inside {{book.idea}} ("Owner notes: ..."), so the
+ * author's brief is never lost on an older prompt version.
+ */
+function foldAuthorBrief(out: Rec, variables: readonly string[]): void {
+  const book = out['book'];
+  if (!isRec(book) || variables.includes('book.authorBrief') || variables.includes('book')) return;
+  const { authorBrief, ...rest } = book;
+  const brief = text(authorBrief);
+  if (!brief) return;
+  const idea = text(rest['idea']);
+  out['book'] = { ...rest, idea: idea && idea !== brief ? `${idea}\n\nOwner notes: ${brief}` : brief };
+}
+
 /** Sends every prompt variable the server could not supply as null, which the prompt shows as "None". */
 export function fillPromptVariables(input: Rec, variables: readonly string[]): Rec {
   const out: Rec = { ...input };
+  foldAuthorBrief(out, variables);
   for (const name of variables) {
     if (filledByPackage(name)) continue;
     if (name === 'research.sources') {
@@ -599,8 +617,99 @@ function span(markdown: string, needle: string | null): { start: number | null; 
   return i >= 0 ? { start: i, end: i + needle.length } : { start: null, end: null };
 }
 
+/** Characters a model often changes when it quotes the text back: curly quotes, dashes, spaces, ellipses. */
+const LOOSE_CHARS: Readonly<Record<string, string>> = {
+  '‘': "'",
+  '’': "'",
+  '‚': "'",
+  '‛': "'",
+  '“': '"',
+  '”': '"',
+  '„': '"',
+  '–': '-',
+  '—': '-',
+  '‑': '-',
+  '…': '...',
+};
+
+/**
+ * The text folded for a loose match (quotes, dashes and ellipses made plain, whitespace runs made one space, markdown
+ * emphasis marks dropped), with each folded character's offset in the original.
+ */
+function looseFold(s: string): { text: string; at: number[] } {
+  let text = '';
+  const at: number[] = [];
+  let space = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charAt(i);
+    // Emphasis marks are dropped; an underscore inside a word (snake_case) is part of the word and stays.
+    if (c === '*') continue;
+    if (c === '_' && !(/[\p{L}\p{N}]/u.test(s.charAt(i - 1)) && /[\p{L}\p{N}]/u.test(s.charAt(i + 1)))) continue;
+    if (/\s/.test(c)) {
+      if (!space && text.length > 0) {
+        text += ' ';
+        at.push(i);
+      }
+      space = true;
+      continue;
+    }
+    space = false;
+    for (const ch of LOOSE_CHARS[c] ?? c) {
+      text += ch;
+      at.push(i);
+    }
+  }
+  return { text, at };
+}
+
+/**
+ * Where a quoted passage sits in the text: an exact match first, else a loose one (live acceptance run, 18 October
+ * 2026: 5 of 6 line edits on one chapter came back as conflicts because the model quoted the text with other quote
+ * marks or without its emphasis). `original` is the passage exactly as the text has it, so accepting it can apply.
+ */
+export function locateQuote(markdown: string, needle: string | null): { start: number | null; end: number | null; original: string | null } {
+  if (!needle) return { start: null, end: null, original: null };
+  const i = markdown.indexOf(needle);
+  if (i >= 0) return { start: i, end: i + needle.length, original: needle };
+  const want = looseFold(needle).text.trim();
+  if (!want) return { start: null, end: null, original: null };
+  const hay = looseFold(markdown);
+  const j = hay.text.indexOf(want);
+  if (j < 0) return { start: null, end: null, original: null };
+  let start = hay.at[j] ?? 0;
+  let end = (hay.at[j + want.length - 1] ?? start) + 1;
+  // Keep the emphasis marks whole: a passage that opens or closes inside **bold** or _italic_ takes in the marks next
+  // to it, so replacing it never leaves half a pair behind.
+  const marks = (x: string) => (x.match(/\*+/g)?.length ?? 0) + (x.match(/(?<![\p{L}\p{N}])_+|_+(?![\p{L}\p{N}])/gu)?.length ?? 0);
+  for (let n = 0; n < 4 && marks(markdown.slice(start, end)) % 2 === 1; n++) {
+    const pre = markdown.slice(0, start).match(/[*_]+$/)?.[0] ?? '';
+    const post = markdown.slice(end).match(/^[*_]+/)?.[0] ?? '';
+    if (pre) start -= pre.length;
+    else if (post) end += post.length;
+    else break;
+  }
+  while (/[*_]/.test(markdown.charAt(start - 1)) && /[*_]/.test(markdown.charAt(end)) && marks(markdown.slice(start, end)) % 2 === 0) {
+    const pre = markdown.slice(0, start).match(/[*_]+$/)?.[0] ?? '';
+    const post = markdown.slice(end).match(/^[*_]+/)?.[0] ?? '';
+    if (!pre || pre !== post) break;
+    start -= pre.length;
+    end += post.length;
+  }
+  return { start, end, original: markdown.slice(start, end) };
+}
+
+/** True when the text has bold or italic marks (**, *, or _ at a word edge). */
+function hasEmphasis(s: string): boolean {
+  return /\*|(?<![\p{L}\p{N}])_|_(?![\p{L}\p{N}])/u.test(s);
+}
+
 function suggestion(markdown: string, original: string | null, proposed: unknown, reason: string): Rec {
-  return { original: original ?? '', proposed, reason, ...span(markdown, original) };
+  const found = locateQuote(markdown, original);
+  const kept = found.original ?? original ?? '';
+  // The model often quotes and rewrites without the marks: say so, so accepting does not lose bold or italics unseen.
+  const drops = hasEmphasis(kept) && typeof proposed === 'string' && !hasEmphasis(proposed);
+  const why = drops ? `${reason} The change drops bold or italic marks from the text; add them back if they matter.`.trim() : reason;
+  return { original: kept, proposed, reason: why, start: found.start, end: found.end };
 }
 
 // ---------- errors ----------
@@ -1300,34 +1409,29 @@ export class OpenRouterAiAdapter implements AiPort {
     const out: Rec = { tiktok: [], instagram: [], email: null };
     let first = true;
     for (const step of plan) {
-      const r = await run.call(step.task, step.input, { primary: first, pinVersion: first });
+      const pin = first;
+      const r = await run.call(step.task, step.input, { primary: first, pinVersion: pin });
       first = false;
       const o = rec(r.output);
+      // Asks once more for the items a duplicate answer left out (a free model wrote five identical captions in the
+      // live acceptance run of 19 October 2026), telling it which openings the book has now.
+      const again = async (missing: number, avoid: string[]): Promise<Rec> => {
+        const variety = { ...rec(step.input['variety']), avoid };
+        return rec((await run.call(step.task, { ...step.input, count: missing, variety }, { pinVersion: pin })).output);
+      };
+      const wanted = Math.max(1, Math.round(firstNum(step.input['count']) ?? 1));
+      const avoid = strList(rec(step.input['variety'])['avoid']);
       if (step.task === 'marketing.tiktok-scripts') {
-        out['tiktok'] = list(o['scripts'])
-          .filter(isRec)
-          .map((s) => {
-            const beats = list(s['beats']).filter(isRec);
-            return {
-              hook: firstText(...strList(s['hooks']), s['title']),
-              beats: beats.map((b) => `${plain(b['second'])}: ${plain(b['say'])}`.replace(/^: /, '')),
-              on_screen: [text(s['onScreenTextHook']), ...beats.map((b) => text(b['show']))].filter((x): x is string => x !== null),
-              cta: firstText(s['cta']) ?? '',
-              seconds: Math.round(firstNum(step.input['lengthSeconds']) ?? 30),
-              hashtags: strList(s['hashtags']),
-            };
-          });
+        const seconds = Math.round(firstNum(step.input['lengthSeconds']) ?? 30);
+        out['tiktok'] = await distinctItems(tiktokItems(o, seconds), wanted, avoid, TIKTOK_KEYS, async (n, used) => tiktokItems(await again(n, used), seconds));
       } else if (step.task === 'marketing.instagram-captions') {
-        out['instagram'] = list(o['captions'])
-          .filter(isRec)
-          .map((c) => ({
-            caption: [text(c['firstLine']), text(c['body'])].filter(Boolean).join('\n\n'),
-            hashtags: strList(c['hashtags']),
-            cta: firstText(c['cta']) ?? '',
-            image_idea: firstText(c['imageIdea']) ?? '',
-          }));
+        out['instagram'] = await distinctItems(instagramItems(o), wanted, avoid, INSTAGRAM_KEYS, async (n, used) => instagramItems(await again(n, used)));
       } else {
-        out['email'] = { subjects: strList(o['subjectLines']), preview: firstText(o['previewText']) ?? '', body: o['body'] };
+        out['email'] = {
+          subjects: strList(o['subjectLines']),
+          preview: firstText(o['previewText']) ?? '',
+          body: typeof o['body'] === 'string' ? dropNoneLines(o['body']) : o['body'],
+        };
       }
     }
     return out;
@@ -1342,7 +1446,7 @@ export class OpenRouterAiAdapter implements AiPort {
     return { lowUsd: result.low, highUsd: result.high * (HIGH_ESTIMATE_MARGIN[stage] ?? 1) };
   }
 
-  private sumEstimates(steps: { task: string; input: Rec; times: number }[], model: string | undefined): { low: number; high: number; unknown: boolean } {
+  private sumEstimates(steps: EstimateStep[], model: string | undefined): { low: number; high: number; unknown: boolean } {
     let low = 0;
     let high = 0;
     let unknown = false;
@@ -1351,7 +1455,7 @@ export class OpenRouterAiAdapter implements AiPort {
         const est = estimateTask(this.service, s.task, this.prepare(s.task, s.input, undefined), model ? { model } : {});
         if (est.estimateUsd === null) unknown = true;
         low += (est.estimateUsd ?? 0) * s.times;
-        high += (est.highUsd ?? est.estimateUsd ?? 0) * s.times;
+        high += (est.highUsd ?? est.estimateUsd ?? 0) * (s.highTimes ?? s.times);
       } catch {
         // An input the prompt cannot render fails clearly in runStage; the estimate stays at what is known.
         unknown = true;
@@ -1654,21 +1758,153 @@ function coverImageInput(v: Rec, brief: unknown, concept: unknown, aspectRatio: 
   return { book: bookInput(v), brief, concept, cover: { target: 'ebook front cover', aspectRatio } };
 }
 
+/** Dashes and hyphen look-alikes a model puts in a beat's time ("0–2", "0‑2"). */
+const TIME_DASHES = /[‐-―−]/g;
+/** Punctuation and dashes left at either end of a beat field (", ", ": ", "— "). */
+const EDGE_PUNCT = /^[\s,;:\-‐-―−]+|[\s,;:\-‐-―−]+$/g;
+
+/**
+ * One TikTok beat as "<time>: <words>", or just the words when the time is empty or holds no letter or digit (a lone
+ * dash or comma). The live acceptance run of 19 October 2026 saved every beat as ", : words": an empty time was joined
+ * in anyway. Dashes in a time become plain hyphens ("0-2"), so the house style fix leaves the time alone. Null when the
+ * beat says nothing.
+ */
+export function tiktokBeat(b: Rec): string | null {
+  const say = plain(b['say']).replace(EDGE_PUNCT, '').trim();
+  const time = plain(b['second']).replace(TIME_DASHES, '-').replace(EDGE_PUNCT, '').trim();
+  if (!say) return null;
+  return /[\p{L}\p{N}]/u.test(time) ? `${time}: ${say}` : say;
+}
+
+interface TiktokItem {
+  hook: string | null;
+  beats: string[];
+  on_screen: string[];
+  cta: string;
+  seconds: number;
+  hashtags: string[];
+}
+interface InstagramItem {
+  caption: string;
+  hashtags: string[];
+  cta: string;
+  image_idea: string;
+}
+
+function tiktokItems(o: Rec, seconds: number): TiktokItem[] {
+  return list(o['scripts'])
+    .filter(isRec)
+    .map((s) => {
+      const beats = list(s['beats']).filter(isRec);
+      return {
+        hook: firstText(...strList(s['hooks']), s['title']),
+        beats: beats.map(tiktokBeat).filter((x): x is string => x !== null),
+        on_screen: [text(s['onScreenTextHook']), ...beats.map((b) => text(b['show']))].filter((x): x is string => x !== null),
+        cta: firstText(s['cta']) ?? '',
+        seconds,
+        hashtags: strList(s['hashtags']),
+      };
+    });
+}
+
+function instagramItems(o: Rec): InstagramItem[] {
+  return list(o['captions'])
+    .filter(isRec)
+    .map((c) => ({
+      caption: [text(c['firstLine']), text(c['body'])].filter(Boolean).join('\n\n'),
+      hashtags: strList(c['hashtags']),
+      cta: firstText(c['cta']) ?? '',
+      image_idea: firstText(c['imageIdea']) ?? '',
+    }));
+}
+
+/** The parts of a script that make it the same script: its hook and its beats. */
+const TIKTOK_KEYS = (t: TiktokItem): string[] => [t.hook ?? '', t.beats.join(' ')];
+/** The parts of a caption that make it the same post: its first line and its body. */
+const INSTAGRAM_KEYS = (c: InstagramItem): string[] => {
+  const [head = '', ...rest] = c.caption.split('\n\n');
+  return [head, rest.join(' ')];
+};
+
+/** The opening an item is known by in a "do not repeat" list: the script's hook or the caption's first line. */
+function openingOf(keys: string[]): string {
+  return keys.find((k) => k.trim().length > 0) ?? '';
+}
+
+/**
+ * Items with duplicates removed: an item is a duplicate when its hook or first line, or its body, matches an earlier
+ * item's or one of the openings in `avoid` (the book's other items, when one is regenerated). When a duplicate was
+ * dropped and fewer than `wanted` remain, `retry` is called once for the missing number with every opening so far,
+ * and its new distinct items are added. Never more than `wanted`.
+ */
+export async function distinctItems<T>(
+  items: T[],
+  wanted: number,
+  avoid: readonly string[],
+  keysOf: (item: T) => string[],
+  retry: (missing: number, avoid: string[]) => Promise<T[]>,
+): Promise<T[]> {
+  const seen = new Set(avoid.map(dedupeKey).filter(Boolean));
+  const kept: T[] = [];
+  let dropped = 0;
+  const take = (list: T[]): void => {
+    for (const item of list) {
+      if (kept.length >= wanted) return;
+      const keys = keysOf(item).map(dedupeKey).filter(Boolean);
+      if (keys.some((k) => seen.has(k))) {
+        dropped += 1;
+        continue;
+      }
+      for (const k of keys) seen.add(k);
+      kept.push(item);
+    }
+  };
+  take(items);
+  if (dropped > 0 && kept.length < wanted) {
+    const used = [...avoid, ...kept.map((i) => openingOf(keysOf(i)))].filter((x) => x.trim().length > 0);
+    take(await retry(wanted - kept.length, used));
+  }
+  return kept;
+}
+
 /** TikTok scripts and Instagram captions when the job names no count (AC12.1, AC12.2; the job sends the template's). */
 const MARKETING_COUNT_DEFAULT = 5;
+
+/** The launch email's link line when the book has no link yet: the owner pastes the Amazon link over it. */
+export const BOOK_LINK_PLACEHOLDER = '[Amazon link]';
+export const LAUNCH_DATE_NOT_SET = 'launch day (the date is not set yet)';
+export const KDP_SELECT_NOT_SET = 'not chosen yet';
+
+/** Drops lines that hold only "None" (an empty prompt value the model copied into its answer). */
+export function dropNoneLines(s: string): string {
+  return s
+    .replace(/^[ \t]*None\.?[ \t]*(?:\r?\n|$)/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 function marketingPlan(v: Rec): { task: string; input: Rec }[] {
   const kinds = Array.isArray(v['kinds']) ? strList(v['kinds']) : ['tiktok_script', 'instagram_caption', 'launch_email'];
   const base = baseInput(v);
+  // The owner's instruction for a regenerate and the openings of the book's other items (marketing v6 prompts).
+  const variety = { instruction: text(v['instruction']), avoid: strList(v['avoid']) };
   const steps: { task: string; input: Rec }[] = [];
   if (kinds.includes('tiktok_script')) {
     steps.push({
       task: 'marketing.tiktok-scripts',
-      input: { ...base, count: firstNum(v['tiktokCount'], v['count']) ?? MARKETING_COUNT_DEFAULT, lengthSeconds: firstNum(v['lengthSeconds']) ?? 30 },
+      input: {
+        ...base,
+        count: firstNum(v['tiktokCount'], v['count']) ?? MARKETING_COUNT_DEFAULT,
+        lengthSeconds: firstNum(v['lengthSeconds']) ?? 30,
+        variety,
+      },
     });
   }
   if (kinds.includes('instagram_caption')) {
-    steps.push({ task: 'marketing.instagram-captions', input: { ...base, count: firstNum(v['instagramCount'], v['count']) ?? MARKETING_COUNT_DEFAULT } });
+    steps.push({
+      task: 'marketing.instagram-captions',
+      input: { ...base, count: firstNum(v['instagramCount'], v['count']) ?? MARKETING_COUNT_DEFAULT, variety },
+    });
   }
   if (kinds.includes('launch_email')) {
     const kdp = v['kdpSelect'];
@@ -1677,9 +1913,11 @@ function marketingPlan(v: Rec): { task: string; input: Rec }[] {
       input: {
         ...base,
         description: firstText(v['description'], v['summary']) ?? '',
-        launchDate: firstText(v['launchDate']) ?? '',
-        bookLink: firstText(v['bookLink']) ?? '',
-        kdpSelect: typeof kdp === 'boolean' ? kdp : '',
+        // An empty value renders as "None", which the model copied into the email (live acceptance run, 18 October
+        // 2026): unknown launch facts go as plain words, and the link as a placeholder the owner replaces.
+        launchDate: firstText(v['launchDate']) ?? LAUNCH_DATE_NOT_SET,
+        bookLink: firstText(v['bookLink']) ?? BOOK_LINK_PLACEHOLDER,
+        kdpSelect: typeof kdp === 'boolean' ? kdp : KDP_SELECT_NOT_SET,
       },
     });
   }
@@ -1687,7 +1925,18 @@ function marketingPlan(v: Rec): { task: string; input: Rec }[] {
 }
 
 /** The calls a stage will make, for the budget check. Later calls that need earlier answers use placeholders. */
-export function estimatePlan(stage: AiStage, input: AiStageInput): { task: string; input: Rec; times: number }[] {
+/** One prompt an estimate prices: `times` calls at the low end, `highTimes` (when set) at the high end. */
+export interface EstimateStep {
+  task: string;
+  input: Rec;
+  times: number;
+  highTimes?: number;
+}
+
+/** Marketing list prompts that may be asked once more for the items a duplicate answer left out. */
+const MARKETING_LIST_TASKS: ReadonlySet<string> = new Set(['marketing.tiktok-scripts', 'marketing.instagram-captions']);
+
+export function estimatePlan(stage: AiStage, input: AiStageInput): EstimateStep[] {
   const v = input.variables;
   switch (stage) {
     case 'research':
@@ -1736,7 +1985,8 @@ export function estimatePlan(stage: AiStage, input: AiStageInput): { task: strin
         { task: 'cover.cover-image', input: coverImageInput(v, null, null, COVER_ASPECT_RATIO), times: conceptCountOf(v) },
       ];
     case 'marketing':
-      return marketingPlan(v).map((s) => ({ ...s, times: 1 }));
+      // The high end allows the one retry each list step may make for duplicates (distinctItems).
+      return marketingPlan(v).map((s) => ({ ...s, times: 1, ...(MARKETING_LIST_TASKS.has(s.task) ? { highTimes: 2 } : {}) }));
     case 'picture_story':
     case 'scene_prompts':
     case 'character_reference':

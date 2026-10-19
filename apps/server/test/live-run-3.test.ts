@@ -328,7 +328,9 @@ describe('6. dated prices', () => {
     expect(hasDatedPrices(await loadBookStructure(CONFIG, 'ai-tech-howto', null))).toBe(true);
     expect(hasDatedPrices(await loadBookStructure(CONFIG, 'travel', null))).toBe(true);
     expect(hasDatedPrices(await loadBookStructure(CONFIG, 'self-help', null))).toBe(false);
-    const ai = new RecordingAi((md, section) => (section['kind'] === 'chapter' ? `${md}\n\nA price of £60 a month.` : md));
+    const ai = new RecordingAi((md, section) =>
+      section['kind'] === 'chapter' ? `${md}\n\nA price of £60 a month [[S1]]. ChatGPT Plus costs £20 a month.` : md,
+    );
     t = await testApp({ ai });
     const id = await newBook(t, { bookTypeId: 'ai-tech-howto', wordTarget: 6000 });
     await approveAndWrite(t, id, 1);
@@ -338,7 +340,12 @@ describe('6. dated prices', () => {
     expect(how.variables['pricesCheck']).toMatch(/^not run/);
     const ch = (await sections(t, id)).find((s) => s['kind'] === 'chapter')!;
     const one = await t.call<{ checks: { checker: string; severity: string; message: string }[] }>('GET', `/api/v1/sections/${ch['id'] as string}`);
-    expect(one.body.checks).toContainEqual(expect.objectContaining({ checker: 'dated_price', severity: 'warn' }));
+    // Only the sourced price is asked for a month; the unsourced specific price goes to the claims report.
+    const dated = one.body.checks.filter((c) => c.checker === 'dated_price').map((c) => c.message);
+    expect(dated.length).toBeGreaterThan(0);
+    for (const m of dated) expect(m).toMatch(/^£60 is a sourced price/);
+    const claims = await t.call<{ items: { sentence: string; category: string }[] }>('GET', `/api/v1/books/${id}/claims?status=open`);
+    expect(claims.body.items).toContainEqual(expect.objectContaining({ sentence: 'ChatGPT Plus costs £20 a month.', category: 'financial' }));
   });
 
   it('builds the prices check line the how-to and listing prompts read', () => {
@@ -348,7 +355,7 @@ describe('6. dated prices', () => {
       'not run: 1 of 3 body sections written so far',
     );
     expect(pricesCheckLine([{ kind: 'introduction', title: 'Introduction', bodyMd: 'No prices here.' }])).toMatch(/^not run/);
-    expect(pricesCheckLine([{ kind: 'chapter', title: 'Chapter 1', bodyMd: 'A price of £60 a month.' }])).toBe(
+    expect(pricesCheckLine([{ kind: 'chapter', title: 'Chapter 1', bodyMd: 'A price of £60 a month [[S1]].' }])).toBe(
       'failed: 1 price has no month checked (£60 in Chapter 1)',
     );
   });

@@ -65,7 +65,8 @@ const rec = (v: unknown): Rec => (v && typeof v === 'object' && !Array.isArray(v
 
 /**
  * The {{story}} input: the owner's choices with the template's defaults (age range, art style, word limit). The gentle
- * problem goes as its own field, {{story.conflict}} (children.picture-book-story v3); left out when blank.
+ * problem goes as its own field, {{story.conflict}} (children.picture-book-story v3); left out when blank. The result
+ * must pass the @volume/ai StorySettings schema (packages/ai/src/stages/inputs.ts).
  */
 export function storyInput(settings: PictureSettings, template: Rec | null, bookIdea: string | null, spreadCount: number): Rec {
   const { conflict, ...own } = settings.story ?? {};
@@ -80,7 +81,9 @@ export function storyInput(settings: PictureSettings, template: Rec | null, book
   if (!own.ageRange && age) out['ageRange'] = age;
   if (!own.artStyle && typeof spreads['artStyleDefault'] === 'string') out['artStyle'] = spreads['artStyleDefault'];
   if (!own.wordLimit && typeof words['default'] === 'number') out['wordLimit'] = words['default'];
-  out['goodnightMessage'] = own.goodnightMessage === true;
+  // The owner's switch is a boolean; the story stage takes text ({{story.goodnightMessage}}, "If on, add ..."), so it
+  // goes as "on" or "off" (live acceptance run, 18 October 2026: a boolean failed every story call).
+  out['goodnightMessage'] = own.goodnightMessage === true ? 'on' : 'off';
   return out;
 }
 

@@ -158,20 +158,70 @@ function toExport(r: ExportsTable): ExportRecord {
   };
 }
 
+/** The listing the matter stage wrote: the Amazon description (KDP HTML), back-cover blurb, short bio, categories, keywords. */
+export interface Listing {
+  descriptionHtml: string | null;
+  backBlurb: string | null;
+  shortBio: string | null;
+  categories: string[];
+  keywords: string[];
+  /** Who wrote the text: `ai:matter` for the listing job, null for older rows. */
+  source: string | null;
+  updatedAt: number;
+}
+
 export class ProductionRepo {
   constructor(private readonly db: Db) {}
 
-  /** The matter-stage back-cover blurb (listings.back_blurb), or null when none is saved. */
-  async listingBackBlurb(ctx: RequestCtx, projectId: string): Promise<string | null> {
+  /** The book's listing written by the matter stage (listings row), or null before the listing job has run. */
+  async getListing(ctx: RequestCtx, projectId: string): Promise<Listing | null> {
     const r = await this.db
       .selectFrom('listings')
-      .select('backBlurb')
+      .select(['descriptionHtml', 'backBlurb', 'shortBio', 'categories', 'keywords', 'source', 'updatedAt'])
       .where('workspaceId', '=', ctx.workspaceId)
       .where('projectId', '=', projectId)
-      .orderBy('updatedAt', 'desc')
       .executeTakeFirst();
-    const v = r?.backBlurb;
-    return typeof v === 'string' && v.trim().length > 0 ? v : null;
+    if (!r) return null;
+    return {
+      descriptionHtml: r.descriptionHtml,
+      backBlurb: r.backBlurb,
+      shortBio: r.shortBio,
+      categories: fromJson(z.array(z.string()), r.categories, []),
+      keywords: fromJson(z.array(z.string()), r.keywords, []),
+      source: r.source,
+      updatedAt: Number(r.updatedAt),
+    };
+  }
+
+  /** Saves the matter stage's listing for the book (one row per book), keeping its pricing and disclosure note. */
+  async saveListing(ctx: RequestCtx, projectId: string, l: Omit<Listing, 'updatedAt'>): Promise<Listing> {
+    const t = now();
+    const fields = {
+      descriptionHtml: l.descriptionHtml,
+      backBlurb: l.backBlurb,
+      shortBio: l.shortBio,
+      categories: toJson(l.categories),
+      keywords: toJson(l.keywords),
+      source: l.source,
+      updatedAt: t,
+    };
+    const row = await this.db
+      .selectFrom('listings')
+      .select('id')
+      .where('workspaceId', '=', ctx.workspaceId)
+      .where('projectId', '=', projectId)
+      .executeTakeFirst();
+    if (row) {
+      await this.db.updateTable('listings').set(fields).where('id', '=', row.id).where('workspaceId', '=', ctx.workspaceId).execute();
+    } else {
+      await this.db
+        .insertInto('listings')
+        .values({ id: newId(), workspaceId: ctx.workspaceId, projectId, ...fields, aiDisclosureNote: null, pricing: '{}', kdpRulesVersion: null, createdAt: t })
+        .execute();
+    }
+    const saved = await this.getListing(ctx, projectId);
+    if (!saved) throw notFound('Listing');
+    return saved;
   }
 
   // covers

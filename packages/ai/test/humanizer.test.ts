@@ -13,6 +13,20 @@ const HUMANIZER_VERSION: Record<string, number> = {
   'checks.summarise-and-ledger': 3,
   'checks.consistency': 3,
   'writing.rewrite-selection': 4,
+  // Honesty versions of 19 October 2026 (live acceptance run): prices only from sources, no invented author scenes,
+  // blurbs that sell the book.
+  'writing.chapter': 5,
+  'writing.introduction': 5,
+  'writing.conclusion': 5,
+  'writing.front-matter': 5,
+  'writing.back-matter': 5,
+  'writing.extend-section': 3,
+  'matter.back-cover': 5,
+  'matter.amazon-description': 5,
+  'blueprint.blueprint': 5,
+  // Distinct items of 19 October 2026 (second live acceptance run): v6 adds the variety inputs.
+  'marketing.tiktok-scripts': 5,
+  'marketing.instagram-captions': 5,
 };
 /** Prompts whose latest version moved to another model stage on purpose, with that stage. */
 const STAGE_MOVED: Record<string, string> = {
