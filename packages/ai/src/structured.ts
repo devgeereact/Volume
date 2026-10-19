@@ -55,7 +55,7 @@ export function stripTrailingCommas(text: string): string {
  * repair runs before the one repair request to the model.
  */
 export function extractJson(text: string): unknown {
-  const trimmed = text.replace(/^﻿/, '').trim();
+  const trimmed = text.replace(/^\uFEFF/, '').trim();
   const attempts: string[] = [trimmed];
   const fence = /```(?:json)?\s*\n?([\s\S]*?)```/i.exec(trimmed);
   if (fence?.[1]) attempts.push(fence[1].trim());
