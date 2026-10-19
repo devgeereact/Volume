@@ -42,6 +42,7 @@ const NEW_AFTER_HUMANIZER = new Set([
   'writing.chapter-workbook',
   'writing.extend-section-fiction',
   'blueprint.regenerate-part-fiction',
+  'editing.claim-fix',
 ]);
 
 describe('versioned humanizer guidance', () => {

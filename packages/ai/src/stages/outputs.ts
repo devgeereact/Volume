@@ -237,6 +237,12 @@ export const BackMatterOutput = z.object({
 
 export const RewriteSelectionOutput = z.object({ text: str, changeNote: str, newClaims: strs });
 
+/** How a claim fix changes the sentence (editing.claim-fix). */
+export const CLAIM_FIX_APPROACHES = ['soften', 'generalise', 'attribute', 'reframe', 'remove'] as const;
+export const ClaimFixOutput = z.object({
+  options: z.array(z.object({ text: str, approach: z.enum(CLAIM_FIX_APPROACHES), rationale: str, needsSource: z.boolean() })),
+});
+
 export const WeaveNoteOutput = z.object({
   text: str,
   keptPhrases: strs,

@@ -257,9 +257,10 @@
         "editing.structural",
         "editing.line-edit-uk",
         "editing.voice",
-        "writing.rewrite-selection"
+        "writing.rewrite-selection",
+        "editing.claim-fix"
       ],
-      "notes": "Every accepted edit becomes a new version. The editor's selection rewrite (writing.rewrite-selection v5) runs here too, as the server's editing job stage does; note weaving and expansion (writing.weave-note, writing.expand-note) run on the writing model. To verify against GET /api/v1/models. Max tokens 32,000: a line edit returns the whole chapter plus reasoning."
+      "notes": "Every accepted edit becomes a new version. The editor's selection rewrite (writing.rewrite-selection v5) runs here too, as the server's editing job stage does; note weaving and expansion (writing.weave-note, writing.expand-note) run on the writing model. The fix options for a claim to verify (editing.claim-fix) run here too. To verify against GET /api/v1/models. Max tokens 32,000: a line edit returns the whole chapter plus reasoning."
     },
     "matter_metadata": {
       "tier": "mid",

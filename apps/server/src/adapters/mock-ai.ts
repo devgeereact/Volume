@@ -442,6 +442,27 @@ function buildOutput<S extends AiStage>(stage: S, input: AiStageInput): AiStageO
     case 'character_reference':
       out = { references: [{ name: 'Pip', imagePrompt: 'Mock neutral full-body reference of Pip, plain background' }] };
       break;
+    case 'claim_fix': {
+      // Three options: soften, attribute to the first ticked source (reframe when there is none), remove.
+      const sentence = str(obj(v['claim'])['sentence'], 'Mock claim.').trim();
+      const bare = sentence.replace(/[.!?]+$/, '');
+      const hasSource = arr(v['sources']).length > 0;
+      out = {
+        options: [
+          { text: `${MOCK_MARK} ${bare}, for some people.`, approach: 'soften', rationale: `${MOCK_MARK} Lower certainty.`, needsSource: false },
+          hasSource
+            ? { text: `${sentence} [[S1]]`, approach: 'attribute', rationale: `${MOCK_MARK} Cites the first research source.`, needsSource: false }
+            : {
+                text: `${MOCK_MARK} Check this against an official source before you rely on it.`,
+                approach: 'reframe',
+                rationale: `${MOCK_MARK} Sends the reader to the source.`,
+                needsSource: false,
+              },
+          { text: '', approach: 'remove', rationale: `${MOCK_MARK} The passage reads well without it.`, needsSource: false },
+        ],
+      };
+      break;
+    }
     default:
       out = {};
   }

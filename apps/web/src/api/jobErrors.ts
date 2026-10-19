@@ -22,3 +22,9 @@ export function withPlainJobError<T extends { error: string | null; errorCode?: 
   const error = plainJobError(job.error, job.errorCode);
   return error === job.error ? job : { ...job, error };
 }
+
+/** The job already working on it, from a 409 conflict's details (recheck, claim suggest). */
+export function runningJob(details: unknown): string | null {
+  const id = details && typeof details === "object" ? (details as { jobId?: unknown }).jobId : undefined;
+  return typeof id === "string" ? id : null;
+}

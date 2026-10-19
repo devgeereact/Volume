@@ -4,7 +4,7 @@ User-visible changes, newest first. Dates in British format.
 
 ## 19 October 2026
 
-Moving a book between Volumes (D-051).
+Moving a book between Volumes (D-051); claims, autosave and reruns (D-052).
 
 #### Added
 - Import project: bring one book from another Volume (for example from the Mac to the hosted app) under a pen name you choose. The import always makes a new book, marked "Moved from another Volume on <date>", and changes nothing that is already there.
@@ -16,12 +16,16 @@ Moving a book between Volumes (D-051).
 - How it works, its own page: a sample book runs through the seven stages and ends with the upload pack.
 - A sign-in page in Volume's look, with the brand panel on the left and the sign-in form in the app's colours, light and dark.
 - Web app manifest, app icons (including an Apple touch icon) and a browser bar colour for light and dark themes.
+- Fix a claim to verify from the report: three suggested rewrites (soften, generalise, cite a research source, reframe or remove) that add no new facts, figures or sources. Pick one, edit it or write your own.
+- The editor saves your work as you type. A long editing session stays one version, and Versions shows the version from before you started.
+- Missing summaries and checks show what a rerun would cost, and a second click while one is running does not start another.
 
 #### Changed
 - Project zips no longer carry built export files or spend. Build the PDF, EPUB and pack again after a move.
 - The Use this title button holds while the choice saves, so a title cannot be chosen twice.
 - Smooth scrolling respects the system's reduced motion setting.
 - A screen error now stays inside the app, with a link back to the Library.
+- The export checks offer "Run it again" for a section whose summary or checks are missing, and say you can upload your own cover when the pack has none.
 
 ## 18 October 2026
 

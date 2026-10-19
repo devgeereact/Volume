@@ -104,6 +104,7 @@ export const STAGE_TASKS: { readonly [S in AiStage]: readonly string[] } = {
   picture_story: ['children.picture-book-story'],
   scene_prompts: ['children.scene-prompts'],
   character_reference: ['children.character-reference'],
+  claim_fix: ['editing.claim-fix'],
 };
 
 /**
@@ -1115,6 +1116,10 @@ export class OpenRouterAiAdapter implements AiPort {
         const r = await run.call(CHILDREN_TASKS[run.stage], childrenInput(v), { primary: true, pinVersion: true });
         return r.output;
       }
+      case 'claim_fix': {
+        const r = await run.call('editing.claim-fix', claimFixInput(v), { primary: true, pinVersion: true });
+        return r.output;
+      }
     }
   }
 
@@ -1644,6 +1649,26 @@ function childrenInput(v: Rec): Rec {
   return out;
 }
 
+/** Input for editing.claim-fix: the claim sentence with the text around it, the owner's instruction and the sources. */
+function claimFixInput(v: Rec): Rec {
+  const claim = rec(v['claim']);
+  return {
+    ...baseInput(v),
+    claim: {
+      sentence: text(claim['sentence']) ?? '',
+      category: text(claim['category']) ?? 'claim',
+      checkNeeded: text(claim['checkNeeded']),
+      before: text(claim['before']),
+      after: text(claim['after']),
+      paragraph: text(claim['paragraph']),
+      previousSentence: text(claim['previousSentence']),
+      nextSentence: text(claim['nextSentence']),
+      sectionTitle: text(claim['sectionTitle']),
+    },
+    fix: { instruction: text(v['instruction']) },
+  };
+}
+
 function summariseInput(v: Rec): Rec {
   return { ...baseInput(v), text: typeof v['markdown'] === 'string' ? v['markdown'] : '', chapter: chapterInput(rec(v['section'])) };
 }
@@ -1991,6 +2016,8 @@ export function estimatePlan(stage: AiStage, input: AiStageInput): EstimateStep[
     case 'scene_prompts':
     case 'character_reference':
       return [{ task: CHILDREN_TASKS[stage], input: childrenInput(v), times: 1 }];
+    case 'claim_fix':
+      return [{ task: 'editing.claim-fix', input: claimFixInput(v), times: 1 }];
   }
 }
 

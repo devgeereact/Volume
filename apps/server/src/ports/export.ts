@@ -113,7 +113,19 @@ export interface PreflightItem {
   area: string;
   severity: PreflightSeverity;
   message: string;
-  fix?: { route: string; label: string };
+  fix?: PreflightFix;
+}
+
+/**
+ * Where the owner fixes a preflight item: a screen (route), optionally a place on it (anchor, for example the Cover
+ * screen's own-cover panel), or an action the screen can run there (rerun-checks with the section id).
+ */
+export interface PreflightFix {
+  route: string;
+  label: string;
+  anchor?: string;
+  action?: 'rerun-checks';
+  sectionId?: string;
 }
 
 export interface PreflightReport {

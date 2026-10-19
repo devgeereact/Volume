@@ -196,7 +196,7 @@ export function applyBookEvent(qc: QueryClient, bookId: string, ev: BookEvent): 
         delete deltas[d.sectionId];
         return { ...s, deltas };
       });
-      inv(qc, [queryKeys.section.all(d.sectionId), b.sections(bookId), b.detail(bookId), b.preflight(bookId), b.exports(bookId)]);
+      inv(qc, [queryKeys.section.all(d.sectionId), b.sections(bookId), b.detail(bookId), b.preflight(bookId), b.exports(bookId), b.claimsAll(bookId)]);
       return;
     }
     case "check.result":

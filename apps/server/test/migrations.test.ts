@@ -20,6 +20,7 @@ const ORDER = [
   '0008_volume_mode',
   '0009_invitations',
   '0010_listing_source',
+  '0011_version_author',
 ];
 
 /** A compile-only MySQL Kysely (DummyDriver): no MySQL server is contacted. */
@@ -78,7 +79,7 @@ describe('migrations on SQLite in memory', () => {
     const handle = openSqlite(':memory:');
     const first = await migrateToLatest(handle);
     expect(first.results?.every((r) => r.status === 'Success')).toBe(true);
-    // A fresh database applies 0001..0010 in order.
+    // A fresh database applies 0001..0011 in order.
     expect(first.results?.map((r) => r.migrationName)).toEqual(ORDER);
     const tables = await handle.db.introspection.getTables();
     const names = tables.map((t) => t.name);
@@ -143,31 +144,43 @@ describe('migrations on SQLite in memory', () => {
     );
     // 0010
     expect(cols('listings')).toContain('source');
+    // 0011
+    expect(cols('section_versions')).toContain('created_by');
     expect(await pendingMigrations(handle)).toEqual([]);
 
     const second = await migrateToLatest(handle);
     expect(second.results).toEqual([]);
 
     const migrator = new Migrator({ db: handle.db.withoutPlugins(), provider: new VolumeMigrationProvider('sqlite') });
+    const down11 = await migrator.migrateDown();
+    expect(down11.error).toBeUndefined();
+    expect((await handle.db.introspection.getTables()).find((t) => t.name === 'section_versions')?.columns.map((c) => c.name)).not.toContain('created_by');
+    expect(await pendingMigrations(handle)).toEqual(['0011_version_author']);
     const down10 = await migrator.migrateDown();
     expect(down10.error).toBeUndefined();
     expect((await handle.db.introspection.getTables()).find((t) => t.name === 'listings')?.columns.map((c) => c.name)).not.toContain('source');
-    expect(await pendingMigrations(handle)).toEqual(['0010_listing_source']);
+    expect(await pendingMigrations(handle)).toEqual(['0010_listing_source', '0011_version_author']);
     const down9 = await migrator.migrateDown();
     expect(down9.error).toBeUndefined();
     expect((await handle.db.introspection.getTables()).map((t) => t.name)).not.toContain('invitations');
-    expect(await pendingMigrations(handle)).toEqual(['0009_invitations', '0010_listing_source']);
+    expect(await pendingMigrations(handle)).toEqual(['0009_invitations', '0010_listing_source', '0011_version_author']);
     const down8 = await migrator.migrateDown();
     expect(down8.error).toBeUndefined();
     const after8 = (await handle.db.introspection.getTables()).map((t) => t.name);
     for (const gone of ['batches', 'batch_items', 'title_slots']) expect(after8).not.toContain(gone);
-    expect(await pendingMigrations(handle)).toEqual(['0008_volume_mode', '0009_invitations', '0010_listing_source']);
+    expect(await pendingMigrations(handle)).toEqual(['0008_volume_mode', '0009_invitations', '0010_listing_source', '0011_version_author']);
     const down6 = await migrator.migrateDown();
     expect(down6.error).toBeUndefined();
     const after6 = await handle.db.introspection.getTables();
     expect(after6.map((t) => t.name)).not.toContain('picture_characters');
     expect(after6.find((t) => t.name === 'sections')?.columns.map((c) => c.name)).not.toContain('image_asset_id');
-    expect(await pendingMigrations(handle)).toEqual(['0006_picture_books', '0008_volume_mode', '0009_invitations', '0010_listing_source']);
+    expect(await pendingMigrations(handle)).toEqual([
+      '0006_picture_books',
+      '0008_volume_mode',
+      '0009_invitations',
+      '0010_listing_source',
+      '0011_version_author',
+    ]);
     const down5 = await migrator.migrateDown();
     expect(down5.error).toBeUndefined();
     expect((await handle.db.introspection.getTables()).find((t) => t.name === 'users')?.columns.map((c) => c.name)).not.toContain('clerk_user_id');
@@ -177,6 +190,7 @@ describe('migrations on SQLite in memory', () => {
       '0008_volume_mode',
       '0009_invitations',
       '0010_listing_source',
+      '0011_version_author',
     ]);
     const down4 = await migrator.migrateDown();
     expect(down4.error).toBeUndefined();

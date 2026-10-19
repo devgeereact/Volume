@@ -3,7 +3,7 @@ import { BookStatusActions } from "../published/BookStatusActions";
 import { canMarkPublished } from "../published/publishDate";
 import { useCanWrite } from "../../lib/access";
 import { lazy, Suspense, useMemo, useState } from "react";
-import { ArrowRightLeft, Download, FileArchive, FileImage, FileText, FileType, Package, Sparkles } from "lucide-react";
+import { ArrowRightLeft, Download, FileArchive, FileImage, FileText, FileType, Package, RotateCw, Sparkles } from "lucide-react";
 import {
   Banner,
   Button,
@@ -32,6 +32,8 @@ import { useStepAction } from "../../lib/stepAction";
 import { ErrorPanel, LoadingBlock } from "../writing/screenState";
 import { InteriorPreview } from "./InteriorPreview";
 import { Preflight, type PreflightRow } from "./Preflight";
+import { fixAction } from "./preflightFix";
+import { RerunChecks } from "./RerunChecks";
 import type { Paper } from "./kdpRules";
 
 /* Export on the Volume server (API mode): preflight from GET /preflight, Build pack as a job with
@@ -65,8 +67,8 @@ function toRow(i: ApiPreflightItem, bookId: string): PreflightItem {
   const cut = i.message.indexOf(": ");
   const label = cut > 0 ? i.message.slice(0, cut) : i.message;
   const detail = cut > 0 ? i.message.slice(cut + 2) : "";
-  const route = i.fix?.route ? (i.fix.route.startsWith("/") ? i.fix.route : `/books/${bookId}/${i.fix.route}`) : null;
-  return { ...base, label, detail, ruleId: null, fixRoute: route };
+  const fix = fixAction(i.fix, bookId, i.id);
+  return { ...base, label, detail, ruleId: null, fixRoute: fix?.kind === "link" ? fix.to : null, ...(fix?.kind === "link" ? { fixLabel: fix.label } : {}) };
 }
 
 export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetail | undefined }) {
@@ -117,6 +119,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   const building = start.isPending || watch.running;
 
   const items = useMemo(() => (preflightQ.data?.items ?? []).map((i) => toRow(i, bookId)), [preflightQ.data, bookId]);
+  const fixes = useMemo(() => new Map((preflightQ.data?.items ?? []).map((i) => [i.id, fixAction(i.fix, bookId, i.id)])), [preflightQ.data, bookId]);
   const rows: PreflightRow[] = items.map((it) => ({ ...it, checking: preflightQ.isFetching && !preflightQ.isPending }));
   // Cover blocks (ids "cover.") stop only the pack: the single files still build, and the server's
   // final preflight refuses the pack. Every other block stops the build.
@@ -182,6 +185,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
           ? "Stale, older than the latest change"
           : `Built ${formatRelative(new Date(r.createdAt).toISOString(), now)}`;
   const sel = latest.get(selected);
+  const staleFiles = [...latest.values()].filter((r) => r.status === "done" && r.stale).length;
 
   return (
     <>
@@ -298,6 +302,11 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
               onTick={(id, on) => setTicked((t) => ({ ...t, [id]: on }))}
               running={preflightQ.isFetching}
               onRun={() => void preflightQ.refetch()}
+              renderFix={(r) => {
+                const f = fixes.get(r.id);
+                if (!canWrite || f?.kind !== "rerun-checks") return null;
+                return <RerunChecks bookId={bookId} sectionId={f.sectionId} onDone={() => void preflightQ.refetch()} />;
+              }}
             />
           )}
 
@@ -357,6 +366,16 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
                     </label>
                   );
                 })}
+              </div>
+            )}
+            {canWrite && staleFiles > 0 && !building && (
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-accent-wash px-4 py-3">
+                <p className="min-w-0 flex-1 text-small text-ink">
+                  {staleFiles === 1 ? "One file is" : `${staleFiles} files are`} older than the latest change. Rebuild them so the downloads match the book.
+                </p>
+                <Button size="sm" icon={RotateCw} disabledReason={disabledReason} onClick={() => setConfirm(true)}>
+                  Rebuild files
+                </Button>
               </div>
             )}
             {cover && (cover.ebookAssetId || cover.wrapAssetId) && (

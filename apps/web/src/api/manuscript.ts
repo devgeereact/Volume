@@ -1,7 +1,6 @@
 /* Sections, versions, writing jobs, notes, suggestions and claims (apps/server/src/routes/manuscript.ts). */
 import { api, seg, type RequestOptions } from "./client";
 import type {
-  ApiSectionVersionSummary,
   AcceptedJob,
   AcceptSuggestionResponse,
   ApiAuthorNote,
@@ -10,10 +9,16 @@ import type {
   ApiSection,
   ApiSectionVersion,
   ApiSuggestion,
+  AutosaveInput,
+  AutosaveResponse,
+  ClaimApplyInput,
+  ClaimOverviewFilter,
+  ClaimsOverview,
   ClaimResolveResponse,
   ClaimStatus,
   ClaimVerifyInput,
   EditPassInput,
+  EstimatedJob,
   FindQuery,
   FindResult,
   ListResponse,
@@ -21,13 +26,16 @@ import type {
   NotePatch,
   NoteStatus,
   ReplaceInput,
+  RecheckPreview,
   ReplaceResult,
+  RerunChecksResponse,
   RewriteSelectionInput,
   SaveVersionInput,
   SectionDetail,
   SectionDiff,
   SectionPatch,
   SectionTree,
+  SectionVersionList,
   SuggestionStatus,
   WeaveInput,
 } from "./types";
@@ -45,10 +53,17 @@ export const manuscriptApi = {
 
   /* versions */
   saveVersion: (sectionId: string, input: SaveVersionInput, o?: Opts) => api.post<ApiSectionVersion>(`/sections/${seg(sectionId)}/versions`, input, o),
-  versions: (sectionId: string, o?: Opts) => api.get<ListResponse<ApiSectionVersionSummary>>(`/sections/${seg(sectionId)}/versions`, o),
+  versions: (sectionId: string, o?: Opts) => api.get<SectionVersionList>(`/sections/${seg(sectionId)}/versions`, o),
   version: (sectionId: string, versionId: string, o?: Opts) => api.get<ApiSectionVersion>(`/sections/${seg(sectionId)}/versions/${seg(versionId)}`, o),
   restoreVersion: (sectionId: string, versionId: string, o?: Opts) =>
     api.post<ApiSectionVersion>(`/sections/${seg(sectionId)}/versions/${seg(versionId)}/restore`, undefined, o),
+  /** Coalesces typing into one version for a few minutes; 409 conflict (details.currentVersionId) on a stale base. */
+  autosave: (bookId: string, sectionId: string, input: AutosaveInput, o?: Opts) =>
+    api.put<AutosaveResponse>(`/books/${seg(bookId)}/sections/${seg(sectionId)}/autosave`, input, o),
+  /** Reruns only the missing steps (summary, checks): 202 with the estimate; 409 invalid_state when nothing is missing, conflict { jobId } when a job already runs. */
+  /** What a rerun would do and cost, with no charge. */
+  recheckPreview: (sectionId: string, o?: Opts) => api.get<RecheckPreview>(`/sections/${seg(sectionId)}/recheck`, o),
+  rerunChecks: (sectionId: string, o?: Opts) => api.post<RerunChecksResponse>(`/sections/${seg(sectionId)}/recheck`, {}, o),
   diff: (sectionId: string, from: string, to?: string, o?: Opts) => api.get<SectionDiff>(`/sections/${seg(sectionId)}/diff`, { ...o, query: { from, to } }),
 
   /* writing jobs (202) */
@@ -96,5 +111,14 @@ export const manuscriptApi = {
   /** Without a replacement the server uses the claim's suggestedSoftening (400 when there is neither). */
   softenClaim: (claimId: string, input: { replacement?: string; note?: string }, o?: Opts) =>
     api.post<ClaimResolveResponse>(`/claims/${seg(claimId)}/soften`, input, o),
+  /** Every claim of the book in reading order, with counts by status (default open). */
+  claimsOverview: (bookId: string, status: ClaimOverviewFilter = "open", o?: Opts) =>
+    api.get<ClaimsOverview>(`/books/${seg(bookId)}/claims/overview`, { ...o, query: { status } }),
+  /** Three stronger replacements as a job (202); the result is ClaimSuggestResult. */
+  suggestClaim: (bookId: string, claimId: string, input: { instruction?: string }, o?: Opts) =>
+    api.post<EstimatedJob>(`/books/${seg(bookId)}/claims/${seg(claimId)}/suggest`, input, o),
+  /** Saves the replacement as a new version and resolves the claim; 409 when the sentence changed. */
+  applyClaim: (bookId: string, claimId: string, input: ClaimApplyInput, o?: Opts) =>
+    api.post<ClaimResolveResponse>(`/books/${seg(bookId)}/claims/${seg(claimId)}/apply`, input, o),
   removeClaim: (claimId: string, input: { note?: string } = {}, o?: Opts) => api.post<ClaimResolveResponse>(`/claims/${seg(claimId)}/remove`, input, o),
 };

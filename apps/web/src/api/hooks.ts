@@ -51,6 +51,9 @@ import {
   type NoteStatus,
   type ProfileListQuery,
   type SaveVersionInput,
+  type AutosaveInput,
+  type ClaimApplyInput,
+  type ClaimOverviewFilter,
   type SettingValues,
   type SuggestionStatus,
   type BatchInput,
@@ -606,6 +609,15 @@ export function useSectionVersions(sectionId: string | undefined) {
   });
 }
 
+/** The whole list response, with previousVersionId (the version before the current edit session). */
+export function useSectionVersionList(sectionId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.section.versions(sectionId ?? ""),
+    queryFn: ({ signal }) => manuscriptApi.versions(need(sectionId, "Section id"), { signal }),
+    enabled: !!sectionId,
+  });
+}
+
 export function useSectionVersion(sectionId: string | undefined, versionId: string | undefined) {
   return useQuery({
     queryKey: queryKeys.section.version(sectionId ?? "", versionId ?? ""),
@@ -633,6 +645,33 @@ export function useSaveVersion() {
   return useMutation({
     mutationFn: (v: { bookId: string; sectionId: string; input: SaveVersionInput }) => manuscriptApi.saveVersion(v.sectionId, v.input),
     onSuccess: (_ver, v) => sectionTextChanged(qc, v.bookId, v.sectionId),
+  });
+}
+
+/** Autosave the editor text (coalesced on the server). A stale baseVersionId fails with code "conflict". */
+export function useAutosaveSection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { bookId: string; sectionId: string; input: AutosaveInput }) => manuscriptApi.autosave(v.bookId, v.sectionId, v.input),
+    onSuccess: (_ver, v) => sectionTextChanged(qc, v.bookId, v.sectionId),
+  });
+}
+
+/** What rerunning a section's missing checks would do and cost (no charge). */
+export function useRecheckPreview(sectionId: string | undefined) {
+  return useQuery({
+    queryKey: [...queryKeys.section.all(sectionId ?? ""), "recheck"] as const,
+    queryFn: ({ signal }) => manuscriptApi.recheckPreview(need(sectionId, "Section id"), { signal }),
+    enabled: !!sectionId,
+  });
+}
+
+/** Run a section's missing checks again (a job). */
+export function useRerunChecks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { bookId: string; sectionId: string }) => manuscriptApi.rerunChecks(v.sectionId),
+    onSuccess: (r) => rememberJob(qc, r),
   });
 }
 
@@ -809,6 +848,38 @@ export function useResolveClaim() {
       if (v.action === "soften") return manuscriptApi.softenClaim(v.claimId, v.input);
       return manuscriptApi.removeClaim(v.claimId, v.input ?? {});
     },
+    onSuccess: (r, v) => {
+      const keys: QueryKey[] = [queryKeys.book.claimsAll(v.bookId), queryKeys.book.preflight(v.bookId)];
+      if (r.version) keys.push(queryKeys.section.all(r.version.sectionId), queryKeys.book.sections(v.bookId));
+      return invalidate(qc, ...keys);
+    },
+  });
+}
+
+/** The book's claims overview; under the claims key, so every claim change refreshes it. */
+export function useClaimsOverview(bookId: string | undefined, status: ClaimOverviewFilter) {
+  return useQuery({
+    queryKey: [...queryKeys.book.claimsAll(bookId ?? ""), "overview", status] as const,
+    queryFn: ({ signal }) => manuscriptApi.claimsOverview(need(bookId, "Book id"), status, { signal }),
+    enabled: !!bookId,
+  });
+}
+
+/** Ask for three stronger replacements for a claim (a job). */
+export function useSuggestClaim() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { bookId: string; claimId: string; instruction?: string }) =>
+      manuscriptApi.suggestClaim(v.bookId, v.claimId, v.instruction ? { instruction: v.instruction } : {}),
+    onSuccess: (r) => rememberJob(qc, r),
+  });
+}
+
+/** Apply a replacement: a new version, and the claim resolved. 409 when the sentence changed. */
+export function useApplyClaim() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { bookId: string; claimId: string; input: ClaimApplyInput }) => manuscriptApi.applyClaim(v.bookId, v.claimId, v.input),
     onSuccess: (r, v) => {
       const keys: QueryKey[] = [queryKeys.book.claimsAll(v.bookId), queryKeys.book.preflight(v.bookId)];
       if (r.version) keys.push(queryKeys.section.all(r.version.sectionId), queryKeys.book.sections(v.bookId));

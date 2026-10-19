@@ -177,6 +177,23 @@ export const RewriteSelectionInput = Base.extend({
     targetWords: opt(z.number()),
   }),
 });
+/** One sentence from the claims-to-verify report, with the text around it, for editing.claim-fix. */
+export const ClaimFixInput = Base.extend({
+  claim: z.object({
+    sentence: str,
+    category: str,
+    checkNeeded: opt(str),
+    before: opt(str),
+    after: opt(str),
+    /** The whole paragraph holding the sentence, and the sentences either side of it. */
+    paragraph: opt(str),
+    previousSentence: opt(str),
+    nextSentence: opt(str),
+    /** The chapter or section title, so the fix keeps its subject. */
+    sectionTitle: opt(str),
+  }),
+  fix: z.object({ instruction: opt(str) }),
+});
 export const WeaveNoteInput = Base.extend({
   note: z.object({ text: str, intent: opt(str) }),
   weave: z.object({ before: opt(str), after: opt(str) }),

@@ -4,9 +4,11 @@ import type { AppServices } from '../app.js';
 import type { RequestCtx } from '../auth/context.js';
 import { AppError, parse } from '../http/errors.js';
 import { contextOf, findMatches, replaceMatches } from '../lib/find.js';
+import { KeyedLock } from '../lib/keyed-lock.js';
 import { lineDiff } from '../lib/text.js';
-import { NoteInputSchema, NotePatchSchema, SaveVersionSchema, type Section } from '../repos/manuscript.js';
-import { advanceIfWritingComplete, CODE_WRITTEN_KINDS } from '../jobs/book-data.js';
+import { NoteInputSchema, NotePatchSchema, SaveVersionSchema, sessionStartOf, type Section } from '../repos/manuscript.js';
+import { advanceIfWritingComplete, CHECKS_MISSING_CHECKER, CODE_WRITTEN_KINDS, SUMMARY_MISSING_CHECKER } from '../jobs/book-data.js';
+import { estimateRuns } from './fixes.js';
 import { sectionGuardrails } from '../repos/run-info.js';
 import { LEDGER_KINDS } from '../ports/ai.js';
 import { accepted, idOf, writer } from './common.js';
@@ -95,7 +97,13 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const id = idOf(req);
     const body = parse(SaveVersionSchema, req.body);
-    const input: Parameters<typeof m.saveVersion>[2] = { bodyMd: body.bodyMd, content: body.content, source: 'human', note: body.note ?? null };
+    const input: Parameters<typeof m.saveVersion>[2] = {
+      bodyMd: body.bodyMd,
+      content: body.content,
+      source: 'human',
+      note: body.note ?? null,
+      createdBy: req.ctx.userId,
+    };
     if (body.baseVersionId !== undefined) input.baseVersionId = body.baseVersionId;
     const v = await m.saveVersion(req.ctx, id, input);
     // D-048: the owner's save can finish the writing, which moves the book on to the editor.
@@ -109,7 +117,16 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
     return v;
   });
 
-  app.get('/sections/:id/versions', async (req) => ({ items: await m.listVersions(req.ctx, idOf(req)) }));
+  /**
+   * Versions, newest first. previousVersionId is the version before the current edit session (before the run of the
+   * same user's autosaves that ends at the current version), for "restore what I had before I started editing".
+   */
+  app.get('/sections/:id/versions', async (req) => {
+    const id = idOf(req);
+    const items = await m.listVersions(req.ctx, id);
+    const section = await m.requireSection(req.ctx, id);
+    return { items, currentVersionId: section.currentVersionId, previousVersionId: sessionStartOf(items, section.currentVersionId) };
+  });
 
   app.get('/sections/:id/versions/:versionId', async (req) => {
     const p = parse(VersionParams, req.params);
@@ -171,16 +188,54 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
 
   // Rerun of the post-write steps that failed on a saved section (open summary_missing or checks_missing flags, or no
   // summary yet). The text is not rewritten. /summarise is the first name of this route and does the same.
+  // POST: 202 { jobId, job, steps, estimate: { lowUsd, highUsd } }. 409 invalid_state when there is no text or nothing
+  // is missing; 409 conflict { jobId } when an unfinished job already works on the section. Check, estimate and
+  // enqueue run under one lock per section, so two clicks cannot queue (and pay for) two reruns. Pack preflight fix
+  // actions 'rerun-checks' point here. GET /sections/:id/recheck answers the same steps and estimate without queuing.
+  const recheckLock = new KeyedLock();
+  const recheckPlan = async (ctx: RequestCtx, id: string) => {
+    const section = await m.requireSection(ctx, id);
+    const current = section.currentVersionId ? await m.getVersion(ctx, section.currentVersionId) : null;
+    if (!current) return { section, steps: [] as ('summary' | 'checks')[], hasText: false, runningJobId: null, estimate: { lowUsd: 0, highUsd: 0 } };
+    // The same test rerunMissingSteps makes, so the answer and the job agree on what runs.
+    const open = (await m.listChecks(ctx, { versionId: current.id })).filter((c) => c.status === 'open');
+    const steps: ('summary' | 'checks')[] = [
+      ...(current.summary === null || open.some((c) => c.checker === SUMMARY_MISSING_CHECKER) ? (['summary'] as const) : []),
+      ...(open.some((c) => c.checker === CHECKS_MISSING_CHECKER) ? (['checks'] as const) : []),
+    ];
+    // Any unfinished job on the section's text; claim fix options only read it.
+    const running = await s.queue.activeWhere(ctx, section.projectId, (j) => j.payload['sectionId'] === section.id && j.kind !== 'claim_fix');
+    const variables = { markdown: current.bodyMd, section: { id: section.id, title: section.title } };
+    const estimate = await estimateRuns(s, ctx, section.projectId, [
+      ...(steps.includes('summary')
+        ? [{ stage: 'summarise' as const, input: { promptId: 'checks.summarise-and-ledger', variables, projectId: section.projectId } }]
+        : []),
+      ...(steps.includes('checks')
+        ? [{ stage: 'checks' as const, input: { promptId: 'checks.claims-and-consistency', variables, projectId: section.projectId } }]
+        : []),
+    ]);
+    return { section, steps, hasText: true, runningJobId: running[0]?.id ?? null, estimate };
+  };
   const rerunMissing = async (req: FastifyRequest, reply: FastifyReply) => {
     writer(req);
     const id = idOf(req);
     parse(z.object({}).strict().optional(), req.body);
-    const section = await m.requireSection(req.ctx, id);
-    if (!section.currentVersionId) throw new AppError('invalid_state', 'This section has no text to summarise or check yet. Write it first.');
-    // The section keeps its status (needs attention) until the rerun ends, so a cancelled rerun cannot hide the flag.
-    const job = await s.queue.enqueue(req.ctx, { kind: 'write_section', projectId: section.projectId, payload: { sectionId: id, rerunMissing: true } });
-    return accepted(reply, job);
+    await m.requireSection(req.ctx, id);
+    return recheckLock.run(id, async () => {
+      const plan = await recheckPlan(req.ctx, id);
+      if (!plan.hasText) throw new AppError('invalid_state', 'This section has no text to summarise or check yet. Write it first.');
+      if (plan.steps.length === 0) throw new AppError('invalid_state', 'Nothing is missing: this section has its summary and its checks.');
+      if (plan.runningJobId) throw new AppError('conflict', 'A job is already working on this section. Wait for it to finish.', { jobId: plan.runningJobId });
+      // The section keeps its status (needs attention) until the rerun ends, so a cancelled rerun cannot hide the flag.
+      const job = await s.queue.enqueue(req.ctx, { kind: 'write_section', projectId: plan.section.projectId, payload: { sectionId: id, rerunMissing: true } });
+      return { ...accepted(reply, job), steps: plan.steps, estimate: plan.estimate };
+    });
   };
+  /** What a rerun would do and cost, without queuing it: { steps, estimate, runningJobId, hasText }. */
+  app.get('/sections/:id/recheck', async (req) => {
+    const plan = await recheckPlan(req.ctx, idOf(req));
+    return { sectionId: plan.section.id, steps: plan.steps, estimate: plan.estimate, runningJobId: plan.runningJobId, hasText: plan.hasText };
+  });
   app.post('/sections/:id/recheck', rerunMissing);
   app.post('/sections/:id/summarise', rerunMissing);
 
