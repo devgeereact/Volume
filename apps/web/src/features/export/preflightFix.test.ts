@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { fixAction, runningJob } from "./preflightFix";
+import { runningJob } from "../../api/jobErrors";
+import { fixAction } from "./preflightFix";
 
 describe("fixAction", () => {
   it("runs checks again for a section", () => {

@@ -3,6 +3,7 @@ import { Check, PenLine, RotateCw, Sparkles } from "lucide-react";
 import { Banner, Button, Loader, Textarea } from "../../components/ui";
 import { isApiError } from "../../api/client";
 import { useApplyClaim, useSuggestClaim } from "../../api/hooks";
+import { runningJob } from "../../api/jobErrors";
 import type { ClaimOption, CostRange } from "../../api/types";
 import { errorText, jobStatusText, useJobWatch } from "../../api/wire-c";
 import { cn } from "../../lib/cn";
@@ -79,7 +80,12 @@ export function ClaimRewrite({
       const r = await suggest.mutateAsync({ bookId, claimId: claim.id, ...(instruction.trim() ? { instruction: instruction.trim() } : {}) });
       setStep({ at: "running", jobId: r.jobId, estimate: r.estimate ?? null });
     } catch (e) {
-      setProblem({ conflict: isApiError(e) && e.isConflict, text: errorText(e) });
+      // Options for this claim are still being made: follow that job instead of paying twice.
+      const running = isApiError(e) && e.isConflict ? runningJob(e.details) : null;
+      if (running) {
+        setStep({ at: "running", jobId: running, estimate: null });
+        onAnnounce("Options for this claim are already being made. Showing them when they are ready.");
+      } else setProblem({ conflict: false, text: errorText(e) });
     }
   }
 
