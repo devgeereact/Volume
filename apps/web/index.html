@@ -7,6 +7,11 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Volume</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Browser bar colour: the canvas token (packages/ui tokens.css), light and dark. src/lib/theme.tsx keeps it in step with a saved theme. -->
+    <meta name="theme-color" content="#F3F2EE" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16172A" media="(prefers-color-scheme: dark)" />
     <script>
       // Set the theme before first paint so there is no flash. Mirrors src/lib/theme.tsx.
       (function () {

@@ -6,9 +6,10 @@ import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { z } from 'zod';
 import { loadConfig, type ConfigBundle, type ModelsDefaults } from './config.ts';
-import { assignSourceIds, packAndRender } from './context.ts';
+import { assignSourceIds, formatProfileFacts, packAndRender } from './context.ts';
 import { AbortedError, AiError, BadRequestError, BudgetError, ModelUnavailableError, OutputTruncatedError, StreamCutError } from './errors.ts';
 import {
+  authorAnecdoteApplies,
   describeOpeners,
   emptyReport,
   finaliseReport,
@@ -437,11 +438,17 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
       ...(typeof input['bookLink'] === 'string' ? [input['bookLink']] : []),
     ];
     const extraBanned = Array.isArray(profile['bannedPhrases']) ? profile['bannedPhrases'].map(String) : [];
+    // The author-anecdote check needs the facts the text may state: the profile facts block and the owner's brief.
+    const brief = [book['idea'], book['authorBrief'], book['notes'], book['brief']].filter((x): x is string => typeof x === 'string' && x.trim() !== '');
+    // Poetry, memoir and biography (and stories) are exempt by template or book type: no facts, no check.
+    const anecdotes = authorAnecdoteApplies({ template: book['template'], type: book['type'] });
+    const authorFacts = anecdotes && asObject(input['profile']) ? [formatProfileFacts(profile) ?? '', ...brief].join('\n') : undefined;
     return {
       sources: input['sources'] !== undefined ? assignSourceIds(input['sources'] as SourceInput[] | null) : undefined,
       allowedUrls,
       allowedIsbns: Array.isArray(book['isbns']) ? book['isbns'].map(String) : [],
       bannedPhrases: [...config.houseStyle.bannedPhrases, ...extraBanned],
+      authorFacts,
     };
   }
 

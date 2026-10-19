@@ -138,7 +138,7 @@ A spread's text is its current version; its scene (`sceneSummary`, `imagePrompt`
 
 **covers**: `project_id` unique, `brief json`, `concepts json` (`{asset_id, prompt, prompt_run_id}[]`), `chosen_asset_id -> assets`, `typography json` (`{title, subtitle, author, fonts, colours, layout}`), `ebook_asset_id -> assets`, `wrap_asset_id -> assets`, `wrap_spec json` (`{trim, paper, pages, spine_in, width_in, height_in}`), `status text` (`brief`, `concepts`, `chosen`, `final`).
 
-**listings**: `project_id` unique, `description_html text`, `description_chars integer`, `back_blurb text`, `short_bio text`, `categories json` (3), `keywords json` (7), `title_check json` (`{chars, ok}`), `ai_disclosure_note text`, `price_ebook_pence integer`, `price_paperback_pence integer`, `calc json` (royalty and printing cost results), `kdp_rules_version text`.
+**listings**: `project_id` unique, `description_html text`, `description_chars integer`, `back_blurb text`, `short_bio text`, `categories json` (3), `keywords json` (7), `title_check json` (`{chars, ok}`), `ai_disclosure_note text`, `price_ebook_pence integer`, `price_paperback_pence integer`, `calc json` (royalty and printing cost results), `kdp_rules_version text`, `source text` (`ai:matter` from the listing job, migration 0010; the pack prefers the owner's blueprint edits to it).
 
 **marketing_items**: `project_id`, `profile_id`, `kind text` (`tiktok_script`, `instagram_caption`, `launch_email`), `title text`, `hook text`, `body text`, `cta text`, `hashtags json`, `duration_s integer`, `status text` (`draft`, `used`, `archived`), `prompt_run_id`. Index `(project_id, kind, status)`.
 
@@ -167,7 +167,7 @@ Quality gate: a batch book cannot be marked ready, have a slot confirmed, be pac
 | project_id | text | Nullable for workspace jobs |
 | parent_id | text -> jobs | |
 | depends_on_job_id | text -> jobs | Runs only after it succeeds |
-| kind | text not null | As built (`JOB_KINDS` in `apps/server/src/jobs/queue.ts`): `research`, `titles`, `blueprint`, `blueprint_part`, `write_book`, `write_section`, `weave_notes`, `edit_pass`, `cover_concepts`, `cover_build`, `marketing`, `export_pack`, `rewrite_selection`, `batch_run` (Volume mode parent), `batch_book` (one book of a batch: blueprint, approval, writing), picture books (P7-5): `picture_book` (parent), `picture_story` (story and scene prompts), `picture_characters` (reference prompts and pictures), `spread_image` (one per spread), `picture_export` (full-bleed PDF, preflight, pack), `noop` |
+| kind | text not null | As built (`JOB_KINDS` in `apps/server/src/jobs/queue.ts`): `research`, `titles`, `blueprint`, `blueprint_part`, `write_book`, `write_section`, `weave_notes`, `edit_pass`, `cover_concepts`, `cover_build`, `marketing`, `listing` (the matter stage, last child of `write_book`), `export_pack`, `rewrite_selection`, `batch_run` (Volume mode parent), `batch_book` (one book of a batch: blueprint, approval, writing), picture books (P7-5): `picture_book` (parent), `picture_story` (story and scene prompts), `picture_characters` (reference prompts and pictures), `spread_image` (one per spread), `picture_export` (full-bleed PDF, preflight, pack), `noop` |
 | status | text not null | `queued`, `running`, `paused_budget`, `succeeded`, `needs_attention`, `failed`, `cancelled` |
 | priority | integer default 100 | Lower runs first |
 | attempts, max_attempts | integer | Default max 3 |

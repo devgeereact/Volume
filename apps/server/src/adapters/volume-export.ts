@@ -306,6 +306,7 @@ const FIX_ROUTES: Readonly<Record<string, { route: string; label: string }>> = {
   claims: { route: 'editor', label: 'Review claims' },
   kdp: { route: 'export', label: 'Set the AI disclosure' },
   listing: { route: 'blueprint', label: 'Edit the listing' },
+  marketing: { route: 'marketing', label: 'Open marketing' },
   interior: { route: 'export', label: 'Rebuild the interior' },
   cover: { route: 'cover', label: 'Open the cover studio' },
 };
@@ -677,6 +678,10 @@ export class VolumeExportAdapter implements ExportPort {
     const template = this.template(book);
     if (template !== undefined) input.template = template;
     if (book.claims) input.claims = book.claims;
+    // House style and length for the text outside the manuscript: the back-cover blurb and the marketing.
+    const blurb = book.listing?.backBlurb?.trim();
+    if (blurb) input.blurb = blurb;
+    if (book.marketing) input.marketing = book.marketing;
     if (files.interiorPdf) {
       input.interiorPdf = files.interiorPdf;
       const margin = this.margins.get(book.manuscriptHash);
@@ -684,6 +689,7 @@ export class VolumeExportAdapter implements ExportPort {
     }
     if (files.wrapPdf) input.wrapPdf = files.wrapPdf;
     if (files.ebookCover) input.ebookCover = files.ebookCover;
+    if (book.ownCover && (book.ownCover.ebook || book.ownCover.wrap)) input.ownCovers = { ebook: book.ownCover.ebook, wrap: book.ownCover.wrap };
     return input;
   }
 
@@ -746,7 +752,8 @@ function packFilesOf(files: ExportFile[]): { pack: PackFiles; pages: number | un
     else if (role === 'epub') pack.epub = data;
     else if (role === 'txt') pack.txt = data;
     else if (role === 'md') pack.md = data;
-    else if (role === 'ebook_cover' && f.mime === MIME.jpeg) pack.ebookCover = data;
+    // The owner's own eBook cover may be TIFF (rule ebook.cover fileTypes).
+    else if (role === 'ebook_cover' && (f.mime === MIME.jpeg || f.mime === 'image/tiff')) pack.ebookCover = data;
     else if (role === 'wrap_pdf' && f.mime === MIME.pdf) pack.wrapPdf = data;
   }
   return { pack, pages };

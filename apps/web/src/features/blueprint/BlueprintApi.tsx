@@ -22,6 +22,7 @@ import {
 } from "../../components/ui";
 import { blueprintData } from "../../api/adapters";
 import { planningApi } from "../../api/planning";
+import { scrollBehavior } from "../../lib/motion";
 import { isApiError } from "../../api/client";
 import {
   useApproveBlueprint,
@@ -156,7 +157,7 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
 
   function select(p: Part) {
     setSelected(p.key);
-    requestAnimationFrame(() => document.getElementById(p.anchor)?.scrollIntoView({ block: "start", behavior: "smooth" }));
+    requestAnimationFrame(() => document.getElementById(p.anchor)?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
   }
 
   function openEdit(target: EditTarget) {

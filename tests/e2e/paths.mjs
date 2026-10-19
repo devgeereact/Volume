@@ -10,3 +10,6 @@ export const downloadDir = path.join(e2eDir, "downloads");
 /* The full-book server (injected writing failure) keeps its own database and data folder. */
 export const failServerSqlitePath = path.join(e2eDir, "volume-fail.sqlite");
 export const failServerDataDir = path.join(e2eDir, "data-fail");
+/* The picture-book server runs the mock AI slowly enough for a run to be watched, and keeps its own database. */
+export const pictureServerSqlitePath = path.join(e2eDir, "volume-picture.sqlite");
+export const pictureServerDataDir = path.join(e2eDir, "data-picture");

@@ -1289,7 +1289,7 @@ export interface ApiJobDetail extends ApiJob {
 
 /* ---------- Assets ---------- */
 
-export type AssetKind = "author_photo" | "import" | "logo" | "interior_image" | "cover_concept" | "other";
+export type AssetKind = "author_photo" | "import" | "logo" | "interior_image" | "cover_concept" | "own_ebook_cover" | "own_wrap_pdf" | "other";
 
 export interface ApiAssetMeta {
   id: string;

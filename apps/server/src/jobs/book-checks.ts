@@ -30,7 +30,7 @@ export interface WrittenSection {
   summary: string | null;
 }
 
-const BODY_KINDS: ReadonlySet<string> = new Set(['introduction', 'chapter', 'conclusion', 'epilogue']);
+export const BODY_KINDS: ReadonlySet<string> = new Set(['introduction', 'chapter', 'conclusion', 'epilogue']);
 
 export function sectionTitle(s: { kind: string; number: number | null; title: string | null }): string {
   return s.kind === 'chapter' && s.number !== null ? `Chapter ${s.number}: ${s.title ?? ''}` : (s.title ?? s.kind);

@@ -331,13 +331,15 @@ describe('7. writing jobs', () => {
     const w = await t.call<{ jobId: string }>('POST', `/api/v1/books/${id}/write`, {});
     // The parent plus two sections: the rest are still queued.
     await t.services.runner.runUntilIdle(3);
-    const mid = await t.call<{ etaMs: number | null; model: string | null; children: { status: string; etaMs: number | null; model: string | null }[] }>(
-      'GET',
-      `/api/v1/jobs/${w.body.jobId}`,
-    );
+    const mid = await t.call<{
+      etaMs: number | null;
+      model: string | null;
+      children: { kind: string; status: string; etaMs: number | null; model: string | null }[];
+    }>('GET', `/api/v1/jobs/${w.body.jobId}`);
     expect(typeof mid.body.etaMs).toBe('number');
     expect(mid.body.model).toEqual(anyString);
-    const queued = mid.body.children.filter((c) => c.status === 'queued');
+    // Section children carry the ETA; the listing child after them (matter stage) has none.
+    const queued = mid.body.children.filter((c) => c.status === 'queued' && c.kind === 'write_section');
     expect(queued.length).toBeGreaterThan(0);
     expect(queued.every((c) => typeof c.etaMs === 'number' && c.model !== null)).toBe(true);
     expect(mid.body.children.filter((c) => c.status === 'succeeded').every((c) => c.etaMs === null)).toBe(true);

@@ -20,6 +20,7 @@ import {
 import { calmWardResearch, getModel, nightShiftResearchStatus, type Book, type ResearchSource } from "../../demo";
 import { DEMO_NOW } from "../../demo/books";
 import { cn } from "../../lib/cn";
+import { scrollBehavior } from "../../lib/motion";
 import { formatModel, formatRelative, formatUsd } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
 import { useBook } from "../../lib/useBook";
@@ -105,13 +106,13 @@ function Research({ book }: { book: Book }) {
   function showSource(id: string) {
     setHighlight(id);
     const el = document.getElementById(`source-${id}`);
-    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    el?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
     el?.focus({ preventScroll: true });
   }
   function showCitation(anchor: string) {
     setFlash(anchor);
     const el = document.getElementById(`cite-${anchor}`);
-    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    el?.scrollIntoView({ block: "center", behavior: scrollBehavior() });
     el?.focus({ preventScroll: true });
   }
 

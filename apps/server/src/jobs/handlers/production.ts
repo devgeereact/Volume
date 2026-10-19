@@ -1,9 +1,12 @@
 import type { ExportFile, ExportKind, PreflightReport } from '../../ports/export.js';
 import { EXPORT_KINDS } from '../../ports/export.js';
 import type { MarketingExtras } from '../../repos/production.js';
-import { bookMarketingCounts, buildExportBook, profileSummary, withOwnerPlaceholders, withPackCovers } from '../book-data.js';
+import { bookMarketingCounts, buildExportBook, houseStyle, ownerListingFields, profileSummary, withOwnerPlaceholders, withPackCovers } from '../book-data.js';
+import { fixHouseStyleDeep } from '../house-style-fix.js';
 import { writtenSections, writtenSummaries } from '../book-checks.js';
+import { listingVariables } from '../listing-input.js';
 import { JobFailed } from '../errors.js';
+import { dedupeKey } from '../../lib/util.js';
 import { isPictureBook, pageCount as picturePageCount, PICTURE_INK, pictureStructure, SPREAD_KIND } from '../picture-book.js';
 import type { JobHandler } from '../runner.js';
 
@@ -95,14 +98,20 @@ export const coverBuildHandler: JobHandler = async (jc) => {
   if (!projectId) throw new JobFailed('Cover job is missing its book.');
   const cover = await repos.production.getCover(jc.ctx, projectId);
   if (!cover?.chosenAssetId) throw new JobFailed('Choose a cover concept first.', 'invalid_state');
+  // The owner's own covers ("use my own cover") stay: a build makes only the slots that are not the owner's.
+  const keepEbook = cover.wrapSpec['ownEbook'] === true && !!cover.ebookAssetId;
+  const keepWrap = cover.wrapSpec['ownWrap'] === true && !!cover.wrapAssetId;
+  if (keepEbook && keepWrap) return { result: { skipped: 'own covers in use', ebookAssetId: cover.ebookAssetId, wrapAssetId: cover.wrapAssetId } };
   const book = await buildExportBook(repos, jc.ctx, projectId, jc.services.configDir, jc.services.blobs);
   const art = await blobs.read(jc.ctx, cover.chosenAssetId);
-  const listing = await repos.planning.latestBlueprint(jc.ctx, projectId);
-  const backBlurb = typeof listing?.data['back_blurb'] === 'string' ? listing.data['back_blurb'] : '';
+  // The same blurb as the pack: the matter stage's, else the blueprint's (D-049).
+  const backBlurb = book.listing?.backBlurb ?? '';
 
   // The wrap needs the real interior page count: use the latest print PDF, or build one now.
   const exports = await repos.production.listExports(jc.ctx, projectId);
-  let pageCount = exports.find((e) => e.kind === 'pdf_print' && e.status === 'done' && e.manuscriptHash === book.manuscriptHash)?.pageCount ?? null;
+  let pageCount: number | null = keepWrap
+    ? 0
+    : (exports.find((e) => e.kind === 'pdf_print' && e.status === 'done' && e.manuscriptHash === book.manuscriptHash)?.pageCount ?? null);
   // A picture book prints in premium colour, so its spine uses the colour rule (paperback.spine.widthPerPage.colour).
   const picture = isPictureBook(await pictureStructure(jc.services.configDir, await repos.books.require(jc.ctx, projectId)));
   if (pageCount === null) {
@@ -119,32 +128,73 @@ export const coverBuildHandler: JobHandler = async (jc) => {
     } else pageCount = (await exporter.buildPdf(book, { signal: jc.signal })).pageCount ?? 24;
   }
 
-  await jc.progress(0.3, 'Building the eBook cover');
   const input = { book, artwork: { mime: art.meta.mime, data: art.data }, typography: cover.typography, coverStyleId: book.coverStyleId };
-  const ebook = await exporter.buildEbookCover(input, { signal: jc.signal });
-  await jc.checkpoint();
-  await jc.progress(0.6, 'Building the paperback wrap');
-  const wrap = await exporter.buildWrapCover({ ...input, pageCount, backBlurb, ...(picture ? { ink: PICTURE_INK } : {}) }, { signal: jc.signal });
-  const ebookAsset = await blobs.put(
-    jc.ctx,
-    { kind: 'cover_ebook', filename: ebook.filename, mime: ebook.mime, projectId, aiGenerated: art.meta.aiGenerated },
-    ebook.data,
-  );
-  const wrapAsset = await blobs.put(
-    jc.ctx,
-    { kind: 'cover_wrap', filename: wrap.filename, mime: wrap.mime, projectId, aiGenerated: art.meta.aiGenerated },
-    wrap.data,
-  );
+  let ebookAssetId = cover.ebookAssetId;
+  let wrapAssetId = cover.wrapAssetId;
+  let mock = false;
+  if (!keepEbook) {
+    await jc.progress(0.3, 'Building the eBook cover');
+    const ebook = await exporter.buildEbookCover(input, { signal: jc.signal });
+    mock ||= ebook.mock;
+    ebookAssetId = (
+      await blobs.put(jc.ctx, { kind: 'cover_ebook', filename: ebook.filename, mime: ebook.mime, projectId, aiGenerated: art.meta.aiGenerated }, ebook.data)
+    ).id;
+    await jc.checkpoint();
+  }
+  if (!keepWrap) {
+    await jc.progress(0.6, 'Building the paperback wrap');
+    const wrap = await exporter.buildWrapCover({ ...input, pageCount, backBlurb, ...(picture ? { ink: PICTURE_INK } : {}) }, { signal: jc.signal });
+    mock ||= wrap.mock;
+    wrapAssetId = (
+      await blobs.put(jc.ctx, { kind: 'cover_wrap', filename: wrap.filename, mime: wrap.mime, projectId, aiGenerated: art.meta.aiGenerated }, wrap.data)
+    ).id;
+  }
   await repos.production.upsertCover(jc.ctx, projectId, {
-    ebookAssetId: ebookAsset.id,
-    wrapAssetId: wrapAsset.id,
-    wrapSpec: { trim: book.trim, paper: book.paper, pages: pageCount, ...(picture ? { ink: PICTURE_INK } : {}), mock: ebook.mock || wrap.mock },
+    ebookAssetId,
+    wrapAssetId,
+    wrapSpec: {
+      ...(keepWrap ? {} : { trim: book.trim, paper: book.paper, pages: pageCount, ...(picture ? { ink: PICTURE_INK } : {}) }),
+      ...(keepEbook ? { ownEbook: true } : {}),
+      ...(keepWrap ? { ownWrap: true } : {}),
+      mock,
+    },
     status: 'final',
   });
   if (art.meta.aiGenerated) await repos.books.setAiDisclosure(jc.ctx, projectId, 'images', 'ai_generated');
-  await jc.emit('cover.updated', { projectId, status: 'final', ebookAssetId: ebookAsset.id, wrapAssetId: wrapAsset.id });
-  return { result: { ebookAssetId: ebookAsset.id, wrapAssetId: wrapAsset.id } };
+  await jc.emit('cover.updated', { projectId, status: 'final', ebookAssetId, wrapAssetId });
+  return { result: { ebookAssetId, wrapAssetId, kept: { ebook: keepEbook, wrap: keepWrap } } };
 };
+
+/**
+ * A TikTok script body with no line starting in stray punctuation (", : words"), which an empty beat time or a dash
+ * the house style fix removed can leave behind (live acceptance run, 19 October 2026). Empty lines are dropped.
+ */
+export function tidyBeatLines(body: string): string {
+  return body
+    .split('\n')
+    .map((l) => l.replace(/^[\s,;:]+/, '').trimEnd())
+    .filter((l) => l.length > 0)
+    .join('\n');
+}
+
+/** The line an item is known by: a script's hook, else the first line of its body. */
+function openingLine(m: { hook: string | null; body: string }): string {
+  return (m.hook?.trim() || m.body.split('\n').find((l) => l.trim().length > 0) || '').trim();
+}
+
+/** Marketing items with any repeat of an earlier item of the same kind (same text once folded) left out. */
+export function distinctMarketing<T extends { kind: string; hook: string | null; body: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((i) => {
+    const key = `${i.kind}:${dedupeKey(i.hook)}:${dedupeKey(i.body)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/** Marketing fields the house style fix leaves alone (hashtags are search terms, kind is a code). */
+const MARKETING_KEEP: ReadonlySet<string> = new Set(['kind', 'hashtags']);
 
 export const marketingHandler: JobHandler = async (jc) => {
   const { repos } = jc.services;
@@ -166,6 +216,9 @@ export const marketingHandler: JobHandler = async (jc) => {
   // (live run 3: two TikTok scripts described methods the book never covered).
   const counts = await bookMarketingCounts(jc.services.configDir, book);
   const taught = writtenSummaries(await writtenSections(repos, jc.ctx, projectId));
+  // Regenerating one item: the openings of the book's other items of that kind, so the new one differs from them.
+  const siblings = target ? (await repos.production.listMarketing(jc.ctx, projectId, { kind: target.kind })).filter((m) => m.id !== target.id) : [];
+  const avoid = siblings.map(openingLine).filter((x) => x.length > 0);
   const res = await jc.runAi('marketing', {
     promptId: 'marketing.launch-pack',
     variables: {
@@ -177,7 +230,7 @@ export const marketingHandler: JobHandler = async (jc) => {
       previousSummaries: taught,
       kinds,
       // Counts from the book's template (D-049, 5 and 5 unless it says otherwise); one item when regenerating one.
-      ...(target ? { count: 1, instruction: jc.payload['instruction'] ?? null } : { tiktokCount: counts.tiktok, instagramCount: counts.instagram }),
+      ...(target ? { count: 1, instruction: jc.payload['instruction'] ?? null, avoid } : { tiktokCount: counts.tiktok, instagramCount: counts.instagram }),
       profile: await profileSummary(repos, jc.ctx, book.profileId, book),
     },
   });
@@ -231,6 +284,12 @@ export const marketingHandler: JobHandler = async (jc) => {
       extras: { subjectLines: e.subjects },
     });
   }
+  // House style auto-fix on the AI's posts and email (live acceptance run: 42 en dashes in one book's posts).
+  const fixed = fixHouseStyleDeep(items, houseStyle(jc.services.configDir), MARKETING_KEEP).value.map((i) =>
+    i.kind === 'tiktok_script' ? { ...i, body: tidyBeatLines(i.body) } : i,
+  );
+  // Dedupe on save: the same post twice in one answer is kept once (live acceptance run, 19 October 2026).
+  items.splice(0, items.length, ...distinctMarketing(fixed));
   if (target) {
     const next = items.find((i) => i.kind === target.kind);
     if (!next) throw new JobFailed('The model returned nothing for this item. Try again.', 'invalid_output');
@@ -254,6 +313,48 @@ export function packBlockedReason(report: PreflightReport): string {
   const more = blocks.length > 1 ? ` ${blocks.length - 1} more ${blocks.length === 2 ? 'problem' : 'problems'} in the preflight report.` : '';
   return `The upload pack was not built. ${first.replace(/\.$/, '')}.${more} The other files are built and ready to download.`;
 }
+
+/** Listing fields the house style fix leaves alone: search terms. */
+const LISTING_KEEP: ReadonlySet<string> = new Set(['keywords', 'categories']);
+
+/**
+ * The matter stage (docs/02-architecture/AI-PIPELINE.md stage 7): matter.amazon-description, matter.keywords-categories
+ * and matter.back-cover write the listing from the written chapters, and it is saved for the pack, which prefers it to
+ * the blueprint's planning drafts (D-049). Runs as the last child of write_book and from POST /books/:id/listing.
+ * Before the second live acceptance run (19 October 2026) no job called this stage, so the selling blurb prompts were
+ * never used.
+ */
+export const listingHandler: JobHandler = async (jc) => {
+  const { repos } = jc.services;
+  const projectId = jc.job.projectId;
+  if (!projectId) throw new JobFailed('Listing job is missing its book.');
+  const book = await repos.books.require(jc.ctx, projectId);
+  const blueprint = book.approvedBlueprintId
+    ? await repos.planning.blueprintById(jc.ctx, book.approvedBlueprintId)
+    : await repos.planning.latestBlueprint(jc.ctx, projectId);
+  // The same variables the writing estimate prices (one shared helper).
+  const res = await jc.runAi('matter_metadata', { variables: await listingVariables(repos, jc.services.configDir, jc.ctx, book) });
+  const out = fixHouseStyleDeep(res.output, houseStyle(jc.services.configDir), LISTING_KEEP).value;
+  // Fields the owner edited in the blueprint are never overwritten: the saved listing keeps what it had for them, and
+  // the pack uses the owner's text.
+  const owner = await ownerListingFields(repos, jc.ctx, blueprint);
+  const before = await repos.production.getListing(jc.ctx, projectId);
+  const listing = await repos.production.saveListing(jc.ctx, projectId, {
+    descriptionHtml: owner.has('description_draft') ? (before?.descriptionHtml ?? null) : out.description_html.trim() || null,
+    backBlurb: owner.has('back_blurb') ? (before?.backBlurb ?? null) : out.back_blurb.trim() || null,
+    shortBio: typeof out['short_bio'] === 'string' && out['short_bio'].trim() ? out['short_bio'].trim() : null,
+    categories: owner.has('categories') ? (before?.categories ?? []) : out.categories,
+    keywords: owner.has('keywords') ? (before?.keywords ?? []) : out.keywords,
+    source: 'ai:matter',
+  });
+  await jc.emit('book.updated', { projectId, part: 'listing' });
+  return {
+    result: {
+      listing: { description: listing.descriptionHtml !== null, backBlurb: listing.backBlurb !== null, keywords: listing.keywords.length },
+      ownerKept: [...owner],
+    },
+  };
+};
 
 const BUILDERS: Record<ExportKind, 'buildPdf' | 'buildDocx' | 'buildEpub' | 'buildTxt' | 'buildMd'> = {
   pdf_print: 'buildPdf',

@@ -24,6 +24,12 @@ import {
 
 export const MOCK_COST_PER_CALL_USD = 0.001;
 const MOCK_MARK = '[MOCK]';
+/**
+ * The matter stage's mock blurb and description (the listing job). The pack and the wrap use them over the blueprint
+ * drafts, so the blurb reads like a short real one (the e2e pack check wants more than 20 characters).
+ */
+export const MOCK_MATTER_BLURB = `${MOCK_MARK} Back-cover blurb from the matter stage: what the finished book does for the reader, from its written chapters.`;
+export const MOCK_MATTER_DESCRIPTION = `<p>${MOCK_MARK} Amazon description from the matter stage.</p>`;
 
 function str(v: unknown, fallback: string): string {
   return typeof v === 'string' && v.trim().length > 0 ? v : fallback;
@@ -350,8 +356,8 @@ function buildOutput<S extends AiStage>(stage: S, input: AiStageInput): AiStageO
         acknowledgements: `${MOCK_MARK} Thanks to the readers.`,
         review_request: `${MOCK_MARK} If this book helped, a short review helps others find it.`,
         newsletter_line: `${MOCK_MARK} Join the newsletter.`,
-        back_blurb: `${MOCK_MARK} Back blurb.`,
-        description_html: `<p>${MOCK_MARK} Description.</p>`,
+        back_blurb: MOCK_MATTER_BLURB,
+        description_html: MOCK_MATTER_DESCRIPTION,
         keywords: Array.from({ length: 7 }, (_, i) => `mock keyword ${i + 1}`),
         categories: ['Mock 1', 'Mock 2', 'Mock 3'],
       };

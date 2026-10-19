@@ -75,10 +75,13 @@ All routes use server-resolved owner/workspace context. Requests are validated b
 | POST | `/api/v1/books/:id/cover/concepts` | `apps/server/src/routes/production.ts` |
 | POST | `/api/v1/books/:id/cover/choose` | `apps/server/src/routes/production.ts` |
 | POST | `/api/v1/books/:id/cover/build` | `apps/server/src/routes/production.ts` |
+| POST | `/api/v1/books/:id/cover/own` | `apps/server/src/routes/production.ts` |
 | GET | `/api/v1/books/:id/preflight` | `apps/server/src/routes/production.ts` |
 | POST | `/api/v1/books/:id/exports` | `apps/server/src/routes/production.ts` |
 | GET | `/api/v1/books/:id/exports` | `apps/server/src/routes/production.ts` |
 | GET | `/api/v1/exports/:id/download` | `apps/server/src/routes/production.ts` |
+| GET | `/api/v1/books/:id/listing` | `apps/server/src/routes/production.ts` |
+| POST | `/api/v1/books/:id/listing` | `apps/server/src/routes/production.ts` |
 | POST | `/api/v1/books/:id/marketing` | `apps/server/src/routes/production.ts` |
 | GET | `/api/v1/books/:id/marketing` | `apps/server/src/routes/production.ts` |
 | GET | `/api/v1/marketing` | `apps/server/src/routes/production.ts` |

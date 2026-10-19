@@ -12,11 +12,24 @@ Moving a book between Volumes (D-051).
 - Library: an Import project button next to Import manuscript (owners and editors). It asks for the zip and a pen name, preselects the profile you are filtering by, and explains each refusal in plain words.
 - Export screen: Move this book, with Download project (to move this book). Owners and editors only.
 - Export screen: a moved book shows its origin note, for example "Moved from another Volume on 19 October 2026."
+- Web app manifest, app icons (including an Apple touch icon) and a browser bar colour for light and dark themes.
 
 #### Changed
 - Project zips no longer carry built export files or spend. Build the PDF, EPUB and pack again after a move.
+- The Use this title button holds while the choice saves, so a title cannot be chosen twice.
+- Smooth scrolling respects the system's reduced motion setting.
+- A screen error now stays inside the app, with a link back to the Library.
 
 ## 18 October 2026
+
+Own covers and export checks (live acceptance fixes).
+
+#### Added
+- Use my own cover: on the Cover screen, upload a front cover image for the eBook (JPEG or TIFF) and a full paperback wrap PDF instead of paying for AI concepts. The upload pack uses them as they are, a cover build keeps them, and the export preflight checks them against KDP's rules (size from the real page count, resolution, fonts, spine text).
+- The preflight now checks the listing title, subtitle and description and the back-cover blurb for dashes, banned phrases and US spellings (these block), the blurb's word range (a warning), and the marketing posts and email (a warning).
+
+#### Fixed
+- A symbol the book fonts do not have, such as an arrow or a tick, no longer blocks the upload pack. Print files show "to", "->", "[x]" and similar instead, maths symbols use an embedded fallback font, and emoji are left out. The export notes list each swap.
 
 Production hub (D-048, D-049).
 

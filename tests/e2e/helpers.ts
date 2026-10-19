@@ -8,6 +8,9 @@ import { inflateRawSync } from "node:zlib";
 import { expect, type APIRequestContext } from "@playwright/test";
 
 export const API = "http://127.0.0.1:5311/api/v1";
+/** The picture-book server pair (see playwright.config.ts): same app, slow mock AI, its own database. */
+export const PICTURE_API = "http://127.0.0.1:5317/api/v1";
+export const PICTURE_ORIGIN = "http://127.0.0.1:5318";
 export const JOB_WAIT = 60_000;
 /** The Origin the server accepts on writes from the test browser. */
 export const ORIGIN = "http://127.0.0.1:5312";
@@ -49,14 +52,20 @@ export interface PreflightItem {
   message: string;
 }
 
-export async function getJson<T>(request: APIRequestContext, route: string): Promise<T> {
-  const res = await request.get(`${API}${route}`);
+export async function getJson<T>(request: APIRequestContext, route: string, api: string = API): Promise<T> {
+  const res = await request.get(`${api}${route}`);
   expect(res.ok(), `GET ${route} answered ${res.status()}`).toBe(true);
   return (await res.json()) as T;
 }
 
-export async function postJson<T>(request: APIRequestContext, route: string, data: unknown, expected: number[] = [200, 201, 202]): Promise<T> {
-  const res = await request.post(`${API}${route}`, { headers: { Origin: ORIGIN }, data });
+export async function postJson<T>(
+  request: APIRequestContext,
+  route: string,
+  data: unknown,
+  expected: number[] = [200, 201, 202],
+  target: { api: string; origin: string } = { api: API, origin: ORIGIN },
+): Promise<T> {
+  const res = await request.post(`${target.api}${route}`, { headers: { Origin: target.origin }, data });
   expect(expected, `POST ${route} answered ${res.status()}: ${await res.text()}`).toContain(res.status());
   return (await res.json()) as T;
 }

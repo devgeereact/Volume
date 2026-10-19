@@ -1,8 +1,9 @@
+import { isTiff } from '@volume/export';
 import { AppError } from '../http/errors.js';
 
 /**
  * Image uploads must be what they claim (D-050): the first bytes are checked against the declared type before
- * anything is stored. Signatures: PNG (RFC 2083 / ISO 15948), JPEG SOI marker FF D8 FF, WebP RIFF....WEBP, PDF %PDF-, zip PK 03 04.
+ * anything is stored. Signatures: PNG (RFC 2083 / ISO 15948), JPEG SOI marker FF D8 FF, WebP RIFF....WEBP, TIFF II*\0 or MM\0* (the owner's own eBook cover), PDF %PDF-, zip PK 03 04.
  * Kinds that hold pictures do not take application/octet-stream, so an image cannot skip the check that way.
  */
 
@@ -18,6 +19,8 @@ const SIGNATURES: Record<string, { need: number; test: (head: Buffer) => boolean
     test: (h) => h.subarray(0, 4).toString('latin1') === 'RIFF' && h.subarray(8, 12).toString('latin1') === 'WEBP',
     label: 'WebP',
   },
+  // TIFF 6.0 header: byte order II or MM, then 42. The same check names a TIFF eBook cover in the pack.
+  'image/tiff': { need: 4, test: (h) => isTiff(h), label: 'TIFF' },
   // PDF files begin with the %PDF- header (ISO 32000-1, 7.5.2).
   'application/pdf': { need: 5, test: (h) => h.subarray(0, 5).toString('latin1') === '%PDF-', label: 'PDF' },
   // Zip files (project zips) begin with a local file header, PK 03 04 (PKWARE APPNOTE 4.3.7).

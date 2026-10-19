@@ -131,7 +131,7 @@ describe('titles for a chosen direction', () => {
 });
 
 describe('house-style checks in the writing job', () => {
-  it('flags em dashes, banned phrases and ISBNs with @volume/core and config/house-style.json', async () => {
+  it('fixes em dashes and flags banned phrases and ISBNs with @volume/core and config/house-style.json', async () => {
     const ai = new RecordingAi((stage, input, r) => {
       if (stage !== 'writing' || (input.variables['section'] as Obj)['kind'] !== 'chapter') return r;
       const markdown = `Mornings matter ${EM_DASH} a lot.\n\nThis book will help you unlock calm. Order it with ISBN 978-0-306-40615-7 today.`;
@@ -146,7 +146,9 @@ describe('house-style checks in the writing job', () => {
     expect(chapter.status).toBe('needs_attention');
     const one = await t.call<{ checks: { checker: string; severity: string; message: string }[] }>('GET', `/api/v1/sections/${chapter.id}`);
     const by = (c: string) => one.body.checks.filter((x) => x.checker === c);
-    expect(by('em_dash').map((x) => x.severity)).toEqual(['block']);
+    // Em dashes in AI text are fixed before the save (live acceptance run, 18 October 2026) and reported as information.
+    expect(by('em_dash')).toEqual([]);
+    expect(by('style_autofix').map((x) => x.severity)).toEqual(['info']);
     expect(by('banned').length).toBeGreaterThan(0);
     expect(by('guardrail').some((x) => x.severity === 'block' && /ISBN/.test(x.message))).toBe(true);
     // Clean mock text elsewhere raises no blocks.

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppServices } from '../app.js';
+import { loadBookTypes } from '../config/book-structure.js';
 import { readModelDefaults } from '../config/catalogue.js';
 import { AppError, parse } from '../http/errors.js';
 import { bookMarketingCounts, isWritingComplete, type MarketingCounts } from '../jobs/book-data.js';
@@ -92,6 +93,13 @@ export function bookRoutes(app: FastifyInstance, s: AppServices): void {
     if (body.interiorThemeId === undefined && d.interiorThemeId !== undefined) body.interiorThemeId = d.interiorThemeId;
     if (body.coverStyleId === undefined && d.coverStyleId !== undefined) body.coverStyleId = d.coverStyleId;
     if (body.wordTarget === undefined && d.wordTarget !== undefined) body.wordTarget = d.wordTarget;
+    // No template given: the book type's own (config/book-types.json templateFile), as the web wizard sends it. Other
+    // clients got "nonfiction" for every type before (live acceptance run, 18 October 2026).
+    if (body.template === undefined && body.bookTypeId) {
+      const type = (await loadBookTypes(s.config.configDir)).find((t) => t['id'] === body.bookTypeId);
+      const file = typeof type?.['templateFile'] === 'string' ? type['templateFile'].replace(/\.json$/, '') : '';
+      if (file) body.template = file;
+    }
     const book = await r.create(req.ctx, body, {
       budgetUsd: settings['budget.book_default_usd'] ?? cfgBudget,
       illustrativeLine: profile.illustrativeLineDefault,
