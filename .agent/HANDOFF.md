@@ -387,3 +387,11 @@ Next: owner decides on the summary-missing behaviour and the `checks.maxTokens` 
 - Draft PR #14: retargeted to main and updated; see its PR comment for results. Not merged (author asked for owner review).
 - Checks on the rebased landing branch: typecheck, lint, format:check PASS; Vitest 1,095 passed, 4 skipped; web build PASS; e2e 17 of 17.
 - Next: owner reviews and merges the landing PR and #14, then deploy.
+
+## 2026-10-19 (evening), Claude Code (claude-opus-5-5), merge #17, #16, #14 and deploy
+- What changed: merged #17 (records), #16 (landing; record-file conflict with #17 kept both sides, CURRENT-TASK repaired in 25a02cc), #14 squash-merged (main merged in again; DECISIONS kept D-052 then D-053). Main 2bac198, tree identical to the tested branch.
+- Checks before merge, on the combined code: typecheck, lint, format:check PASS; Vitest 1,176 passed, 4 skipped; web build PASS; e2e 17 of 17.
+- Deploy: owner took a fresh cPanel backup (after the 5 book imports); `npm run deploy -- --migrate --no-ci-check` uploaded `releases/20261019T190641Z`, applied 0011_version_author, switched from `20261019T103759Z`. Script checks: health 200, sign-in enforced, `index-2CoxtlLu.js` served.
+- Live checks after: `/api/health` 200 `{"status":"ok"}`; `/api/v1/books`, `/%61pi/v1/health`, `/api/%761/books`, `/api/v1/projects/import` 401 unsigned; `/`, `/how-it-works`, `/sign-in`, `/welcome` 200; HSTS, CSP, `X-Robots-Tag` present. Browser, signed out: landing hero renders with the Sign in nav; `/sign-in` shows the brand panel and the Clerk form in Volume's colours (gold Continue, Google option). Screenshots `../reports/volume/screenshots/landing-hero/live-*.png`. The Mac's network dropped several requests during the check (GitHub slow too); a reload loaded everything in about 1 s.
+- Small follow-ups: "Sign in to Volume" shows twice on `/sign-in` (page heading and Clerk's card header); a `HydrateFallback` warning on the public `/` route. Not tested: signed-in use after this deploy, the claims and autosave screens on the host.
+- Next: owner signs in and tries autosave and claim fixes; fix the two follow-ups; restore GitHub Actions.
