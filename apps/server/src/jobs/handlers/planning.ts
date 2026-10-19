@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { BlueprintChapterSchema, BlueprintSchema } from '../../ports/ai.js';
 import { loadBookStructure, promptTemplate } from '../../config/book-structure.js';
-import { profileSummary } from '../book-data.js';
+import { houseStyle, profileSummary } from '../book-data.js';
+import type { CompiledHouseStyle } from '@volume/core';
+import { fixHouseStyle, fixHouseStyleDeep } from '../house-style-fix.js';
 import { datedPricesVars, plannedBodyCount, writtenSections } from '../book-checks.js';
 import { JobFailed } from '../errors.js';
 import type { JobHandler } from '../runner.js';
@@ -61,8 +63,11 @@ export const titlesHandler: JobHandler = async (jc) => {
       ...(chosen ? { direction: chosen } : {}),
     },
   });
-  // App checks (docs/04 stage 2): combined length under 200 characters.
-  const options = res.output.options.map((o) => {
+  // Tidied first (prompt formula labels, odd hyphens, stray spaces, house style), then the app checks (docs/04
+  // stage 2): combined length under 200 characters.
+  const style = houseStyle(jc.services.configDir);
+  const options = res.output.options.map((raw) => {
+    const o = { ...raw, title: cleanTitleText(raw.title, style), subtitle: cleanTitleText(raw.subtitle, style) };
     const chars = o.title.length + (o.subtitle ? o.subtitle.length + 2 : 0);
     const issues: string[] = [];
     if (chars >= 200) issues.push('Title and subtitle are 200 characters or more.');
@@ -109,13 +114,35 @@ export const blueprintHandler: JobHandler = async (jc) => {
       profile: await profileSummary(repos, jc.ctx, book.profileId, book),
     },
   });
+  // House style auto-fix on the AI's plan, blurb and listing; keywords and categories are search terms, left alone.
+  const styled = fixHouseStyleDeep(res.output, houseStyle(jc.services.configDir), BLUEPRINT_KEEP).value;
   // The plan must add up to the book's word target within 10%; otherwise every target is rescaled to fit.
-  const fitted = fitWordTargets(res.output, wordTarget);
+  const fitted = fitWordTargets(styled, wordTarget);
   const bp = await repos.planning.addBlueprintVersion(jc.ctx, projectId, fitted, { source: 'ai:blueprint', promptRunId: res.promptRunId });
   await repos.books.advanceStage(jc.ctx, projectId, 'blueprint');
   await jc.emit('book.updated', { projectId, part: 'blueprint', blueprintId: bp.id, version: bp.version });
   return { result: { blueprintId: bp.id, version: bp.version } };
 };
+
+/** Blueprint fields the house style fix leaves alone: search terms and codes. */
+export const BLUEPRINT_KEEP: ReadonlySet<string> = new Set(['keywords', 'categories', 'kind', 'key', 'format']);
+
+/** Formula labels the title prompt asks for (titles.title-options), sometimes copied into the text. */
+const TITLE_LABEL = /^\s*(?:promise|intrigue|direct[- ]label|metaphor|how[- ]to)\s*:\s*/i;
+
+/**
+ * A title or subtitle as the AI gave it, tidied: a leading formula label ("Intrigue: ...") removed, non-breaking and
+ * other unusual hyphens made plain, spaces collapsed and trimmed, and dashes and US spellings fixed to house style
+ * (live acceptance run, 18 October 2026).
+ */
+export function cleanTitleText(s: string, style: CompiledHouseStyle): string {
+  const plain = s
+    .replace(TITLE_LABEL, '')
+    .replace(/[‐‑‒]/g, '-')
+    .replace(/[\s\u00a0]+/g, ' ')
+    .trim();
+  return fixHouseStyle(plain, style).text.trim();
+}
 
 type Rec = Record<string, unknown>;
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null);
@@ -218,11 +245,10 @@ export const blueprintPartHandler: JobHandler = async (jc) => {
       )),
     },
   });
+  // House style auto-fix on the regenerated part only (the rest of the blueprint may hold the owner's edits).
+  const data = fixHouseStyleDeep(res.output.data, houseStyle(jc.services.configDir), BLUEPRINT_KEEP).value;
   // A regenerated chapter list must still add up to the book's word target.
-  const merged =
-    part === 'chapters'
-      ? fitWordTargets(mergeBlueprintPart(latest.data, part, res.output.data), target)
-      : mergeBlueprintPart(latest.data, part, res.output.data);
+  const merged = part === 'chapters' ? fitWordTargets(mergeBlueprintPart(latest.data, part, data), target) : mergeBlueprintPart(latest.data, part, data);
   const bp = await repos.planning.addBlueprintVersion(jc.ctx, projectId, merged, {
     source: 'ai:blueprint_part',
     note: `Regenerated ${part}`,

@@ -2,7 +2,8 @@ import { seedFromKey } from '@volume/ai';
 import { promptTemplate } from '../../config/book-structure.js';
 import type { ExportFile, PictureSpreadInput } from '../../ports/export.js';
 import type { NewSectionInput, Section } from '../../repos/manuscript.js';
-import { advanceIfWritingComplete, buildExportBook, profileSummary, withOwnerPlaceholders } from '../book-data.js';
+import { advanceIfWritingComplete, buildExportBook, houseStyle, profileSummary, withOwnerPlaceholders } from '../book-data.js';
+import { fixHouseStyleDeep } from '../house-style-fix.js';
 import { datedPricesVars, plannedBodyCount, writtenSections } from '../book-checks.js';
 import { JobFailed } from '../errors.js';
 import {
@@ -21,7 +22,7 @@ import {
 import type { EnqueueInput } from '../queue.js';
 import { TERMINAL } from '../queue.js';
 import type { JobContext, JobHandler } from '../runner.js';
-import { mergeBlueprintPart } from './planning.js';
+import { BLUEPRINT_KEEP, mergeBlueprintPart } from './planning.js';
 import { packBlockedReason } from './production.js';
 
 /**
@@ -175,7 +176,8 @@ async function ensureListing(
       ...(await datedPricesVars(configDir, book, await writtenSections(repos, jc.ctx, projectId), await plannedBodyCount(repos, jc.ctx, projectId))),
     },
   });
-  const bp = await repos.planning.addBlueprintVersion(jc.ctx, projectId, mergeBlueprintPart(latest.data, 'listing', res.output.data), {
+  const listing = fixHouseStyleDeep(res.output.data, houseStyle(configDir), BLUEPRINT_KEEP).value;
+  const bp = await repos.planning.addBlueprintVersion(jc.ctx, projectId, mergeBlueprintPart(latest.data, 'listing', listing), {
     source: 'ai:blueprint_part',
     note: 'Picture-book listing',
     parentVersionId: latest.id,
@@ -226,7 +228,8 @@ export const pictureStoryHandler: JobHandler = async (jc) => {
         profile,
       },
     });
-    const story = res.output;
+    // House style auto-fix on the AI's story (dashes, US spellings) before any of it is saved.
+    const story = fixHouseStyleDeep(res.output, houseStyle(configDir)).value;
     settings = { ...settings, storyResult: story };
     await repos.books.setSetting(jc.ctx, projectId, 'pictureBook', settings);
     if (!story.safetyCheck.passed) {

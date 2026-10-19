@@ -16,6 +16,9 @@ import {
   locateQuote,
   type OpenRouterAiAdapter,
 } from '../src/adapters/openrouter-ai.js';
+import { loadHouseStyle } from '@volume/core/node';
+import { cleanTitleText } from '../src/jobs/handlers/planning.js';
+import { fixHouseStyle } from '../src/jobs/house-style-fix.js';
 import { storyInput } from '../src/jobs/picture-book.js';
 import type { AiPort, AiStage, AiStageInput, AiStageResult, RunStageOptions } from '../src/ports/ai.js';
 import { str, testApp, type TestApp } from './helpers.js';
@@ -223,6 +226,86 @@ describe('5. editing: local JSON repair and suggestions that can be accepted', (
     expect(locateQuote(md, 'Not in the text.')).toEqual({ start: null, end: null, original: null });
   });
 });
+
+describe('3. house style auto-fix on AI text', () => {
+  const style = loadHouseStyle(ROOT);
+
+  it('fixes em dashes, en dashes and US spellings, and leaves context words, code and links alone', () => {
+    const r = fixHouseStyle(
+      'The plan — short and clear — works.\nPages 10–20 cover the color of your organization.\n— Said nobody.\nWe check the program. See `a—b` and https://example.com/color.',
+      style,
+    );
+    expect(r.text).toBe(
+      'The plan, short and clear, works.\nPages 10 to 20 cover the colour of your organisation.\nSaid nobody.\nWe check the program. See `a—b` and https://example.com/color.',
+    );
+    expect(r).toMatchObject({ dashes: 4, spellings: 2 });
+  });
+
+  it('does not add a comma next to other punctuation', () => {
+    expect(fixHouseStyle('Wait, — then go.', style).text).toBe('Wait, then go.');
+    expect(fixHouseStyle('"I was—" she said.', style).text).toBe('"I was" she said.');
+  });
+
+  it('keeps paragraphs that stood in the earlier text and protected passages exactly', () => {
+    const owner = 'My own words — kept.';
+    const r = fixHouseStyle(`${owner}\n\nNew AI words — fixed.\n\nBio — as written.`, style, { keep: owner, protect: ['Bio — as written.'] });
+    expect(r.text).toBe(`${owner}\n\nNew AI words, fixed.\n\nBio — as written.`);
+  });
+
+  it('cleans titles: formula labels, odd hyphens, stray spaces and dashes', () => {
+    expect(cleanTitleText('Intrigue: The Quiet — Side‑Project  Plan ', style)).toBe('The Quiet, Side-Project Plan');
+    expect(cleanTitleText('Direct label: A plan', style)).toBe('A plan');
+  });
+
+  it('saves AI sections and marketing in house style, and never changes an owner save', async () => {
+    const ai = new DashAi();
+    t = await testApp({ ai });
+    const id = await newBook(t, { title: 'Side Projects', settings: { acknowledgements: 'Sam' } });
+    await t.call('POST', `/api/v1/books/${id}/blueprints`, { chapterCount: 2 });
+    await t.services.runner.runUntilIdle();
+    expect((await t.call('POST', `/api/v1/books/${id}/blueprint/approve`, {})).status).toBe(200);
+    await t.call('POST', `/api/v1/books/${id}/write`, {});
+    await t.services.runner.runUntilIdle();
+    const tree = await t.call<{ body: { id: string }[] }>('GET', `/api/v1/books/${id}/sections`);
+    const chapterId = tree.body.body[0]!.id;
+    const sec = await t.call<{ current: { bodyMd: string; source: string }; checks: { checker: string; severity: string }[] }>(
+      'GET',
+      `/api/v1/sections/${chapterId}`,
+    );
+    expect(sec.body.current.source).toBe('ai:writing');
+    expect(sec.body.current.bodyMd).toContain('A plain point, with colour.');
+    expect(sec.body.current.bodyMd).not.toMatch(/[—–]|color/);
+    expect(sec.body.checks.some((c) => c.checker === 'em_dash')).toBe(false);
+    expect(sec.body.checks.find((c) => c.checker === 'style_autofix')).toMatchObject({ severity: 'info' });
+
+    const owner = 'The owner wrote this — with a color.';
+    expect((await t.call('POST', `/api/v1/sections/${chapterId}/versions`, { bodyMd: owner })).status).toBe(201);
+    expect((await t.call<{ current: { bodyMd: string } }>('GET', `/api/v1/sections/${chapterId}`)).body.current.bodyMd).toBe(owner);
+
+    const job = await t.call<Obj>('POST', `/api/v1/books/${id}/marketing`, {});
+    expect(job.status, JSON.stringify(job.body)).toBe(202);
+    await t.services.runner.runUntilIdle();
+    const mk = await t.call<{ items: { body: string; hashtags: string[] }[] }>('GET', `/api/v1/books/${id}/marketing`);
+    expect(mk.body.items.length).toBeGreaterThan(0);
+    for (const item of mk.body.items) expect(item.body).not.toMatch(/[—–]|color/);
+  });
+});
+
+/** The mock AI with house style breaks added to the writing and marketing answers. */
+class DashAi extends RecordingAi {
+  override async runStage<S extends AiStage>(stage: S, input: AiStageInput, opts?: RunStageOptions): Promise<AiStageResult<S>> {
+    const r = await super.runStage(stage, input, opts);
+    const out = r.output as Obj;
+    if (stage === 'writing' && typeof out['markdown'] === 'string') {
+      return { ...r, output: { ...out, markdown: `${out['markdown']}\n\nA plain point — with color.` } as AiStageResult<S>['output'] };
+    }
+    if (stage === 'marketing' && out['email']) {
+      const email = out['email'] as Obj;
+      return { ...r, output: { ...out, email: { ...email, body: `${String(email['body'])} Out now – the color edition.` } } as AiStageResult<S>['output'] };
+    }
+    return r;
+  }
+}
 
 /** Line edits through the real adapter (mock provider), every other stage through the mock adapter. */
 class EditingAi extends RecordingAi {

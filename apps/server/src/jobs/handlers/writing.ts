@@ -5,12 +5,14 @@ import {
   advanceIfWritingComplete,
   CHECKS_MISSING_CHECKER,
   CODE_WRITTEN_KINDS,
+  houseStyle,
   loadTemplate,
   OWNER_PLACEHOLDER_SOURCE,
   profileSummary,
   styleChecks,
   SUMMARY_MISSING_CHECKER,
 } from '../book-data.js';
+import { fixHouseStyle, ownerTexts, styleFixCheck } from '../house-style-fix.js';
 import { bookRepetitions } from '../repetition.js';
 import { AiModelUnavailableError } from '../../ports/ai.js';
 import type { Section } from '../../repos/manuscript.js';
@@ -426,6 +428,10 @@ export const writeSectionHandler: JobHandler = async (jc) => {
       .join('\n\n');
     markdown = tidyGlossaryMarkdown(markdown, bookText).markdown;
   }
+  // House style auto-fix on the AI's text before it is summarised and saved: dashes and US spellings (live acceptance
+  // run, 18 October 2026). The owner's own words quoted in it (the profile bio) stay as they are.
+  const styleFix = fixHouseStyle(markdown, houseStyle(jc.services.configDir), { protect: ownerTexts(profile) });
+  markdown = styleFix.text;
   await jc.progress(0.6, 'Summarising');
 
   // A failed summary no longer loses the written text (owner decision, 7 October 2026): the text is saved with no
@@ -462,6 +468,8 @@ export const writeSectionHandler: JobHandler = async (jc) => {
   await jc.progress(0.8, 'Checking');
 
   const checks = styleChecks(markdown, jc.services.configDir);
+  const autofix = styleFixCheck(styleFix);
+  if (autofix) checks.push(autofix);
   if (summaryFailed) checks.push(summaryMissingCheck(summaryFailed));
   // Template junk ("- x: x", TBD, [NEEDS ...]) blocks; prices with no month checked warn in dated-prices book types.
   for (const j of findTemplateJunk(markdown)) {
@@ -568,8 +576,14 @@ export const weaveNotesHandler: JobHandler = async (jc) => {
     throw err;
   }
   delta.flush();
+  // House style auto-fix on the woven passages only: paragraphs that already stood in the section (the owner's
+  // included) and the owner's note text are left exactly as they were.
+  const woven = fixHouseStyle(res.output.markdown, houseStyle(jc.services.configDir), {
+    keep: current?.bodyMd ?? null,
+    protect: notes.map((n) => n.note),
+  });
   const version = await repos.manuscript.saveVersion(jc.ctx, sectionId, {
-    bodyMd: res.output.markdown,
+    bodyMd: woven.text,
     source: 'ai:weave',
     promptRunId: res.promptRunId,
     note: `${mode === 'expand' ? 'Expanded' : 'Wove in'} ${notes.length} author note${notes.length === 1 ? '' : 's'}`,

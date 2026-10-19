@@ -1,7 +1,8 @@
 import type { ExportFile, ExportKind, PreflightReport } from '../../ports/export.js';
 import { EXPORT_KINDS } from '../../ports/export.js';
 import type { MarketingExtras } from '../../repos/production.js';
-import { bookMarketingCounts, buildExportBook, profileSummary, withOwnerPlaceholders, withPackCovers } from '../book-data.js';
+import { bookMarketingCounts, buildExportBook, houseStyle, profileSummary, withOwnerPlaceholders, withPackCovers } from '../book-data.js';
+import { fixHouseStyleDeep } from '../house-style-fix.js';
 import { writtenSections, writtenSummaries } from '../book-checks.js';
 import { JobFailed } from '../errors.js';
 import { isPictureBook, pageCount as picturePageCount, PICTURE_INK, pictureStructure, SPREAD_KIND } from '../picture-book.js';
@@ -146,6 +147,9 @@ export const coverBuildHandler: JobHandler = async (jc) => {
   return { result: { ebookAssetId: ebookAsset.id, wrapAssetId: wrapAsset.id } };
 };
 
+/** Marketing fields the house style fix leaves alone (hashtags are search terms, kind is a code). */
+const MARKETING_KEEP: ReadonlySet<string> = new Set(['kind', 'hashtags']);
+
 export const marketingHandler: JobHandler = async (jc) => {
   const { repos } = jc.services;
   const projectId = jc.job.projectId;
@@ -231,6 +235,9 @@ export const marketingHandler: JobHandler = async (jc) => {
       extras: { subjectLines: e.subjects },
     });
   }
+  // House style auto-fix on the AI's posts and email (live acceptance run: 42 en dashes in one book's posts).
+  const fixed = fixHouseStyleDeep(items, houseStyle(jc.services.configDir), MARKETING_KEEP).value;
+  items.splice(0, items.length, ...fixed);
   if (target) {
     const next = items.find((i) => i.kind === target.kind);
     if (!next) throw new JobFailed('The model returned nothing for this item. Try again.', 'invalid_output');
