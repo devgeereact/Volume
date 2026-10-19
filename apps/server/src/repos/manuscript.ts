@@ -23,6 +23,12 @@ export const AutosaveSchema = z.object({
   content: z.unknown().optional(),
   /** The version the editor holds; null for a section with no text yet. A mismatch returns 409 conflict. */
   baseVersionId: z.string().max(64).nullable(),
+  /**
+   * The revision of that version the editor holds (its updatedAt, as the last autosave answer or the version list gave
+   * it). An autosave is updated in place only when this matches, so two tabs on the same version cannot overwrite
+   * each other; left out, the autosave always makes a new version.
+   */
+  baseRevision: z.number().int().min(0).optional(),
 });
 
 /** Version source of the editor's autosave. */
@@ -689,12 +695,14 @@ export class ManuscriptRepo {
    * The editor's autosave. Saves an `owner:autosave` version, or, when the current version is this user's own autosave
    * from less than AUTOSAVE_WINDOW_MS ago, updates that version in place so a long edit session does not pile up
    * versions. Any other save (explicit save, restore, AI) makes a version that is not an autosave and so closes the
-   * window. A baseVersionId that is not the current version is a 409 conflict carrying the current version id.
+   * window. A baseVersionId that is not the current version is a 409 conflict carrying the current version id; so is a
+   * baseRevision that is not the open autosave's updatedAt (two tabs on one version). Without baseRevision the autosave
+   * always makes a new version.
    */
   async autosave(
     ctx: RequestCtx,
     sectionId: string,
-    input: { bodyMd: string; content?: unknown; baseVersionId: string | null },
+    input: { bodyMd: string; content?: unknown; baseVersionId: string | null; baseRevision?: number },
   ): Promise<{ version: SectionVersion; coalesced: boolean }> {
     const guardrails = await this.guardrailsFor(ctx, sectionId, input.bodyMd);
     const run = async (trx: Db): Promise<{ version: SectionVersion; coalesced: boolean }> => {
@@ -710,7 +718,19 @@ export class ManuscriptRepo {
             .executeTakeFirst()
         : undefined;
       const t = now();
-      if (cur && cur.source === OWNER_AUTOSAVE_SOURCE && cur.createdBy === ctx.userId && t - Number(cur.createdAt) < AUTOSAVE_WINDOW_MS) {
+      const open = cur && cur.source === OWNER_AUTOSAVE_SOURCE && cur.createdBy === ctx.userId && t - Number(cur.createdAt) < AUTOSAVE_WINDOW_MS;
+      // The autosave the editor started from has been updated in place since (another tab or window): a conflict.
+      if (cur && open && input.baseRevision !== undefined && input.baseRevision !== Number(cur.updatedAt)) {
+        throw new AppError('conflict', 'This section changed in another tab or window. Compare both versions and choose one.', {
+          currentVersionId: cur.id,
+          baseVersionId: input.baseVersionId,
+          currentRevision: Number(cur.updatedAt),
+          baseRevision: input.baseRevision,
+        });
+      }
+      if (cur && open && input.baseRevision !== undefined) {
+        // Each in-place update moves the revision on, even within the same millisecond.
+        const revision = Math.max(t, Number(cur.updatedAt) + 1);
         const plaintext = markdownToPlaintext(input.bodyMd);
         const words = wordCount(plaintext);
         await trx
@@ -721,7 +741,7 @@ export class ManuscriptRepo {
             plaintext,
             wordCount: words,
             guardrails: guardrails ? toJson(guardrails) : null,
-            updatedAt: t,
+            updatedAt: revision,
           })
           .where('id', '=', cur.id)
           .where('workspaceId', '=', ctx.workspaceId)

@@ -1,4 +1,5 @@
 import { claimFixVariables, claimHint, locateSentence, vetOptions } from '../claim-fix.js';
+import { houseStyle } from '../book-data.js';
 import { JobFailed } from '../errors.js';
 import type { JobHandler } from '../runner.js';
 
@@ -23,7 +24,7 @@ export const claimFixHandler: JobHandler = async (jc) => {
   await jc.progress(0.1, 'Finding fixes');
   const res = await jc.runAi('claim_fix', { promptId: 'editing.claim-fix', variables, projectId: claim.projectId });
   const sources = variables['sources'] as { title: string | null; excerpt: string | null }[];
-  const { kept, dropped } = vetOptions(res.output.options, claim.sentence, sources);
+  const { kept, dropped } = vetOptions(res.output.options, claim.sentence, sources, houseStyle(jc.services.configDir));
   if (kept.length === 0) throw new JobFailed('The model gave no fix that keeps to the facts. Try again or reword the instruction.', 'invalid_output');
   return {
     result: {

@@ -2,7 +2,7 @@ import type { RequestCtx } from '../auth/context.js';
 import type { Claim } from '../repos/manuscript.js';
 import type { Repos } from '../repos/index.js';
 import { CLAIM_FIX_APPROACHES, type ClaimFixApproach } from '../ports/ai.js';
-import { findTemplateJunk } from '@volume/core';
+import { checkText, findTemplateJunk, type CompiledHouseStyle } from '@volume/core';
 import { profileSummary, styleChecks, type CodeCheck } from './book-data.js';
 
 // Claim fixes (owner request, 19 October 2026): three replacement options for one sentence on the claims-to-verify
@@ -21,6 +21,21 @@ export interface ClaimFixOption {
 const CONTEXT_CHARS = 800;
 const MARKER_RE = /\[\[S(\d+)\]\]/g;
 const NUMBER_RE = /\d+(?:[.,]\d+)*/g;
+/**
+ * Amounts in words that read as a statistic ("one in five", "half of", "a third of", "thousands of", "twice"). The
+ * house-style guardrail patterns only see digits, so an option that adds one of these is dropped like a new figure.
+ */
+const NUMBER_WORD = '(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|a|an)';
+const AMOUNT_WORDS_RE = new RegExp(
+  [
+    `\\b${NUMBER_WORD}\\s+(?:in|out of)\\s+(?:two|three|four|five|six|seven|eight|nine|ten|twenty|fifty|a hundred|a thousand|a million|hundred|thousand|million)\\b`,
+    '\\b(?:half|a third|a quarter|two thirds|three quarters|a majority|the majority|a fifth|a tenth)\\s+of\\b',
+    '\\b(?:dozens|hundreds|thousands|millions|billions)\\s+of\\b',
+    '\\b(?:twice|double|triple|treble|tenfold|hundredfold)\\b',
+    `\\b(?:${NUMBER_WORD}|hundred|thousand|million|billion)\\s+(?:per ?cent|percent)\\b`,
+  ].join('|'),
+  'gi',
+);
 
 /**
  * Where the claim sentence sits in the text: at `hint` when the text there still matches (the claim's own offset on
@@ -68,23 +83,41 @@ export function markersIn(text: string): number[] {
   return [...text.matchAll(MARKER_RE)].map((m) => Number(m[1]));
 }
 
+/** Amounts in words in a text, lower case with single spaces. */
+export function amountWordsIn(text: string): string[] {
+  return (text.match(AMOUNT_WORDS_RE) ?? []).map((m) => m.toLowerCase().replace(/\s+/g, ' '));
+}
+
+/** Ids of the house-style guardrail patterns (according to, studies show, award words, percentages ...) a text hits. */
+export function guardrailIdsIn(text: string, style: CompiledHouseStyle): Set<string> {
+  return new Set(
+    checkText(text, style)
+      .filter((f) => f.rule === 'guardrail' && f.action !== 'autofix' && f.id !== undefined)
+      .map((f) => f.id as string),
+  );
+}
+
 function numbersIn(text: string): string[] {
   return (text.replace(MARKER_RE, ' ').match(NUMBER_RE) ?? []).map((n) => n.replace(/,/g, ''));
 }
 
 /**
  * The zero-invention check on the model's options. An option is dropped when it cites a source marker the book does not
- * have, carries a link, holds a number that is in neither the sentence nor a source it cites, repeats the sentence
- * unchanged or repeats another option. `remove` always has empty text; `attribute` with no valid marker still needs a
+ * have, carries a link, holds a number that is in neither the sentence nor a source it cites, adds an amount in words
+ * ("one in five", "half of") or a house-style guardrail pattern (according to, studies show, award words, a
+ * percentage ...) the sentence does not have, repeats the sentence unchanged or repeats another option. `remove` always has empty text; `attribute` with no valid marker still needs a
  * source. At most three are kept.
  */
 export function vetOptions(
   options: readonly ClaimFixOption[],
   sentence: string,
   sources: readonly { title: string | null; excerpt: string | null }[],
+  style: CompiledHouseStyle,
 ): { kept: ClaimFixOption[]; dropped: number } {
   const kept: ClaimFixOption[] = [];
   const allowed = new Set(numbersIn(sentence));
+  const sentenceAmounts = new Set(amountWordsIn(sentence));
+  const sentencePatterns = guardrailIdsIn(sentence, style);
   const seen = new Set<string>();
   for (const o of options) {
     const text = o.approach === 'remove' ? '' : o.text.trim();
@@ -95,6 +128,8 @@ export function vetOptions(
     const citedText = cited.map((n) => `${sources[n - 1]?.title ?? ''} ${sources[n - 1]?.excerpt ?? ''}`).join(' ');
     const fromSources = new Set(numbersIn(citedText));
     if (numbersIn(text).some((n) => !allowed.has(n) && !fromSources.has(n))) continue;
+    if (amountWordsIn(text).some((a) => !sentenceAmounts.has(a))) continue;
+    if ([...guardrailIdsIn(text, style)].some((id) => !sentencePatterns.has(id))) continue;
     if (seen.has(text)) continue;
     seen.add(text);
     const needsSource = o.needsSource || (o.approach === 'attribute' && cited.length === 0);
@@ -105,13 +140,14 @@ export function vetOptions(
 }
 
 /**
- * The claim status after a fix: removed for a removal, verified for an attribution to one of the book's research
- * sources (a valid [[S<n>]] marker in the new text), softened for everything else.
+ * The claim status after a fix: removed for a removal; verified only when the owner wrote the sentence themselves
+ * ('own') and cited one of the book's research sources with a valid [[S<n>]] marker; softened for everything else. An
+ * AI attribution is never verified: the model citing a source is not the owner checking that it says so.
  */
 export function claimStatusFor(approach: ClaimFixApproach | 'own', text: string, sourceCount: number): 'removed' | 'verified' | 'softened' {
   if (approach === 'remove' || !text.trim()) return 'removed';
   const cited = markersIn(text);
-  if ((approach === 'attribute' || approach === 'own') && cited.length > 0 && cited.every((n) => n >= 1 && n <= sourceCount)) return 'verified';
+  if (approach === 'own' && cited.length > 0 && cited.every((n) => n >= 1 && n <= sourceCount)) return 'verified';
   return 'softened';
 }
 

@@ -2,10 +2,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { sql } from 'kysely';
 import { claimStatusFor, locateSentence, spliceSentence, vetOptions, type ClaimFixOption } from '../src/jobs/claim-fix.js';
-import { CHECKS_MISSING_CHECKER, withOwnerPlaceholders, withPackCovers } from '../src/jobs/book-data.js';
+import { CHECKS_MISSING_CHECKER, houseStyle, withOwnerPlaceholders, withPackCovers } from '../src/jobs/book-data.js';
 import { AUTOSAVE_WINDOW_MS, sessionStartOf } from '../src/repos/manuscript.js';
 import type { PreflightReport } from '../src/ports/export.js';
-import { testApp, type TestApp } from './helpers.js';
+import { testApp, testConfig, type TestApp } from './helpers.js';
 
 // Claim fixes, autosave and the rerun of missing checks (owner request, 19 October 2026). Mock AI only; no network.
 
@@ -55,6 +55,7 @@ async function openClaim(app: TestApp, bookId: string, sectionId: string): Promi
   return claim;
 }
 
+const style = houseStyle(testConfig().configDir);
 const opt = (text: string, approach: ClaimFixOption['approach'], needsSource = false): ClaimFixOption => ({ text, approach, rationale: 'Why.', needsSource });
 
 describe('claim fix helpers', () => {
@@ -85,6 +86,7 @@ describe('claim fix helpers', () => {
       ],
       sentence,
       sources,
+      style,
     );
     expect(kept.map((o) => o.text)).toEqual([
       'Nurses slept 6.5 hours on average [[S1]].',
@@ -94,12 +96,36 @@ describe('claim fix helpers', () => {
     // An attribution with no marker still needs a source.
     expect(kept[2]?.needsSource).toBe(true);
     expect(dropped).toBe(6);
-    expect(vetOptions([opt('anything', 'remove')], sentence, []).kept).toEqual([{ text: '', approach: 'remove', rationale: 'Why.', needsSource: false }]);
+    expect(vetOptions([opt('anything', 'remove')], sentence, [], style).kept).toEqual([
+      { text: '', approach: 'remove', rationale: 'Why.', needsSource: false },
+    ]);
+  });
+
+  it('drops options that add a guardrail pattern or an amount in words the sentence does not have', () => {
+    const sentence = 'Night shifts are hard on sleep.';
+    const { kept } = vetOptions(
+      [
+        opt('According to nurses, night shifts are hard on sleep.', 'attribute'),
+        opt('Studies show night shifts are hard on sleep.', 'soften'),
+        opt('One in five nurses sleeps badly after nights.', 'generalise'),
+        opt('Half of night nurses find sleep hard.', 'generalise'),
+        opt('This award-winning advice helps with sleep.', 'reframe'),
+        opt('Night shifts can be hard on sleep.', 'soften'),
+      ],
+      sentence,
+      [],
+      style,
+    );
+    expect(kept.map((o) => o.text)).toEqual(['Night shifts can be hard on sleep.']);
+    // A pattern or amount the sentence already has may stay.
+    const half = vetOptions([opt('Perhaps half of night nurses find sleep hard.', 'soften')], 'Half of night nurses sleep badly.', [], style);
+    expect(half.kept).toHaveLength(1);
   });
 
   it('maps a fix to the claim status', () => {
     expect(claimStatusFor('remove', '', 0)).toBe('removed');
-    expect(claimStatusFor('attribute', 'Fact [[S1]].', 1)).toBe('verified');
+    // An AI attribution is never verified: the owner has not checked the source.
+    expect(claimStatusFor('attribute', 'Fact [[S1]].', 1)).toBe('softened');
     expect(claimStatusFor('attribute', 'Fact.', 1)).toBe('softened');
     expect(claimStatusFor('generalise', 'Fact [[S1]].', 1)).toBe('softened');
     expect(claimStatusFor('own', 'My words.', 1)).toBe('softened');
@@ -230,12 +256,18 @@ describe('POST /books/:id/claims/:claimId/suggest and /apply', () => {
     t = await testApp();
     const { bookId, chapterId } = await writtenBook(t);
     const claim = await openClaim(t, bookId, chapterId);
-    const job = await t.call<{ jobId: string }>('POST', `/api/v1/books/${bookId}/claims/${claim.id}/suggest`);
+    const [job, twice] = await Promise.all([
+      t.call<{ jobId: string }>('POST', `/api/v1/books/${bookId}/claims/${claim.id}/suggest`),
+      t.call<{ jobId: string }>('POST', `/api/v1/books/${bookId}/claims/${claim.id}/suggest`),
+    ]);
+    // One fix job per claim at a time: the second click is a conflict, not a second charge.
+    expect([job.status, twice.status].sort()).toEqual([202, 409]);
+    const jobId = (job.status === 202 ? job : twice).body.jobId;
     await t.services.runner.runUntilIdle();
     const r = await t.call<{ version: Version }>('POST', `/api/v1/books/${bookId}/claims/${claim.id}/apply`, {
       text: 'My own softer sentence.',
       approach: 'soften',
-      jobId: job.body.jobId,
+      jobId,
     });
     expect(r.status).toBe(200);
     expect(r.body.version.source).toBe('owner:claim-fix');
@@ -268,10 +300,24 @@ describe('PUT /books/:id/sections/:sectionId/autosave', () => {
     const first = await t.call<Version & { coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft one.', baseVersionId: start.id });
     expect(first.status).toBe(200);
     expect(first.body).toMatchObject({ coalesced: false, source: 'owner:autosave' });
-    const second = await t.call<Version & { coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft two.', baseVersionId: first.body.id });
+    const second = await t.call<Version & { coalesced: boolean; updatedAt: number }>('PUT', url, {
+      bodyMd: '# One\n\nDraft two.',
+      baseVersionId: first.body.id,
+      baseRevision: (first.body as unknown as { updatedAt: number }).updatedAt,
+    });
     expect(second.body).toMatchObject({ coalesced: true, id: first.body.id });
     expect(await count()).toBe(n0 + 1);
     expect((await current(t, chapterId)).bodyMd).toBe('# One\n\nDraft two.');
+
+    // A second tab still on the first revision of that autosave is a conflict, not a silent overwrite.
+    const otherTab = await t.call<{ error: { details: { currentVersionId: string; currentRevision: number } } }>('PUT', url, {
+      bodyMd: '# One\n\nOther tab.',
+      baseVersionId: first.body.id,
+      baseRevision: (first.body as unknown as { updatedAt: number }).updatedAt,
+    });
+    expect(otherTab.status).toBe(409);
+    expect(otherTab.body.error.details).toMatchObject({ currentVersionId: first.body.id, currentRevision: second.body.updatedAt });
+    expect(second.body.updatedAt).toBeGreaterThan((first.body as unknown as { updatedAt: number }).updatedAt);
 
     // A stale base is a conflict carrying the current version id.
     const stale = await t.call<{ error: { code: string; details: { currentVersionId: string } } }>('PUT', url, { bodyMd: 'x', baseVersionId: start.id });
@@ -286,14 +332,24 @@ describe('PUT /books/:id/sections/:sectionId/autosave', () => {
     // An explicit save closes the window: the next autosave is a new version.
     const saved = await t.call<Version>('POST', `/api/v1/sections/${chapterId}/versions`, { bodyMd: '# One\n\nSaved.', baseVersionId: first.body.id });
     expect(saved.status).toBe(201);
-    const third = await t.call<Version & { coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft three.', baseVersionId: saved.body.id });
+    const third = await t.call<Version & { coalesced: boolean; updatedAt: number }>('PUT', url, {
+      bodyMd: '# One\n\nDraft three.',
+      baseVersionId: saved.body.id,
+    });
     expect(third.body.coalesced).toBe(false);
 
     // An autosave older than five minutes is not updated in place either.
     await sql`update section_versions set created_at = created_at - ${AUTOSAVE_WINDOW_MS + 1000} where id = ${third.body.id}`.execute(t.handle.db);
-    const fourth = await t.call<Version & { coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft four.', baseVersionId: third.body.id });
+    const fourth = await t.call<Version & { coalesced: boolean }>('PUT', url, {
+      bodyMd: '# One\n\nDraft four.',
+      baseVersionId: third.body.id,
+      baseRevision: third.body.updatedAt,
+    });
     expect(fourth.body.coalesced).toBe(false);
-    expect(await count()).toBe(n0 + 4);
+    // Without a revision the autosave makes a new version instead of updating in place.
+    const fifth = await t.call<Version & { coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft five.', baseVersionId: fourth.body.id });
+    expect(fifth.body.coalesced).toBe(false);
+    expect(await count()).toBe(n0 + 5);
 
     // Another book's path does not reach this section.
     expect((await t.call('PUT', `/api/v1/books/01NOTABOOK0000000000000000/sections/${chapterId}/autosave`, { bodyMd: 'x', baseVersionId: null })).status).toBe(
@@ -313,8 +369,17 @@ describe('POST /sections/:id/recheck (the preflight rerun-checks action)', () =>
     await t.services.repos.manuscript.addCheckResults(t.owner, bookId, chapterId, cur.id, [
       { checker: CHECKS_MISSING_CHECKER, severity: 'block', message: 'Checks missing.' },
     ]);
-    const queued = await t.call<{ jobId: string; steps: string[]; estimate: { lowUsd: number; highUsd: number } }>('POST', url, {});
-    expect(queued.status).toBe(202);
+    const preview = await t.call<{ steps: string[]; estimate: { lowUsd: number; highUsd: number }; runningJobId: string | null }>('GET', url);
+    expect(preview.body).toMatchObject({ steps: ['checks'], runningJobId: null });
+    // Two clicks at once queue one rerun: the lock makes check and enqueue one step.
+    const [a, b] = await Promise.all([
+      t.call<{ jobId: string; steps: string[]; estimate: { lowUsd: number; highUsd: number } }>('POST', url, {}),
+      t.call<{ jobId: string; steps: string[]; estimate: { lowUsd: number; highUsd: number } }>('POST', url, {}),
+    ]);
+    expect([a.status, b.status].sort()).toEqual([202, 409]);
+    const queued = a.status === 202 ? a : b;
+    expect(queued.body.estimate).toEqual(preview.body.estimate);
+    expect((await t.call<{ runningJobId: string }>('GET', url)).body.runningJobId).toBe(queued.body.jobId);
     expect(queued.body.steps).toEqual(['checks']);
     expect(queued.body.estimate.highUsd).toBeGreaterThanOrEqual(queued.body.estimate.lowUsd);
     const busy = await t.call<{ error: { details: { jobId: string } } }>('POST', url, {});

@@ -218,8 +218,8 @@ export class JobQueue {
   }
 
   /** Internal lookup for the runner (no workspace filter: the runner serves every workspace). */
-  /** Jobs of a book that are not finished yet and work on one section (their payload's sectionId). */
-  async activeForSection(ctx: RequestCtx, projectId: string, sectionId: string): Promise<Job[]> {
+  /** Jobs of a book that are not finished yet and pass `match` (for example, the jobs working on one section). */
+  async activeWhere(ctx: RequestCtx, projectId: string, match: (job: Job) => boolean): Promise<Job[]> {
     const rows = await this.db
       .selectFrom('jobs')
       .selectAll()
@@ -227,7 +227,7 @@ export class JobQueue {
       .where('projectId', '=', projectId)
       .where('status', 'not in', [...TERMINAL])
       .execute();
-    return rows.map(toJob).filter((j) => j.payload['sectionId'] === sectionId);
+    return rows.map(toJob).filter(match);
   }
 
   async getById(id: string): Promise<Job | null> {

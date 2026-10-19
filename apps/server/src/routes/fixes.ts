@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import type { RequestCtx } from '../auth/context.js';
 import { AppError, notFound, parse } from '../http/errors.js';
+import { KeyedLock } from '../lib/keyed-lock.js';
 import { AutosaveSchema, type Claim, type Section, type SectionVersion } from '../repos/manuscript.js';
 import { advanceIfWritingComplete } from '../jobs/book-data.js';
 import {
@@ -67,6 +68,7 @@ export async function estimateRuns(
 
 export function fixRoutes(app: FastifyInstance, s: AppServices): void {
   const m = s.repos.manuscript;
+  const suggestLock = new KeyedLock();
 
   const sectionOfBook = async (ctx: RequestCtx, bookId: string, sectionId: string): Promise<Section> => {
     await s.repos.books.require(ctx, bookId);
@@ -96,19 +98,31 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
 
   // ---------- claim fixes ----------
 
-  /** 202 with the claim_fix job and its estimate. The job's result is { claimId, sectionId, baseVersionId, sentence, options }. */
+  /**
+   * 202 with the claim_fix job and its estimate. The job's result is { claimId, sectionId, baseVersionId, sentence, options }.
+   * 409 conflict { jobId } while a claim_fix job for the same claim is unfinished; one lock per claim makes the check
+   * and the enqueue one step, so a double click cannot pay twice.
+   */
   app.post('/books/:id/claims/:claimId/suggest', async (req, reply) => {
     writer(req);
     const p = parse(BookClaim, req.params);
     const body = parse(SuggestBody, req.body) ?? {};
     const claim = await claimOfBook(req.ctx, p.id, p.claimId);
-    const { current, at } = await claimInText(req.ctx, claim);
-    const instruction = body.instruction ? body.instruction : null;
-    const variables = await claimFixVariables(s.repos, req.ctx, claim, current.bodyMd, at, instruction);
-    const cost = await estimateRuns(s, req.ctx, p.id, [{ stage: 'claim_fix', input: { promptId: 'editing.claim-fix', variables, projectId: p.id } }]);
-    const job = await s.queue.enqueue(req.ctx, { kind: 'claim_fix', projectId: p.id, payload: { claimId: claim.id, sectionId: claim.sectionId, instruction } });
-    void reply.code(202);
-    return { jobId: job.id, job, estimate: cost };
+    return suggestLock.run(claim.id, async () => {
+      const running = await s.queue.activeWhere(req.ctx, p.id, (j) => j.kind === 'claim_fix' && j.payload['claimId'] === claim.id);
+      if (running[0]) throw new AppError('conflict', 'Fixes for this claim are already being made. Wait for them.', { jobId: running[0].id });
+      const { current, at } = await claimInText(req.ctx, claim);
+      const instruction = body.instruction ? body.instruction : null;
+      const variables = await claimFixVariables(s.repos, req.ctx, claim, current.bodyMd, at, instruction);
+      const cost = await estimateRuns(s, req.ctx, p.id, [{ stage: 'claim_fix', input: { promptId: 'editing.claim-fix', variables, projectId: p.id } }]);
+      const job = await s.queue.enqueue(req.ctx, {
+        kind: 'claim_fix',
+        projectId: p.id,
+        payload: { claimId: claim.id, sectionId: claim.sectionId, instruction },
+      });
+      void reply.code(202);
+      return { jobId: job.id, job, estimate: cost };
+    });
   });
 
   /**
@@ -183,6 +197,7 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
     const body = parse(AutosaveSchema, req.body);
     const section = await sectionOfBook(req.ctx, p.id, p.sectionId);
     const input: Parameters<typeof m.autosave>[2] = { bodyMd: body.bodyMd, baseVersionId: body.baseVersionId };
+    if (body.baseRevision !== undefined) input.baseRevision = body.baseRevision;
     if (body.content !== undefined) input.content = body.content;
     const { version: v, coalesced } = await m.autosave(req.ctx, section.id, input);
     await advanceIfWritingComplete(s.repos, req.ctx, p.id);

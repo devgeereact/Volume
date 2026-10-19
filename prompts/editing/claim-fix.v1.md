@@ -26,7 +26,7 @@ derived_from:
   - "docs/PLAN.md (claims to verify report)"
   - "BOK-13"
   - "prompts/checks/claims.v4.md (softerVersion)"
-  - "prompts/writing/rewrite-selection.v5.md (seamless replacement, profile facts)"
+  - "prompts/writing/rewrite-selection.v5.md (replacement that joins the text around it, profile facts)"
 guardrails:
   - never adds a statistic, study, survey, quote, testimonial, award, date, price, name or source that is not in the sentence or the research sources
   - attribute cites only a research source given below, with its exact [[S<n>]] marker
