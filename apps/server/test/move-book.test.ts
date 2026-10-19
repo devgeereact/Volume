@@ -138,6 +138,8 @@ beforeAll(async () => {
   await s.services.runner.runUntilIdle();
   const t = now();
   const ws = s.owner.workspaceId;
+  // Writing now queues a listing job that makes the book's one listing; replace it with a known one.
+  await s.handle.db.deleteFrom('listings').where('projectId', '=', bookId).execute();
   await s.handle.db
     .insertInto('listings')
     .values({
