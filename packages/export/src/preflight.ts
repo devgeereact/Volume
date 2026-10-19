@@ -1,15 +1,19 @@
 // Preflight (docs/book-production/EXPORT-SPEC.md, Preflight): pass / warn / fail items before the upload pack is built.
 import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import sharp from 'sharp';
+import { PDFArray, PDFBool, PDFDocument, PDFName, PDFNumber, PDFRef, PDFStream, type PDFObject } from 'pdf-lib';
+import sharp, { type Metadata } from 'sharp';
 import {
   bleedPageSizeIn,
   checkPictureBook,
   checkTextInSafeArea,
   colourPageRange,
+  coverMinDpi,
   pictureBookGeometry,
   pictureBookPages,
   pictureBookRulesFromTemplate,
   checkBookStyle,
+  checkText,
+  countWords,
   checkBookTemplateRules,
   checkListing,
   ebookCoverSpec,
@@ -37,6 +41,7 @@ import {
   type TrimKey,
 } from '@volume/core';
 import type { PictureBookLayout } from './picture-book.ts';
+import { htmlToParagraphs } from './txt.ts';
 
 export type { CheckItem, CheckLevel } from '@volume/core';
 
@@ -59,6 +64,61 @@ export interface PdfInspection {
   pageParts: { head: string; foot: string; body: string }[];
   /** Per page: how many images are drawn on it. */
   imagesPerPage: number[];
+  /** Every raster image drawn: pixel size and the resolution it prints at (from the drawing matrix). */
+  images: PdfImageUse[];
+}
+
+export interface PdfImageUse {
+  page: number;
+  widthPx: number;
+  heightPx: number;
+  /** Lower of the horizontal and vertical resolution at the drawn size, in dots per inch. */
+  dpi: number;
+}
+
+type Matrix = [number, number, number, number, number, number];
+const multiply = (m: Matrix, n: Matrix): Matrix => [
+  n[0] * m[0] + n[1] * m[2],
+  n[0] * m[1] + n[1] * m[3],
+  n[2] * m[0] + n[3] * m[2],
+  n[2] * m[1] + n[3] * m[3],
+  n[4] * m[0] + n[5] * m[2] + m[4],
+  n[4] * m[1] + n[5] * m[3] + m[5],
+];
+const asMatrix = (v: unknown): Matrix | null => {
+  if (!v || typeof v !== 'object' || !('length' in v) || (v as ArrayLike<number>).length !== 6) return null;
+  const a = Array.from(v as ArrayLike<number>);
+  return a.every((x) => typeof x === 'number' && Number.isFinite(x)) ? (a as Matrix) : null;
+};
+
+/** Raster images drawn by one page's operator list, with the resolution each prints at (the matrix maps the unit square to points). */
+function imageUses(page: number, fnArray: number[], argsArray: unknown[]): PdfImageUse[] {
+  const out: PdfImageUse[] = [];
+  const stack: Matrix[] = [];
+  let ctm: Matrix = [1, 0, 0, 1, 0, 0];
+  fnArray.forEach((fn, k) => {
+    const args = (argsArray[k] ?? []) as unknown[];
+    if (fn === OPS.save) stack.push(ctm);
+    else if (fn === OPS.restore) ctm = stack.pop() ?? ctm;
+    else if (fn === OPS.transform) {
+      const m = asMatrix(args);
+      if (m) ctm = multiply(ctm, m);
+    } else if (fn === OPS.paintFormXObjectBegin) {
+      stack.push(ctm);
+      const m = asMatrix(args[0]);
+      if (m) ctm = multiply(ctm, m);
+    } else if (fn === OPS.paintFormXObjectEnd) ctm = stack.pop() ?? ctm;
+    else if (fn === OPS.paintImageXObject || fn === OPS.paintInlineImageXObject) {
+      const img = args[0];
+      const inline = typeof img === 'object' && img !== null ? (img as { width?: number; height?: number }) : null;
+      const w = inline ? (inline.width ?? 0) : Number(args[1] ?? 0);
+      const h = inline ? (inline.height ?? 0) : Number(args[2] ?? 0);
+      const drawnW = Math.hypot(ctm[0], ctm[1]) / 72;
+      const drawnH = Math.hypot(ctm[2], ctm[3]) / 72;
+      if (w > 0 && h > 0 && drawnW > 0 && drawnH > 0) out.push({ page, widthPx: w, heightPx: h, dpi: Math.min(w / drawnW, h / drawnH) });
+    }
+  });
+  return out;
 }
 
 /** Read a PDF with pdfjs-dist: page sizes, every font used (embedded or not, Type 3 or not) and the text per page. */
@@ -70,6 +130,7 @@ export async function inspectPdf(pdf: Buffer, opts: { text?: boolean } = {}): Pr
   const pageText: string[] = [];
   const pageParts: PdfInspection['pageParts'] = [];
   const imagesPerPage: number[] = [];
+  const images: PdfImageUse[] = [];
   try {
     for (let i = 1; i <= doc.numPages; i++) {
       const page = await doc.getPage(i);
@@ -79,6 +140,7 @@ export async function inspectPdf(pdf: Buffer, opts: { text?: boolean } = {}): Pr
       sizes.set(`${w}x${h}`, { widthPt: w, heightPt: h });
       const ops = await page.getOperatorList();
       imagesPerPage.push(ops.fnArray.filter((fn) => fn === OPS.paintImageXObject || fn === OPS.paintInlineImageXObject).length);
+      images.push(...imageUses(i, ops.fnArray, ops.argsArray));
       ops.fnArray.forEach((fn, k) => {
         if (fn !== OPS.setFont) return;
         const id = String((ops.argsArray[k] as unknown[])[0]);
@@ -112,7 +174,45 @@ export async function inspectPdf(pdf: Buffer, opts: { text?: boolean } = {}): Pr
   }
   const byName = new Map<string, PdfFontInfo>();
   for (const f of fonts.values()) byName.set(f.name, f);
-  return { pageCount: doc.numPages, pageSizes: [...sizes.values()], fonts: [...byName.values()], pageText, pageParts, imagesPerPage };
+  return { pageCount: doc.numPages, pageSizes: [...sizes.values()], fonts: [...byName.values()], pageText, pageParts, imagesPerPage, images };
+}
+
+/**
+ * Colour spaces of the raster images in a PDF (DeviceRGB, DeviceCMYK, DeviceGray, ICCBased with its component count
+ * read as RGB, CMYK or Gray, and the base of Indexed spaces). Image masks are skipped. Unique, sorted.
+ */
+export async function pdfImageColourSpaces(pdf: Buffer): Promise<string[]> {
+  const doc = await PDFDocument.load(pdf, { ignoreEncryption: true, updateMetadata: false });
+  const ctx = doc.context;
+  const ICC: Record<number, string> = { 1: 'Gray', 3: 'RGB', 4: 'CMYK' };
+  const name = (cs: PDFObject | undefined, depth = 0): string => {
+    const v = cs instanceof PDFRef ? ctx.lookup(cs) : cs;
+    if (v instanceof PDFName) return v.decodeText();
+    if (v instanceof PDFArray && v.size() > 0 && depth < 4) {
+      const kind = v.lookup(0);
+      const k = kind instanceof PDFName ? kind.decodeText() : '?';
+      if (k === 'ICCBased') {
+        const stream = v.lookup(1);
+        const n = stream instanceof PDFStream ? stream.dict.lookup(PDFName.of('N')) : undefined;
+        return `ICCBased ${n instanceof PDFNumber ? (ICC[n.asNumber()] ?? String(n.asNumber())) : '?'}`;
+      }
+      if (k === 'Indexed') return `Indexed ${name(v.get(1), depth + 1)}`;
+      return k;
+    }
+    return 'unknown';
+  };
+  const found = new Set<string>();
+  for (const [, obj] of ctx.enumerateIndirectObjects()) {
+    if (!(obj instanceof PDFStream)) continue;
+    const subtype = obj.dict.lookup(PDFName.of('Subtype'));
+    if (!(subtype instanceof PDFName) || subtype.decodeText() !== 'Image') continue;
+    const mask = obj.dict.lookup(PDFName.of('ImageMask'));
+    if (mask instanceof PDFBool && mask.asBoolean()) continue;
+    const cs = obj.dict.get(PDFName.of('ColorSpace'));
+    // JPX images may carry their colour space inside the codestream.
+    found.add(cs ? name(cs) : 'embedded in the image');
+  }
+  return [...found].sort();
 }
 
 // ---------- preflight ----------
@@ -143,6 +243,16 @@ export interface PreflightInput {
   /** Spine text drawn on the wrap, and background image DPI (from exportPaperbackWrap). */
   wrapInfo?: { spineText: boolean; imageDpi?: number };
   ebookCover?: Buffer;
+  /** Back-cover blurb as plain text (pack listing/back-cover-blurb.txt): house style and the template's word range. */
+  blurb?: string;
+  /** Marketing text for the pack's marketing/ folder: house style, as warnings (it is not uploaded to KDP). */
+  marketing?: { tiktokScripts?: string; instagramCaptions?: string; launchEmail?: string };
+  /**
+   * Covers the owner made and uploaded ("use my own cover"), not built by Volume. They are checked against the KDP
+   * limits in the rules (eBook: file type, pixel limits, ratio, RGB, file size; wrap: size from the real page count
+   * with bleed, image resolution, fonts, colour, spine text) instead of Volume's own build settings.
+   */
+  ownCovers?: { ebook?: boolean; wrap?: boolean };
   /** EPUBCheck result when it ran; undefined means it did not run. */
   epubcheck?: { ok: boolean; messages: string[] } | { skipped: string };
   claims?: ClaimItem[];
@@ -226,6 +336,8 @@ function isAllowedIsbn(ruleId: string | undefined, match: string, allowed: Reado
   return allowed.has(isbnDigits(match));
 }
 const near = (a: number, b: number, tol: number) => Math.abs(a - b) <= tol;
+/** Wrap size tolerance in inches: Volume's own (no KDP rounding rule in config/kdp-rules), so unverified. */
+const WRAP_TOLERANCE_IN = 0.001;
 
 export async function runPreflight(input: PreflightInput): Promise<PreflightReport> {
   const items: CheckItem[] = [];
@@ -401,6 +513,9 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
 
   // Listing
   for (const i of checkListing(rules, input.listing)) add(i);
+  // House style beyond the manuscript (live acceptance 18 October 2026): the listing and the blurb go to KDP and the
+  // back cover, so they block like the manuscript; marketing is the owner's own posts, so it warns.
+  for (const i of outsideTextItems(input)) add(i);
 
   // Interior PDF
   let interiorPages: number | undefined;
@@ -485,12 +600,14 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
     } else {
       const want = wrapSizeIn(rules, pb ? { trim, pages, paper: input.paper, ink: pb.ink } : { trim, pages, paper: input.paper });
       const got = info.pageSizes[0];
-      const ok = got !== undefined && near(got.widthPt / 72, want.widthIn, 0.001) && near(got.heightPt / 72, want.heightIn, 0.001);
+      // config/kdp-rules gives no rounding or tolerance for the cover size (checked 19 October 2026), so this
+      // 0.001 in tolerance is Volume's own and unverified: KDP's template may round differently.
+      const ok = got !== undefined && near(got.widthPt / 72, want.widthIn, WRAP_TOLERANCE_IN) && near(got.heightPt / 72, want.heightIn, WRAP_TOLERANCE_IN);
       add({
         id: 'wrap.size',
         label: 'Wrap size matches the formula',
         level: ok ? 'pass' : 'fail',
-        detail: `${got ? `${(got.widthPt / 72).toFixed(4)} x ${(got.heightPt / 72).toFixed(4)} in` : 'no page'}; formula for ${pages} pages on ${pb ? `${pb.ink} colour` : input.paper}: ${want.widthIn.toFixed(4)} x ${want.heightIn.toFixed(4)} in (spine ${want.spineIn.toFixed(4)} in).`,
+        detail: `${got ? `${(got.widthPt / 72).toFixed(4)} x ${(got.heightPt / 72).toFixed(4)} in` : 'no page'}; formula for ${pages} pages on ${pb ? `${pb.ink} colour` : input.paper}: ${want.widthIn.toFixed(4)} x ${want.heightIn.toFixed(4)} in (spine ${want.spineIn.toFixed(4)} in).${ok ? '' : ` Volume allows ${WRAP_TOLERANCE_IN} in either way; the KDP rules give no rounding, so that tolerance is unverified: compare with KDP's cover calculator.`}`,
         factIds: ['3.8', '3.9'],
       });
     }
@@ -516,6 +633,7 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
         });
       }
     }
+    if (input.ownCovers?.wrap) for (const i of await ownWrapItems(input.wrapPdf, info, rules, pages)) add(i);
     const bad = info.fonts.filter((f) => !f.embedded || f.type3);
     add({
       id: 'wrap.fonts',
@@ -526,7 +644,8 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
   }
 
   // eBook cover
-  if (input.ebookCover) {
+  if (input.ebookCover && input.ownCovers?.ebook) add(await ownEbookCoverItem(input.ebookCover, rules));
+  else if (input.ebookCover) {
     const spec = ebookCoverSpec(rules);
     const meta = await sharp(input.ebookCover).metadata();
     const ok =
@@ -553,7 +672,7 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
       level: missing.length === 2 ? 'fail' : missing.length ? 'warn' : 'pass',
       detail:
         missing.length === 2
-          ? 'No eBook cover or paperback wrap yet. Build the covers in the cover studio. Single files still export.'
+          ? 'No eBook cover or paperback wrap yet. Build the covers in the cover studio or upload your own there. Single files still export.'
           : missing.length
             ? `No ${missing[0] ?? ''} yet; the pack goes without it.`
             : 'eBook cover and paperback wrap are in the pack.',
@@ -680,6 +799,174 @@ function pictureBookItems(
           .join(' ')}${findings.length > 4 ? ` And ${findings.length - 4} more.` : ''}`
       : 'Every spread has text and the spreads are numbered in order.',
   });
+  return out;
+}
+
+/** House-style findings that block in the manuscript (em and en dashes, banned phrases, US spellings), per text. */
+function houseFindings(texts: { where: string; text: string }[], style: CompiledHouseStyle): string[] {
+  return texts.flatMap(({ where, text }) =>
+    checkText(text, style, { rules: ['emdash', 'endash', 'banned', 'spelling'] })
+      .filter((f) => f.severity === 'error')
+      .map((f) => `"${f.match}" in ${where}`),
+  );
+}
+
+/** The nonfiction template's back-cover-blurb range (packages.publishing limits.words), for templates that set none (the workbook, "same as nonfiction"). */
+const DEFAULT_BLURB_WORDS = { min: 120, max: 200 };
+
+/** The word range for the back-cover blurb: the template's packages.publishing back-cover-blurb limits.words, else the nonfiction template's. */
+export function blurbWordRange(template: unknown): { min?: number; max?: number } {
+  const publishing = isObj(template) && isObj(template.packages) ? template.packages.publishing : undefined;
+  const item: unknown = Array.isArray(publishing) ? (publishing as unknown[]).find((p) => isObj(p) && p.id === 'back-cover-blurb') : undefined;
+  const words = isObj(item) && isObj(item.limits) && isObj(item.limits.words) ? item.limits.words : undefined;
+  if (!words) return DEFAULT_BLURB_WORDS;
+  const out: { min?: number; max?: number } = {};
+  if (typeof words.min === 'number') out.min = words.min;
+  if (typeof words.max === 'number') out.max = words.max;
+  return out;
+}
+
+/** `listing.style`, `listing.blurb-style`, `listing.blurb-length` and `marketing.style`, for the texts that are given. */
+function outsideTextItems(input: PreflightInput): CheckItem[] {
+  const out: CheckItem[] = [];
+  const style = input.houseStyle;
+  const l = input.listing;
+  const listingTexts = [
+    { where: 'the title', text: l.title },
+    { where: 'the subtitle', text: l.subtitle ?? '' },
+    { where: 'the description', text: htmlToParagraphs(l.description ?? '').join('\n\n') },
+  ].filter((t) => t.text.trim());
+  const listingHits = houseFindings(listingTexts, style);
+  out.push({
+    id: 'listing.style',
+    label: 'Listing house style (title, subtitle, description)',
+    level: listingHits.length ? 'fail' : 'pass',
+    detail: listingHits.length
+      ? `${listingHits.length} problem(s), first: ${listingHits.slice(0, 3).join('; ')}.`
+      : 'No em or en dashes, banned phrases or US spellings.',
+  });
+  const blurb = input.blurb?.trim();
+  if (blurb) {
+    const hits = houseFindings([{ where: 'the blurb', text: blurb }], style);
+    out.push({
+      id: 'listing.blurb-style',
+      label: 'Back-cover blurb house style',
+      level: hits.length ? 'fail' : 'pass',
+      detail: hits.length ? `${hits.length} problem(s), first: ${hits.slice(0, 3).join('; ')}.` : 'No em or en dashes, banned phrases or US spellings.',
+    });
+    const range = blurbWordRange(input.template);
+    const words = countWords(blurb);
+    const short = range.min !== undefined && words < range.min;
+    const long = range.max !== undefined && words > range.max;
+    const want =
+      range.min !== undefined && range.max !== undefined
+        ? `${range.min} to ${range.max}`
+        : range.min !== undefined
+          ? `at least ${range.min}`
+          : `at most ${range.max ?? '?'}`;
+    out.push({
+      id: 'listing.blurb-length',
+      label: 'Back-cover blurb length',
+      level: short || long ? 'warn' : 'pass',
+      detail: `${words} words (the template asks for ${want}).${short ? ' Add to it so the back cover sells the book.' : long ? ' Cut it so it fits the back cover.' : ''}`,
+    });
+  }
+  const mk = input.marketing ?? {};
+  const marketingTexts = [
+    { where: 'the TikTok scripts', text: mk.tiktokScripts ?? '' },
+    { where: 'the Instagram captions', text: mk.instagramCaptions ?? '' },
+    { where: 'the launch email', text: mk.launchEmail ?? '' },
+  ].filter((t) => t.text.trim());
+  if (marketingTexts.length) {
+    const hits = houseFindings(marketingTexts, style);
+    out.push({
+      id: 'marketing.style',
+      label: 'Marketing house style',
+      level: hits.length ? 'warn' : 'pass',
+      detail: hits.length
+        ? `${hits.length} problem(s), first: ${hits.slice(0, 3).join('; ')}. Fix them before you post.`
+        : 'No em or en dashes, banned phrases or US spellings.',
+    });
+  }
+  return out;
+}
+
+/**
+ * The owner's own eBook cover against rule ebook.cover (FACTS 10.5): JPEG or TIFF, at least the minimum pixels, at
+ * most the maximum a side, height at least minHeightToWidthRatio times the width, RGB, under the size limit. Smaller
+ * than the ideal size passes with a warning.
+ */
+export async function ownEbookCoverItem(cover: Buffer, rules: KdpRules): Promise<CheckItem> {
+  const spec = ebookCoverSpec(rules);
+  const base = { id: 'ebook.cover', label: 'eBook cover (your own)', factIds: ['10.5'] };
+  let meta: Metadata;
+  try {
+    meta = await sharp(cover).metadata();
+  } catch {
+    return { ...base, level: 'fail', detail: 'The file could not be read as an image. Upload a JPEG or TIFF.' };
+  }
+  const types = new Set(spec.fileTypes.map((t) => t.toLowerCase()));
+  const format = meta.format === 'jpeg' ? 'jpeg' : meta.format === 'tiff' ? 'tiff' : (meta.format ?? '?');
+  const w = meta.width;
+  const h = meta.height;
+  const problems: string[] = [];
+  if (!types.has(format)) problems.push(`${format.toUpperCase()} is not a KDP eBook cover type (${spec.fileTypes.join(', ')})`);
+  if (w < spec.minWidthPx || h < spec.minHeightPx) problems.push(`${w} x ${h} px is under the minimum ${spec.minWidthPx} x ${spec.minHeightPx} px`);
+  if (w > spec.maxPxEachSide || h > spec.maxPxEachSide) problems.push(`a side is over ${spec.maxPxEachSide} px`);
+  // Pixel sizes are whole numbers, so allow the rounding of one pixel in the height.
+  if (w > 0 && (h + 1) / w < spec.minRatio) problems.push(`height to width is ${(h / w).toFixed(2)}:1, under ${spec.minRatio}:1`);
+  const rgb = meta.space === 'srgb' || meta.space === 'rgb';
+  if (!rgb) problems.push(`colour is ${meta.space ?? 'unknown'}, not ${spec.colourMode}`);
+  if (cover.length >= spec.maxFileSizeMB * 1024 * 1024) problems.push(`the file is over ${spec.maxFileSizeMB} MB`);
+  const small = w < spec.widthPx || h < spec.heightPx;
+  const said = `${format.toUpperCase()} ${w} x ${h} px, ${meta.space ?? '?'}, ${(cover.length / 1024).toFixed(0)} KB`;
+  if (problems.length) return { ...base, level: 'fail', detail: `${said}: ${problems.join('; ')}.` };
+  return {
+    ...base,
+    level: small ? 'warn' : 'pass',
+    detail: small
+      ? `${said}. Accepted, but KDP's ideal is ${spec.widthPx} x ${spec.heightPx} px; a smaller cover can look soft on large screens.`
+      : `${said}. Within KDP's limits.`,
+  };
+}
+
+/**
+ * The owner's own paperback wrap (the size and fonts are checked by the caller): image resolution against
+ * paperback.cover minDpi, the colour of its images (no KDP colour rule for paperback covers in config/kdp-rules, so a
+ * warning marked unverified), and the spine text rule, which Volume cannot read from the PDF.
+ */
+async function ownWrapItems(wrap: Buffer, info: PdfInspection, rules: KdpRules, pages: number | undefined): Promise<CheckItem[]> {
+  const out: CheckItem[] = [];
+  const min = coverMinDpi(rules);
+  const lowest = info.images.reduce<PdfImageUse | undefined>((lo, i) => (!lo || i.dpi < lo.dpi ? i : lo), undefined);
+  out.push({
+    id: 'wrap.dpi',
+    label: 'Cover image resolution',
+    level: !lowest || lowest.dpi >= min - 0.5 ? 'pass' : 'fail',
+    detail: lowest
+      ? `${info.images.length} image(s); the lowest is ${lowest.widthPx} x ${lowest.heightPx} px at about ${Math.floor(lowest.dpi + 0.5)} DPI (minimum ${min}).`
+      : 'No raster images in the wrap (text and shapes only).',
+    factIds: ['3.8'],
+  });
+  const spaces = await pdfImageColourSpaces(wrap).catch(() => ['not readable']);
+  out.push({
+    id: 'wrap.colour',
+    label: 'Cover colour (unverified rule)',
+    level: 'warn',
+    detail: `${spaces.length ? `Image colour: ${spaces.join(', ')}.` : 'No raster images.'} config/kdp-rules has no confirmed rule on the colour mode of a paperback cover PDF, so this is not checked: confirm it in KDP's cover guidance and the printed proof.`,
+  });
+  const minPages = rules.rules.find((r) => r.id === 'paperback.spine.textMinPages')?.value;
+  if (pages !== undefined && typeof minPages === 'number')
+    out.push({
+      id: 'wrap.spine-text',
+      label: 'Spine text rule',
+      level: pages >= minPages ? 'pass' : 'warn',
+      detail:
+        pages >= minPages
+          ? `${pages} pages: spine text is allowed (from ${minPages} pages).`
+          : `${pages} pages: KDP rejects spine text under ${minPages} pages. Volume cannot read text on your wrap's spine, so check it has none.`,
+      factIds: ['3.10'],
+    });
   return out;
 }
 

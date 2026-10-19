@@ -55,6 +55,8 @@ export interface ExportBook {
   datedPrices?: boolean;
   /** Marketing text for the pack's marketing/ folder. */
   marketing?: { tiktokScripts?: string; instagramCaptions?: string; launchEmail?: string };
+  /** Covers the owner uploaded ("use my own cover", POST /books/:id/cover/own): checked against the KDP rules, not rebuilt. */
+  ownCover?: { ebook: boolean; wrap: boolean };
 }
 
 export interface ExportClaim {

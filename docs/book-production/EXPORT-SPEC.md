@@ -72,7 +72,8 @@ Round-trip rule: parse then write returns byte-identical Markdown for any file t
 - **Page numbers:** footer, outside corner. Arabic numbering starts at 1 on the introduction; pages before it carry no visible number.
 - **Openings:** each `#` section starts on a new page; chapters and parts start on a right-hand page by default (a blank left page is added), with an option to allow any page.
 - **Type:** body in a serif book font (Literata, EB Garamond or Source Serif 4, added in phase 1), 10.5 to 11.5 pt, leading 1.45; headings in the profile's heading font (Plus Jakarta Sans by default). First paragraph after a heading not indented; others indented 1.3 em; no blank lines between paragraphs. Widows and orphans 2.
-- **Fonts:** every font embedded and subset; preflight reads the PDF and fails on any unembedded font.
+- **Fonts:** every font embedded and subset; preflight reads the PDF and fails on any unembedded or Type 3 font.
+- **Symbols the fonts lack** (`packages/export/src/print-glyphs.ts`): the print fonts are Latin subsets, so a character outside them would print in a system font, as Type 3. Before rendering the print PDF, the wrap, the eBook cover and the picture book (the covers also get the maths fallback below), "→" becomes "to" ("A → B" prints "A to B"), other arrows become ASCII arrows that keep their meaning ("⇒" "->", "←" "<-", "↔" "<->"), "↑" and "↓" become "up" and "down", and an arrow that opens a line is dropped; ticks print as "[x]", crosses as "×", ballot boxes as "[ ]", other bullets as "•", and emoji and pictographs (U+2600 to U+27BF, U+2B00 to U+2BFF, U+1F000 to U+1FAFF) are removed; the export warnings list each replacement. Maths symbols (≤, ≥, ≠, ≈, √ and the rest) fall back to Lora's maths subset (OFL, `@fontsource/lora`), embedded like the other fonts. The manuscript itself is not changed.
 - **Fiction:** chapters have no subheadings and no takeaways (preflight fails them). A scene break prints the theme glyph (default `* * *`) centred, never ends a page on its own, and the paragraph after it is not indented. The contents lists chapters (and parts) only: the fiction template's contents section has `"entries": "chapters"`, which the server copies into `book.meta.contentsEntries` with `contentsEntriesFromTemplate()`; PDF, DOCX, EPUB and TXT contents all honour it. A heading `# Chapter 1` with no title is an untitled chapter: it prints "Chapter 1" (in the theme's number style) as the chapter title and in the contents.
 - **Workbook blocks (D-042):** an exercise has a rule above it, its label in the heading font, and is kept on one page where it fits. `lines N` draws N ruled lines 22 pt apart. Checklist items get an empty tick box. A fill-in block puts one ruled line under each prompt; a fill-in page starts on a new page with three ruled lines per prompt. Tracker tables get rows tall enough to write in. Lines are drawn, never typed as underscores.
 - **Contents:** chapter titles with page numbers and dot leaders; subheadings listed under each chapter (as in the drafts) without page numbers.
@@ -258,6 +259,13 @@ height_in = 0.125 + trim_h + 0.125
 - Back cover: blurb, short bio, and an empty area for KDP's barcode (size/clearance recorded, automatic placement still partial, `KNOWN-ISSUES.md`).
 - Phase 4 check: sizes match KDP's cover calculator (FACTS 3.8) for 3 page counts on white and cream.
 
+## Own cover (owner upload)
+
+The owner can skip the AI cover and upload their own (live acceptance 18 October 2026): a front cover image for the eBook (JPEG or TIFF, rule `ebook.cover` `fileTypes`) and a full paperback wrap PDF (back, spine and front with bleed). They go into the pack's `cover/` folder as uploaded (a TIFF keeps `.tif`); Volume never redraws them. On the server they are assets of kind `own_ebook_cover` and `own_wrap_pdf` (`POST /api/v1/assets` with the book's `projectId`; the first bytes must be a JPEG, TIFF or PDF signature or the upload is refused and removed), put in place with `POST /api/v1/books/:id/cover/own` (`ebookAssetId`, `wrapAssetId`, or `null` to take one out; `wrapSpec.ownEbook` and `ownWrap` record them). The Cover screen has a "Use my own cover" panel for both. Preflight checks them with `ownCovers` set, against `config/kdp-rules` only:
+
+- eBook (`ebook.cover`, FACTS 10.5): JPEG or TIFF, at least 625 x 1,000 px, at most 10,000 px a side, height at least 1.6 times the width, RGB, under 50 MB. Smaller than the ideal 1,600 x 2,560 passes with a warning.
+- Wrap: size from the formula above with the interior PDF's real page count (`wrap.size`, bleed included; Volume allows 0.001 in either way, its own tolerance, unverified because `config/kdp-rules` gives no rounding), the lowest resolution of any image at the size it is drawn (`wrap.dpi`, at least `paperback.cover` `minDpi`), fonts embedded with no Type 3 (`wrap.fonts`), and spine text (`wrap.spine-text`: a warning under 80 pages, because Volume cannot read text on the owner's spine). The colour mode of the wrap's images is listed as a warning (`wrap.colour`): `config/kdp-rules` has no confirmed rule on paperback cover colour, so it is unverified.
+
 ## Preflight
 
 | Check | Level | Source |
@@ -266,6 +274,9 @@ height_in = 0.125 + trim_h + 0.125
 | Template chapter rules (`structure.template-rules`): fiction chapters have no subheadings and no takeaways; a workbook chapter with no exercises | block | template `chapterRules`, `checkTemplateRules` |
 | Workbook exercises outside the per-chapter range, unknown exercise kinds, `lines N` outside 1 to 30, workbook blocks in a template without exercises, malformed workbook fences | warn | template `chapterRules` |
 | No em dashes, no banned phrases, no US spellings (or waived) | block | house style |
+| Listing title, subtitle and description, and the back-cover blurb: no em or en dashes, banned phrases or US spellings (`listing.style`, `listing.blurb-style`) | block | house style |
+| Back-cover blurb within the template's word range (`listing.blurb-length`; `packages.publishing` `back-cover-blurb` `limits.words`, else the nonfiction template's 120 to 200) | warn | template |
+| Marketing (TikTok scripts, Instagram captions, launch email): no em or en dashes, banned phrases or US spellings (`marketing.style`; not uploaded to KDP) | warn | house style |
 | No open blocking checks or invented-content flags | block | `docs/02-architecture/AI-PIPELINE.md` |
 | Open claims in the claims report | warn | guardrails |
 | About the author equals profile bio (hash) | block | guardrails |
@@ -285,6 +296,9 @@ height_in = 0.125 + trim_h + 0.125
 | Picture books: the AI disclosure covers images, because the spread pictures come from the image model (`kdp.ai-disclosure`) | block | FACTS 5.5, D-045 |
 | Wrap size matches formula, spine text only at 80 pages or more, images 300 DPI or more | block | FACTS 3.8 to 3.10 |
 | eBook cover 1600 x 2560 JPEG RGB | block | FACTS 10.5 |
+| Own eBook cover: JPEG or TIFF, pixel limits, ratio, RGB, file size (below the ideal size warns) | block | FACTS 10.5 |
+| Own wrap: size from the real page count, images 300 DPI or more at their drawn size, fonts embedded | block | FACTS 3.8, 3.9 |
+| Own wrap: spine text under 80 pages (cannot be read), colour mode of its images (no rule, unverified) | warn | FACTS 3.10 |
 | EPUBCheck passes (when Java present) | warn | FACTS 7.8 |
 | Exports older than the latest manuscript change | warn | `exports.manuscript_hash` |
 | Oldest KDP rule check older than `recheckAfterDays` (`rules.age`, counted from the file's `verifiedOn`, which is the date of its oldest check, not the date of the file) | warn | rules file `verifiedOn` |

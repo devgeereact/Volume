@@ -24,6 +24,9 @@ export const productionApi = {
   chooseCover: (bookId: string, input: { assetId: string; typography?: Record<string, unknown> }, o?: Opts) =>
     api.post<CoverResponse>(`/books/${seg(bookId)}/cover/choose`, input, o),
   buildCover: (bookId: string, o?: Opts) => api.post<AcceptedJob>(`/books/${seg(bookId)}/cover/build`, undefined, o),
+  /** Puts the owner's uploaded covers in place (asset ids), or takes them out again with null. */
+  ownCover: (bookId: string, input: { ebookAssetId?: string | null; wrapAssetId?: string | null }, o?: Opts) =>
+    api.post<CoverResponse>(`/books/${seg(bookId)}/cover/own`, input, o),
 
   /* exports */
   preflight: (bookId: string, o?: Opts) => api.get<ApiPreflightReport>(`/books/${seg(bookId)}/preflight`, o),

@@ -171,7 +171,14 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
     claims,
     datedPrices: hasDatedPrices(structure),
     marketing: await marketingText(repos, ctx, projectId),
+    ownCover: await ownCoverOf(repos, ctx, projectId),
   };
+}
+
+/** Which cover files are the owner's own uploads (cover.wrapSpec ownEbook and ownWrap, set by POST /cover/own). */
+async function ownCoverOf(repos: Repos, ctx: RequestCtx, projectId: string): Promise<{ ebook: boolean; wrap: boolean }> {
+  const cover = await repos.production.getCover(ctx, projectId);
+  return { ebook: !!cover?.ebookAssetId && cover.wrapSpec['ownEbook'] === true, wrap: !!cover?.wrapAssetId && cover.wrapSpec['ownWrap'] === true };
 }
 
 /**
@@ -387,7 +394,7 @@ export function withPackCovers(report: PreflightReport, covers: { ebook: boolean
     id: 'cover.files',
     area: 'cover',
     severity: 'block',
-    message: 'KDP pack covers: No eBook cover or paperback wrap yet. Build the covers in the cover studio. Single files still export.',
+    message: 'KDP pack covers: No eBook cover or paperback wrap yet. Build the covers in the cover studio or upload your own there. Single files still export.',
     fix: { route: 'cover', label: 'Open the cover studio' },
   });
   report.blocks += 1;
