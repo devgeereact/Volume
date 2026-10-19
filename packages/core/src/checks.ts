@@ -92,22 +92,69 @@ export function hasMonthYear(text: string): boolean {
 }
 
 /**
- * Currency amounts with no month and year in the same sentence. Book types with the dated-prices rule
- * (a tech how-to, travel) must write every price with "(checked <Month Year>)"; each hit is a price the reader
- * cannot date.
+ * What a currency amount is:
+ * - `sourced`: its sentence cites a research source ([[S<n>]]), so it is a real price the reader may want to date;
+ * - `hypothetical`: a round figure in a sentence about the reader or a made-up case ("you", "your", "suppose", "say",
+ *   "for example", "if" ...), for example "Set yourself a ceiling of £10 a month". Fine as it is;
+ * - `unsourced`: any other specific price. It needs a source, so it belongs in the claims report, never a "checked"
+ *   stamp the writer cannot back (live acceptance run, 18 October 2026: "(checked October 2026)" on invented prices).
  */
-export function findUndatedPrices(text: string): PriceHit[] {
-  const out: PriceHit[] = [];
+export type PriceKind = 'sourced' | 'hypothetical' | 'unsourced';
+
+export interface ClassifiedPrice extends PriceHit {
+  kind: PriceKind;
+  /** True when the sentence carries a "Month Year" date. */
+  dated: boolean;
+}
+
+const SOURCE_MARKER_RE = /\[\[S\d+\]\]/;
+const HYPOTHETICAL_RE =
+  /\b(?:you|your|yours|yourself|you're|you'll|you'd|suppose|supposing|say|imagine|for example|for instance|e\.g\.|if|let's|let us|budget|ceiling|aim)\b/i;
+
+/** A whole amount that is a multiple of 5 (£10, $250, 50 pounds), or one given in thousands or millions. */
+function isRoundFigure(match: string): boolean {
+  if (/\d\.\d/.test(match)) return false;
+  if (/(?:k|m|bn|million|billion)\b/i.test(match)) return true;
+  const n = Number((/\d+(?:,\d{3})*/.exec(match)?.[0] ?? '').replace(/,/g, ''));
+  return Number.isFinite(n) && n > 0 && n % 5 === 0;
+}
+
+/** Every currency amount in a text, with its kind and whether its sentence carries a month and year. */
+export function classifyPrices(text: string): ClassifiedPrice[] {
+  const out: ClassifiedPrice[] = [];
   for (const s of sentenceSpans(text)) {
     const sentence = text.slice(s.start, s.end);
-    if (hasMonthYear(sentence)) continue;
+    const dated = hasMonthYear(sentence);
+    const sourced = SOURCE_MARKER_RE.test(sentence);
+    const hypothetical = HYPOTHETICAL_RE.test(sentence);
     CURRENCY_RE.lastIndex = 0;
     for (const m of sentence.matchAll(CURRENCY_RE)) {
       const start = s.start + (m.index ?? 0);
-      out.push({ match: m[0], start, end: start + m[0].length, sentence: sentence.trim() });
+      const kind: PriceKind = sourced ? 'sourced' : hypothetical && isRoundFigure(m[0]) ? 'hypothetical' : 'unsourced';
+      out.push({ match: m[0], start, end: start + m[0].length, sentence: sentence.trim(), kind, dated });
     }
   }
   return out;
+}
+
+const plainHit = ({ match, start, end, sentence }: ClassifiedPrice): PriceHit => ({ match, start, end, sentence });
+
+/**
+ * Sourced prices with no month and year in the same sentence. Book types with the dated-prices rule (a tech how-to,
+ * travel) write a sourced price with "(checked <Month Year>)"; each hit is a real price the reader cannot date.
+ * Hypothetical figures need no date, and unsourced specific prices go to the claims report (findUnsourcedPrices).
+ */
+export function findUndatedPrices(text: string): PriceHit[] {
+  return classifyPrices(text)
+    .filter((p) => p.kind === 'sourced' && !p.dated)
+    .map(plainHit);
+}
+
+/** Specific prices with no research source, dated or not: claims to verify, not prices to stamp. */
+export function findUnsourcedPrices(text: string): PriceHit[] {
+  return classifyPrices(text)
+    .filter((p) => p.kind === 'unsourced')
+    .map(plainHit);
 }
 
 /** The month and year a book's prices are checked in, for example "October 2026" (UTC, English month names). */

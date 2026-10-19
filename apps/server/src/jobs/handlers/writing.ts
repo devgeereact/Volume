@@ -1,4 +1,4 @@
-import { findTemplateJunk, findUndatedPrices, tidyGlossaryMarkdown } from '@volume/core';
+import { findTemplateJunk, findUndatedPrices, findUnsourcedPrices, tidyGlossaryMarkdown } from '@volume/core';
 import { markdownToPlaintext, wordCount } from '../../lib/text.js';
 import { datedPricesVars, factsUsedIn, plannedBodyCount, templateChecks, writtenSections } from '../book-checks.js';
 import {
@@ -186,6 +186,33 @@ async function modelChecks(
   );
   for (const c of claims) await jc.emit('claim.added', { claimId: c.id, sectionId, category: c.category });
   return { checks, claims: claims.length, failed: null };
+}
+
+/**
+ * Specific prices with no research source (@volume/core findUnsourcedPrices) filed as financial claims to verify, one
+ * per sentence, skipping sentences the model's claims check already filed for this version. Returns how many were added.
+ */
+async function unsourcedPriceClaims(jc: JobContext, projectId: string, sectionId: string, versionId: string, markdown: string): Promise<number> {
+  const { repos } = jc.services;
+  const filed = (await repos.manuscript.listClaims(jc.ctx, { sectionId })).filter((c) => c.versionId === versionId).map((c) => c.sentence);
+  const seen = new Set<string>();
+  const items = findUnsourcedPrices(markdown).flatMap((p) => {
+    if (seen.has(p.sentence) || filed.some((f) => f.includes(p.match) && (f.includes(p.sentence) || p.sentence.includes(f)))) return [];
+    seen.add(p.sentence);
+    return [
+      {
+        sentence: p.sentence,
+        category: 'financial',
+        checkNeeded: `A specific price (${p.match}) with no source. Check it against a current source and cite it, make it a round example figure, or remove it. Do not add a "checked" date you have not checked.`,
+        start: p.start,
+        end: p.end,
+      },
+    ];
+  });
+  if (items.length === 0) return 0;
+  const claims = await repos.manuscript.addClaims(jc.ctx, projectId, sectionId, versionId, items);
+  for (const c of claims) await jc.emit('claim.added', { claimId: c.id, sectionId, category: c.category });
+  return claims.length;
 }
 
 /** The section variables the writing and summary prompts share. */
@@ -487,7 +514,7 @@ export const writeSectionHandler: JobHandler = async (jc) => {
       checks.push({
         checker: 'dated_price',
         severity: 'warn',
-        message: `${p.match} has no month checked. Add "(checked ${prices.checkedMonth})" after it.`,
+        message: `${p.match} is a sourced price with no month checked. Check it against its source, then add "(checked ${prices.checkedMonth})" after it.`,
         location: { start: p.start, end: p.end, match: p.match },
       });
     }
@@ -516,10 +543,13 @@ export const writeSectionHandler: JobHandler = async (jc) => {
   const model = await modelChecks(jc, projectId, sectionId, version.id, { ...common, markdown, section: { id: sectionId, ...sectionVars } });
   checks.push(...model.checks);
   if (model.failed) checks.push(checksMissingCheck(model.failed));
+  // Dated-prices book types: a specific price with no research source goes to the claims report (never a "checked"
+  // stamp the writer cannot back), unless the model's claims check already filed its sentence.
+  const priceClaims = prices.datedPrices === 'yes' ? await unsourcedPriceClaims(jc, projectId, sectionId, version.id, markdown) : 0;
   await repos.manuscript.addCheckResults(jc.ctx, projectId, sectionId, version.id, checks);
   await bookRepetitions(jc, projectId, sectionId);
   const blocking = checks.filter((c) => c.severity === 'block').length;
-  await jc.emit('check.result', { sectionId, versionId: version.id, blocks: blocking, warnings: checks.length - blocking, claims: model.claims });
+  await jc.emit('check.result', { sectionId, versionId: version.id, blocks: blocking, warnings: checks.length - blocking, claims: model.claims + priceClaims });
 
   const status = blocking > 0 ? 'needs_attention' : 'done';
   await repos.manuscript.setSectionStatus(jc.ctx, sectionId, status);

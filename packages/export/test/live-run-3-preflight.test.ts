@@ -87,13 +87,13 @@ describe('claims', () => {
 describe('dated prices', () => {
   const how = { type: 'paragraph' as const, text: 'Wherever I mention a price, it carries the month it was checked.' };
   it('fails when the book promises dated prices and a price has no month', async () => {
-    const r = await report(bookWith([how, { type: 'paragraph', text: 'It would be £60 a month.' }]), { datedPrices: true });
+    const r = await report(bookWith([how, { type: 'paragraph', text: 'It would be £60 a month [[S1]].' }]), { datedPrices: true });
     expect(item(r, 'style.dated-prices')?.level).toBe('fail');
   });
   it('warns without the promise, passes when every price is dated, and is skipped for other book types', async () => {
-    expect(item(await report(bookWith([{ type: 'paragraph', text: 'It would be £60 a month.' }]), { datedPrices: true }), 'style.dated-prices')?.level).toBe(
-      'warn',
-    );
+    expect(
+      item(await report(bookWith([{ type: 'paragraph', text: 'It would be £60 a month [[S1]].' }]), { datedPrices: true }), 'style.dated-prices')?.level,
+    ).toBe('warn');
     expect(
       item(
         await report(bookWith([how, { type: 'paragraph', text: 'It costs £15 a month (checked October 2026).' }]), { datedPrices: true }),
@@ -101,5 +101,11 @@ describe('dated prices', () => {
       )?.level,
     ).toBe('pass');
     expect(item(await report(bookWith([how])), 'style.dated-prices')).toBeUndefined();
+    // Hypothetical and unsourced prices never ask for a "checked" stamp (live acceptance run, 18 October 2026).
+    const loose = [
+      { type: 'paragraph' as const, text: 'Set yourself a ceiling of £10 a month.' },
+      { type: 'paragraph' as const, text: 'ChatGPT Plus costs £20 a month.' },
+    ];
+    expect(item(await report(bookWith(loose), { datedPrices: true }), 'style.dated-prices')?.level).toBe('pass');
   });
 });

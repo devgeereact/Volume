@@ -2,11 +2,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   checkedMonth,
+  classifyPrices,
   findPricePromise,
   findProfileReuse,
   findProfileUses,
   findTemplateJunk,
   findUndatedPrices,
+  findUnsourcedPrices,
   profileFactsUsedIn,
   tidyGlossary,
   tidyGlossaryMarkdown,
@@ -60,15 +62,35 @@ describe('template junk (live run 3: "- x: x" passed the placeholder check)', ()
 });
 
 describe('dated prices (live run 3 promised dates that were never written)', () => {
-  it('flags currency amounts with no month and year in the same sentence', () => {
+  it('asks for a month only on sourced prices with no month and year in the same sentence', () => {
     const text =
-      'Three hours a month, a floor of £45, a price of £60 for one newsletter a month. Suppose she pays £15 a month (checked October 2026) for a plan. Canva Pro was 10 pounds a month in Sept 2026.';
+      'Three hours a month, a floor of £45 [[S1]], a price of £60 for one newsletter a month [[S2]]. Suppose she pays £15 a month (checked October 2026) for a plan [[S1]]. Canva Pro was 10 pounds a month in Sept 2026 [[S3]].';
     expect(findUndatedPrices(text).map((h) => h.match)).toEqual(['£45', '£60']);
   });
 
-  it('accepts a dated price and decimals', () => {
-    expect(findUndatedPrices('The plan costs £15.50 a month (checked October 2026).')).toEqual([]);
-    expect(findUndatedPrices('It costs $9.99 a month.').map((h) => h.match)).toEqual(['$9.99']);
+  it('accepts a dated sourced price and decimals', () => {
+    expect(findUndatedPrices('The plan costs £15.50 a month (checked October 2026) [[S1]].')).toEqual([]);
+    expect(findUndatedPrices('It costs $9.99 a month [[S2]].').map((h) => h.match)).toEqual(['$9.99']);
+  });
+});
+
+describe('prices: sourced, hypothetical or unsourced (live acceptance run, 18 October 2026)', () => {
+  it('leaves hypothetical round "you" figures alone and never asks for a stamp on them', () => {
+    const text = 'Set yourself a ceiling of £10 a month. Suppose you earn £200 from a first client. If it costs £50, stop.';
+    expect(classifyPrices(text).map((p) => p.kind)).toEqual(['hypothetical', 'hypothetical', 'hypothetical']);
+    expect(findUndatedPrices(text)).toEqual([]);
+    expect(findUnsourcedPrices(text)).toEqual([]);
+  });
+
+  it('sends unsourced specific prices to the claims report, stamped or not', () => {
+    const text = 'ChatGPT Plus costs £20 a month. At £0.002 per thousand tokens (checked October 2026) it is cheap. You pay $9.99 for it.';
+    expect(findUnsourcedPrices(text).map((h) => h.match)).toEqual(['£20', '£0.002', '$9.99']);
+    expect(findUndatedPrices(text)).toEqual([]);
+  });
+
+  it('a sourced price stays sourced even in a "you" sentence', () => {
+    const p = classifyPrices('You will pay £20 a month for the plan [[S4]].');
+    expect(p).toMatchObject([{ match: '£20', kind: 'sourced', dated: false }]);
   });
 
   it('formats the write month and finds the promise sentence', () => {
