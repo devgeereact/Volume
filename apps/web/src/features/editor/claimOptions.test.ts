@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ClaimOption } from "../../api/types";
-import { applyInput, approachLabel, estimateLabel, inContext, readOptions } from "./claimOptions";
+import { applyInput, approachLabel, estimateLabel, inContext, readBaseVersion, readOptions } from "./claimOptions";
 
 const soften: ClaimOption = { text: "Some studies suggest it may help.", approach: "soften", rationale: "Hedged.", needsSource: false };
 const remove: ClaimOption = { text: "", approach: "remove", rationale: "Not needed.", needsSource: false };
@@ -42,6 +42,19 @@ describe("applyInput", () => {
     expect(applyInput({ kind: "edited", option: soften, text: "  It may ease back pain. " }, sentence)).toEqual({
       input: { text: "It may ease back pain.", approach: "soften" },
     });
+  });
+
+  it("sends the job and base version with an option, edited or not, but not with own wording", () => {
+    const from = { jobId: "j1", baseVersionId: "v3" };
+    expect(applyInput({ kind: "option", option: soften }, sentence, from)).toEqual({
+      input: { text: soften.text, approach: "soften", jobId: "j1", baseVersionId: "v3" },
+    });
+    expect(applyInput({ kind: "edited", option: soften, text: "It may ease it." }, sentence, from)).toEqual({
+      input: { text: "It may ease it.", approach: "soften", jobId: "j1", baseVersionId: "v3" },
+    });
+    expect(applyInput({ kind: "own", text: "Mine." }, sentence, from)).toEqual({ input: { text: "Mine.", approach: "own" } });
+    expect(readBaseVersion({ baseVersionId: "v3", options: [] })).toBe("v3");
+    expect(readBaseVersion({})).toBeNull();
   });
 
   it("refuses an empty or unchanged own sentence", () => {

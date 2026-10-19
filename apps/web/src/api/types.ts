@@ -870,7 +870,15 @@ export interface ApiSectionVersion {
 /** PUT /books/:id/sections/:sectionId/autosave. */
 export interface AutosaveInput {
   bodyMd: string;
+  /** Editor document (TipTap JSON), when the client keeps one. */
+  content?: unknown;
   baseVersionId: string | null;
+}
+
+/** 200 from autosave: the version (new, or the session's version updated in place) and whether it was coalesced. */
+export interface AutosaveResponse {
+  version: Pick<ApiSectionVersion, "id" | "version" | "source" | "wordCount" | "parentVersionId" | "createdAt"> & { updatedAt: EpochMs };
+  coalesced: boolean;
 }
 
 /** Row in GET /sections/:id/versions: the list leaves out the text; read one version for it. */
@@ -1117,17 +1125,37 @@ export interface ClaimOption {
 }
 
 export interface ClaimSuggestResult {
+  claimId: string;
+  sectionId: string;
+  /** The version the options were made from; apply sends it back so a changed section is a 409. */
+  baseVersionId: string;
+  sentence: string;
   options: ClaimOption[];
 }
 
 /** 202 for claim suggestions and check reruns: the job, with the estimate when the server gives one. */
 export interface EstimatedJob extends AcceptedJob {
-  estimate?: Estimate | null;
+  estimate?: CostRange | null;
+}
+
+/** A cost range in US dollars. */
+export interface CostRange {
+  lowUsd: number;
+  highUsd: number;
 }
 
 export interface ClaimApplyInput {
   text: string;
   approach: ClaimApproach | "own" | OpenString;
+  /** The suggest job the text came from (an unchanged option is saved as ai:claim-fix). */
+  jobId?: string;
+  baseVersionId?: string;
+  note?: string;
+}
+
+/** 202 from POST /books/:id/sections/:sectionId/rerun-checks: the job, the steps it reruns and their cost. */
+export interface RerunChecksResponse extends EstimatedJob {
+  steps: ("summary" | "checks" | OpenString)[];
 }
 
 /* ---------- Production: cover, exports, marketing ---------- */
@@ -1172,7 +1200,7 @@ export interface ApiPreflightItem {
 export interface PreflightFix {
   route?: string;
   label: string;
-  /** "rerun-checks": run the section checks again (POST /sections/:sectionId/recheck). */
+  /** "rerun-checks": run the missing section checks again (POST /books/:id/sections/:sectionId/rerun-checks). */
   action?: "rerun-checks" | OpenString;
   sectionId?: string;
   anchor?: string;

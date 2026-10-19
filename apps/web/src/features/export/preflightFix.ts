@@ -12,3 +12,9 @@ export function fixAction(fix: PreflightFix | undefined, bookId: string): FixAct
   const path = fix.route.startsWith("/") ? fix.route : `/books/${bookId}/${fix.route}`;
   return { kind: "link", to: fix.anchor ? `${path}#${fix.anchor}` : path, label: fix.label };
 }
+
+/** The job already working on the section, from a 409 conflict's details. */
+export function runningJob(details: unknown): string | null {
+  const id = details && typeof details === "object" ? (details as { jobId?: unknown }).jobId : undefined;
+  return typeof id === "string" ? id : null;
+}

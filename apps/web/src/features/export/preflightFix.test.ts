@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fixAction } from "./preflightFix";
+import { fixAction, runningJob } from "./preflightFix";
 
 describe("fixAction", () => {
   it("runs checks again for a section", () => {
@@ -26,5 +26,13 @@ describe("fixAction", () => {
     expect(fixAction({ route: "/settings", label: "Open settings" }, "b1")).toEqual({ kind: "link", to: "/settings", label: "Open settings" });
     expect(fixAction({ label: "Nothing" }, "b1")).toBeNull();
     expect(fixAction(undefined, "b1")).toBeNull();
+  });
+});
+
+describe("runningJob", () => {
+  it("reads the job id from a 409's details", () => {
+    expect(runningJob({ jobId: "j7" })).toBe("j7");
+    expect(runningJob({ currentVersionId: "v1" })).toBeNull();
+    expect(runningJob(null)).toBeNull();
   });
 });

@@ -36,14 +36,32 @@ export function readOptions(result: unknown): ClaimOption[] {
 /** What the owner picked: an option as it is, an option they edited, or their own sentence. */
 export type ClaimChoice = { kind: "option"; option: ClaimOption } | { kind: "edited"; option: ClaimOption; text: string } | { kind: "own"; text: string };
 
-/** The apply request for a choice, or the reason it cannot go yet. */
-export function applyInput(choice: ClaimChoice, sentence: string): { input: ClaimApplyInput } | { error: string } {
-  if (choice.kind === "option") return { input: { text: choice.option.approach === "remove" ? "" : choice.option.text, approach: choice.option.approach } };
+/** The suggest job the options came from, and the version they were made on. */
+export interface SuggestSource {
+  jobId: string;
+  baseVersionId: string | null;
+}
+
+/** The suggest result's base version, when the job said. */
+export function readBaseVersion(result: unknown): string | null {
+  const v = result && typeof result === "object" ? (result as { baseVersionId?: unknown }).baseVersionId : undefined;
+  return typeof v === "string" ? v : null;
+}
+
+/**
+ * The apply request for a choice, or the reason it cannot go yet. Options (as they are or edited) send
+ * the job and its base version, so the server can tell an unchanged option and refuse a changed section.
+ */
+export function applyInput(choice: ClaimChoice, sentence: string, from?: SuggestSource): { input: ClaimApplyInput } | { error: string } {
+  const origin: Pick<ClaimApplyInput, "jobId" | "baseVersionId"> = from
+    ? { jobId: from.jobId, ...(from.baseVersionId ? { baseVersionId: from.baseVersionId } : {}) }
+    : {};
+  if (choice.kind === "option")
+    return { input: { text: choice.option.approach === "remove" ? "" : choice.option.text, approach: choice.option.approach, ...origin } };
   const text = choice.text.trim();
-  const approach = choice.kind === "edited" ? choice.option.approach : "own";
   if (!text) return { error: "Write the new sentence first." };
   if (text === sentence.trim()) return { error: "Change the wording first." };
-  return { input: { text, approach } };
+  return choice.kind === "edited" ? { input: { text, approach: choice.option.approach, ...origin } } : { input: { text, approach: "own" } };
 }
 
 /** The paragraph of the saved text that holds the new sentence, and the same paragraph before the change. */

@@ -2,30 +2,39 @@ import { useState } from "react";
 import { RotateCw } from "lucide-react";
 import { Button, ProgressBar } from "../../components/ui";
 import { isApiError } from "../../api/client";
-import { useEstimate, useRerunChecks } from "../../api/hooks";
+import { useRerunChecks } from "../../api/hooks";
 import { errorText, jobStatusText, useJobWatch } from "../../api/wire-c";
 import { estimateLabel } from "../editor/claimOptions";
+import { runningJob } from "./preflightFix";
 
-/** "Run checks again" for one preflight item: the estimate on the button, then progress, then a fresh preflight. */
+/**
+ * "Run checks again" for one preflight item: reruns only the missing steps, shows their cost and progress,
+ * then a fresh preflight. A run already going on the section is followed instead of starting another.
+ */
 export function RerunChecks({ bookId, sectionId, onDone }: { bookId: string; sectionId: string; onDone: () => void }) {
-  const estimate = useEstimate(bookId, "checks", { sectionIds: [sectionId] });
   const start = useRerunChecks();
   const [jobId, setJobId] = useState<string | null>(null);
+  const [cost, setCost] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const watch = useJobWatch(bookId, jobId, (w) => {
     setJobId(null);
     setMessage(w.ok ? "Checks finished." : `The checks did not finish. ${w.error ?? "Try again."}`);
     onDone();
   });
-  const cost = estimate.data ? estimateLabel(estimate.data) : null;
 
   async function run() {
     setMessage(null);
     try {
       const r = await start.mutateAsync({ bookId, sectionId });
+      setCost(r.estimate ? estimateLabel(r.estimate) : null);
       setJobId(r.jobId);
     } catch (e) {
-      setMessage(isApiError(e) && e.status === 409 ? "Checks are already running for this section." : errorText(e));
+      const running = isApiError(e) && e.isConflict ? runningJob(e.details) : null;
+      if (running) {
+        setCost(null);
+        setJobId(running);
+        setMessage("Checks are already running. Following that run.");
+      } else setMessage(errorText(e));
     }
   }
 
@@ -42,12 +51,12 @@ export function RerunChecks({ bookId, sectionId, onDone }: { bookId: string; sec
         />
       ) : (
         <Button size="sm" icon={RotateCw} loading={start.isPending} loadingLabel="Starting" onClick={() => void run()}>
-          {cost ? `Run checks again (${cost})` : "Run checks again"}
+          Run checks again
         </Button>
       )}
       {(watch.running || message) && (
         <p className="text-caption text-ink-secondary" role="status">
-          {watch.running ? (watch.message ?? jobStatusText(watch.status)) : message}
+          {watch.running ? `${message ?? watch.message ?? jobStatusText(watch.status)}${cost ? `, ${cost}` : ""}` : message}
         </p>
       )}
     </div>

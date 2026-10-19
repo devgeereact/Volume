@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isApiError } from "../../api/client";
 import { useAutosaveSection } from "../../api/hooks";
-import type { ApiSectionVersion } from "../../api/types";
+import type { AutosaveResponse } from "../../api/types";
 import { errorText } from "../../api/wire-c";
 import { browserDraftStore, createAutosaver, type Autosaver, type AutosaveStatus, type SaveFailure } from "./autosave";
 
@@ -30,7 +30,7 @@ export function useSectionAutosave(o: {
   bookId: string;
   sectionId: string;
   doc: { sectionId: string; savedMd: string; versionId: string | null } | null;
-  onSaved: (bodyMd: string, v: ApiSectionVersion) => void;
+  onSaved: (bodyMd: string, v: AutosaveResponse["version"], sectionId: string) => void;
 }) {
   const { bookId, sectionId, doc } = o;
   const mutation = useAutosaveSection();
@@ -48,14 +48,14 @@ export function useSectionAutosave(o: {
   useEffect(() => {
     if (!ready || !doc) return;
     if (ref.current?.sectionId === sectionId) return;
-    const versions = new Map<string, ApiSectionVersion>();
+    const versions = new Map<string, AutosaveResponse["version"]>();
     const a = createAutosaver({
       sectionId,
       savedMd: doc.savedMd,
       baseVersionId: doc.versionId,
       store: draftStore,
       save: async (bodyMd, baseVersionId) => {
-        const v = await mutate.current({ bookId, sectionId, input: { bodyMd, baseVersionId } });
+        const { version: v } = await mutate.current({ bookId, sectionId, input: { bodyMd, baseVersionId } });
         versions.set(v.id, v);
         return { versionId: v.id };
       },
@@ -63,7 +63,7 @@ export function useSectionAutosave(o: {
       onStatus: setStatus,
       onSaved: (md, id) => {
         const v = versions.get(id);
-        if (v) onSaved.current(md, v);
+        if (v) onSaved.current(md, v, sectionId);
       },
     });
     ref.current = { sectionId, a };

@@ -656,11 +656,11 @@ export function useAutosaveSection() {
   });
 }
 
-/** Run a section's checks again (a job on POST /sections/:id/recheck). */
+/** Run a section's missing checks again (a job). */
 export function useRerunChecks() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { bookId: string; sectionId: string }) => manuscriptApi.rerunChecks(v.sectionId),
+    mutationFn: (v: { bookId: string; sectionId: string }) => manuscriptApi.rerunChecks(v.bookId, v.sectionId),
     onSuccess: (r) => rememberJob(qc, r),
   });
 }

@@ -291,7 +291,6 @@ function Body({
   const [writeJob, setWriteJob] = useState<string | null>(null);
   const [recovered, setRecovered] = useState<(LocalDraft & { sectionId: string }) | null>(null);
   const [prevOpen, setPrevOpen] = useState(false);
-  const [sessionPrev, setSessionPrev] = useState<{ sectionId: string; id: string } | null>(null);
   const [keeping, setKeeping] = useState(false);
   const look = useMemo(() => interiorLook(book), [book]);
   const canWrite = useCanWrite();
@@ -357,9 +356,8 @@ function Body({
     bookId,
     sectionId,
     doc: ready ? doc : null,
-    onSaved: (md, v) => {
-      setDoc((d) => (d && d.sectionId === v.sectionId ? { ...d, versionId: v.id, version: v.version, savedMd: md } : d));
-      if (v.previousVersionId) setSessionPrev({ sectionId: v.sectionId, id: v.previousVersionId });
+    onSaved: (md, v, savedSection) => {
+      setDoc((d) => (d && d.sectionId === savedSection ? { ...d, versionId: v.id, version: v.version, savedMd: md } : d));
     },
   });
   const typingAllowed = canWrite && !review;
@@ -1071,12 +1069,7 @@ function Body({
 
   /* ---------- Previous version: the one before this edit session ---------- */
   const curVersion = detail?.section.id === sectionId ? detail.current : null;
-  const prevId =
-    versionListQ.data?.previousVersionId ??
-    (sessionPrev?.sectionId === sectionId ? sessionPrev.id : null) ??
-    curVersion?.previousVersionId ??
-    curVersion?.parentVersionId ??
-    null;
+  const prevId = versionListQ.data?.previousVersionId ?? curVersion?.previousVersionId ?? curVersion?.parentVersionId ?? null;
   const prevNumber = prevId ? (versionsQ.data ?? []).find((v) => v.id === prevId)?.version : undefined;
   const prevName = prevNumber !== undefined ? `Version ${prevNumber}` : "Previous version";
 

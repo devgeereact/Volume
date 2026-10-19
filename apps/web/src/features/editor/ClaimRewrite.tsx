@@ -3,11 +3,11 @@ import { Check, PenLine, RotateCw, Sparkles } from "lucide-react";
 import { Banner, Button, Loader, Textarea } from "../../components/ui";
 import { isApiError } from "../../api/client";
 import { useApplyClaim, useSuggestClaim } from "../../api/hooks";
-import type { ClaimOption, Estimate } from "../../api/types";
+import type { ClaimOption, CostRange } from "../../api/types";
 import { errorText, jobStatusText, useJobWatch } from "../../api/wire-c";
 import { cn } from "../../lib/cn";
 import { DiffText } from "./DiffText";
-import { applyInput, approachLabel, estimateLabel, inContext, readOptions, type ClaimChoice } from "./claimOptions";
+import { applyInput, approachLabel, estimateLabel, inContext, readBaseVersion, readOptions, type ClaimChoice, type SuggestSource } from "./claimOptions";
 import type { MsClaim } from "./manuscript";
 
 /* API mode, one open claim in this section: ask the editor for three stronger replacements (each with
@@ -18,9 +18,9 @@ import type { MsClaim } from "./manuscript";
 type Step =
   | { at: "closed" }
   | { at: "ask" }
-  | { at: "running"; jobId: string; estimate: Estimate | null }
-  | { at: "options"; options: ClaimOption[] }
-  | { at: "edit"; option: ClaimOption; options: ClaimOption[] }
+  | { at: "running"; jobId: string; estimate: CostRange | null }
+  | { at: "options"; options: ClaimOption[]; from: SuggestSource }
+  | { at: "edit"; option: ClaimOption; options: ClaimOption[]; from: SuggestSource }
   | { at: "own" }
   | { at: "applied"; before: string; after: string };
 
@@ -28,7 +28,7 @@ export interface ClaimRewriteProps {
   bookId: string;
   claim: MsClaim;
   /** What one suggestion costs, read before the owner asks (null while unknown). */
-  estimate: Estimate | null;
+  estimate: CostRange | null;
   estimateLoading: boolean;
   /** Saves any typing first, so the apply builds on the text the owner sees. False stops the apply. */
   beforeApply: () => Promise<boolean>;
@@ -48,8 +48,8 @@ export function ClaimRewrite({ bookId, claim, estimate, estimateLoading, beforeA
   const jobId = step.at === "running" ? step.jobId : null;
   const watch = useJobWatch(bookId, jobId, (w) => {
     const options = w.ok ? readOptions(w.result) : [];
-    if (options.length > 0) {
-      setStep({ at: "options", options });
+    if (options.length > 0 && jobId) {
+      setStep({ at: "options", options, from: { jobId, baseVersionId: readBaseVersion(w.result) } });
       onAnnounce(`${options.length} ${options.length === 1 ? "option" : "options"} ready.`);
     } else {
       setStep({ at: "ask" });
@@ -70,8 +70,8 @@ export function ClaimRewrite({ bookId, claim, estimate, estimateLoading, beforeA
     }
   }
 
-  async function choose(choice: ClaimChoice) {
-    const built = applyInput(choice, claim.sentence);
+  async function choose(choice: ClaimChoice, from?: SuggestSource) {
+    const built = applyInput(choice, claim.sentence, from);
     if ("error" in built) {
       setProblem({ conflict: false, text: built.error });
       return;
@@ -87,7 +87,9 @@ export function ClaimRewrite({ bookId, claim, estimate, estimateLoading, beforeA
       const conflict = isApiError(e) && e.isConflict;
       setProblem({
         conflict,
-        text: conflict ? "The sentence changed since this claim was found, so nothing was saved. Reload to see the latest text." : `Not saved. ${errorText(e)}`,
+        text: conflict
+          ? "The section changed since these options were made, so nothing was saved. Reload to see the latest text, then ask again."
+          : `Not saved. ${errorText(e)}`,
       });
     }
   }
@@ -199,18 +201,24 @@ export function ClaimRewrite({ bookId, claim, estimate, estimateLoading, beforeA
                         icon={Check}
                         loading={applying}
                         loadingLabel="Saving"
-                        onClick={() => void choose({ kind: "edited", option: o, text: draft })}
+                        onClick={() => void choose({ kind: "edited", option: o, text: draft }, step.from)}
                       >
                         Apply my edit
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setStep({ at: "options", options: step.options })}>
+                      <Button size="sm" variant="ghost" onClick={() => setStep({ at: "options", options: step.options, from: step.from })}>
                         Back to the options
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    <Button size="sm" icon={Check} loading={applying} loadingLabel="Saving" onClick={() => void choose({ kind: "option", option: o })}>
+                    <Button
+                      size="sm"
+                      icon={Check}
+                      loading={applying}
+                      loadingLabel="Saving"
+                      onClick={() => void choose({ kind: "option", option: o }, step.from)}
+                    >
                       Use this option
                     </Button>
                     {o.approach !== "remove" && (
@@ -219,7 +227,7 @@ export function ClaimRewrite({ bookId, claim, estimate, estimateLoading, beforeA
                         variant="ghost"
                         onClick={() => {
                           setDraft(o.text);
-                          setStep({ at: "edit", option: o, options: step.options });
+                          setStep({ at: "edit", option: o, options: step.options, from: step.from });
                         }}
                       >
                         Edit before applying
