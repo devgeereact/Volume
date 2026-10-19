@@ -85,6 +85,16 @@ Migration order: `0006_picture_books`, `0008_volume_mode` and `0009_invitations`
 
   It opens the SQLite file read-only, migrates MySQL, refuses a non-empty target (unless `--replace`), copies every table and compares row counts. It prints table names and counts only. Owner approval needed; not run by any agent.
 
+## Moving a book from the Mac to the hosted app
+
+Once the hosted app holds books, never copy the database again (`db:copy-to-mysql --replace` wipes the host). Move one book at a time by project zip (D-051):
+
+1. On the Mac, open the book and choose Export project. Volume saves `<title>.volume-project.zip` (a manifest with checksums, the book's rows and its files; never the legal name, location, jobs, AI call records or spend).
+2. On https://volume.gakinz.com, signed in as the owner or an editor, choose Import project in Settings or the Library, pick the pen name the book should belong to, and choose the zip.
+3. The hosted app checks the zip and makes a new book with new ids under that pen name, marked "Moved from another Volume on <date>". Nothing that is already there changes. Build export files (PDF, EPUB, pack) again on the host.
+
+The zip must be under `MAX_UPLOAD_BYTES` (50 MB unless set), and the expanded files under 256 MB. Imports are limited to 5 per minute per visitor. API: `POST /api/v1/books/import-project`, multipart/form-data with `profileId` and `file`.
+
 ## Post-deploy checks
 
 | URL | Expected |

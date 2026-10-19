@@ -2,6 +2,17 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 19 October 2026
+
+Moving a book between Volumes (D-051).
+
+#### Added
+- Import project: bring one book from another Volume (for example from the Mac to the hosted app) under a pen name you choose. The import always makes a new book, marked "Moved from another Volume on <date>", and changes nothing that is already there.
+- Project zips now carry a manifest with a checksum for every file; an import refuses a zip that was changed or damaged.
+
+#### Changed
+- Project zips no longer carry built export files or spend. Build the PDF, EPUB and pack again after a move.
+
 ## 18 October 2026
 
 Production hub (D-048, D-049).
