@@ -12,6 +12,8 @@ import {
   pictureBookPages,
   pictureBookRulesFromTemplate,
   checkBookStyle,
+  checkText,
+  countWords,
   checkBookTemplateRules,
   checkListing,
   ebookCoverSpec,
@@ -39,6 +41,7 @@ import {
   type TrimKey,
 } from '@volume/core';
 import type { PictureBookLayout } from './picture-book.ts';
+import { htmlToParagraphs } from './txt.ts';
 
 export type { CheckItem, CheckLevel } from '@volume/core';
 
@@ -240,6 +243,10 @@ export interface PreflightInput {
   /** Spine text drawn on the wrap, and background image DPI (from exportPaperbackWrap). */
   wrapInfo?: { spineText: boolean; imageDpi?: number };
   ebookCover?: Buffer;
+  /** Back-cover blurb as plain text (pack listing/back-cover-blurb.txt): house style and the template's word range. */
+  blurb?: string;
+  /** Marketing text for the pack's marketing/ folder: house style, as warnings (it is not uploaded to KDP). */
+  marketing?: { tiktokScripts?: string; instagramCaptions?: string; launchEmail?: string };
   /**
    * Covers the owner made and uploaded ("use my own cover"), not built by Volume. They are checked against the KDP
    * limits in the rules (eBook: file type, pixel limits, ratio, RGB, file size; wrap: size from the real page count
@@ -504,6 +511,9 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
 
   // Listing
   for (const i of checkListing(rules, input.listing)) add(i);
+  // House style beyond the manuscript (live acceptance 18 October 2026): the listing and the blurb go to KDP and the
+  // back cover, so they block like the manuscript; marketing is the owner's own posts, so it warns.
+  for (const i of outsideTextItems(input)) add(i);
 
   // Interior PDF
   let interiorPages: number | undefined;
@@ -785,6 +795,95 @@ function pictureBookItems(
           .join(' ')}${findings.length > 4 ? ` And ${findings.length - 4} more.` : ''}`
       : 'Every spread has text and the spreads are numbered in order.',
   });
+  return out;
+}
+
+/** House-style findings that block in the manuscript (em and en dashes, banned phrases, US spellings), per text. */
+function houseFindings(texts: { where: string; text: string }[], style: CompiledHouseStyle): string[] {
+  return texts.flatMap(({ where, text }) =>
+    checkText(text, style, { rules: ['emdash', 'endash', 'banned', 'spelling'] })
+      .filter((f) => f.severity === 'error')
+      .map((f) => `"${f.match}" in ${where}`),
+  );
+}
+
+/** D-049: a back-cover blurb is 120 to 200 words when the template sets no range (the nonfiction template's own). */
+const DEFAULT_BLURB_WORDS = { min: 120, max: 200 };
+
+/** The word range for the back-cover blurb: the template's packages.publishing back-cover-blurb limits, else D-049. */
+export function blurbWordRange(template: unknown): { min?: number; max?: number } {
+  const publishing = isObj(template) && isObj(template.packages) ? template.packages.publishing : undefined;
+  const item: unknown = Array.isArray(publishing) ? (publishing as unknown[]).find((p) => isObj(p) && p.id === 'back-cover-blurb') : undefined;
+  const words = isObj(item) && isObj(item.limits) && isObj(item.limits.words) ? item.limits.words : undefined;
+  if (!words) return DEFAULT_BLURB_WORDS;
+  const out: { min?: number; max?: number } = {};
+  if (typeof words.min === 'number') out.min = words.min;
+  if (typeof words.max === 'number') out.max = words.max;
+  return out;
+}
+
+/** `listing.style`, `listing.blurb-style`, `listing.blurb-length` and `marketing.style`, for the texts that are given. */
+function outsideTextItems(input: PreflightInput): CheckItem[] {
+  const out: CheckItem[] = [];
+  const style = input.houseStyle;
+  const l = input.listing;
+  const listingTexts = [
+    { where: 'the title', text: l.title },
+    { where: 'the subtitle', text: l.subtitle ?? '' },
+    { where: 'the description', text: htmlToParagraphs(l.description ?? '').join('\n\n') },
+  ].filter((t) => t.text.trim());
+  const listingHits = houseFindings(listingTexts, style);
+  out.push({
+    id: 'listing.style',
+    label: 'Listing house style (title, subtitle, description)',
+    level: listingHits.length ? 'fail' : 'pass',
+    detail: listingHits.length
+      ? `${listingHits.length} problem(s), first: ${listingHits.slice(0, 3).join('; ')}.`
+      : 'No em or en dashes, banned phrases or US spellings.',
+  });
+  const blurb = input.blurb?.trim();
+  if (blurb) {
+    const hits = houseFindings([{ where: 'the blurb', text: blurb }], style);
+    out.push({
+      id: 'listing.blurb-style',
+      label: 'Back-cover blurb house style',
+      level: hits.length ? 'fail' : 'pass',
+      detail: hits.length ? `${hits.length} problem(s), first: ${hits.slice(0, 3).join('; ')}.` : 'No em or en dashes, banned phrases or US spellings.',
+    });
+    const range = blurbWordRange(input.template);
+    const words = countWords(blurb);
+    const short = range.min !== undefined && words < range.min;
+    const long = range.max !== undefined && words > range.max;
+    const want =
+      range.min !== undefined && range.max !== undefined
+        ? `${range.min} to ${range.max}`
+        : range.min !== undefined
+          ? `at least ${range.min}`
+          : `at most ${range.max ?? '?'}`;
+    out.push({
+      id: 'listing.blurb-length',
+      label: 'Back-cover blurb length',
+      level: short || long ? 'warn' : 'pass',
+      detail: `${words} words (the template asks for ${want}).${short ? ' Add to it so the back cover sells the book.' : long ? ' Cut it so it fits the back cover.' : ''}`,
+    });
+  }
+  const mk = input.marketing ?? {};
+  const marketingTexts = [
+    { where: 'the TikTok scripts', text: mk.tiktokScripts ?? '' },
+    { where: 'the Instagram captions', text: mk.instagramCaptions ?? '' },
+    { where: 'the launch email', text: mk.launchEmail ?? '' },
+  ].filter((t) => t.text.trim());
+  if (marketingTexts.length) {
+    const hits = houseFindings(marketingTexts, style);
+    out.push({
+      id: 'marketing.style',
+      label: 'Marketing house style',
+      level: hits.length ? 'warn' : 'pass',
+      detail: hits.length
+        ? `${hits.length} problem(s), first: ${hits.slice(0, 3).join('; ')}. Fix them before you post.`
+        : 'No em or en dashes, banned phrases or US spellings.',
+    });
+  }
   return out;
 }
 

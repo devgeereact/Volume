@@ -1,6 +1,6 @@
 Preflight: Mabel and the Moonlit Garden
 =======================================
-19 pass, 1 warn, 0 fail
+20 pass, 1 warn, 0 fail
 
 PASS  Template sections present: Every required section is present or deliberately off.
 PASS  House style (dashes, banned phrases, US spellings): No em dashes, banned phrases or US spellings.
@@ -15,6 +15,7 @@ PASS  Description length (tags count): 114 characters including HTML tags (limit
 PASS  Description HTML tags: Only allowed tags used (tag spellings are a partial rule: check KDP before relying on strong or em). (FACTS 10.14)
 PASS  Keywords: 7 of 7 keywords. (FACTS 5.1)
 PASS  Categories: 3 of 3 categories. (FACTS 5.2)
+PASS  Listing house style (title, subtitle, description): No em or en dashes, banned phrases or US spellings.
 PASS  Interior page size with bleed: 621 x 630 pt (want 8.5 x 8.5 in plus bleed = 621 x 630 pt). (FACTS 3.7)
 PASS  Fonts embedded, no Type 3: 3 fonts, all embedded: PlusJakartaSans-ExtraBold, SourceSans3ExtraLight-SemiBold, SourceSans3ExtraLight-Regular. (FACTS 6.6)
 WARN  Page count within the colour limits: 24 pages (premium colour on 8.5 x 8.5 in: 24 to 590). Rule paperback.colour.paper is partial: check before you rely on it.

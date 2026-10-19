@@ -329,7 +329,13 @@
         "id": "back-cover-blurb",
         "source": "ai",
         "promptId": "matter.back-cover",
-        "rule": "Hook, stakes, no spoilers."
+        "rule": "Hook, stakes, no spoilers.",
+        "limits": {
+          "words": {
+            "min": 120,
+            "max": 200
+          }
+        }
       },
       {
         "id": "short-bio",

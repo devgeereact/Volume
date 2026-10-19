@@ -306,6 +306,7 @@ const FIX_ROUTES: Readonly<Record<string, { route: string; label: string }>> = {
   claims: { route: 'editor', label: 'Review claims' },
   kdp: { route: 'export', label: 'Set the AI disclosure' },
   listing: { route: 'blueprint', label: 'Edit the listing' },
+  marketing: { route: 'marketing', label: 'Open marketing' },
   interior: { route: 'export', label: 'Rebuild the interior' },
   cover: { route: 'cover', label: 'Open the cover studio' },
 };
@@ -677,6 +678,10 @@ export class VolumeExportAdapter implements ExportPort {
     const template = this.template(book);
     if (template !== undefined) input.template = template;
     if (book.claims) input.claims = book.claims;
+    // House style and length for the text outside the manuscript: the back-cover blurb and the marketing.
+    const blurb = book.listing?.backBlurb?.trim();
+    if (blurb) input.blurb = blurb;
+    if (book.marketing) input.marketing = book.marketing;
     if (files.interiorPdf) {
       input.interiorPdf = files.interiorPdf;
       const margin = this.margins.get(book.manuscriptHash);

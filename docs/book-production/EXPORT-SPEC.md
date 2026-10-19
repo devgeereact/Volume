@@ -274,6 +274,9 @@ The owner can skip the AI cover and upload their own (live acceptance 18 October
 | Template chapter rules (`structure.template-rules`): fiction chapters have no subheadings and no takeaways; a workbook chapter with no exercises | block | template `chapterRules`, `checkTemplateRules` |
 | Workbook exercises outside the per-chapter range, unknown exercise kinds, `lines N` outside 1 to 30, workbook blocks in a template without exercises, malformed workbook fences | warn | template `chapterRules` |
 | No em dashes, no banned phrases, no US spellings (or waived) | block | house style |
+| Listing title, subtitle and description, and the back-cover blurb: no em or en dashes, banned phrases or US spellings (`listing.style`, `listing.blurb-style`) | block | house style |
+| Back-cover blurb within the template's word range (`listing.blurb-length`; `packages.publishing` `back-cover-blurb` `limits.words`, else 120 to 200, D-049) | warn | template |
+| Marketing (TikTok scripts, Instagram captions, launch email): no em or en dashes, banned phrases or US spellings (`marketing.style`; not uploaded to KDP) | warn | house style |
 | No open blocking checks or invented-content flags | block | `docs/02-architecture/AI-PIPELINE.md` |
 | Open claims in the claims report | warn | guardrails |
 | About the author equals profile bio (hash) | block | guardrails |
