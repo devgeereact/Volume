@@ -88,6 +88,12 @@ describe('prices: sourced, hypothetical or unsourced (live acceptance run, 18 Oc
     expect(findUndatedPrices(text)).toEqual([]);
   });
 
+  it('a round "you" figure that names a firm or product is a claim, not an example', () => {
+    const text = 'Netflix costs you £10 a month. If you pay for ChatGPT Plus, budget £20. In October you might spend £10.';
+    expect(classifyPrices(text).map((p) => p.kind)).toEqual(['unsourced', 'unsourced', 'hypothetical']);
+    expect(findUnsourcedPrices(text).map((h) => h.match)).toEqual(['£10', '£20']);
+  });
+
   it('a sourced price stays sourced even in a "you" sentence', () => {
     const p = classifyPrices('You will pay £20 a month for the plan [[S4]].');
     expect(p).toMatchObject([{ match: '£20', kind: 'sourced', dated: false }]);

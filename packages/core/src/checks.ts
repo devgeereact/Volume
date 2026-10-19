@@ -95,7 +95,8 @@ export function hasMonthYear(text: string): boolean {
  * What a currency amount is:
  * - `sourced`: its sentence cites a research source ([[S<n>]]), so it is a real price the reader may want to date;
  * - `hypothetical`: a round figure in a sentence about the reader or a made-up case ("you", "your", "suppose", "say",
- *   "for example", "if" ...), for example "Set yourself a ceiling of £10 a month". Fine as it is;
+ *   "for example", "if" ...) that names no firm or product, for example "Set yourself a ceiling of £10 a month". Fine
+ *   as it is;
  * - `unsourced`: any other specific price. It needs a source, so it belongs in the claims report, never a "checked"
  *   stamp the writer cannot back (live acceptance run, 18 October 2026: "(checked October 2026)" on invented prices).
  */
@@ -110,6 +111,64 @@ export interface ClassifiedPrice extends PriceHit {
 const SOURCE_MARKER_RE = /\[\[S\d+\]\]/;
 const HYPOTHETICAL_RE =
   /\b(?:you|your|yours|yourself|you're|you'll|you'd|suppose|supposing|say|imagine|for example|for instance|e\.g\.|if|let's|let us|budget|ceiling|aim)\b/i;
+
+/** Capitalised words that are not a firm or product name. */
+const NOT_A_NAME = new Set([
+  'I',
+  'UK',
+  'US',
+  'USA',
+  'EU',
+  'GB',
+  'AI',
+  ...MONTHS.split('|'),
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+]);
+
+/**
+ * True when a sentence names a firm or product: a capitalised word that does not open the sentence ("Netflix costs you
+ * £10 a month"). Such a price is a fact to verify, never a made-up example.
+ */
+function namesProduct(sentence: string): boolean {
+  const words = [...sentence.matchAll(/[\p{L}][\p{L}\p{N}'’+.-]*/gu)].map((w) => w[0].replace(/['’]s$|[.]$/u, ''));
+  if (words.slice(1).some((w) => /^\p{Lu}/u.test(w) && !NOT_A_NAME.has(w))) return true;
+  // The opening word is a name when it is spelt like one (ChatGPT, YouTube, Canva2) or it is what "costs" or
+  // "charges" ("Netflix costs you £10 a month"), unless it is a plain opener (This, It, That ...).
+  const first = words[0] ?? '';
+  if (/^\p{Lu}.*(?:\p{Lu}|\p{N})/u.test(first) && !NOT_A_NAME.has(first)) return true;
+  return /^\p{Lu}/u.test(first) && !PLAIN_OPENERS.has(first.toLowerCase()) && /^(?:costs?|charges?|bills?|sells?|offers?)$/i.test(words[1] ?? '');
+}
+
+const PLAIN_OPENERS = new Set([
+  'this',
+  'that',
+  'it',
+  'which',
+  'what',
+  'each',
+  'every',
+  'one',
+  'the',
+  'a',
+  'an',
+  'your',
+  'my',
+  'our',
+  'their',
+  'his',
+  'her',
+  'its',
+  'everything',
+  'something',
+  'nothing',
+  'anything',
+]);
 
 /** A whole amount that is a multiple of 5 (£10, $250, 50 pounds), or one given in thousands or millions. */
 function isRoundFigure(match: string): boolean {
@@ -127,10 +186,11 @@ export function classifyPrices(text: string): ClassifiedPrice[] {
     const dated = hasMonthYear(sentence);
     const sourced = SOURCE_MARKER_RE.test(sentence);
     const hypothetical = HYPOTHETICAL_RE.test(sentence);
+    const product = namesProduct(sentence);
     CURRENCY_RE.lastIndex = 0;
     for (const m of sentence.matchAll(CURRENCY_RE)) {
       const start = s.start + (m.index ?? 0);
-      const kind: PriceKind = sourced ? 'sourced' : hypothetical && isRoundFigure(m[0]) ? 'hypothetical' : 'unsourced';
+      const kind: PriceKind = sourced ? 'sourced' : hypothetical && !product && isRoundFigure(m[0]) ? 'hypothetical' : 'unsourced';
       out.push({ match: m[0], start, end: start + m[0].length, sentence: sentence.trim(), kind, dated });
     }
   }
