@@ -525,6 +525,15 @@ export interface ImportedProject {
   book: ApiBook;
 }
 
+/** POST /books/import-project answers 201 with this (D-051). The book's settings carry origin.note. */
+export interface ImportedBookProject {
+  bookId: string;
+  profileId: string;
+  rows: number;
+  assets: number;
+  book: ApiBook;
+}
+
 export interface BookListQuery {
   profileId?: string;
   stage?: ApiStage;

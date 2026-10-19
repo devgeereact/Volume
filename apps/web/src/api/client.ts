@@ -154,7 +154,7 @@ function isAbort(e: unknown): boolean {
   return typeof e === "object" && e !== null && (e as { name?: unknown }).name === "AbortError";
 }
 
-/** Low-level request. `body` is sent as JSON when given; a raw Blob is sent as-is (uploads only). */
+/** Low-level request. `body` is sent as JSON when given; a raw Blob or FormData is sent as-is (uploads only). */
 export async function apiRequest<T>(
   method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
   path: string,
@@ -163,7 +163,10 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json", ...(await authHeaders()) };
   let payload: BodyInit | undefined;
-  if (body instanceof Blob) {
+  if (typeof FormData !== "undefined" && body instanceof FormData) {
+    // The browser sets multipart/form-data with its boundary.
+    payload = body;
+  } else if (body instanceof Blob) {
     payload = body;
     headers["Content-Type"] = body.type || "application/octet-stream";
   } else if (body !== undefined) {
