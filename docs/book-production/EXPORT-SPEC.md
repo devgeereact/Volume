@@ -259,6 +259,13 @@ height_in = 0.125 + trim_h + 0.125
 - Back cover: blurb, short bio, and an empty area for KDP's barcode (size/clearance recorded, automatic placement still partial, `KNOWN-ISSUES.md`).
 - Phase 4 check: sizes match KDP's cover calculator (FACTS 3.8) for 3 page counts on white and cream.
 
+## Own cover (owner upload)
+
+The owner can skip the AI cover and upload their own (live acceptance 18 October 2026): a front cover image for the eBook (JPEG or TIFF, rule `ebook.cover` `fileTypes`) and a full paperback wrap PDF (back, spine and front with bleed). They go into the pack's `cover/` folder as uploaded (a TIFF keeps `.tif`); Volume never redraws them. Preflight checks them with `ownCovers` set, against `config/kdp-rules` only:
+
+- eBook (`ebook.cover`, FACTS 10.5): JPEG or TIFF, at least 625 x 1,000 px, at most 10,000 px a side, height at least 1.6 times the width, RGB, under 50 MB. Smaller than the ideal 1,600 x 2,560 passes with a warning.
+- Wrap: size from the formula above with the interior PDF's real page count (`wrap.size`, bleed included), the lowest resolution of any image at the size it is drawn (`wrap.dpi`, at least `paperback.cover` `minDpi`), fonts embedded with no Type 3 (`wrap.fonts`), and spine text (`wrap.spine-text`: a warning under 80 pages, because Volume cannot read text on the owner's spine). The colour mode of the wrap's images is listed as a warning (`wrap.colour`): `config/kdp-rules` has no confirmed rule on paperback cover colour, so it is unverified.
+
 ## Preflight
 
 | Check | Level | Source |
@@ -286,6 +293,9 @@ height_in = 0.125 + trim_h + 0.125
 | Picture books: the AI disclosure covers images, because the spread pictures come from the image model (`kdp.ai-disclosure`) | block | FACTS 5.5, D-045 |
 | Wrap size matches formula, spine text only at 80 pages or more, images 300 DPI or more | block | FACTS 3.8 to 3.10 |
 | eBook cover 1600 x 2560 JPEG RGB | block | FACTS 10.5 |
+| Own eBook cover: JPEG or TIFF, pixel limits, ratio, RGB, file size (below the ideal size warns) | block | FACTS 10.5 |
+| Own wrap: size from the real page count, images 300 DPI or more at their drawn size, fonts embedded | block | FACTS 3.8, 3.9 |
+| Own wrap: spine text under 80 pages (cannot be read), colour mode of its images (no rule, unverified) | warn | FACTS 3.10 |
 | EPUBCheck passes (when Java present) | warn | FACTS 7.8 |
 | Exports older than the latest manuscript change | warn | `exports.manuscript_hash` |
 | Oldest KDP rule check older than `recheckAfterDays` (`rules.age`, counted from the file's `verifiedOn`, which is the date of its oldest check, not the date of the file) | warn | rules file `verifiedOn` |

@@ -53,6 +53,10 @@ export interface UploadPackInput {
   date?: Date;
 }
 
+/** TIFF signature (little or big endian): an owner's own eBook cover may be TIFF (rule ebook.cover fileTypes). */
+export const isTiff = (b: Buffer): boolean =>
+  b.length >= 4 && ((b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2a && b[3] === 0x00) || (b[0] === 0x4d && b[1] === 0x4d && b[2] === 0x00 && b[3] === 0x2a));
+
 const csvCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 
 export function claimsCsv(claims: ClaimItem[]): string {
@@ -115,7 +119,7 @@ options. This pack has no EPUB or DOCX: a picture-book eBook needs a fixed layou
 const README = (slug: string, marketing: string, pictureBook = false, listingExtras: string[] = []) => `KDP upload pack for ${slug}
 
 manuscript/   the interior PDF (paperback), EPUB and DOCX (eBook), TXT and Markdown (your records)
-cover/        the eBook cover JPEG and the paperback wrap PDF
+cover/        the eBook cover (JPEG, or TIFF when you uploaded one) and the paperback wrap PDF
 listing/      metadata, the HTML description${listingExtras.map((x) => `, ${x}`).join('')} and the AI disclosure note
 reports/      preflight, claims to verify and the KDP rules used
 ${marketing ? `marketing/    ${marketing}\n` : ''}
@@ -164,7 +168,7 @@ export async function buildUploadPack(input: UploadPackInput): Promise<{ fileNam
   if (f.docx) z.file(`manuscript/${slug}.docx`, f.docx);
   if (f.txt) z.file(`manuscript/${slug}.txt`, f.txt);
   if (f.md) z.file(`manuscript/${slug}.md`, f.md);
-  if (f.ebookCover) z.file(`cover/${slug}-ebook-cover.jpg`, f.ebookCover);
+  if (f.ebookCover) z.file(`cover/${slug}-ebook-cover.${isTiff(f.ebookCover) ? 'tif' : 'jpg'}`, f.ebookCover);
   if (f.wrapPdf) z.file(`cover/${slug}-paperback-wrap-${input.trim}-${input.paper}-${input.pages ?? 0}p.pdf`, f.wrapPdf);
   z.file('listing/metadata.txt', metadataSheet(input.book, input.metadata));
   z.file('listing/description.html', `${input.book.meta.listing?.description ?? ''}\n`);

@@ -1,11 +1,13 @@
 // Preflight (docs/book-production/EXPORT-SPEC.md, Preflight): pass / warn / fail items before the upload pack is built.
 import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import sharp from 'sharp';
+import { PDFArray, PDFBool, PDFDocument, PDFName, PDFNumber, PDFRef, PDFStream, type PDFObject } from 'pdf-lib';
+import sharp, { type Metadata } from 'sharp';
 import {
   bleedPageSizeIn,
   checkPictureBook,
   checkTextInSafeArea,
   colourPageRange,
+  coverMinDpi,
   pictureBookGeometry,
   pictureBookPages,
   pictureBookRulesFromTemplate,
@@ -59,6 +61,61 @@ export interface PdfInspection {
   pageParts: { head: string; foot: string; body: string }[];
   /** Per page: how many images are drawn on it. */
   imagesPerPage: number[];
+  /** Every raster image drawn: pixel size and the resolution it prints at (from the drawing matrix). */
+  images: PdfImageUse[];
+}
+
+export interface PdfImageUse {
+  page: number;
+  widthPx: number;
+  heightPx: number;
+  /** Lower of the horizontal and vertical resolution at the drawn size, in dots per inch. */
+  dpi: number;
+}
+
+type Matrix = [number, number, number, number, number, number];
+const multiply = (m: Matrix, n: Matrix): Matrix => [
+  n[0] * m[0] + n[1] * m[2],
+  n[0] * m[1] + n[1] * m[3],
+  n[2] * m[0] + n[3] * m[2],
+  n[2] * m[1] + n[3] * m[3],
+  n[4] * m[0] + n[5] * m[2] + m[4],
+  n[4] * m[1] + n[5] * m[3] + m[5],
+];
+const asMatrix = (v: unknown): Matrix | null => {
+  if (!v || typeof v !== 'object' || !('length' in v) || (v as ArrayLike<number>).length !== 6) return null;
+  const a = Array.from(v as ArrayLike<number>);
+  return a.every((x) => typeof x === 'number' && Number.isFinite(x)) ? (a as Matrix) : null;
+};
+
+/** Raster images drawn by one page's operator list, with the resolution each prints at (the matrix maps the unit square to points). */
+function imageUses(page: number, fnArray: number[], argsArray: unknown[]): PdfImageUse[] {
+  const out: PdfImageUse[] = [];
+  const stack: Matrix[] = [];
+  let ctm: Matrix = [1, 0, 0, 1, 0, 0];
+  fnArray.forEach((fn, k) => {
+    const args = (argsArray[k] ?? []) as unknown[];
+    if (fn === OPS.save) stack.push(ctm);
+    else if (fn === OPS.restore) ctm = stack.pop() ?? ctm;
+    else if (fn === OPS.transform) {
+      const m = asMatrix(args);
+      if (m) ctm = multiply(ctm, m);
+    } else if (fn === OPS.paintFormXObjectBegin) {
+      stack.push(ctm);
+      const m = asMatrix(args[0]);
+      if (m) ctm = multiply(ctm, m);
+    } else if (fn === OPS.paintFormXObjectEnd) ctm = stack.pop() ?? ctm;
+    else if (fn === OPS.paintImageXObject || fn === OPS.paintInlineImageXObject) {
+      const img = args[0];
+      const inline = typeof img === 'object' && img !== null ? (img as { width?: number; height?: number }) : null;
+      const w = inline ? (inline.width ?? 0) : Number(args[1] ?? 0);
+      const h = inline ? (inline.height ?? 0) : Number(args[2] ?? 0);
+      const drawnW = Math.hypot(ctm[0], ctm[1]) / 72;
+      const drawnH = Math.hypot(ctm[2], ctm[3]) / 72;
+      if (w > 0 && h > 0 && drawnW > 0 && drawnH > 0) out.push({ page, widthPx: w, heightPx: h, dpi: Math.min(w / drawnW, h / drawnH) });
+    }
+  });
+  return out;
 }
 
 /** Read a PDF with pdfjs-dist: page sizes, every font used (embedded or not, Type 3 or not) and the text per page. */
@@ -70,6 +127,7 @@ export async function inspectPdf(pdf: Buffer, opts: { text?: boolean } = {}): Pr
   const pageText: string[] = [];
   const pageParts: PdfInspection['pageParts'] = [];
   const imagesPerPage: number[] = [];
+  const images: PdfImageUse[] = [];
   try {
     for (let i = 1; i <= doc.numPages; i++) {
       const page = await doc.getPage(i);
@@ -79,6 +137,7 @@ export async function inspectPdf(pdf: Buffer, opts: { text?: boolean } = {}): Pr
       sizes.set(`${w}x${h}`, { widthPt: w, heightPt: h });
       const ops = await page.getOperatorList();
       imagesPerPage.push(ops.fnArray.filter((fn) => fn === OPS.paintImageXObject || fn === OPS.paintInlineImageXObject).length);
+      images.push(...imageUses(i, ops.fnArray, ops.argsArray));
       ops.fnArray.forEach((fn, k) => {
         if (fn !== OPS.setFont) return;
         const id = String((ops.argsArray[k] as unknown[])[0]);
@@ -112,7 +171,45 @@ export async function inspectPdf(pdf: Buffer, opts: { text?: boolean } = {}): Pr
   }
   const byName = new Map<string, PdfFontInfo>();
   for (const f of fonts.values()) byName.set(f.name, f);
-  return { pageCount: doc.numPages, pageSizes: [...sizes.values()], fonts: [...byName.values()], pageText, pageParts, imagesPerPage };
+  return { pageCount: doc.numPages, pageSizes: [...sizes.values()], fonts: [...byName.values()], pageText, pageParts, imagesPerPage, images };
+}
+
+/**
+ * Colour spaces of the raster images in a PDF (DeviceRGB, DeviceCMYK, DeviceGray, ICCBased with its component count
+ * read as RGB, CMYK or Gray, and the base of Indexed spaces). Image masks are skipped. Unique, sorted.
+ */
+export async function pdfImageColourSpaces(pdf: Buffer): Promise<string[]> {
+  const doc = await PDFDocument.load(pdf, { ignoreEncryption: true, updateMetadata: false });
+  const ctx = doc.context;
+  const ICC: Record<number, string> = { 1: 'Gray', 3: 'RGB', 4: 'CMYK' };
+  const name = (cs: PDFObject | undefined, depth = 0): string => {
+    const v = cs instanceof PDFRef ? ctx.lookup(cs) : cs;
+    if (v instanceof PDFName) return v.decodeText();
+    if (v instanceof PDFArray && v.size() > 0 && depth < 4) {
+      const kind = v.lookup(0);
+      const k = kind instanceof PDFName ? kind.decodeText() : '?';
+      if (k === 'ICCBased') {
+        const stream = v.lookup(1);
+        const n = stream instanceof PDFStream ? stream.dict.lookup(PDFName.of('N')) : undefined;
+        return `ICCBased ${n instanceof PDFNumber ? (ICC[n.asNumber()] ?? String(n.asNumber())) : '?'}`;
+      }
+      if (k === 'Indexed') return `Indexed ${name(v.get(1), depth + 1)}`;
+      return k;
+    }
+    return 'unknown';
+  };
+  const found = new Set<string>();
+  for (const [, obj] of ctx.enumerateIndirectObjects()) {
+    if (!(obj instanceof PDFStream)) continue;
+    const subtype = obj.dict.lookup(PDFName.of('Subtype'));
+    if (!(subtype instanceof PDFName) || subtype.decodeText() !== 'Image') continue;
+    const mask = obj.dict.lookup(PDFName.of('ImageMask'));
+    if (mask instanceof PDFBool && mask.asBoolean()) continue;
+    const cs = obj.dict.get(PDFName.of('ColorSpace'));
+    // JPX images may carry their colour space inside the codestream.
+    found.add(cs ? name(cs) : 'embedded in the image');
+  }
+  return [...found].sort();
 }
 
 // ---------- preflight ----------
@@ -143,6 +240,12 @@ export interface PreflightInput {
   /** Spine text drawn on the wrap, and background image DPI (from exportPaperbackWrap). */
   wrapInfo?: { spineText: boolean; imageDpi?: number };
   ebookCover?: Buffer;
+  /**
+   * Covers the owner made and uploaded ("use my own cover"), not built by Volume. They are checked against the KDP
+   * limits in the rules (eBook: file type, pixel limits, ratio, RGB, file size; wrap: size from the real page count
+   * with bleed, image resolution, fonts, colour, spine text) instead of Volume's own build settings.
+   */
+  ownCovers?: { ebook?: boolean; wrap?: boolean };
   /** EPUBCheck result when it ran; undefined means it did not run. */
   epubcheck?: { ok: boolean; messages: string[] } | { skipped: string };
   claims?: ClaimItem[];
@@ -516,6 +619,7 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
         });
       }
     }
+    if (input.ownCovers?.wrap) for (const i of await ownWrapItems(input.wrapPdf, info, rules, pages)) add(i);
     const bad = info.fonts.filter((f) => !f.embedded || f.type3);
     add({
       id: 'wrap.fonts',
@@ -526,7 +630,8 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
   }
 
   // eBook cover
-  if (input.ebookCover) {
+  if (input.ebookCover && input.ownCovers?.ebook) add(await ownEbookCoverItem(input.ebookCover, rules));
+  else if (input.ebookCover) {
     const spec = ebookCoverSpec(rules);
     const meta = await sharp(input.ebookCover).metadata();
     const ok =
@@ -680,6 +785,85 @@ function pictureBookItems(
           .join(' ')}${findings.length > 4 ? ` And ${findings.length - 4} more.` : ''}`
       : 'Every spread has text and the spreads are numbered in order.',
   });
+  return out;
+}
+
+/**
+ * The owner's own eBook cover against rule ebook.cover (FACTS 10.5): JPEG or TIFF, at least the minimum pixels, at
+ * most the maximum a side, height at least minHeightToWidthRatio times the width, RGB, under the size limit. Smaller
+ * than the ideal size passes with a warning.
+ */
+export async function ownEbookCoverItem(cover: Buffer, rules: KdpRules): Promise<CheckItem> {
+  const spec = ebookCoverSpec(rules);
+  const base = { id: 'ebook.cover', label: 'eBook cover (your own)', factIds: ['10.5'] };
+  let meta: Metadata;
+  try {
+    meta = await sharp(cover).metadata();
+  } catch {
+    return { ...base, level: 'fail', detail: 'The file could not be read as an image. Upload a JPEG or TIFF.' };
+  }
+  const types = new Set(spec.fileTypes.map((t) => t.toLowerCase()));
+  const format = meta.format === 'jpeg' ? 'jpeg' : meta.format === 'tiff' ? 'tiff' : (meta.format ?? '?');
+  const w = meta.width;
+  const h = meta.height;
+  const problems: string[] = [];
+  if (!types.has(format)) problems.push(`${format.toUpperCase()} is not a KDP eBook cover type (${spec.fileTypes.join(', ')})`);
+  if (w < spec.minWidthPx || h < spec.minHeightPx) problems.push(`${w} x ${h} px is under the minimum ${spec.minWidthPx} x ${spec.minHeightPx} px`);
+  if (w > spec.maxPxEachSide || h > spec.maxPxEachSide) problems.push(`a side is over ${spec.maxPxEachSide} px`);
+  // Pixel sizes are whole numbers, so allow the rounding of one pixel in the height.
+  if (w > 0 && (h + 1) / w < spec.minRatio) problems.push(`height to width is ${(h / w).toFixed(2)}:1, under ${spec.minRatio}:1`);
+  const rgb = meta.space === 'srgb' || meta.space === 'rgb';
+  if (!rgb) problems.push(`colour is ${meta.space ?? 'unknown'}, not ${spec.colourMode}`);
+  if (cover.length >= spec.maxFileSizeMB * 1024 * 1024) problems.push(`the file is over ${spec.maxFileSizeMB} MB`);
+  const small = w < spec.widthPx || h < spec.heightPx;
+  const said = `${format.toUpperCase()} ${w} x ${h} px, ${meta.space ?? '?'}, ${(cover.length / 1024).toFixed(0)} KB`;
+  if (problems.length) return { ...base, level: 'fail', detail: `${said}: ${problems.join('; ')}.` };
+  return {
+    ...base,
+    level: small ? 'warn' : 'pass',
+    detail: small
+      ? `${said}. Accepted, but KDP's ideal is ${spec.widthPx} x ${spec.heightPx} px; a smaller cover can look soft on large screens.`
+      : `${said}. Within KDP's limits.`,
+  };
+}
+
+/**
+ * The owner's own paperback wrap (the size and fonts are checked by the caller): image resolution against
+ * paperback.cover minDpi, the colour of its images (no KDP colour rule for paperback covers in config/kdp-rules, so a
+ * warning marked unverified), and the spine text rule, which Volume cannot read from the PDF.
+ */
+async function ownWrapItems(wrap: Buffer, info: PdfInspection, rules: KdpRules, pages: number | undefined): Promise<CheckItem[]> {
+  const out: CheckItem[] = [];
+  const min = coverMinDpi(rules);
+  const lowest = info.images.reduce<PdfImageUse | undefined>((lo, i) => (!lo || i.dpi < lo.dpi ? i : lo), undefined);
+  out.push({
+    id: 'wrap.dpi',
+    label: 'Cover image resolution',
+    level: !lowest || lowest.dpi >= min - 0.5 ? 'pass' : 'fail',
+    detail: lowest
+      ? `${info.images.length} image(s); the lowest is ${lowest.widthPx} x ${lowest.heightPx} px at about ${Math.floor(lowest.dpi + 0.5)} DPI (minimum ${min}).`
+      : 'No raster images in the wrap (text and shapes only).',
+    factIds: ['3.8'],
+  });
+  const spaces = await pdfImageColourSpaces(wrap).catch(() => ['not readable']);
+  out.push({
+    id: 'wrap.colour',
+    label: 'Cover colour (unverified rule)',
+    level: 'warn',
+    detail: `${spaces.length ? `Image colour: ${spaces.join(', ')}.` : 'No raster images.'} config/kdp-rules has no confirmed rule on the colour mode of a paperback cover PDF, so this is not checked: confirm it in KDP's cover guidance and the printed proof.`,
+  });
+  const minPages = rules.rules.find((r) => r.id === 'paperback.spine.textMinPages')?.value;
+  if (pages !== undefined && typeof minPages === 'number')
+    out.push({
+      id: 'wrap.spine-text',
+      label: 'Spine text rule',
+      level: pages >= minPages ? 'pass' : 'warn',
+      detail:
+        pages >= minPages
+          ? `${pages} pages: spine text is allowed (from ${minPages} pages).`
+          : `${pages} pages: KDP rejects spine text under ${minPages} pages. Volume cannot read text on your wrap's spine, so check it has none.`,
+      factIds: ['3.10'],
+    });
   return out;
 }
 
