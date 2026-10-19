@@ -1,3 +1,20 @@
+## Overnight build, 18 to 19 October 2026 (Claude Code, lead with subagents)
+
+Owner goal: build the remaining part, test with real content so nothing unpostable costs money, keep it under the Gideon Akinlotan account for review at 06:00. Nothing below is merged or deployed; every item is a PR for the owner.
+
+Real-content acceptance (free OpenRouter models only, spend $0.00, 98 runs, books under the Gideon Akinlotan profile in the owner's local library; report `../reports/volume/LIVE-ACCEPTANCE-2026-10-18.md`): FAIL, no book postable yet. Nonfiction and workbook fully written with valid PDF, DOCX and EPUB inside KDP rules, blocked only by the cover (no free image model). Fiction 4 of 6 stories (queued jobs resume on the next local `npm run dev`, free models, $0 budget; cancel from the book page if unwanted). Picture book failed on a type bug. Defects fixed in PRs #10 and #11.
+
+Open PRs (each reviewed by volume-reviewer, findings fixed, full local gate and e2e 17 of 17 PASS):
+- #7 flaky picture-book e2e fix (tests only; waiting on CI).
+- #8 web polish (title double-submit guard, reduced motion, in-shell route errors, app manifest).
+- #9 data rights, retention and server hardening (D-050): workspace export, leave, member removal, guest workspace delete; AI output and job events deleted with a book; log redaction; upload checks; typed bodies; HSTS.
+- #10 fixes from the acceptance run: honest prompts (no invented prices, stamps or author anecdotes; blurbs sell), brief reaches planning, house-style auto-fix on AI text, picture-book story, "None" in email, JSON repair, accept-suggestion matching.
+- #11 use my own cover, KDP-safe print symbols, listing and blurb preflight (stacked on #9).
+
+Suggested merge order: #7, #8, #9, #11, #10 (rebase #10 if needed), then `npm run deploy` (no migrations in any of them).
+
+Blockers for the owner: GitHub Actions starts no jobs (minutes or billing limit), so remote CI is NOT TESTED on #7 to #11. A fresh live run with the new prompts is NOT TESTED. Owner decisions still open: OpenRouter `data_collection`, research web search cost, privacy contact facts, phase 6 to 8 gates.
+
 ## Production hub, 18 October 2026 (Claude Code, lead with subagents)
 
 Branch `feat/production-hub` (from main 91011b6). Owner chose the hub and delegated the open choices; recorded as D-048 (stage advances) and D-049 (one marketing gate, writing complete; counts 5 and 5 from the template; pack blurb and short bio). Back-cover blurb is 120 to 200 words everywhere (`matter/back-cover.v6`).
