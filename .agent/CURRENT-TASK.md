@@ -1,3 +1,11 @@
+## Merge and deploy, 19 October 2026 (Claude Code)
+
+Owner asked to merge the open PRs and deploy. Merged #7, #8, #9, #11, #10, #12, #13 into main (a7bff19); #11 and #13 retargeted from `feat/server-hardening` to main; #13 conflicts (CHANGELOG, `files/magic.ts`) resolved by keeping both sides, and its test fixed for the listing job from #10. Draft #14 left for the owner. Deployed a7bff19 as release `20261019T103759Z` (rollback `20261018T131543Z`) with `--migrate --no-ci-check` after the owner's cPanel backup; migration 0010 applied.
+
+Books: 5 project zips exported from the Mac's local server to `~/Volume-book-exports/2026-10-19/` (owner's machine only, never in git). Next: owner imports each on the live site (Library > Import project) under a pen name that exists there, then rebuilds files.
+
+Also next: rebase `feat/landing-hero` onto main and open its PR; fix the one-line `engines` drift in `package-lock.json`; GitHub Actions has no runs on record (check billing).
+
 ## Overnight build, 18 to 19 October 2026 (Claude Code, lead with subagents)
 
 Owner goal: build the remaining part, test with real content so nothing unpostable costs money, keep it under the Gideon Akinlotan account for review at 06:00. Nothing below is merged or deployed; every item is a PR for the owner.
