@@ -1,24 +1,34 @@
 /*
  * Playwright config for the end-to-end tests. Run them with `npm run e2e` from the repo root, which builds
- * first (see run.mjs). Two server pairs start, each a test server (mock AI, fresh SQLite file and DATA_DIR in
- * the temp folder) and a vite preview of the web build; Playwright stops all four when the run ends, even
+ * first (see run.mjs). Three server pairs start, each a test server (mock AI, fresh SQLite file and DATA_DIR in
+ * the temp folder) and a vite preview of the web build; Playwright stops all six when the run ends, even
  * after a failure.
  *
  *   full-book  server 127.0.0.1:5315, web 5316. The mock AI fails the third writing call once
  *              (MOCK_FAIL_NEXT_WRITING=3). Only full-book.spec.ts uses this pair, so the failure it expects is
  *              always there and never lands on another spec, whatever order the specs run in.
+ *   picture    server 127.0.0.1:5317, web 5318. Every mock AI call takes PICTURE_CALL_DELAY_MS longer (slow-mock.mjs), so
+ *              the picture book run lasts a couple of seconds. On the main server the whole run takes about 80 ms
+ *              and its panel is on screen for under a tenth of a second; a slow runner (GitHub macOS) finishes the
+ *              run before the browser has drawn the panel, and "live progress" cannot be asserted. Only
+ *              picture-book.spec.ts uses this pair.
  *   main       server 127.0.0.1:5311, web 5312. No injected failure. Every other spec.
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@playwright/test";
-import { dataDir, failServerDataDir, failServerSqlitePath, sqlitePath, webOutDir } from "./paths.mjs";
+import { dataDir, failServerDataDir, failServerSqlitePath, pictureServerDataDir, pictureServerSqlitePath, sqlitePath, webOutDir } from "./paths.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SERVER_PORT = 5311;
 const WEB_PORT = 5312;
 const FAIL_SERVER_PORT = 5315;
 const FAIL_WEB_PORT = 5316;
+const PICTURE_SERVER_PORT = 5317;
+const PICTURE_WEB_PORT = 5318;
+
+/** Added to every mock AI call (text and picture) on the picture-book server, ms. See slow-mock.mjs. */
+export const PICTURE_CALL_DELAY_MS = 120;
 
 /** The nth writing call the mock AI fails once on the full-book server. 3 lets two sections succeed before the failure. */
 export const FAIL_WRITING_CALL = "3";
@@ -29,6 +39,8 @@ interface ServerOptions {
   sqlite: string;
   data: string;
   failWritingCall?: string;
+  /** Run the server with slow-mock.mjs, adding this many ms to every mock AI call. */
+  callDelayMs?: number;
 }
 
 const viteBin = path.join(root, "node_modules/vite/bin/vite.js");
@@ -36,7 +48,7 @@ const viteBin = path.join(root, "node_modules/vite/bin/vite.js");
 /** One test server. It never loads the env file; every setting that matters is pinned here. */
 function server(o: ServerOptions) {
   return {
-    command: "node apps/server/dist/index.js",
+    command: o.callDelayMs ? "node --import ./tests/e2e/slow-mock.mjs apps/server/dist/index.js" : "node apps/server/dist/index.js",
     cwd: root,
     url: `http://127.0.0.1:${o.port}/api/v1/health`,
     reuseExistingServer: false,
@@ -55,6 +67,7 @@ function server(o: ServerOptions) {
       PORT: String(o.port),
       WEB_ORIGINS: `http://127.0.0.1:${o.webPort}`,
       MOCK_STREAM_DELAY_MS: "5",
+      ...(o.callDelayMs ? { E2E_MOCK_CALL_DELAY_MS: String(o.callDelayMs) } : {}),
       ...(o.failWritingCall ? { MOCK_FAIL_NEXT_WRITING: o.failWritingCall } : {}),
       LOG_LEVEL: "warn",
     },
@@ -87,7 +100,8 @@ export default defineConfig({
   reporter: [["list"]],
   projects: [
     { name: "full-book", testMatch: "full-book.spec.ts", use: { baseURL: `http://127.0.0.1:${FAIL_WEB_PORT}` } },
-    { name: "main", testIgnore: "full-book.spec.ts", use: { baseURL: `http://127.0.0.1:${WEB_PORT}` } },
+    { name: "picture", testMatch: "picture-book.spec.ts", use: { baseURL: `http://127.0.0.1:${PICTURE_WEB_PORT}` } },
+    { name: "main", testIgnore: ["full-book.spec.ts", "picture-book.spec.ts"], use: { baseURL: `http://127.0.0.1:${WEB_PORT}` } },
   ],
   use: {
     viewport: { width: 1440, height: 900 },
@@ -103,5 +117,13 @@ export default defineConfig({
     preview(WEB_PORT, SERVER_PORT),
     server({ port: FAIL_SERVER_PORT, webPort: FAIL_WEB_PORT, sqlite: failServerSqlitePath, data: failServerDataDir, failWritingCall: FAIL_WRITING_CALL }),
     preview(FAIL_WEB_PORT, FAIL_SERVER_PORT),
+    server({
+      port: PICTURE_SERVER_PORT,
+      webPort: PICTURE_WEB_PORT,
+      sqlite: pictureServerSqlitePath,
+      data: pictureServerDataDir,
+      callDelayMs: PICTURE_CALL_DELAY_MS,
+    }),
+    preview(PICTURE_WEB_PORT, PICTURE_SERVER_PORT),
   ],
 });

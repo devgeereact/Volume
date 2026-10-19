@@ -5,3 +5,5 @@ export const dataDir: string;
 export const downloadDir: string;
 export const failServerSqlitePath: string;
 export const failServerDataDir: string;
+export const pictureServerSqlitePath: string;
+export const pictureServerDataDir: string;
