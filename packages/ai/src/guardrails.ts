@@ -82,6 +82,12 @@ export interface GuardrailContext {
   skipKeys?: string[] | undefined;
   /** House-style guardrail pattern ids not to run (TaskDef.skipRules). */
   skipRules?: readonly string[] | undefined;
+  /**
+   * The author's profile facts and the owner's brief: the only author experiences the text may state. When given,
+   * the author-anecdote check runs and skips sentences these facts support. Undefined skips the check (fiction,
+   * saves where the caller has no profile).
+   */
+  authorFacts?: string | undefined;
 }
 
 interface CompiledPattern {
@@ -147,6 +153,115 @@ function isbnDigits(s: string): string {
   return s.replace(/[^0-9Xx]/g, '').toUpperCase();
 }
 
+// ---------- honesty checks that need the sentence (live acceptance run, 18 October 2026) ----------
+
+/** A "(checked <Month> <Year>)" stamp whose sentence carries no research source marker. */
+export const CHECKED_STAMP_RULE = 'checked-stamp-unsourced';
+/** The author narrated as a character, or a first-person past experience the profile facts do not hold. */
+export const AUTHOR_ANECDOTE_RULE = 'author-anecdote';
+
+const MONTHS = 'January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept?|Oct|Nov|Dec';
+const CHECKED_STAMP_RE = new RegExp(
+  `\\(\\s*(?:last\\s+|prices?\\s+)?checked(?:\\s+(?:in|on))?\\s+(?:\\d{1,2}(?:st|nd|rd|th)?\\s+)?(?:${MONTHS})\\.?,?\\s+\\d{4}\\s*\\)`,
+  'gi',
+);
+const SOURCE_MARKER_RE = /\[\[\s*(S\d+)\s*\]\]/g;
+const SENTENCE_END_RE = /[.!?]["'”’)\]]*(?=\s|$)|\n/g;
+
+const ANECDOTE_RES: readonly RegExp[] = [
+  // Third person: "The author set a personal ceiling", "the author glances at a bank notification".
+  /(?<!\babout )\bthe author(?:['’]s)?[ \t]+(?!(?:and|or|of|nor|is not|does not|cannot|bio|photo|page|note|name|profile)\b)[a-z]+/gi,
+  // First person past: "I set myself a limit", "I once tried", "I spent".
+  /\bI[ \t]+(?:once[ \t]+|first[ \t]+|finally[ \t]+|personally[ \t]+|recently[ \t]+|eventually[ \t]+)?(?:spent|tried|bought|paid|lost|earned|built|launched|quit|decided|learned|learnt|realised|realized|discovered|struggled|failed|started|noticed|remember|used to|signed up|set (?:myself|a|my)\b)/g,
+  /\b(?:in my (?:own )?experience|when I was|I(?:['’]ve| have) (?:seen|watched|met|worked with)|a client (?:once|told|said|asked)|people often tell me|the worry I hear)/gi,
+];
+
+const FACT_STOP_WORDS = new Set(
+  'about after again also author been before being book could does down each every from have having into just like more most much only other over same some such than that their them then there these they this those through very want were what when where which while with would your yours myself once first'.split(
+    ' ',
+  ),
+);
+
+function contentWords(s: string): string[] {
+  return (s.toLowerCase().match(/[a-z]{4,}/g) ?? []).filter((w) => !FACT_STOP_WORDS.has(w));
+}
+
+/** True when at least two content words, and half of them, appear in the profile facts or brief. */
+function supportedByFacts(sentence: string, facts: ReadonlySet<string>): boolean {
+  const words = [...new Set(contentWords(sentence))];
+  if (words.length === 0 || facts.size === 0) return false;
+  const found = words.filter((w) => facts.has(w)).length;
+  return found >= 2 && found / words.length >= 0.5;
+}
+
+/** The sentence around [start, end): from the last sentence end before it to the next one, plus any trailing [[S<n>]]. */
+function sentenceAround(text: string, start: number, end: number): { index: number; sentence: string } {
+  let s = 0;
+  let e = text.length;
+  for (const m of text.matchAll(SENTENCE_END_RE)) {
+    const at = m.index ?? 0;
+    const after = at + m[0].length;
+    if (after <= start) s = after;
+    else if (at >= end) {
+      e = after;
+      break;
+    }
+  }
+  const tail = /^[ \t]*(?:\[\[\s*S\d+\s*\]\][ \t]*)+/.exec(text.slice(e));
+  if (tail) e += tail[0].length;
+  const raw = text.slice(s, e);
+  const lead = raw.length - raw.trimStart().length;
+  return { index: s + lead, sentence: raw.trim() };
+}
+
+function clip(s: string): string {
+  return s.length > 300 ? `${s.slice(0, 297)}...` : s;
+}
+
+function unsourcedCheckedStamps(text: string, ctx: GuardrailContext, path: string): GuardrailHit[] {
+  const known = ctx.sources ? new Set(ctx.sources.map((x) => x.id)) : null;
+  const hits: GuardrailHit[] = [];
+  for (const m of text.matchAll(CHECKED_STAMP_RE)) {
+    const at = m.index ?? 0;
+    const { index, sentence } = sentenceAround(text, at, at + m[0].length);
+    const sourced = [...sentence.matchAll(SOURCE_MARKER_RE)].some((x) => known === null || known.has(x[1] ?? ''));
+    if (sourced) continue;
+    hits.push({
+      rule: CHECKED_STAMP_RULE,
+      severity: 'claims',
+      message: `"${m[0]}" says this figure was checked, but no research source backs it. Verify it and add the source, or remove the figure and the stamp.`,
+      match: clip(sentence),
+      index,
+      path,
+    });
+  }
+  return hits;
+}
+
+function authorAnecdotes(text: string, authorFacts: string, path: string): GuardrailHit[] {
+  const facts = new Set(contentWords(authorFacts));
+  const seen = new Set<number>();
+  const hits: GuardrailHit[] = [];
+  for (const re of ANECDOTE_RES) {
+    for (const m of text.matchAll(re)) {
+      const at = m.index ?? 0;
+      const { index, sentence } = sentenceAround(text, at, at + m[0].length);
+      if (seen.has(index)) continue;
+      seen.add(index);
+      if (supportedByFacts(sentence, facts)) continue;
+      hits.push({
+        rule: AUTHOR_ANECDOTE_RULE,
+        severity: 'claims',
+        message: `"${m[0]}": an experience of the author that the profile facts and brief do not state. Use a hypothetical "you" example, or add the fact to the profile if it is true.`,
+        match: clip(sentence),
+        index,
+        path,
+      });
+    }
+  }
+  return hits.sort((a, b) => a.index - b.index);
+}
+
 /** Check one string. */
 export function checkText(text: string, houseStyle: HouseStyle, ctx: GuardrailContext = {}, path = ''): GuardrailHit[] {
   const hits: GuardrailHit[] = [];
@@ -200,6 +315,9 @@ export function checkText(text: string, houseStyle: HouseStyle, ctx: GuardrailCo
       }
     }
   }
+
+  if (!skipRules.has(CHECKED_STAMP_RULE)) hits.push(...unsourcedCheckedStamps(text, ctx, path));
+  if (ctx.authorFacts !== undefined && !skipRules.has(AUTHOR_ANECDOTE_RULE)) hits.push(...authorAnecdotes(text, ctx.authorFacts, path));
 
   for (const phrase of ctx.bannedPhrases ?? []) {
     if (!phrase.trim()) continue;
