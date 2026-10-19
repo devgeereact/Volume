@@ -8,10 +8,44 @@ import { idOf, writer } from './common.js';
 import { sendAsset } from './production.js';
 
 /** Upload types accepted in v1 (docs/10: imports are Markdown; images for logos and covers). */
-const ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'text/markdown', 'text/plain', 'application/pdf', 'application/octet-stream']);
+const ALLOWED_MIME = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/tiff',
+  'text/markdown',
+  'text/plain',
+  'application/pdf',
+  'application/octet-stream',
+]);
+
+/**
+ * The owner's own cover files ("use my own cover"): the eBook front cover is JPEG or TIFF (rule ebook.cover
+ * fileTypes in config/kdp-rules) and the paperback wrap is one PDF. Both belong to a book, and the first bytes must
+ * match the type (JPEG FF D8 FF, TIFF II*\0 or MM\0*, PDF %PDF-), whatever the name or Content-Type says.
+ */
+export const OWN_COVER_KINDS = {
+  own_ebook_cover: { mimes: ['image/jpeg', 'image/tiff'], label: 'a JPEG or TIFF image' },
+  own_wrap_pdf: { mimes: ['application/pdf'], label: 'a PDF' },
+} as const;
+type OwnCoverKind = keyof typeof OWN_COVER_KINDS;
+const isOwnCoverKind = (k: string): k is OwnCoverKind => k in OWN_COVER_KINDS;
+
+/** True when the file starts with the signature of its declared type. */
+export function magicMatches(mime: string, head: Buffer): boolean {
+  if (mime === 'image/jpeg') return head.length >= 3 && head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff;
+  if (mime === 'image/tiff')
+    return (
+      head.length >= 4 &&
+      ((head[0] === 0x49 && head[1] === 0x49 && head[2] === 0x2a && head[3] === 0x00) ||
+        (head[0] === 0x4d && head[1] === 0x4d && head[2] === 0x00 && head[3] === 0x2a))
+    );
+  if (mime === 'application/pdf') return head.subarray(0, 5).toString('latin1') === '%PDF-';
+  return false;
+}
 
 const UploadQuery = z.object({
-  kind: z.enum(['import', 'logo', 'interior_image', 'author_photo', 'cover_concept', 'other']),
+  kind: z.enum(['import', 'logo', 'interior_image', 'author_photo', 'cover_concept', 'own_ebook_cover', 'own_wrap_pdf', 'other']),
   filename: z.string().trim().min(1).max(255),
   mime: z.string().max(100).optional(),
   projectId: z.string().max(64).optional(),
@@ -30,7 +64,7 @@ export function assetRoutes(app: FastifyInstance, s: AppServices): void {
   // the octet-stream parser and the larger body limit apply only here.
   void app.register((scope) => {
     scope.addContentTypeParser(
-      ['application/octet-stream', 'image/png', 'image/jpeg', 'image/webp', 'text/markdown', 'application/pdf'],
+      ['application/octet-stream', 'image/png', 'image/jpeg', 'image/webp', 'image/tiff', 'text/markdown', 'application/pdf'],
       (_req, payload, done) => {
         done(null, payload);
       },
@@ -46,6 +80,11 @@ export function assetRoutes(app: FastifyInstance, s: AppServices): void {
       if (q.kind === 'import' && !/\.md$/i.test(q.filename)) throw new AppError('unsupported_media_type', 'Imports accept Markdown (.md) files only.');
       if (q.kind === 'author_photo' && (!q.profileId || !['image/jpeg', 'image/png'].includes(mime)))
         throw new AppError('validation_failed', 'Author photos need a saved profile and a JPEG or PNG image.');
+      if (isOwnCoverKind(q.kind)) {
+        const own = OWN_COVER_KINDS[q.kind];
+        if (!q.projectId || !(own.mimes as readonly string[]).includes(mime))
+          throw new AppError('validation_failed', `Your own ${q.kind === 'own_ebook_cover' ? 'eBook cover' : 'paperback wrap'} needs a book and ${own.label}.`);
+      }
       if (q.projectId) await s.repos.books.require(req.ctx, q.projectId);
       if (q.profileId) await s.repos.profiles.require(req.ctx, q.profileId);
       const raw = req.body as Readable | undefined;
@@ -64,9 +103,23 @@ export function assetRoutes(app: FastifyInstance, s: AppServices): void {
         },
         body,
       );
+      if (isOwnCoverKind(q.kind) && !(await startsLike(s, req.ctx, meta.id, mime))) {
+        await s.blobs.delete(req.ctx, meta.id);
+        throw new AppError('unsupported_media_type', `This file is not ${OWN_COVER_KINDS[q.kind].label}, whatever its name says.`);
+      }
       void reply.code(201);
       return meta;
     });
     return Promise.resolve();
   });
+}
+
+/** Reads only the first chunk of a stored asset and checks its signature. */
+async function startsLike(s: AppServices, ctx: Parameters<AppServices['blobs']['stream']>[0], assetId: string, mime: string): Promise<boolean> {
+  const { body } = await s.blobs.stream(ctx, assetId);
+  for await (const chunk of body) {
+    body.destroy();
+    return magicMatches(mime, chunk as Buffer);
+  }
+  return false;
 }

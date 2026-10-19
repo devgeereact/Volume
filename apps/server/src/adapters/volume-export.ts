@@ -684,6 +684,7 @@ export class VolumeExportAdapter implements ExportPort {
     }
     if (files.wrapPdf) input.wrapPdf = files.wrapPdf;
     if (files.ebookCover) input.ebookCover = files.ebookCover;
+    if (book.ownCover && (book.ownCover.ebook || book.ownCover.wrap)) input.ownCovers = { ebook: book.ownCover.ebook, wrap: book.ownCover.wrap };
     return input;
   }
 
@@ -746,7 +747,8 @@ function packFilesOf(files: ExportFile[]): { pack: PackFiles; pages: number | un
     else if (role === 'epub') pack.epub = data;
     else if (role === 'txt') pack.txt = data;
     else if (role === 'md') pack.md = data;
-    else if (role === 'ebook_cover' && f.mime === MIME.jpeg) pack.ebookCover = data;
+    // The owner's own eBook cover may be TIFF (rule ebook.cover fileTypes).
+    else if (role === 'ebook_cover' && (f.mime === MIME.jpeg || f.mime === 'image/tiff')) pack.ebookCover = data;
     else if (role === 'wrap_pdf' && f.mime === MIME.pdf) pack.wrapPdf = data;
   }
   return { pack, pages };

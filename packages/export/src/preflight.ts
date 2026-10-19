@@ -658,7 +658,7 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
       level: missing.length === 2 ? 'fail' : missing.length ? 'warn' : 'pass',
       detail:
         missing.length === 2
-          ? 'No eBook cover or paperback wrap yet. Build the covers in the cover studio. Single files still export.'
+          ? 'No eBook cover or paperback wrap yet. Build the covers in the cover studio or upload your own there. Single files still export.'
           : missing.length
             ? `No ${missing[0] ?? ''} yet; the pack goes without it.`
             : 'eBook cover and paperback wrap are in the pack.',

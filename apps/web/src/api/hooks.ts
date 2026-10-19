@@ -862,6 +862,21 @@ export function useBuildCover() {
   });
 }
 
+/** "Use my own cover": attach (asset id) or take out (null) the owner's eBook cover and wrap. */
+export function useOwnCover() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { bookId: string; ebookAssetId?: string | null; wrapAssetId?: string | null }) => {
+      const { bookId, ...input } = v;
+      return productionApi.ownCover(bookId, input);
+    },
+    onSuccess: (r, v) => {
+      qc.setQueryData(queryKeys.book.cover(v.bookId), r);
+      void invalidate(qc, queryKeys.book.preflight(v.bookId));
+    },
+  });
+}
+
 /* ---------- Export ---------- */
 
 export function usePreflight(bookId: string | undefined) {
