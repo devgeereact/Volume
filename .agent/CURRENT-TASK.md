@@ -1,4 +1,13 @@
 ## Public landing, how it works and sign-in, 19 October 2026 (Claude Code)
+
+Branch `feat/landing-hero` (PR #16), rebuilt on main. Decision D-053 (D-051 is move-a-book, D-052 is PR #14). Owner asked to merge #17, #16, #14 in that order and deploy.
+
+Done: signed-out visitors on a hosted build see the landing hero at `/`, How it works at `/how-it-works` and a branded sign-in at `/sign-in` (and any other path). Signed-in and local builds reach the pages at `/welcome` and `/how-it-works`. Built with GSAP 3.15 (SplitText, ScrambleText), Lenis 1.3.27 and adapted React Bits components in `apps/web/src/site/`.
+
+Proven on the rebased branch (Node 26.8.1): typecheck, lint, format:check PASS; Vitest 1,095 passed, 4 skipped; web build PASS; e2e 17 of 17. Browser at 1440 and 390, dark, reduced motion (first build). Screenshots: `../reports/volume/screenshots/landing-hero/`.
+
+Next: check the themed Clerk form on the host after deploy. Owner: restore GitHub Actions (no runs are created for any push; account-level).
+
 ## Merge and deploy, 19 October 2026 (Claude Code)
 
 Owner asked to merge the open PRs and deploy. Merged #7, #8, #9, #11, #10, #12, #13 into main (a7bff19); #11 and #13 retargeted from `feat/server-hardening` to main; #13 conflicts (CHANGELOG, `files/magic.ts`) resolved by keeping both sides, and its test fixed for the listing job from #10. Draft #14 left for the owner. Deployed a7bff19 as release `20261019T103759Z` (rollback `20261018T131543Z`) with `--migrate --no-ci-check` after the owner's cPanel backup; migration 0010 applied.
@@ -9,13 +18,20 @@ Also next: rebase `feat/landing-hero` onto main and open its PR; fix the one-lin
 
 ## Overnight build, 18 to 19 October 2026 (Claude Code, lead with subagents)
 
-Branch `feat/landing-hero`, rebuilt on main d0c66c3 (three commits cherry-picked; the first build sat on `review/integration-2026-10-19`). Decision D-053 (D-051 is move-a-book, D-052 is draft PR #14). PR opened for owner review; not deployed.
+Owner goal: build the remaining part, test with real content so nothing unpostable costs money, keep it under the Gideon Akinlotan account for review at 06:00. Nothing below is merged or deployed; every item is a PR for the owner.
 
-Done: signed-out visitors on a hosted build see the landing hero at `/`, How it works at `/how-it-works` and a branded sign-in at `/sign-in` (and any other path). Signed-in and local builds reach the pages at `/welcome` and `/how-it-works`. Built with GSAP 3.15 (SplitText, ScrambleText), Lenis 1.3.27 and adapted React Bits components in `apps/web/src/site/`.
+Real-content acceptance (free OpenRouter models only, spend $0.00, 98 runs, books under the Gideon Akinlotan profile in the owner's local library; report `../reports/volume/LIVE-ACCEPTANCE-2026-10-18.md`): FAIL, no book postable yet. Nonfiction and workbook fully written with valid PDF, DOCX and EPUB inside KDP rules, blocked only by the cover (no free image model). Fiction 4 of 6 stories (queued jobs resume on the next local `npm run dev`, free models, $0 budget; cancel from the book page if unwanted). Picture book failed on a type bug. Defects fixed in PRs #10 and #11.
 
-Proven on the rebased branch (Node 26.8.1): typecheck, lint, format:check PASS; Vitest 1,095 passed, 4 skipped; web build PASS; e2e 17 of 17. Browser at 1440 and 390, dark, reduced motion (first build). Screenshots: `../reports/volume/screenshots/landing-hero/`.
+Open PRs (each reviewed by volume-reviewer, findings fixed, full local gate and e2e 17 of 17 PASS):
+- #7 flaky picture-book e2e fix (tests only; waiting on CI).
+- #8 web polish (title double-submit guard, reduced motion, in-shell route errors, app manifest).
+- #9 data rights, retention and server hardening (D-050): workspace export, leave, member removal, guest workspace delete; AI output and job events deleted with a book; log redaction; upload checks; typed bodies; HSTS.
+- #10 fixes from the acceptance run: honest prompts (no invented prices, stamps or author anecdotes; blurbs sell), brief reaches planning, house-style auto-fix on AI text, picture-book story, "None" in email, JSON repair, accept-suggestion matching.
+- #11 use my own cover, KDP-safe print symbols, listing and blurb preflight (stacked on #9).
 
-Next: owner reviews and merges the PR, then deploy; check the themed Clerk form on the host (NOT TESTED locally, sign-in is off there). Owner: restore GitHub Actions (no runs are created for any push; account-level).
+Suggested merge order: #7, #8, #9, #11, #10 (rebase #10 if needed), then `npm run deploy` (no migrations in any of them).
+
+Blockers for the owner: GitHub Actions starts no jobs (minutes or billing limit), so remote CI is NOT TESTED on #7 to #11. A fresh live run with the new prompts is NOT TESTED. Owner decisions still open: OpenRouter `data_collection`, research web search cost, privacy contact facts, phase 6 to 8 gates.
 
 ## Production hub, 18 October 2026 (Claude Code, lead with subagents)
 
