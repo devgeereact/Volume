@@ -5,6 +5,7 @@ import { BlobStore } from '../src/files/blob-store.js';
 import { createRepos } from '../src/repos/index.js';
 import { readZip, zipStream } from '../src/lib/zip.js';
 import { acceptInvitation } from '../src/repos/members.js';
+import { ProjectTransfer } from '../src/repos/transfer.js';
 import { WORKSPACE_TABLES, WorkspaceData } from '../src/repos/workspace-data.js';
 import { EventBus } from '../src/sse/bus.js';
 import { ulid } from 'ulid';
@@ -112,6 +113,44 @@ describe.skipIf(!url)('MySQL dialect (MYSQL_TEST_URL)', () => {
         .execute();
       expect(await new EventBus(handle.db).prune(90, at, 2)).toBeGreaterThanOrEqual(5);
       expect(await handle.db.selectFrom('jobEvents').select('id').where('id', '=', fresh.id).execute()).toHaveLength(1);
+    } finally {
+      await handle.close();
+    }
+  });
+
+  it('moves a book to another workspace by project zip (D-051)', async () => {
+    const handle = open();
+    try {
+      await migrateToLatest(handle);
+      const from = await ensureOwner(handle.db, `mf-${Date.now()}`, 'From');
+      const to = await ensureOwner(handle.db, `mt-${Date.now()}`, 'To');
+      const repos = createRepos(handle.db);
+      const p = await repos.profiles.create(from, { penName: 'Mover', legalName: 'Private Legal' });
+      const book = await repos.books.create(from, { profileId: p.id, idea: 'Moving book', title: 'Moving Book' }, { budgetUsd: 5, illustrativeLine: false });
+      const [section] = await repos.manuscript.addSections(from, book.id, [
+        { kind: 'chapter', area: 'body', title: 'One', number: 1, enabled: true, partId: null },
+      ]);
+      if (!section) throw new Error('No section');
+      await repos.manuscript.saveVersion(from, section.id, { bodyMd: 'First draft.', source: 'human', note: null });
+      await repos.manuscript.saveVersion(from, section.id, { bodyMd: 'Second draft.', source: 'human', note: null });
+      const store = new BlobStore(handle.db, 64 * 1024);
+      const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(200_000, 5)]);
+      await store.put(from, { kind: 'cover_concept', filename: 'own.png', mime: 'image/png', projectId: book.id }, png);
+      const { zip } = await new ProjectTransfer(handle.db, store).exportProject(from, book.id);
+      const target = await repos.profiles.create(to, { penName: 'Hosted' });
+      const result = await new ProjectTransfer(handle.db, store).importProject(to, zip, { profileId: target.id, requireManifest: true });
+      expect(result).toMatchObject({ profileId: target.id, assets: 1 });
+      const versions = await handle.db
+        .selectFrom('sectionVersions')
+        .select(['bodyMd', 'version'])
+        .where('projectId', '=', result.bookId)
+        .where('workspaceId', '=', to.workspaceId)
+        .orderBy('version')
+        .execute();
+      expect(versions.map((v) => v.bodyMd)).toEqual(['First draft.', 'Second draft.']);
+      const asset = await handle.db.selectFrom('assets').select('id').where('projectId', '=', result.bookId).executeTakeFirstOrThrow();
+      expect((await store.read(to, asset.id)).data.equals(png)).toBe(true);
+      expect((await repos.books.require(from, book.id)).title).toBe('Moving Book');
     } finally {
       await handle.close();
     }

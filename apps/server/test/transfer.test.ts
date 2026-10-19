@@ -5,6 +5,8 @@ import { ProjectTransfer } from '../src/repos/transfer.js';
 import { testApp, type TestApp } from './helpers.js';
 
 const apps: TestApp[] = [];
+/** PNG magic bytes, then filler: imports check a PNG's signature (D-050). */
+const SYNTHETIC_PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('synthetic portrait bytes')]);
 afterEach(async () => {
   vi.restoreAllMocks();
   for (const app of apps.splice(0)) await app.close();
@@ -84,7 +86,7 @@ describe('project import rollback', () => {
     const photo = await source.services.blobs.put(
       source.owner,
       { kind: 'author_photo', filename: 'portrait.png', mime: 'image/png', profileId: profile.id },
-      Buffer.from('synthetic portrait bytes'),
+      SYNTHETIC_PNG,
     );
     await source.services.repos.profiles.update(source.owner, profile.id, { brand: { photoAssetId: photo.id } });
     const book = await source.services.repos.books.create(
@@ -99,16 +101,16 @@ describe('project import rollback', () => {
     expect(typeof id).toBe('string');
     expect(id).not.toBe(photo.id);
     const file = await target.services.blobs.read(target.owner, String(id));
-    expect(file.data.toString()).toBe('synthetic portrait bytes');
+    expect(file.data.equals(SYNTHETIC_PNG)).toBe(true);
     expect(file.meta.profileId).toBe(imported.profileId);
   });
 
   it('rejects missing attached files without creating a book', async () => {
     const { target, entries, importer } = await fixture();
     const before = await snapshot(target);
-    await expect(importer.importProject(target.owner, writeZip(entries.filter((entry) => !entry.name.startsWith('assets/'))))).rejects.toThrow(
-      'missing an attached file',
-    );
+    await expect(
+      importer.importProject(target.owner, writeZip(entries.filter((entry) => !entry.name.startsWith('assets/') && entry.name !== 'manifest.json'))),
+    ).rejects.toThrow('missing an attached file');
     expect(await snapshot(target)).toEqual(before);
   });
 

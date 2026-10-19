@@ -296,7 +296,7 @@ describe('9. moving a project', () => {
     expect(res.headers['content-disposition']).toMatch(/calm-mornings\.volume-project\.zip/);
     const zip = res.rawPayload;
     const names = readZip(zip).map((e) => e.name);
-    expect(names[0]).toBe('project.json');
+    expect(names.slice(0, 2)).toEqual(['manifest.json', 'project.json']);
     expect(names.filter((n) => n.startsWith('assets/'))).toHaveLength(3);
 
     // Into a fresh database.
