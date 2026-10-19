@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { ulid } from 'ulid';
 import { RetentionService } from '../src/jobs/retention.js';
 import { newId } from '../src/lib/util.js';
 import { str, testApp, type TestApp } from './helpers.js';
@@ -30,6 +31,12 @@ describe('book delete retention', () => {
     const runs = await db.selectFrom('promptRuns').select(['id', 'output', 'costUsd']).where('projectId', '=', id).execute();
     expect(runs.length).toBeGreaterThan(0);
     expect(runs.some((r) => r.output !== null)).toBe(true);
+    // Guardrail hits quote the matched manuscript text, so they must go too.
+    await db
+      .updateTable('promptRuns')
+      .set({ guardrails: JSON.stringify({ hits: [{ text: 'quoted manuscript words' }] }) })
+      .where('projectId', '=', id)
+      .execute();
     const jobIds = (await db.selectFrom('jobs').select('id').where('projectId', '=', id).execute()).map((j) => j.id);
     // An event stored with only a job id (no book id) must go as well.
     await db
@@ -50,7 +57,7 @@ describe('book delete retention', () => {
 
     const after = await db
       .selectFrom('promptRuns')
-      .select(['id', 'output', 'error', 'projectId', 'jobId', 'costUsd'])
+      .select(['id', 'output', 'error', 'guardrails', 'projectId', 'jobId', 'costUsd'])
       .where(
         'id',
         'in',
@@ -58,7 +65,7 @@ describe('book delete retention', () => {
       )
       .execute();
     expect(after).toHaveLength(runs.length);
-    for (const r of after) expect(r).toMatchObject({ output: null, error: null, projectId: null, jobId: null });
+    for (const r of after) expect(r).toMatchObject({ output: null, error: null, guardrails: null, projectId: null, jobId: null });
     expect(after.map((r) => r.costUsd).sort()).toEqual(runs.map((r) => r.costUsd).sort());
     expect(await db.selectFrom('jobEvents').select('id').where('projectId', '=', id).execute()).toEqual([]);
     expect(await db.selectFrom('jobEvents').select('id').where('jobId', 'in', jobIds).execute()).toEqual([]);
@@ -77,8 +84,9 @@ describe('job event pruning', () => {
     const at = Date.now();
     const other = newId();
     await db.insertInto('workspaces').values({ id: other, name: 'Other', slug: 'other', createdAt: at, updatedAt: at }).execute();
+    // Event ids are ULIDs made at store time, so an old event has an old id.
     const row = (workspaceId: string, ageDays: number) => ({
-      id: newId(),
+      id: ulid(at - ageDays * day),
       workspaceId,
       projectId: null,
       jobId: null,
@@ -99,13 +107,39 @@ describe('job event pruning', () => {
     expect(await retention.runOnce(at)).toBe(0);
   });
 
+  it('deletes in bounded batches by primary key', async () => {
+    t = await testApp();
+    const db = t.services.db;
+    const at = Date.now();
+    const old = Array.from({ length: 5 }, (_, i) => ({
+      id: ulid(at - (100 + i) * 86_400_000),
+      workspaceId: t!.owner.workspaceId,
+      projectId: null,
+      jobId: null,
+      type: 'job.status',
+      data: '{}',
+      createdAt: at - (100 + i) * 86_400_000,
+    }));
+    await db.insertInto('jobEvents').values(old).execute();
+    expect(await t.services.bus.prune(90, at, 2)).toBe(5);
+    expect(await db.selectFrom('jobEvents').select('id').execute()).toEqual([]);
+  });
+
   it('runs a pass when started and stops cleanly', async () => {
     t = await testApp();
     const db = t.services.db;
     const at = Date.now();
     await db
       .insertInto('jobEvents')
-      .values({ id: newId(), workspaceId: t.owner.workspaceId, projectId: null, jobId: null, type: 'job.status', data: '{}', createdAt: at - 400 * 86_400_000 })
+      .values({
+        id: ulid(at - 400 * 86_400_000),
+        workspaceId: t.owner.workspaceId,
+        projectId: null,
+        jobId: null,
+        type: 'job.status',
+        data: '{}',
+        createdAt: at - 400 * 86_400_000,
+      })
       .execute();
     const logs: string[] = [];
     const retention = new RetentionService(t.services.bus);

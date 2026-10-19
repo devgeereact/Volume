@@ -431,8 +431,9 @@ export class BooksRepo {
       await trx.deleteFrom('projects').where('id', '=', id).where('workspaceId', '=', w).execute();
       await trx.deleteFrom('assets').where('projectId', '=', id).where('workspaceId', '=', w).execute();
       await trx.deleteFrom('jobEvents').where('projectId', '=', id).where('workspaceId', '=', w).execute();
-      // Retention (D-050): the raw AI output and error text go with the book; cost, tokens and model stay for spend.
-      const scrub = { projectId: null, jobId: null, output: null, error: null, updatedAt: now() };
+      // Retention (D-050): the raw AI output, error text and guardrail hits (they quote matched text) go with the book;
+      // cost, tokens and model stay for spend.
+      const scrub = { projectId: null, jobId: null, output: null, error: null, guardrails: null, updatedAt: now() };
       await trx.updateTable('promptRuns').set(scrub).where('projectId', '=', id).where('workspaceId', '=', w).execute();
       for (let i = 0; i < jobIds.length; i += 500) {
         const slice = jobIds.slice(i, i + 500);
