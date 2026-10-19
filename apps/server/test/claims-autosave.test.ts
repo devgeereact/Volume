@@ -102,6 +102,9 @@ describe('claim fix helpers', () => {
     expect(claimStatusFor('attribute', 'Fact [[S1]].', 1)).toBe('verified');
     expect(claimStatusFor('attribute', 'Fact.', 1)).toBe('softened');
     expect(claimStatusFor('generalise', 'Fact [[S1]].', 1)).toBe('softened');
+    expect(claimStatusFor('own', 'My words.', 1)).toBe('softened');
+    expect(claimStatusFor('own', 'My words [[S1]].', 1)).toBe('verified');
+    expect(claimStatusFor('own', 'My words [[S2]].', 1)).toBe('softened');
   });
 
   it('finds the version before the run of one user’s autosaves', () => {
