@@ -160,6 +160,21 @@ export const CHECKED_STAMP_RULE = 'checked-stamp-unsourced';
 /** The author narrated as a character, or a first-person past experience the profile facts do not hold. */
 export const AUTHOR_ANECDOTE_RULE = 'author-anecdote';
 
+/**
+ * Templates and book types where the text is not the author speaking from the facts on file: stories told by
+ * characters (fiction, picture books), poems (a speaker, not the author), and memoir or biography (a life told in
+ * scenes). The author-anecdote check gives false positives there, so it does not run.
+ */
+const ANECDOTE_EXEMPT_TEMPLATES: ReadonlySet<string> = new Set(['fiction', 'picture-book', 'poetry']);
+const ANECDOTE_EXEMPT_TYPES: ReadonlySet<string> = new Set(['poetry', 'memoir-biography']);
+
+/** True when the author-anecdote check applies to a book of this template and book type. */
+export function authorAnecdoteApplies(book: { template?: unknown; type?: unknown }): boolean {
+  const template = typeof book.template === 'string' ? book.template : '';
+  const type = typeof book.type === 'string' ? book.type : '';
+  return !ANECDOTE_EXEMPT_TEMPLATES.has(template) && !ANECDOTE_EXEMPT_TYPES.has(type);
+}
+
 const MONTHS = 'January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept?|Oct|Nov|Dec';
 const CHECKED_STAMP_RE = new RegExp(
   `\\(\\s*(?:last\\s+|prices?\\s+)?checked(?:\\s+(?:in|on))?\\s+(?:\\d{1,2}(?:st|nd|rd|th)?\\s+)?(?:${MONTHS})\\.?,?\\s+\\d{4}\\s*\\)`,

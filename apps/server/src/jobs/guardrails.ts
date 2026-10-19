@@ -1,5 +1,6 @@
 import {
   assignSourceIds,
+  authorAnecdoteApplies,
   formatProfileFacts,
   loadHouseStyle,
   savedTextReport,
@@ -51,9 +52,6 @@ export function toAiGuardrails(r: GuardrailReport): AiGuardrails {
   };
 }
 
-/** Templates whose text is told by characters, not the author: the author-anecdote check does not run on them. */
-const STORY_TEMPLATES: ReadonlySet<string> = new Set(['fiction', 'picture-book']);
-
 /**
  * The facts the saved text may state about the author: the profile facts block (as the prompts get it) and the owner's
  * brief (idea and notes). Null when the profile is missing. Sent as GuardrailContext.authorFacts, which the
@@ -77,9 +75,10 @@ export async function savedTextContext(repos: Repos, configDir: string, ctx: Req
   const profile = await repos.profiles.get(ctx, book.profileId);
   const sources = await repos.planning.listSources(ctx, { projectId: book.id, useInBook: true });
   const hs = houseStyleFor(configDir);
-  // The author-anecdote guardrail needs the facts the author has given; story templates skip it (left out).
-  const story = STORY_TEMPLATES.has((await loadBookStructure(configDir, book.bookTypeId, book.template)).templateId);
-  const authorFacts = story ? null : savedAuthorFacts(profile, book);
+  // The author-anecdote guardrail needs the facts the author has given; stories, poetry and memoir skip it (left out).
+  const structure = await loadBookStructure(configDir, book.bookTypeId, book.template);
+  const applies = authorAnecdoteApplies({ template: structure.templateId, type: book.bookTypeId });
+  const authorFacts = applies ? savedAuthorFacts(profile, book) : null;
   return {
     sources: assignSourceIds(sources.map((s) => ({ title: s.title ?? s.url, url: s.url, snippet: s.excerpt ?? '' }))),
     allowedUrls: (profile?.links ?? []).map((l) => l.url ?? l.value ?? '').filter((u) => u.length > 0),

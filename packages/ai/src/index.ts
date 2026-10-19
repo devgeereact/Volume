@@ -56,6 +56,7 @@ export {
   savedTextReport,
   scaffoldingOpeners,
   describeOpeners,
+  authorAnecdoteApplies,
 } from './guardrails.ts';
 export type {
   GuardrailContext,

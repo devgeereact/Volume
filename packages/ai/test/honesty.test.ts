@@ -6,7 +6,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { PromptLoader, TASKS, checkText, createAiService, formatPatternHits, loadHouseStyle, type AiService } from '../src/index.ts';
+import { PromptLoader, TASKS, authorAnecdoteApplies, checkText, createAiService, formatPatternHits, loadHouseStyle, type AiService } from '../src/index.ts';
 import { CONFIG_DIR, FULL_INPUT, PROMPTS_DIR } from './helpers.ts';
 
 const hs = loadHouseStyle(CONFIG_DIR);
@@ -134,6 +134,20 @@ describe('writing.chapter guardrails on a mock answer', () => {
     expect(claims).toContain('author-anecdote: The author set a personal ceiling of £8 a month for apps.');
     expect(claims.filter((c) => c.startsWith('author-anecdote'))).toHaveLength(1);
     expect(r.guardrails.passed).toBe(true);
+  });
+
+  it('skips the author-anecdote check for poetry and memoir or biography (review: medium)', async () => {
+    const chapter = 'The ward lights dim at eleven. The author set a personal ceiling of £8 a month for apps.';
+    const svc = serviceWith({ 'writing.chapter': chapter });
+    for (const book of [{ type: 'memoir-biography' }, { type: 'poetry' }, { template: 'poetry' }]) {
+      const r = await svc.runStage('writing.chapter', { ...FULL_INPUT, book: { ...FULL_INPUT.book, ...book } });
+      expect(
+        r.guardrails.claims.filter((h) => h.rule === 'author-anecdote'),
+        JSON.stringify(book),
+      ).toHaveLength(0);
+    }
+    expect(authorAnecdoteApplies({ template: 'nonfiction', type: 'self-help' })).toBe(true);
+    expect(authorAnecdoteApplies({ template: 'fiction' })).toBe(false);
   });
 });
 
