@@ -438,7 +438,7 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
     ];
     const extraBanned = Array.isArray(profile['bannedPhrases']) ? profile['bannedPhrases'].map(String) : [];
     // The author-anecdote check needs the facts the text may state: the profile facts block and the owner's brief.
-    const brief = [book['idea'], book['notes'], book['brief']].filter((x): x is string => typeof x === 'string' && x.trim() !== '');
+    const brief = [book['idea'], book['authorBrief'], book['notes'], book['brief']].filter((x): x is string => typeof x === 'string' && x.trim() !== '');
     const authorFacts = asObject(input['profile']) ? [formatProfileFacts(profile) ?? '', ...brief].join('\n') : undefined;
     return {
       sources: input['sources'] !== undefined ? assignSourceIds(input['sources'] as SourceInput[] | null) : undefined,
