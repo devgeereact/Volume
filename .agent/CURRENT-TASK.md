@@ -1,12 +1,12 @@
 ## Public landing, how it works and sign-in, 19 October 2026 (Claude Code)
 
-Branch `feat/landing-hero` (from `review/integration-2026-10-19` 0ca7a52), pushed (7b46e89, f32b573), no PR yet. Decision D-053 (D-051 and D-052 are taken by PRs #13 and #14).
+Branch `feat/landing-hero`, rebuilt on main d0c66c3 (three commits cherry-picked; the first build sat on `review/integration-2026-10-19`). Decision D-053 (D-051 is move-a-book, D-052 is draft PR #14). PR opened for owner review; not deployed.
 
 Done: signed-out visitors on a hosted build see the landing hero at `/`, How it works at `/how-it-works` and a branded sign-in at `/sign-in` (and any other path). Signed-in and local builds reach the pages at `/welcome` and `/how-it-works`. Built with GSAP 3.15 (SplitText, ScrambleText), Lenis 1.3.27 and adapted React Bits components in `apps/web/src/site/`.
 
-Proven (Node 26.8.1): typecheck, lint, format:check PASS; Vitest PASS (web 117; server flaky `log-safety` once, 392 passed on rerun); web build PASS; e2e 15 of 17 (the same 2 fail without this work, see KNOWN-ISSUES). Browser at 1440 and 390, dark, reduced motion. Screenshots: `../reports/volume/screenshots/landing-hero/`.
+Proven on the rebased branch (Node 26.8.1): typecheck, lint, format:check PASS; Vitest 1,095 passed, 4 skipped; web build PASS; e2e 17 of 17. Browser at 1440 and 390, dark, reduced motion (first build). Screenshots: `../reports/volume/screenshots/landing-hero/`.
 
-Next: owner reviews the pages and opens a PR; hosted check of the themed Clerk form (NOT TESTED locally, sign-in is off there).
+Next: owner reviews and merges the PR, then deploy; check the themed Clerk form on the host (NOT TESTED locally, sign-in is off there). Owner: restore GitHub Actions (no runs are created for any push; account-level).
 
 ## Production hub, 18 October 2026 (Claude Code, lead with subagents)
 

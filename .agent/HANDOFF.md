@@ -372,3 +372,10 @@ Next: owner decides on the summary-missing behaviour and the `checks.maxTokens` 
 - Process note: stashed and popped this branch's own changes once to get the e2e baseline; nothing else in the tree.
 - Not tested: real Clerk form with a key, screen reader, Safari.
 - Next: owner review; commit on request; check the sign-in page on a hosted build.
+
+## 2026-10-19 (midday), Claude Code (claude-opus-5-5), landing PR and open items
+- What changed: owner confirmed all 5 books imported on the live site. `feat/landing-hero` rebuilt on main by cherry-picking its three commits (CHANGELOG and DECISIONS conflicts kept both sides; landing decision is D-053) and force-pushed with lease (branch only this agent used). PR #15 merged: `package-lock.json` engines line synced with `package.json`, so `npm install` on main no longer dirties the tree before a deploy. KNOWN-ISSUES: the two "failing" e2e specs were port 5313 held by another project; closed.
+- GitHub Actions: workflow `check.yml` registered and active, repo public, yet no run is created for any push (checked after pushing `fix/lockfile-engines`); the 18 October run 39130081202 now answers 404. Account-level; billing needs the `user` scope and the owner. Owner steps in the PR description and final message.
+- Draft PR #14: retargeted to main and updated; see its PR comment for results. Not merged (author asked for owner review).
+- Checks on the rebased landing branch: typecheck, lint, format:check PASS; Vitest 1,095 passed, 4 skipped; web build PASS; e2e 17 of 17.
+- Next: owner reviews and merges the landing PR and #14, then deploy.
