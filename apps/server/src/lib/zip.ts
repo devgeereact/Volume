@@ -215,7 +215,8 @@ export function readZip(buf: Buffer, limits: ZipReadLimits = {}): ZipEntry[] {
     const body = buf.subarray(start, start + size);
     let data: Buffer;
     if (method === 0) data = Buffer.from(body);
-    else if (method === 8) data = inflateRawSync(body, { maxOutputLength: Math.min(maxEntryBytes, maxTotalBytes - (total - rawSize)) });
+    // Inflate no further than the declared size (at least 1 byte, which zlib requires): a lying header stops here.
+    else if (method === 8) data = inflateRawSync(body, { maxOutputLength: Math.max(1, rawSize) });
     else throw new Error('The zip file uses a compression this app cannot read.');
     if (data.length !== rawSize || crc32(data) >>> 0 !== crc) throw new Error(`The zip entry ${name} is damaged.`);
     out.push({ name, data });

@@ -21,6 +21,9 @@ import { createTextChecker } from './jobs/guardrails.js';
 import { registerRoutes } from './routes/index.js';
 import { EventBus } from './sse/bus.js';
 
+/** Most time to receive one whole request, in milliseconds. */
+export const REQUEST_TIMEOUT_MS = 300_000;
+
 declare module 'fastify' {
   interface FastifyRequest {
     ctx: RequestCtx;
@@ -95,6 +98,9 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
   const app = Fastify({
     logger: opts.logger ?? defaultLogger(config),
     bodyLimit: config.maxJsonBytes,
+    // The whole request (a project zip upload included) must arrive within 5 minutes, Node's own default, which
+    // Fastify's 0 would otherwise switch off (https://fastify.dev/docs/latest/Reference/Server/#requesttimeout).
+    requestTimeout: REQUEST_TIMEOUT_MS,
     // Behind Passenger and Cloudflare (TRUST_PROXY, on in production) the visitor's IP and protocol come from proxy headers.
     trustProxy: config.trustProxy,
   });
