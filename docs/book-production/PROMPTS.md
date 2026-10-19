@@ -100,7 +100,7 @@ After the live acceptance run of 18 October 2026, where a nonfiction book stampe
 - `blueprint.blueprint` v6 and `blueprint.blueprint-workbook` v2: story ideas never make the author a character, and the blurb and description drafts sell the book.
 - Checked and left as they are: `writing.chapter-fiction`, `writing.extend-section-fiction`, `blueprint.blueprint-fiction` and `children.picture-book-story` already forbid statistics, sources and real-world advice, and invented people and scenes are the work in fiction.
 
-Older versions stay in place for books pinned to them.
+The guardrails in `packages/ai` back this up with two code checks that send hits to the claims report: `checked-stamp-unsourced` (a "(checked <Month> <Year>)" stamp with no research source marker in its sentence) and `author-anecdote` (the author narrated as a character, or a first-person past experience the profile facts do not hold). Older versions stay in place for books pinned to them.
 
 ## Humanizer revision, 6 October 2026
 
