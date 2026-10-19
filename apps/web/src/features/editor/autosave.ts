@@ -20,6 +20,8 @@ export type SaveFailure = { conflict: true; currentVersionId: string | null } | 
 export interface LocalDraft {
   bodyMd: string;
   baseVersionId: string | null;
+  /** The held version's revision (its updatedAt) when the draft was typed; null when unknown. */
+  baseRevision: number | null;
   at: number;
 }
 
@@ -45,7 +47,12 @@ export function browserDraftStore(storage: Pick<Storage, "getItem" | "setItem" |
         if (!raw) return null;
         const v = JSON.parse(raw) as Partial<LocalDraft>;
         if (typeof v.bodyMd !== "string" || typeof v.at !== "number") return null;
-        return { bodyMd: v.bodyMd, baseVersionId: typeof v.baseVersionId === "string" ? v.baseVersionId : null, at: v.at };
+        return {
+          bodyMd: v.bodyMd,
+          baseVersionId: typeof v.baseVersionId === "string" ? v.baseVersionId : null,
+          baseRevision: typeof v.baseRevision === "number" ? v.baseRevision : null,
+          at: v.at,
+        };
       } catch {
         return null;
       }
@@ -83,8 +90,10 @@ export interface AutosaveOptions {
   savedMd: string;
   /** The version the next save builds on. */
   baseVersionId: string | null;
-  /** Saves the text on the server; resolves with the new (or coalesced) version id. */
-  save: (bodyMd: string, baseVersionId: string | null) => Promise<{ versionId: string }>;
+  /** The held version's revision (updatedAt); the server updates in place only when it matches. */
+  baseRevision?: number | null | undefined;
+  /** Saves the text on the server; resolves with the new (or coalesced) version id and its revision. */
+  save: (bodyMd: string, baseVersionId: string | null, baseRevision: number | null) => Promise<{ versionId: string; revision?: number | null | undefined }>;
   /** Turns a thrown error into a conflict or a message. */
   failure: (e: unknown) => SaveFailure;
   onStatus: (s: AutosaveStatus) => void;
@@ -105,7 +114,7 @@ export interface Autosaver {
   /** Try again after an error. */
   retry(): Promise<boolean>;
   /** New saved state (section reloaded, conflict resolved, a version saved another way). Clears the draft. */
-  reset(savedMd: string, baseVersionId: string | null): void;
+  reset(savedMd: string, baseVersionId: string | null, baseRevision?: number | null): void;
   status(): AutosaveStatus;
   /** True while the text on screen is not on the server. */
   dirty(): boolean;
@@ -120,6 +129,7 @@ export function createAutosaver(o: AutosaveOptions): Autosaver {
   const key = draftKey(o.sectionId, o.userId);
   let saved = o.savedMd;
   let base = o.baseVersionId;
+  let revision = o.baseRevision ?? null;
   let latest = o.savedMd;
   let timer: unknown = null;
   let inFlight: Promise<boolean> | null = null;
@@ -149,9 +159,10 @@ export function createAutosaver(o: AutosaveOptions): Autosaver {
     set({ kind: "saving" });
     inFlight = (async () => {
       try {
-        const r = await o.save(md, base);
+        const r = await o.save(md, base, revision);
         saved = md;
         base = r.versionId;
+        revision = r.revision ?? null;
         if (latest === md) o.store?.remove(key);
         o.onSaved?.(md, r.versionId);
         set(latest === md ? { kind: "saved", at: now() } : { kind: "pending" });
@@ -187,7 +198,7 @@ export function createAutosaver(o: AutosaveOptions): Autosaver {
         if (state.kind === "pending") set({ kind: "idle" });
         return;
       }
-      o.store?.write(key, { bodyMd, baseVersionId: base, at: now() });
+      o.store?.write(key, { bodyMd, baseVersionId: base, baseRevision: revision, at: now() });
       if (blocked()) return; // keep the draft; the owner resolves the conflict first
       if (state.kind !== "saving" && state.kind !== "error") set({ kind: "pending" });
       if (state.kind !== "error") schedule();
@@ -197,13 +208,15 @@ export function createAutosaver(o: AutosaveOptions): Autosaver {
       if (state.kind === "error") set({ kind: "pending" });
       return run();
     },
-    reset(savedMd, baseVersionId) {
+    reset(savedMd, baseVersionId, baseRevision = null) {
       // The save that just finished already says this: keep "Saved at".
-      if (savedMd === saved && savedMd === latest && baseVersionId === base && state.kind !== "conflict" && state.kind !== "error") return;
+      if (savedMd === saved && savedMd === latest && baseVersionId === base && baseRevision === revision && state.kind !== "conflict" && state.kind !== "error")
+        return;
       cancelTimer();
       saved = savedMd;
       latest = savedMd;
       base = baseVersionId;
+      revision = baseRevision;
       o.store?.remove(key);
       set({ kind: "idle" });
     },

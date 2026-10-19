@@ -656,6 +656,15 @@ export function useAutosaveSection() {
   });
 }
 
+/** What rerunning a section's missing checks would do and cost (no charge). */
+export function useRecheckPreview(sectionId: string | undefined) {
+  return useQuery({
+    queryKey: [...queryKeys.section.all(sectionId ?? ""), "recheck"] as const,
+    queryFn: ({ signal }) => manuscriptApi.recheckPreview(need(sectionId, "Section id"), { signal }),
+    enabled: !!sectionId,
+  });
+}
+
 /** Run a section's missing checks again (a job). */
 export function useRerunChecks() {
   const qc = useQueryClient();

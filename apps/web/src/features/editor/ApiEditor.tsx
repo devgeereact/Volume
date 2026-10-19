@@ -86,6 +86,8 @@ import { draftKey, type LocalDraft } from "./autosave";
 
 /** One shared empty list, so hooks that depend on the blocks see a stable value before the section loads. */
 const NO_BLOCKS: MsBlock[] = [];
+/** Version source of the editor's autosave (apps/server repos/manuscript.ts). */
+const AUTOSAVE_SOURCE = "owner:autosave";
 const KIND_TITLES: Record<string, string> = {
   title_page: "Title page",
   copyright: "Copyright",
@@ -159,6 +161,8 @@ function docFrom(detail: SectionDetail): Doc {
     sectionId: detail.section.id,
     versionId: cur?.id ?? null,
     version: cur?.version ?? 0,
+    revision: cur?.updatedAt ?? null,
+    autosaved: cur?.source === AUTOSAVE_SOURCE,
     blocks: blocksFromMarkdown(md, (cur?.id ?? detail.section.id).slice(-8)),
     savedMd: markdownFromBlocks(blocksFromMarkdown(md, "x")),
   };
@@ -168,6 +172,10 @@ interface Doc {
   sectionId: string;
   versionId: string | null;
   version: number;
+  /** The held version's updatedAt, sent as autosave's baseRevision (null when the server did not say). */
+  revision: number | null;
+  /** True while the held version is an autosave: Save version still makes a named version then. */
+  autosaved: boolean;
   blocks: MdBlock[];
   /** Markdown as last loaded or saved. */
   savedMd: string;
@@ -363,7 +371,9 @@ function Body({
     userId,
     doc: ready ? doc : null,
     onSaved: (md, v, savedSection) => {
-      setDoc((d) => (d && d.sectionId === savedSection ? { ...d, versionId: v.id, version: v.version, savedMd: md } : d));
+      setDoc((d) =>
+        d && d.sectionId === savedSection ? { ...d, versionId: v.id, version: v.version, revision: v.updatedAt ?? null, autosaved: true, savedMd: md } : d,
+      );
     },
   });
   // While a draft from this browser waits for the owner's choice, the page is read only: nothing saves over either text.
@@ -383,7 +393,9 @@ function Body({
     else if (local) draftStore.remove(draftKey(sectionId, userId));
   }, [ready, sectionId, doc, userId]);
   /** The server has text newer than the one the draft was typed on. */
-  const recoveredBehind = choosing && recovered.baseVersionId !== doc?.versionId;
+  const recoveredBehind =
+    choosing &&
+    (recovered.baseVersionId !== doc?.versionId || (recovered.baseRevision !== null && doc.revision !== null && recovered.baseRevision !== doc.revision));
   const [compareDraft, setCompareDraft] = useState(false);
 
   function restoreLocal() {
@@ -423,11 +435,14 @@ function Body({
       // left alone so the paragraph being typed in keeps its caret.
       if (!doc || doc.sectionId !== sectionId) return true;
       const md = markdownFromBlocks(blocks.map((b) => (drafts[b.id] !== undefined ? { ...b, text: drafts[b.id]! } : b)));
-      if (md === doc.savedMd) return true;
+      // An autosave already holds this text: still save a named version on top of it (that also closes the autosave session).
+      if (md === doc.savedMd && !doc.autosaved) return true;
       try {
         const v = await save.mutateAsync({ bookId, sectionId, input: { bodyMd: md, note: note ?? "Your edits", baseVersionId: doc.versionId } });
-        setDoc((d) => (d && d.sectionId === sectionId ? { ...d, versionId: v.id, version: v.version, savedMd: md } : d));
-        autosave.reset(md, v.id);
+        setDoc((d) =>
+          d && d.sectionId === sectionId ? { ...d, versionId: v.id, version: v.version, revision: v.updatedAt ?? null, autosaved: false, savedMd: md } : d,
+        );
+        autosave.reset(md, v.id, v.updatedAt ?? null);
         setProblem(null);
         setSaveNote(`Saved as version ${v.version} at ${formatTime(new Date(v.createdAt).toISOString())}.`);
         setAnnounce(`Saved as version ${v.version}.`);
@@ -470,8 +485,16 @@ function Body({
       if (!base) base = (await sectionQ.refetch()).data?.current?.id ?? null;
       const v = await save.mutateAsync({ bookId, sectionId, input: { bodyMd: liveMd, note: "Kept my text after a conflict", baseVersionId: base } });
       setDrafts({});
-      setDoc({ sectionId, versionId: v.id, version: v.version, blocks: blocksFromMarkdown(liveMd, v.id.slice(-8)), savedMd: liveMd });
-      autosave.reset(liveMd, v.id);
+      setDoc({
+        sectionId,
+        versionId: v.id,
+        version: v.version,
+        revision: v.updatedAt ?? null,
+        autosaved: false,
+        blocks: blocksFromMarkdown(liveMd, v.id.slice(-8)),
+        savedMd: liveMd,
+      });
+      autosave.reset(liveMd, v.id, v.updatedAt ?? null);
       setProblem(null);
       setAnnounce(`Your text is saved as version ${v.version}. The other text stays in the version list.`);
     } catch (e) {
@@ -488,7 +511,7 @@ function Body({
     if (r.data && r.data.section.id === sectionId) {
       const next = docFrom(r.data);
       setDoc(next);
-      autosave.reset(next.savedMd, next.versionId);
+      autosave.reset(next.savedMd, next.versionId, next.revision);
     }
   }
 
@@ -659,7 +682,15 @@ function Body({
         sectionId,
         input: { bodyMd: md, note: "Accepted a rewrite", baseVersionId: p.baseVersionId ?? doc.versionId },
       });
-      setDoc({ sectionId, versionId: v.id, version: v.version, blocks: blocksFromMarkdown(md, v.id.slice(-8)), savedMd: md });
+      setDoc({
+        sectionId,
+        versionId: v.id,
+        version: v.version,
+        revision: v.updatedAt ?? null,
+        autosaved: false,
+        blocks: blocksFromMarkdown(md, v.id.slice(-8)),
+        savedMd: md,
+      });
       setDrafts({});
       setProblem(null);
       setAnnounce(`Rewrite accepted and saved as version ${v.version}.`);

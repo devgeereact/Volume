@@ -24,6 +24,7 @@ import type {
   NotePatch,
   NoteStatus,
   ReplaceInput,
+  RecheckPreview,
   ReplaceResult,
   RerunChecksResponse,
   RewriteSelectionInput,
@@ -58,6 +59,8 @@ export const manuscriptApi = {
   autosave: (bookId: string, sectionId: string, input: AutosaveInput, o?: Opts) =>
     api.put<AutosaveResponse>(`/books/${seg(bookId)}/sections/${seg(sectionId)}/autosave`, input, o),
   /** Reruns only the missing steps (summary, checks): 202 with the estimate; 409 invalid_state when nothing is missing, conflict { jobId } when a job already runs. */
+  /** What a rerun would do and cost, with no charge. */
+  recheckPreview: (sectionId: string, o?: Opts) => api.get<RecheckPreview>(`/sections/${seg(sectionId)}/recheck`, o),
   rerunChecks: (sectionId: string, o?: Opts) => api.post<RerunChecksResponse>(`/sections/${seg(sectionId)}/recheck`, {}, o),
   diff: (sectionId: string, from: string, to?: string, o?: Opts) => api.get<SectionDiff>(`/sections/${seg(sectionId)}/diff`, { ...o, query: { from, to } }),
 

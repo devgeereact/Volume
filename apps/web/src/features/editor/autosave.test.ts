@@ -12,7 +12,7 @@ class Conflict extends Error {
   }
 }
 
-function setup(save: (md: string, base: string | null) => Promise<{ versionId: string }>) {
+function setup(save: (md: string, base: string | null, rev: number | null) => Promise<{ versionId: string; revision?: number }>) {
   const store = memoryStore();
   const statuses: AutosaveStatus[] = [];
   const saved: string[] = [];
@@ -21,6 +21,7 @@ function setup(save: (md: string, base: string | null) => Promise<{ versionId: s
     userId: "u1",
     savedMd: "one",
     baseVersionId: "v1",
+    baseRevision: 10,
     save,
     failure: (e) => (e instanceof Conflict ? { conflict: true, currentVersionId: e.current } : { conflict: false, message: String(e) }),
     onStatus: (s) => statuses.push(s),
@@ -45,18 +46,18 @@ describe("autosave", () => {
     expect(save).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
     expect(save).toHaveBeenCalledTimes(1);
-    expect(save).toHaveBeenCalledWith("one tw", "v1");
+    expect(save).toHaveBeenCalledWith("one tw", "v1", 10);
     expect(a.status()).toEqual({ kind: "saved", at: 1000 });
   });
 
-  it("builds the next save on the version the server returned", async () => {
-    const save = vi.fn((_md: string, _base: string | null) => Promise.resolve({ versionId: "v2" }));
+  it("builds the next save on the version and revision the server returned", async () => {
+    const save = vi.fn((_md: string, _base: string | null, _rev: number | null) => Promise.resolve({ versionId: "v2", revision: 22 }));
     const { a } = setup(save);
     a.change("two");
     await a.flush();
     a.change("three");
     await a.flush();
-    expect(save.mock.calls[1]).toEqual(["three", "v2"]);
+    expect(save.mock.calls[1]).toEqual(["three", "v2", 22]);
   });
 
   it("saves at once on flush (blur or leaving) and skips when nothing changed", async () => {
@@ -76,7 +77,7 @@ describe("autosave", () => {
     const save = vi.fn(() => new Promise<{ versionId: string }>((r) => (resolve = r)));
     const { a, store } = setup(save);
     a.change("two");
-    expect(store.data.get(draftKey("s1", "u1"))).toEqual({ bodyMd: "two", baseVersionId: "v1", at: 1000 });
+    expect(store.data.get(draftKey("s1", "u1"))).toEqual({ bodyMd: "two", baseVersionId: "v1", baseRevision: 10, at: 1000 });
     const done = a.flush();
     expect(a.status().kind).toBe("saving");
     expect(store.data.has(draftKey("s1", "u1"))).toBe(true);
@@ -99,7 +100,7 @@ describe("autosave", () => {
     await vi.advanceTimersByTimeAsync(2000);
     resolve({ versionId: "v3" });
     await vi.advanceTimersByTimeAsync(0);
-    expect(save.mock.calls[1]).toEqual(["two more", "v2"]);
+    expect(save.mock.calls[1]).toEqual(["two more", "v2", null]);
     expect(store.data.has(draftKey("s1", "u1"))).toBe(false);
   });
 
@@ -175,7 +176,7 @@ describe("browserDraftStore", () => {
       },
     };
     const s = browserDraftStore(broken);
-    expect(() => s.write("k", { bodyMd: "x", baseVersionId: null, at: 1 })).not.toThrow();
+    expect(() => s.write("k", { bodyMd: "x", baseVersionId: null, baseRevision: null, at: 1 })).not.toThrow();
     expect(s.read("k")).toBeNull();
     expect(() => s.remove("k")).not.toThrow();
   });
@@ -183,8 +184,8 @@ describe("browserDraftStore", () => {
   it("reads back what it wrote and ignores junk", () => {
     const m = new Map<string, string>();
     const s = browserDraftStore({ getItem: (k) => m.get(k) ?? null, setItem: (k, v) => void m.set(k, v), removeItem: (k) => void m.delete(k) });
-    s.write("k", { bodyMd: "x", baseVersionId: "v1", at: 5 });
-    expect(s.read("k")).toEqual({ bodyMd: "x", baseVersionId: "v1", at: 5 });
+    s.write("k", { bodyMd: "x", baseVersionId: "v1", baseRevision: 7, at: 5 });
+    expect(s.read("k")).toEqual({ bodyMd: "x", baseVersionId: "v1", baseRevision: 7, at: 5 });
     m.set("j", "{not json");
     expect(s.read("j")).toBeNull();
   });

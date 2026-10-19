@@ -31,7 +31,7 @@ export function useSectionAutosave(o: {
   sectionId: string;
   /** The signed-in user, for the local draft key; null holds autosave until it is known. */
   userId: string | null;
-  doc: { sectionId: string; savedMd: string; versionId: string | null } | null;
+  doc: { sectionId: string; savedMd: string; versionId: string | null; revision: number | null } | null;
   onSaved: (bodyMd: string, v: ApiSectionVersion, sectionId: string) => void;
 }) {
   const { bookId, sectionId, doc, userId } = o;
@@ -56,11 +56,12 @@ export function useSectionAutosave(o: {
       userId,
       savedMd: doc.savedMd,
       baseVersionId: doc.versionId,
+      baseRevision: doc.revision,
       store: draftStore,
-      save: async (bodyMd, baseVersionId) => {
-        const v = await mutate.current({ bookId, sectionId, input: { bodyMd, baseVersionId } });
+      save: async (bodyMd, baseVersionId, baseRevision) => {
+        const v = await mutate.current({ bookId, sectionId, input: { bodyMd, baseVersionId, ...(baseRevision !== null ? { baseRevision } : {}) } });
         versions.set(v.id, v);
-        return { versionId: v.id };
+        return { versionId: v.id, revision: v.updatedAt ?? null };
       },
       failure: saveFailure,
       onStatus: setStatus,
@@ -87,11 +88,12 @@ export function useSectionAutosave(o: {
   // Text saved another way (reload, restore, an applied fix, Save version): take it as saved.
   const savedMd = ready ? doc.savedMd : null;
   const versionId = ready ? doc.versionId : null;
+  const revision = ready ? doc.revision : null;
   useEffect(() => {
     const cur = ref.current;
     if (!cur || cur.sectionId !== sectionId || savedMd === null || cur.a.dirty()) return;
-    cur.a.reset(savedMd, versionId);
-  }, [savedMd, versionId, sectionId]);
+    cur.a.reset(savedMd, versionId, revision);
+  }, [savedMd, versionId, revision, sectionId]);
 
   const get = useCallback(() => (ref.current?.sectionId === sectionId ? ref.current.a : null), [sectionId]);
   return useMemo(
@@ -100,7 +102,7 @@ export function useSectionAutosave(o: {
       change: (md: string) => get()?.change(md),
       flush: () => get()?.flush() ?? Promise.resolve(true),
       retry: () => get()?.retry() ?? Promise.resolve(true),
-      reset: (md: string, base: string | null) => get()?.reset(md, base),
+      reset: (md: string, base: string | null, revision: number | null = null) => get()?.reset(md, base, revision),
       dirty: () => get()?.dirty() ?? false,
     }),
     [status, get],

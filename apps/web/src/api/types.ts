@@ -865,6 +865,8 @@ export interface ApiSectionVersion {
   summary: string | null;
   note: string | null;
   createdAt: EpochMs;
+  /** Later than createdAt only for an autosave updated in place; the autosave's baseRevision. */
+  updatedAt?: EpochMs;
 }
 
 /** PUT /books/:id/sections/:sectionId/autosave. */
@@ -873,6 +875,8 @@ export interface AutosaveInput {
   /** Editor document (TipTap JSON), when the client keeps one. */
   content?: unknown;
   baseVersionId: string | null;
+  /** updatedAt of the version held; the server updates in place only when it matches (left out: always a new version). */
+  baseRevision?: number;
 }
 
 /** 200 from autosave: the version (new, or the session's version updated in place) and whether it was coalesced. */
@@ -1150,6 +1154,16 @@ export interface ClaimApplyInput {
   jobId?: string;
   baseVersionId?: string;
   note?: string;
+}
+
+/** GET /sections/:id/recheck: what a rerun would do and cost, with no charge. */
+export interface RecheckPreview {
+  sectionId: string;
+  steps: ("summary" | "checks" | OpenString)[];
+  estimate: CostRange;
+  /** A job already working on the section; follow it instead of starting another. */
+  runningJobId: string | null;
+  hasText: boolean;
 }
 
 /** 202 from POST /sections/:id/recheck: the job, the missing steps it reruns and their cost. */
