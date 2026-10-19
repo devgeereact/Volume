@@ -20,12 +20,47 @@ export function responseFormatFor(name: string, schema: z.ZodType, mode: 'json_s
   return { type: 'json_schema', name: name.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 64), schema: jsonSchemaOf(schema), strict: false };
 }
 
-/** Pull a JSON value out of a model answer: plain JSON, a ```json fence, or the outermost {...} block. */
+/**
+ * Commas left before a closing } or ], outside strings, removed. Small models often leave them (live acceptance run,
+ * 18 October 2026: editing answers on free models failed as invalid JSON).
+ */
+export function stripTrailingCommas(text: string): string {
+  let out = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charAt(i);
+    if (inString) {
+      out += c;
+      if (escaped) escaped = false;
+      else if (c === '\\') escaped = true;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') inString = true;
+    if (c === ',') {
+      let j = i + 1;
+      while (j < text.length && /\s/.test(text.charAt(j))) j++;
+      const next = text.charAt(j);
+      if (next === '}' || next === ']') continue;
+    }
+    out += c;
+  }
+  return out;
+}
+
+/**
+ * Pull a JSON value out of a model answer: plain JSON, a ```json fence (closed or not), or the outermost {...} block.
+ * Each candidate is tried as it is, then once more with a byte order mark and trailing commas removed. This local
+ * repair runs before the one repair request to the model.
+ */
 export function extractJson(text: string): unknown {
-  const trimmed = text.trim();
+  const trimmed = text.replace(/^﻿/, '').trim();
   const attempts: string[] = [trimmed];
   const fence = /```(?:json)?\s*\n?([\s\S]*?)```/i.exec(trimmed);
   if (fence?.[1]) attempts.push(fence[1].trim());
+  const open = /^```(?:json)?\s*\n?([\s\S]*)$/i.exec(trimmed);
+  if (open?.[1] && !fence) attempts.push(open[1].trim());
   const first = trimmed.indexOf('{');
   const last = trimmed.lastIndexOf('}');
   if (first !== -1 && last > first) attempts.push(trimmed.slice(first, last + 1));
@@ -35,6 +70,13 @@ export function extractJson(text: string): unknown {
       return JSON.parse(a);
     } catch (e) {
       lastError = e;
+    }
+  }
+  for (const a of attempts) {
+    try {
+      return JSON.parse(stripTrailingCommas(a));
+    } catch {
+      // The error of the answer as sent is the one reported.
     }
   }
   throw lastError instanceof Error ? lastError : new Error('No JSON found');
