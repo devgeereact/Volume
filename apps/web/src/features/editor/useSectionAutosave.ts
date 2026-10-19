@@ -104,6 +104,7 @@ export function useSectionAutosave(o: {
       retry: () => get()?.retry() ?? Promise.resolve(true),
       reset: (md: string, base: string | null, revision: number | null = null) => get()?.reset(md, base, revision),
       dirty: () => get()?.dirty() ?? false,
+      base: () => get()?.base() ?? null,
     }),
     [status, get],
   );

@@ -116,6 +116,8 @@ export interface Autosaver {
   /** New saved state (section reloaded, conflict resolved, a version saved another way). Clears the draft. */
   reset(savedMd: string, baseVersionId: string | null, baseRevision?: number | null): void;
   status(): AutosaveStatus;
+  /** The version (and revision) the next save builds on: the last one the server confirmed. */
+  base(): { versionId: string | null; revision: number | null };
   /** True while the text on screen is not on the server. */
   dirty(): boolean;
   dispose(): void;
@@ -221,6 +223,7 @@ export function createAutosaver(o: AutosaveOptions): Autosaver {
       set({ kind: "idle" });
     },
     status: () => state,
+    base: () => ({ versionId: base, revision }),
     dirty: () => latest !== saved,
     dispose() {
       cancelTimer();

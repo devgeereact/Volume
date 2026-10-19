@@ -60,6 +60,21 @@ describe("autosave", () => {
     expect(save.mock.calls[1]).toEqual(["three", "v2", 22]);
   });
 
+  it("reports the version the next save builds on, after a save in flight ends", async () => {
+    let resolve: (v: { versionId: string; revision?: number }) => void = () => {};
+    const save = vi.fn(() => new Promise<{ versionId: string; revision?: number }>((r) => (resolve = r)));
+    const { a } = setup(save);
+    a.change("two");
+    const blur = a.flush();
+    expect(a.base()).toEqual({ versionId: "v1", revision: 10 });
+    const again = a.flush();
+    resolve({ versionId: "v2", revision: 20 });
+    expect(await blur).toBe(true);
+    expect(await again).toBe(true);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(a.base()).toEqual({ versionId: "v2", revision: 20 });
+  });
+
   it("saves at once on flush (blur or leaving) and skips when nothing changed", async () => {
     const save = vi.fn(() => Promise.resolve({ versionId: "v2" }));
     const { a } = setup(save);

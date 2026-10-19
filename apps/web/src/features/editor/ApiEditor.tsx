@@ -428,17 +428,24 @@ function Body({
     return () => window.removeEventListener("beforeunload", onUnload);
   }, [autosave]);
 
-  /** Save version: a named version now, apart from the autosave session. */
+  /**
+   * Save version: a named version now, apart from the autosave session. Any autosave (a pending one, or the
+   * one leaving the editor to click this button started) finishes first, and the named version builds on it.
+   */
   const saveNow = useCallback(
     async (note: string | null = null): Promise<boolean> => {
       // Typed text lives in drafts until the paragraph is left; it is saved as is, and the blocks are
       // left alone so the paragraph being typed in keeps its caret.
       if (!doc || doc.sectionId !== sectionId) return true;
       const md = markdownFromBlocks(blocks.map((b) => (drafts[b.id] !== undefined ? { ...b, text: drafts[b.id]! } : b)));
-      // An autosave already holds this text: still save a named version on top of it (that also closes the autosave session).
-      if (md === doc.savedMd && !doc.autosaved) return true;
+      autosave.change(md);
+      if (!(await autosave.flush())) return false; // a conflict or an error shows its own message
+      const held = autosave.base();
+      const baseVersionId = held ? held.versionId : doc.versionId;
+      // Nothing new since the last named version: no autosave holds the text and it matches what was saved.
+      if (md === doc.savedMd && !doc.autosaved && baseVersionId === doc.versionId) return true;
       try {
-        const v = await save.mutateAsync({ bookId, sectionId, input: { bodyMd: md, note: note ?? "Your edits", baseVersionId: doc.versionId } });
+        const v = await save.mutateAsync({ bookId, sectionId, input: { bodyMd: md, note: note ?? "Your edits", baseVersionId } });
         setDoc((d) =>
           d && d.sectionId === sectionId ? { ...d, versionId: v.id, version: v.version, revision: v.updatedAt ?? null, autosaved: false, savedMd: md } : d,
         );
