@@ -294,7 +294,10 @@ export function bookInput(v: Rec): Rec {
   const out: Rec = {};
   const idea = firstText(v['idea'], b['idea']);
   const notes = firstText(v['notes'], b['notes']);
-  put(out, 'idea', idea && notes ? `${idea}\n\nOwner notes: ${notes}` : (idea ?? notes));
+  // The author's brief goes as its own field ({{book.authorBrief}}); fillPromptVariables folds it into the idea for a
+  // prompt version that does not read it yet.
+  put(out, 'idea', idea ?? notes);
+  put(out, 'authorBrief', notes);
   put(out, 'type', firstText(v['bookTypeId'], v['bookType'], b['type'], b['bookTypeId']));
   put(out, 'variant', firstText(v['variant'], b['variant']));
   put(out, 'genre', firstText(v['genre'], b['genre']));
@@ -429,9 +432,24 @@ function filledByPackage(name: string): boolean {
   return name.startsWith('houseStyle.') || name.startsWith('kdp.') || name === 'goLiveNote' || name === 'patternHits';
 }
 
+/**
+ * A prompt that does not read {{book.authorBrief}} gets the brief inside {{book.idea}} ("Owner notes: ..."), so the
+ * author's brief is never lost on an older prompt version.
+ */
+function foldAuthorBrief(out: Rec, variables: readonly string[]): void {
+  const book = out['book'];
+  if (!isRec(book) || variables.includes('book.authorBrief') || variables.includes('book')) return;
+  const { authorBrief, ...rest } = book;
+  const brief = text(authorBrief);
+  if (!brief) return;
+  const idea = text(rest['idea']);
+  out['book'] = { ...rest, idea: idea && idea !== brief ? `${idea}\n\nOwner notes: ${brief}` : brief };
+}
+
 /** Sends every prompt variable the server could not supply as null, which the prompt shows as "None". */
 export function fillPromptVariables(input: Rec, variables: readonly string[]): Rec {
   const out: Rec = { ...input };
+  foldAuthorBrief(out, variables);
   for (const name of variables) {
     if (filledByPackage(name)) continue;
     if (name === 'research.sources') {

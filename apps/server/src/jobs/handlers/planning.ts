@@ -51,6 +51,8 @@ export const titlesHandler: JobHandler = async (jc) => {
     promptId: 'titles.title-options',
     variables: {
       idea: book.idea,
+      // The author's brief (the wizard's notes) reaches the stage as {{book.authorBrief}}.
+      notes: book.notes,
       title: book.title,
       research,
       bookTypeId: book.bookTypeId,
@@ -92,6 +94,7 @@ export const blueprintHandler: JobHandler = async (jc) => {
       title: book.title ?? book.idea,
       subtitle: book.subtitle,
       idea: book.idea,
+      notes: book.notes,
       template: promptTemplate(structure),
       bookTypeId: book.bookTypeId,
       wordTarget,
@@ -200,6 +203,8 @@ export const blueprintPartHandler: JobHandler = async (jc) => {
     variables: {
       part,
       instruction: jc.payload['instruction'] ?? null,
+      idea: book.idea,
+      notes: book.notes,
       blueprint: latest.data,
       wordTarget: target,
       template: promptTemplate(structure),

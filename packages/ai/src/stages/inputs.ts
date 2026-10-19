@@ -56,6 +56,11 @@ export const OwnerQuote = z.object({ text: str, attribution: str });
 
 export const BookInput = z.object({
   idea: opt(str),
+  /**
+   * The author's brief for the book (the wizard's notes), word for word, sent as {{book.authorBrief}}. Titles and
+   * blueprint prompts must follow it. A prompt that does not read it gets it folded into {{book.idea}} by the server.
+   */
+  authorBrief: opt(str),
   type: opt(str),
   variant: opt(str),
   genre: opt(str),
