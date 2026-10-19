@@ -1,9 +1,10 @@
 import type { ExportFile, ExportKind, PreflightReport } from '../../ports/export.js';
 import { EXPORT_KINDS } from '../../ports/export.js';
 import type { MarketingExtras } from '../../repos/production.js';
-import { bookMarketingCounts, buildExportBook, houseStyle, profileSummary, withOwnerPlaceholders, withPackCovers } from '../book-data.js';
+import { bookMarketingCounts, buildExportBook, houseStyle, ownerListingFields, profileSummary, withOwnerPlaceholders, withPackCovers } from '../book-data.js';
 import { fixHouseStyleDeep } from '../house-style-fix.js';
-import { datedPricesVars, plannedBodyCount, writtenSections, writtenSummaries } from '../book-checks.js';
+import { writtenSections, writtenSummaries } from '../book-checks.js';
+import { listingVariables } from '../listing-input.js';
 import { JobFailed } from '../errors.js';
 import { dedupeKey } from '../../lib/util.js';
 import { isPictureBook, pageCount as picturePageCount, PICTURE_INK, pictureStructure, SPREAD_KIND } from '../picture-book.js';
@@ -315,35 +316,28 @@ export const listingHandler: JobHandler = async (jc) => {
   const blueprint = book.approvedBlueprintId
     ? await repos.planning.blueprintById(jc.ctx, book.approvedBlueprintId)
     : await repos.planning.latestBlueprint(jc.ctx, projectId);
-  const written = await writtenSections(repos, jc.ctx, projectId);
-  const research = (await repos.planning.listRuns(jc.ctx, projectId)).find((r) => r.status === 'done')?.output ?? null;
-  const sources = await repos.planning.listSources(jc.ctx, { projectId, useInBook: true });
-  const print = (await repos.production.listExports(jc.ctx, projectId)).find((e) => e.kind === 'pdf_print' && e.status === 'done');
-  const res = await jc.runAi('matter_metadata', {
-    variables: {
-      title: book.title,
-      subtitle: book.subtitle,
-      bookTypeId: book.bookTypeId,
-      summary: blueprint?.data['summary'] ?? null,
-      blueprint: blueprint?.data ?? null,
-      previousSummaries: writtenSummaries(written),
-      research,
-      sources: sources.map((s) => ({ title: s.title, url: s.url, excerpt: s.excerpt })),
-      ...(print?.pageCount ? { pageCount: print.pageCount } : {}),
-      ...(await datedPricesVars(jc.services.configDir, book, written, await plannedBodyCount(repos, jc.ctx, projectId))),
-      profile: await profileSummary(repos, jc.ctx, book.profileId, book),
-    },
-  });
+  // The same variables the writing estimate prices (one shared helper).
+  const res = await jc.runAi('matter_metadata', { variables: await listingVariables(repos, jc.services.configDir, jc.ctx, book) });
   const out = fixHouseStyleDeep(res.output, houseStyle(jc.services.configDir), LISTING_KEEP).value;
+  // Fields the owner edited in the blueprint are never overwritten: the saved listing keeps what it had for them, and
+  // the pack uses the owner's text.
+  const owner = await ownerListingFields(repos, jc.ctx, blueprint);
+  const before = await repos.production.getListing(jc.ctx, projectId);
   const listing = await repos.production.saveListing(jc.ctx, projectId, {
-    descriptionHtml: out.description_html.trim() || null,
-    backBlurb: out.back_blurb.trim() || null,
+    descriptionHtml: owner.has('description_draft') ? (before?.descriptionHtml ?? null) : out.description_html.trim() || null,
+    backBlurb: owner.has('back_blurb') ? (before?.backBlurb ?? null) : out.back_blurb.trim() || null,
     shortBio: typeof out['short_bio'] === 'string' && out['short_bio'].trim() ? out['short_bio'].trim() : null,
-    categories: out.categories,
-    keywords: out.keywords,
+    categories: owner.has('categories') ? (before?.categories ?? []) : out.categories,
+    keywords: owner.has('keywords') ? (before?.keywords ?? []) : out.keywords,
+    source: 'ai:matter',
   });
   await jc.emit('book.updated', { projectId, part: 'listing' });
-  return { result: { listing: { description: listing.descriptionHtml !== null, backBlurb: listing.backBlurb !== null, keywords: listing.keywords.length } } };
+  return {
+    result: {
+      listing: { description: listing.descriptionHtml !== null, backBlurb: listing.backBlurb !== null, keywords: listing.keywords.length },
+      ownerKept: [...owner],
+    },
+  };
 };
 
 const BUILDERS: Record<ExportKind, 'buildPdf' | 'buildDocx' | 'buildEpub' | 'buildTxt' | 'buildMd'> = {

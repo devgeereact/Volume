@@ -389,6 +389,8 @@ export interface ListingsTable extends Tenant {
   aiDisclosureNote: string | null;
   pricing: JsonText;
   kdpRulesVersion: string | null;
+  /** Who wrote the text: `ai:matter` (the listing job), or null for rows from before 0010. */
+  source: string | null;
 }
 
 export interface MarketingItemsTable extends Tenant {

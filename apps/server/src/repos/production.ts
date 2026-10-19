@@ -165,30 +165,19 @@ export interface Listing {
   shortBio: string | null;
   categories: string[];
   keywords: string[];
+  /** Who wrote the text: `ai:matter` for the listing job, null for older rows. */
+  source: string | null;
   updatedAt: number;
 }
 
 export class ProductionRepo {
   constructor(private readonly db: Db) {}
 
-  /** The matter-stage back-cover blurb (listings.back_blurb), or null when none is saved. */
-  async listingBackBlurb(ctx: RequestCtx, projectId: string): Promise<string | null> {
-    const r = await this.db
-      .selectFrom('listings')
-      .select('backBlurb')
-      .where('workspaceId', '=', ctx.workspaceId)
-      .where('projectId', '=', projectId)
-      .orderBy('updatedAt', 'desc')
-      .executeTakeFirst();
-    const v = r?.backBlurb;
-    return typeof v === 'string' && v.trim().length > 0 ? v : null;
-  }
-
   /** The book's listing written by the matter stage (listings row), or null before the listing job has run. */
   async getListing(ctx: RequestCtx, projectId: string): Promise<Listing | null> {
     const r = await this.db
       .selectFrom('listings')
-      .select(['descriptionHtml', 'backBlurb', 'shortBio', 'categories', 'keywords', 'updatedAt'])
+      .select(['descriptionHtml', 'backBlurb', 'shortBio', 'categories', 'keywords', 'source', 'updatedAt'])
       .where('workspaceId', '=', ctx.workspaceId)
       .where('projectId', '=', projectId)
       .executeTakeFirst();
@@ -199,6 +188,7 @@ export class ProductionRepo {
       shortBio: r.shortBio,
       categories: fromJson(z.array(z.string()), r.categories, []),
       keywords: fromJson(z.array(z.string()), r.keywords, []),
+      source: r.source,
       updatedAt: Number(r.updatedAt),
     };
   }
@@ -212,6 +202,7 @@ export class ProductionRepo {
       shortBio: l.shortBio,
       categories: toJson(l.categories),
       keywords: toJson(l.keywords),
+      source: l.source,
       updatedAt: t,
     };
     const row = await this.db

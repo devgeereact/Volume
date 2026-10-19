@@ -4,6 +4,7 @@ import type { AppServices } from '../app.js';
 import type { RequestCtx } from '../auth/context.js';
 import { AppError, parse } from '../http/errors.js';
 import { bookWritingComplete, buildExportBook } from '../jobs/book-data.js';
+import { TERMINAL } from '../jobs/queue.js';
 import { assertQualityGate, preflightReport } from '../jobs/quality-gate.js';
 import { EXPORT_KINDS } from '../ports/export.js';
 import { MARKETING_KINDS, MarketingPatchSchema } from '../repos/production.js';
@@ -161,6 +162,9 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     if (!(await bookWritingComplete(s.repos, req.ctx, id))) {
       throw new AppError('writing_incomplete', 'Finish writing every chapter before writing the listing.');
     }
+    // One listing job at a time: a second would race the first and spend twice.
+    const running = (await s.queue.list(req.ctx, { projectId: id, limit: 500 })).find((j) => j.kind === 'listing' && !TERMINAL.has(j.status));
+    if (running) throw new AppError('conflict', 'The listing is already being written. Wait for it to finish or cancel it.', { jobId: running.id });
     const job = await s.queue.enqueue(req.ctx, { kind: 'listing', projectId: id, payload: {} });
     return accepted(reply, job);
   });

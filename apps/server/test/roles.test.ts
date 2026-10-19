@@ -149,6 +149,16 @@ describe('ACCOUNTS_MODE=invite', () => {
     }
   });
 
+  it('listing routes: a viewer reads but cannot write it, another workspace gets 404 on both', async () => {
+    const v = as('user_viewer');
+    expect((await t.call<{ listing: unknown }>('GET', `/api/v1/books/${bookId}/listing`, undefined, v)).status).toBe(200);
+    expect((await t.call('POST', `/api/v1/books/${bookId}/listing`, {}, v)).status).toBe(403);
+    const pub = as('user_pub');
+    await t.call('GET', '/api/v1/me', undefined, pub);
+    expect((await t.call('GET', `/api/v1/books/${bookId}/listing`, undefined, pub)).status).toBe(404);
+    expect((await t.call('POST', `/api/v1/books/${bookId}/listing`, {}, pub)).status).toBe(404);
+  });
+
   it('lets a viewer read but refuses every write route', async () => {
     const v = as('user_viewer');
     expect((await t.call('GET', `/api/v1/books/${bookId}`, undefined, v)).status).toBe(200);

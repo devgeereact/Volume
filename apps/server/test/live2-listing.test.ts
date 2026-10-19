@@ -6,11 +6,12 @@ import { fileURLToPath } from 'node:url';
 import * as VolumeAi from '@volume/ai';
 import type { AiProvider } from '@volume/ai';
 import { afterEach, describe, expect, it } from 'vitest';
-import { MockAiAdapter } from '../src/adapters/mock-ai.js';
-import { createOpenRouterAi, estimatePlan, type OpenRouterAiAdapter } from '../src/adapters/openrouter-ai.js';
+import { MOCK_MATTER_BLURB, MOCK_MATTER_DESCRIPTION, MockAiAdapter } from '../src/adapters/mock-ai.js';
+import { createOpenRouterAi, estimatePlan, SUMMARY_WORDS, type OpenRouterAiAdapter } from '../src/adapters/openrouter-ai.js';
 import { buildExportBook } from '../src/jobs/book-data.js';
 import type { AiCostEstimate, AiPort, AiStage, AiStageInput, AiStageResult, RunStageOptions } from '../src/ports/ai.js';
 import { LISTING_PROMPT_CALLS } from '../src/routes/estimate.js';
+import { listingVariables } from '../src/jobs/listing-input.js';
 import { str, testApp, type TestApp } from './helpers.js';
 
 type Obj = Record<string, unknown>;
@@ -111,16 +112,16 @@ describe('4. the matter stage writes the listing', () => {
       `/api/v1/books/${id}/listing`,
     );
     expect(got.body.listing).toMatchObject({
-      backBlurb: '[MOCK] Back blurb.',
-      descriptionHtml: '<p>[MOCK] Description.</p>',
+      backBlurb: MOCK_MATTER_BLURB,
+      descriptionHtml: MOCK_MATTER_DESCRIPTION,
       categories: ['Mock 1', 'Mock 2', 'Mock 3'],
     });
     expect(got.body.listing.keywords).toHaveLength(7);
 
     const book = await buildExportBook(t.services.repos, t.owner, id, t.services.configDir);
     expect(book.listing).toMatchObject({
-      backBlurb: '[MOCK] Back blurb.',
-      description: '<p>[MOCK] Description.</p>',
+      backBlurb: MOCK_MATTER_BLURB,
+      description: MOCK_MATTER_DESCRIPTION,
       categories: ['Mock 1', 'Mock 2', 'Mock 3'],
     });
   });
@@ -181,17 +182,70 @@ describe('4. the writing estimate includes the listing job', () => {
     expect(all.status).toBe(200);
     const matter = ai.estimated.filter((e) => e.stage === 'matter_metadata');
     expect(matter).toHaveLength(1);
-    expect((matter[0]?.input.variables['previousSummaries'] as unknown[]).length).toBeGreaterThan(0);
-    expect(all.body.calls).toBe(all.body.sections * 3 + LISTING_PROMPT_CALLS);
+    // The same variables as the listing job, built by the shared helper: a stand-in summary per section still to write.
+    const sent = matter[0]?.input.variables ?? {};
+    expect(Object.keys(sent).sort()).toEqual(
+      Object.keys(await listingVariables(t.services.repos, t.services.configDir, t.owner, await t.services.repos.books.require(t.owner, id))).sort(),
+    );
+    const summaries = sent['previousSummaries'] as { summary: string }[];
+    expect(summaries.length).toBeGreaterThan(0);
+    expect(summaries[0]!.summary.split(' ').length).toBe(SUMMARY_WORDS);
+    // Writing, summary and two checks prompts per section (three stage runs), then the three matter prompts (one run).
+    expect(all.body.calls).toBe(all.body.sections * 4 + LISTING_PROMPT_CALLS);
     expect(all.body.lowUsd).toBeCloseTo(0.5 + 0.001 * all.body.sections * 3, 6);
 
     const tree = await t.call<{ body: { id: string }[] }>('GET', `/api/v1/books/${id}/sections`);
     const one = await t.call<Est>('POST', `/api/v1/books/${id}/estimate`, { stage: 'writing', sectionIds: [tree.body.body[0]!.id] });
-    expect(one.body).toMatchObject({ sections: 1, calls: 3 });
+    expect(one.body).toMatchObject({ sections: 1, calls: 4 });
     expect(one.body.lowUsd).toBeLessThan(0.5);
 
     await t.call('POST', `/api/v1/books/${id}/write`, {});
     await t.services.runner.runUntilIdle();
     expect((await t.call<Est>('POST', `/api/v1/books/${id}/estimate`, { stage: 'writing' })).body).toMatchObject({ sections: 0, calls: 0, lowUsd: 0 });
+  });
+});
+
+describe("4. the owner's listing edits always win", () => {
+  it("keeps the owner's blueprint description and keywords over the matter stage, which never overwrites them", async () => {
+    const ai = new ListingAi();
+    t = await testApp({ ai });
+    const id = await newBook(t);
+    const edit = await t.call('PATCH', `/api/v1/books/${id}/blueprint`, {
+      parts: { description_draft: 'The owner wrote this description.', keywords: ['owner one', 'owner two'] },
+    });
+    expect(edit.status).toBe(200);
+    expect((await t.call('POST', `/api/v1/books/${id}/blueprint/approve`, {})).status).toBe(200);
+    await t.call('POST', `/api/v1/books/${id}/write`, {});
+    await t.services.runner.runUntilIdle();
+
+    const saved = await t.call<{ listing: { descriptionHtml: string | null; keywords: string[]; backBlurb: string; source: string } }>(
+      'GET',
+      `/api/v1/books/${id}/listing`,
+    );
+    expect(saved.body.listing).toMatchObject({ descriptionHtml: null, keywords: [], backBlurb: MOCK_MATTER_BLURB, source: 'ai:matter' });
+    const book = await buildExportBook(t.services.repos, t.owner, id, t.services.configDir);
+    expect(book.listing).toMatchObject({
+      description: 'The owner wrote this description.',
+      keywords: ['owner one', 'owner two'],
+      backBlurb: MOCK_MATTER_BLURB,
+      categories: ['Mock 1', 'Mock 2', 'Mock 3'],
+    });
+    const job = (await t.call<{ items: { kind: string; result: { ownerKept?: string[] } | null }[] }>('GET', `/api/v1/books/${id}/jobs`)).body.items.find(
+      (j) => j.kind === 'listing',
+    );
+    expect(job?.result?.ownerKept?.sort()).toEqual(['description_draft', 'keywords']);
+  });
+
+  it('refuses a second POST /books/:id/listing while one is queued', async () => {
+    t = await testApp({ ai: new ListingAi() });
+    const id = await newBook(t);
+    await t.call('POST', `/api/v1/books/${id}/write`, {});
+    await t.services.runner.runUntilIdle();
+    expect((await t.call('POST', `/api/v1/books/${id}/listing`, {})).status).toBe(202);
+    const second = await t.call<{ error: { code: string } }>('POST', `/api/v1/books/${id}/listing`, {});
+    expect(second.status).toBe(409);
+    expect(second.body.error.code).toBe('conflict');
+    await t.services.runner.runUntilIdle();
+    expect((await t.call('POST', `/api/v1/books/${id}/listing`, {})).status).toBe(202);
   });
 });

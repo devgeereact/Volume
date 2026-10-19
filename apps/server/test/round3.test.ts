@@ -204,8 +204,9 @@ describe('5. estimates', () => {
     });
     expect(e.status).toBe(200);
     expect(e.body.sections).toBe(writable.length);
-    // Writing, summary and checks per section, then the listing job's three matter prompts (one mock estimate).
-    expect(e.body.calls).toBe(writable.length * 3 + 3);
+    // Writing, summary and the two checks prompts per section, then the listing job's three matter prompts (one mock
+    // estimate per stage run).
+    expect(e.body.calls).toBe(writable.length * 4 + 3);
     expect(e.body.lowUsd).toBeCloseTo(0.001 * (writable.length * 3 + 1), 6);
     expect(e.body.highUsd).toBeGreaterThan(e.body.lowUsd);
     expect(e.body.model).toEqual(anyString);
@@ -214,7 +215,7 @@ describe('5. estimates', () => {
       stage: 'writing',
       sectionIds: [writable[0]!['id'] as string],
     });
-    expect(one.body).toMatchObject({ sections: 1, calls: 3 });
+    expect(one.body).toMatchObject({ sections: 1, calls: 4 });
     await t.call('PATCH', `/api/v1/books/${id}`, { settings: { models: { writing: 'book/model' } } });
     expect((await t.call<{ model: string }>('POST', `/api/v1/books/${id}/estimate`, { stage: 'writing' })).body.model).toBe('book/model');
     const part = await t.call<{ calls: number; sections: number | null }>('POST', `/api/v1/books/${id}/estimate`, {

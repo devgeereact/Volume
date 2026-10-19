@@ -2,7 +2,9 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import { parse } from '../http/errors.js';
+import { SUMMARY_WORDS } from '../adapters/openrouter-ai.js';
 import { CODE_WRITTEN_KINDS, profileSummary } from '../jobs/book-data.js';
+import { listingVariables } from '../jobs/listing-input.js';
 import { conceptCount } from '../jobs/handlers/production.js';
 import { assertSpreadCount, matterStartsOn, pictureSettings, picturePlan, requirePictureBook, spreadSections, storyInput } from '../jobs/picture-book.js';
 import { imageReservationUsd } from '../jobs/runner.js';
@@ -128,7 +130,8 @@ export function estimateRoutes(app: FastifyInstance, s: AppServices): void {
           // Each written section is then summarised and checked.
           const target = ' word'.repeat(Math.max(200, Math.min(sec.wordTarget ?? 2500, 20000)));
           await add('summarise', { promptId: 'checks.summarise-and-ledger', variables: { markdown: target, section: { title: sec.title } }, projectId: id });
-          await add('checks', { promptId: 'checks.claims-and-consistency', variables: { markdown: target, section: { title: sec.title } }, projectId: id });
+          // The checks stage sends two prompts (checks.claims and checks.consistency).
+          await add('checks', { promptId: 'checks.claims-and-consistency', variables: { markdown: target, section: { title: sec.title } }, projectId: id }, 2);
         } else {
           const notes = body.stage === 'weave' ? await s.repos.manuscript.listNotes(req.ctx, { sectionId: sec.id, status: 'open' }) : [];
           await add(body.stage, { variables: { ...v, pass: 'line', notes: notes.map((n) => ({ id: n.id, note: n.note })) }, projectId: id });
@@ -137,10 +140,10 @@ export function estimateRoutes(app: FastifyInstance, s: AppServices): void {
       // Writing the book (no section list, as POST /books/:id/write does) ends with the listing job: the matter stage's
       // three prompts (amazon-description, keywords-categories, back-cover), with the planned chapters as context.
       if (body.stage === 'writing' && !body.sectionIds && chosen.length > 0) {
-        const previousSummaries = chosen
-          .filter((x) => x.kind === 'chapter')
-          .map((x, i) => ({ number: x.number ?? i + 1, title: x.title, summary: typeof x.plan['summary'] === 'string' ? x.plan['summary'] : '' }));
-        await add('matter_metadata', { variables: { ...base, previousSummaries }, projectId: id }, LISTING_PROMPT_CALLS);
+        // The same variables the listing job sends; each section still to write stands in with a summary the size
+        // the summary stage writes.
+        const pending = chosen.map((x) => ({ id: x.id, kind: x.kind, number: x.number, title: x.title ?? '', summary: 'word '.repeat(SUMMARY_WORDS).trim() }));
+        await add('matter_metadata', { variables: await listingVariables(s.repos, s.configDir, req.ctx, book, pending), projectId: id }, LISTING_PROMPT_CALLS);
       }
     } else {
       const extra: Record<string, unknown> = {};
