@@ -23,6 +23,11 @@ describe("fixAction", () => {
     });
   });
 
+  it("sends claim items to the book's Claims screen", () => {
+    expect(fixAction(undefined, "b1", "claims.open")).toEqual({ kind: "link", to: "/books/b1/claims", label: "Sort the claims" });
+    expect(fixAction(undefined, "b1", "cover.files")).toBeNull();
+  });
+
   it("keeps absolute routes and has nothing without a route", () => {
     expect(fixAction({ route: "/settings", label: "Open settings" }, "b1")).toEqual({ kind: "link", to: "/settings", label: "Open settings" });
     expect(fixAction({ label: "Nothing" }, "b1")).toBeNull();

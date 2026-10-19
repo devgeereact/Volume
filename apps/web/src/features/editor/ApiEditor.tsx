@@ -73,6 +73,7 @@ import type { SuggestionState } from "./useManuscript";
 import { VersionDrawer } from "./VersionDrawer";
 import { autosaveText } from "./autosave";
 import { ClaimRewrite } from "./ClaimRewrite";
+import { categoryLabel } from "./claimsOverview";
 import { DiffText } from "./DiffText";
 import { draftStore, useSectionAutosave } from "./useSectionAutosave";
 import { draftBehind, draftKey, type LocalDraft } from "./autosave";
@@ -1639,21 +1640,6 @@ function BookMatches({
       })}
     </ul>
   );
-}
-
-function categoryLabel(c: string): string {
-  const map: Record<string, string> = {
-    medical: "Medical",
-    clinical: "Clinical",
-    legal: "Legal",
-    safety: "Safety",
-    statistical: "Statistical",
-    financial: "Financial",
-    personal: "Personal",
-    regulatory: "Named firm",
-    other_fact: "Fact",
-  };
-  return map[c] ?? c;
 }
 
 function RedirectTo({ to }: { to: string }) {

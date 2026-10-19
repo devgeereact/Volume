@@ -1117,6 +1117,20 @@ export interface ClaimResolveResponse {
   textChanged?: boolean;
 }
 
+/** GET /books/:id/claims/overview: every claim of the book in reading order, with counts by status. */
+export type ClaimOverviewFilter = ClaimStatus | "all";
+
+export interface ClaimOverviewItem extends ApiClaim {
+  section: { id: string; title: string | null; kind: string; number: number | null; enabled: boolean; position: number } | null;
+  /** False when the sentence is no longer in the section's current text: suggest and apply would be 409. */
+  inCurrentText: boolean;
+}
+
+export interface ClaimsOverview {
+  counts: Record<"open" | "verified" | "softened" | "removed" | "author_experience", number>;
+  items: ClaimOverviewItem[];
+}
+
 export type ClaimApproach = "soften" | "generalise" | "attribute" | "reframe" | "remove";
 
 /** One replacement from POST /books/:id/claims/:claimId/suggest (the job's result holds three). */

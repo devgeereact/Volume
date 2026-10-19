@@ -53,6 +53,7 @@ import {
   type SaveVersionInput,
   type AutosaveInput,
   type ClaimApplyInput,
+  type ClaimOverviewFilter,
   type SettingValues,
   type SuggestionStatus,
   type BatchInput,
@@ -852,6 +853,15 @@ export function useResolveClaim() {
       if (r.version) keys.push(queryKeys.section.all(r.version.sectionId), queryKeys.book.sections(v.bookId));
       return invalidate(qc, ...keys);
     },
+  });
+}
+
+/** The book's claims overview; under the claims key, so every claim change refreshes it. */
+export function useClaimsOverview(bookId: string | undefined, status: ClaimOverviewFilter) {
+  return useQuery({
+    queryKey: [...queryKeys.book.claimsAll(bookId ?? ""), "overview", status] as const,
+    queryFn: ({ signal }) => manuscriptApi.claimsOverview(need(bookId, "Book id"), status, { signal }),
+    enabled: !!bookId,
   });
 }
 

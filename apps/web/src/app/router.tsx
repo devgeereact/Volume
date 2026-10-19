@@ -46,6 +46,8 @@ export const router = createBrowserRouter([
             path: screens.editor.path.replace("/books/:bookId/", ""),
             lazy: async () => ({ Component: (await import("../features/editor/EditorPage")).default }),
           },
+          // Every claim of the book in one place (not a step); linked from the editor's Claims tab and preflight.
+          { path: "claims", lazy: async () => ({ Component: (await import("../features/editor/ClaimsPage")).default }) },
           { path: screens.cover.path.replace("/books/:bookId/", ""), lazy: async () => ({ Component: (await import("../features/cover/CoverPage")).default }) },
           {
             path: screens.export.path.replace("/books/:bookId/", ""),

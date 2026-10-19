@@ -12,6 +12,8 @@ import type {
   AutosaveInput,
   AutosaveResponse,
   ClaimApplyInput,
+  ClaimOverviewFilter,
+  ClaimsOverview,
   ClaimResolveResponse,
   ClaimStatus,
   ClaimVerifyInput,
@@ -109,6 +111,9 @@ export const manuscriptApi = {
   /** Without a replacement the server uses the claim's suggestedSoftening (400 when there is neither). */
   softenClaim: (claimId: string, input: { replacement?: string; note?: string }, o?: Opts) =>
     api.post<ClaimResolveResponse>(`/claims/${seg(claimId)}/soften`, input, o),
+  /** Every claim of the book in reading order, with counts by status (default open). */
+  claimsOverview: (bookId: string, status: ClaimOverviewFilter = "open", o?: Opts) =>
+    api.get<ClaimsOverview>(`/books/${seg(bookId)}/claims/overview`, { ...o, query: { status } }),
   /** Three stronger replacements as a job (202); the result is ClaimSuggestResult. */
   suggestClaim: (bookId: string, claimId: string, input: { instruction?: string }, o?: Opts) =>
     api.post<EstimatedJob>(`/books/${seg(bookId)}/claims/${seg(claimId)}/suggest`, input, o),

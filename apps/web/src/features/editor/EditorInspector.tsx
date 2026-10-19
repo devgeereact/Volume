@@ -233,6 +233,11 @@ function ClaimsPanel({
       <p className="mb-3 text-small text-ink-secondary">
         Medical, legal and statistical statements go here until you check them. Preflight warns while any stay open.
       </p>
+      {softenEditable && (
+        <Link to={`/books/${bookId}/claims`} className="mb-3 inline-flex text-small font-semibold text-select underline-offset-2 hover:underline">
+          See every claim in this book
+        </Link>
+      )}
       <ul className="grid gap-3">
         {sorted.map((c) => (
           <ClaimCard

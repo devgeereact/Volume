@@ -65,7 +65,7 @@ function toRow(i: ApiPreflightItem, bookId: string): PreflightItem {
   const cut = i.message.indexOf(": ");
   const label = cut > 0 ? i.message.slice(0, cut) : i.message;
   const detail = cut > 0 ? i.message.slice(cut + 2) : "";
-  const fix = fixAction(i.fix, bookId);
+  const fix = fixAction(i.fix, bookId, i.id);
   return { ...base, label, detail, ruleId: null, fixRoute: fix?.kind === "link" ? fix.to : null, ...(fix?.kind === "link" ? { fixLabel: fix.label } : {}) };
 }
 
@@ -101,7 +101,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   const building = start.isPending || watch.running;
 
   const items = useMemo(() => (preflightQ.data?.items ?? []).map((i) => toRow(i, bookId)), [preflightQ.data, bookId]);
-  const fixes = useMemo(() => new Map((preflightQ.data?.items ?? []).map((i) => [i.id, fixAction(i.fix, bookId)])), [preflightQ.data, bookId]);
+  const fixes = useMemo(() => new Map((preflightQ.data?.items ?? []).map((i) => [i.id, fixAction(i.fix, bookId, i.id)])), [preflightQ.data, bookId]);
   const rows: PreflightRow[] = items.map((it) => ({ ...it, checking: preflightQ.isFetching && !preflightQ.isPending }));
   // Cover blocks (ids "cover.") stop only the pack: the single files still build, and the server's
   // final preflight refuses the pack. Every other block stops the build.
