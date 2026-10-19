@@ -226,6 +226,29 @@ describe('5. editing: local JSON repair and suggestions that can be accepted', (
     expect(locateQuote(md, 'Next paragraph.').original).toBe('Next  paragraph.');
     expect(locateQuote(md, 'Not in the text.')).toEqual({ start: null, end: null, original: null });
   });
+
+  it('keeps emphasis marks whole in the original and does not fold snake_case (review: low)', () => {
+    expect(locateQuote('The **second** line.', 'second line').original).toBe('**second** line');
+    expect(locateQuote('Say **this line** now.', 'Say this line now.').original).toBe('Say **this line** now.');
+    expect(locateQuote('A _quiet_ walk.', 'quiet walk').original).toBe('_quiet_ walk');
+    expect(locateQuote('Set my_var here.', 'Set myvar here.').original).toBeNull();
+    expect(locateQuote('Set my_var  here.', 'Set my_var here.').original).toBe('Set my_var  here.');
+  });
+
+  it('says when a change drops bold or italic marks', async () => {
+    const { ai } = await recordingAdapter((id, raw) =>
+      id === 'editing.line-edit-uk'
+        ? JSON.stringify({
+            edited: '',
+            changes: [{ before: 'The second line.', after: 'The next line.', why: 'Clearer.', kind: 'clarity' }],
+            otherChangesByKind: {},
+            unchangedOnPurpose: [],
+          })
+        : raw,
+    );
+    const r = await ai.runStage('editing', { promptId: 'editing.line', variables: { pass: 'line', markdown: 'The **second** line.' } }, { model: MODEL });
+    expect(r.output.suggestions[0]).toMatchObject({ original: 'The **second** line.', reason: expect.stringContaining('drops bold or italic') as unknown });
+  });
 });
 
 describe('3. house style auto-fix on AI text', () => {
@@ -251,6 +274,41 @@ describe('3. house style auto-fix on AI text', () => {
     const owner = 'My own words — kept.';
     const r = fixHouseStyle(`${owner}\n\nNew AI words — fixed.\n\nBio — as written.`, style, { keep: owner, protect: ['Bio — as written.'] });
     expect(r.text).toBe(`${owner}\n\nNew AI words, fixed.\n\nBio — as written.`);
+  });
+
+  it('leaves the spelling of names and quotations alone (review: high)', () => {
+    const text = [
+      'The World Health Organization says the color of the label matters.',
+      'Pearl Harbor is a place. Harbor Freight sells tools.',
+      'She said "the color matters" and “the favorite one”, then ‘my favorite’.',
+      "He wasn't sure: 'the color isn't right'.",
+      '> A block quote with color.',
+      'Color is plain at the start of a sentence.',
+    ].join('\n');
+    const r = fixHouseStyle(text, style);
+    expect(r.text).toBe(
+      [
+        'The World Health Organization says the colour of the label matters.',
+        'Pearl Harbor is a place. Harbor Freight sells tools.',
+        'She said "the color matters" and “the favorite one”, then ‘my favorite’.',
+        "He wasn't sure: 'the color isn't right'.",
+        '> A block quote with color.',
+        'Colour is plain at the start of a sentence.',
+      ].join('\n'),
+    );
+    expect(r.spellings).toBe(2);
+  });
+
+  it('reads letter and number ranges as "to" and never touches table rows (review: medium)', () => {
+    expect(fixHouseStyle('From A–Z and pages 4–9, then 2020–2026.', style).text).toBe('From A to Z and pages 4 to 9, then 2020 to 2026.');
+    const table = '| Tool | Price |\n| --- | --- |\n| Canva | — |\n| Notion | – |';
+    expect(fixHouseStyle(table, style).text).toBe(table);
+  });
+
+  it('is idempotent', () => {
+    const text = 'The plan — short — works. Pages 10–20. The color of A–Z. "A color quote." | a | — |';
+    const once = fixHouseStyle(text, style).text;
+    expect(fixHouseStyle(once, style)).toMatchObject({ text: once, dashes: 0, spellings: 0 });
   });
 
   it('cleans titles: formula labels, odd hyphens, stray spaces and dashes', () => {
@@ -387,7 +445,10 @@ describe('save-time guardrails get the author facts', () => {
     expect(facts).toContain('Test Author teaches night classes in Leeds.');
     expect(facts).toContain('Side projects');
     expect(facts).toContain(BRIEF);
-    const novel = await app.services.repos.books.require(app.owner, await make({ bookTypeId: 'contemporary-romance' }));
-    expect(await savedTextContext(app.services.repos, app.services.configDir, app.owner, novel)).not.toHaveProperty('authorFacts');
+    // Stories, poetry and memoir or biography skip the author-anecdote check (review: medium).
+    for (const bookTypeId of ['contemporary-romance', 'poetry', 'memoir-biography', 'picture-book']) {
+      const other = await app.services.repos.books.require(app.owner, await make({ bookTypeId }));
+      expect(await savedTextContext(app.services.repos, app.services.configDir, app.owner, other), bookTypeId).not.toHaveProperty('authorFacts');
+    }
   });
 });

@@ -12,7 +12,8 @@ import { checkText, type CompiledHouseStyle, type StyleFinding } from '@volume/c
  * - a US spelling becomes the British one, except words whose meaning decides (spellingExceptions: program, check,
  *   practice ...), which the checks keep as information for the owner.
  *
- * Code spans, fenced code, URLs and link targets are never touched. Only AI text goes through here: owner-written text
+ * Code spans, fenced code, URLs, link targets and table rows are never touched; quotations and names keep their
+ * spelling. Only AI text goes through here: owner-written text
  * is never changed automatically. With `keep`, paragraphs that already stood in that earlier text (the owner's, for
  * example) are left exactly as they were.
  */
@@ -42,7 +43,39 @@ function protectedRanges(text: string): [number, number][] {
   add(/\bwww\.[^\s)>\]]+/g);
   add(/\]\([^)\n]*\)/g);
   add(/<[^>\n]+>/g);
+  // Table rows: a cell holding only a dash means "none", and a comma there would break the table.
+  add(/^[ \t]*\|.*$/gm);
   return out;
+}
+
+/**
+ * Quoted words, which spelling fixes leave alone (a quotation keeps its own spelling): straight and curly double
+ * quotes, single quotes that open after a space or bracket (apostrophes inside words do not end them), and block
+ * quotes.
+ */
+function quotedRanges(text: string): [number, number][] {
+  const out: [number, number][] = [];
+  const add = (re: RegExp) => {
+    for (const m of text.matchAll(re)) out.push([m.index, m.index + m[0].length]);
+  };
+  add(/"[^"\n]*"/g);
+  add(/\u201c[^\u201d]*\u201d/g);
+  add(/(?<=^|[\s([{])['\u2018](?:[^'\u2019\n]|(?<=\p{L})['\u2019](?=\p{L}))*['\u2019](?!\p{L})/gmu);
+  add(/^[ \t]*>.*$/gm);
+  return out;
+}
+
+/**
+ * A capitalised word inside a sentence is a name ("World Health Organization", "Pearl Harbor"), and so is a
+ * capitalised word that opens a sentence next to another capitalised word: spelling fixes leave both alone.
+ */
+function isProperName(text: string, start: number, end: number): boolean {
+  if (!/^\p{Lu}/u.test(text.slice(start, end))) return false;
+  const before = text.slice(0, start).replace(/[ \t*_]+$/, '');
+  const lastLine = before.split('\n').pop() ?? '';
+  const opensSentence = before === '' || /[.!?:\n#>]$/.test(before) || /^[ \t]*(?:[-+*]|\d+\.)$/.test(lastLine);
+  if (!opensSentence) return true;
+  return /^[ \t]+\p{Lu}/u.test(text.slice(end));
 }
 
 /** Paragraph ranges whose text (trimmed) already stood in `keep`. */
@@ -63,6 +96,9 @@ const inside = (ranges: [number, number][], start: number, end: number) => range
 
 function dashReplacement(f: StyleFinding, before: string, after: string, style: CompiledHouseStyle): string {
   if (f.rule === 'endash' && /\d$/.test(before) && /^\d/.test(after)) return style.enDash.replacement;
+  // A range between single letters or numbers ("A\u2013Z", "2020\u20132026") reads "A to Z".
+  if (f.rule === 'endash' && /(?:^|[^\p{L}\p{N}])(?:\p{L}|\p{N}+)$/u.test(before) && /^(?:\p{L}|\p{N}+)(?![\p{L}\p{N}])/u.test(after))
+    return style.enDash.replacement;
   // At the start or end of a line (a dialogue dash, a dangling dash) the dash goes with no comma.
   if (before === '' || before.endsWith('\n') || after === '' || after.startsWith('\n')) return '';
   if (BEFORE_NOTHING.test(before)) return ' ';
@@ -79,6 +115,7 @@ export function fixHouseStyle(text: string, style: CompiledHouseStyle, opts: { k
   );
   if (findings.length === 0) return result;
   const blocked = [...protectedRanges(text), ...(opts.keep ? keptRanges(text, opts.keep) : [])];
+  const quoted = quotedRanges(text);
   // Owner-written passages quoted word for word (the profile bio) are never changed.
   for (const p of opts.protect ?? []) {
     if (!p.trim()) continue;
@@ -89,6 +126,8 @@ export function fixHouseStyle(text: string, style: CompiledHouseStyle, opts: { k
   for (const f of [...findings].sort((a, b) => b.start - a.start)) {
     if (f.end > limit || inside(blocked, f.start, f.end)) continue;
     if (f.rule === 'spelling') {
+      // Quotations and names keep their spelling; the check still reports them for the owner.
+      if (inside(quoted, f.start, f.end) || isProperName(text, f.start, f.end)) continue;
       out = out.slice(0, f.start) + (f.suggestion ?? f.match) + out.slice(f.end);
       result.spellings += 1;
       limit = f.start;
