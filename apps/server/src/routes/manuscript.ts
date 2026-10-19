@@ -6,7 +6,8 @@ import { AppError, parse } from '../http/errors.js';
 import { contextOf, findMatches, replaceMatches } from '../lib/find.js';
 import { lineDiff } from '../lib/text.js';
 import { NoteInputSchema, NotePatchSchema, SaveVersionSchema, sessionStartOf, type Section } from '../repos/manuscript.js';
-import { advanceIfWritingComplete, CODE_WRITTEN_KINDS } from '../jobs/book-data.js';
+import { advanceIfWritingComplete, CHECKS_MISSING_CHECKER, CODE_WRITTEN_KINDS, SUMMARY_MISSING_CHECKER } from '../jobs/book-data.js';
+import { estimateRuns } from './fixes.js';
 import { sectionGuardrails } from '../repos/run-info.js';
 import { LEDGER_KINDS } from '../ports/ai.js';
 import { accepted, idOf, writer } from './common.js';
@@ -186,15 +187,37 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
 
   // Rerun of the post-write steps that failed on a saved section (open summary_missing or checks_missing flags, or no
   // summary yet). The text is not rewritten. /summarise is the first name of this route and does the same.
+  // 202 { jobId, job, steps, estimate: { lowUsd, highUsd } }. 409 invalid_state when there is no text or nothing is
+  // missing; 409 conflict { jobId } when an unfinished job already works on the section. Pack preflight fix actions
+  // 'rerun-checks' point here.
   const rerunMissing = async (req: FastifyRequest, reply: FastifyReply) => {
     writer(req);
     const id = idOf(req);
     parse(z.object({}).strict().optional(), req.body);
     const section = await m.requireSection(req.ctx, id);
-    if (!section.currentVersionId) throw new AppError('invalid_state', 'This section has no text to summarise or check yet. Write it first.');
+    const current = section.currentVersionId ? await m.getVersion(req.ctx, section.currentVersionId) : null;
+    if (!current) throw new AppError('invalid_state', 'This section has no text to summarise or check yet. Write it first.');
+    // The same test rerunMissingSteps makes, so the answer and the job agree on what runs.
+    const open = (await m.listChecks(req.ctx, { versionId: current.id })).filter((c) => c.status === 'open');
+    const steps = [
+      ...(current.summary === null || open.some((c) => c.checker === SUMMARY_MISSING_CHECKER) ? (['summary'] as const) : []),
+      ...(open.some((c) => c.checker === CHECKS_MISSING_CHECKER) ? (['checks'] as const) : []),
+    ];
+    if (steps.length === 0) throw new AppError('invalid_state', 'Nothing is missing: this section has its summary and its checks.');
+    const active = await s.queue.activeForSection(req.ctx, section.projectId, section.id);
+    if (active[0]) throw new AppError('conflict', 'A job is already working on this section. Wait for it to finish.', { jobId: active[0].id });
+    const variables = { markdown: current.bodyMd, section: { id: section.id, title: section.title } };
+    const estimate = await estimateRuns(s, req.ctx, section.projectId, [
+      ...(steps.includes('summary')
+        ? [{ stage: 'summarise' as const, input: { promptId: 'checks.summarise-and-ledger', variables, projectId: section.projectId } }]
+        : []),
+      ...(steps.includes('checks')
+        ? [{ stage: 'checks' as const, input: { promptId: 'checks.claims-and-consistency', variables, projectId: section.projectId } }]
+        : []),
+    ]);
     // The section keeps its status (needs attention) until the rerun ends, so a cancelled rerun cannot hide the flag.
     const job = await s.queue.enqueue(req.ctx, { kind: 'write_section', projectId: section.projectId, payload: { sectionId: id, rerunMissing: true } });
-    return accepted(reply, job);
+    return { ...accepted(reply, job), steps, estimate };
   };
   app.post('/sections/:id/recheck', rerunMissing);
   app.post('/sections/:id/summarise', rerunMissing);

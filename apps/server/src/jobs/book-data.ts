@@ -382,7 +382,7 @@ export async function withOwnerPlaceholders(repos: Repos, ctx: RequestCtx, proje
         area: 'body',
         severity: 'block',
         message: m.message,
-        // POST /books/:id/sections/:sectionId/rerun-checks queues only the missing steps.
+        // POST /sections/:id/recheck queues only the missing steps.
         fix: { route: 'writing', label: 'Run it again', action: 'rerun-checks', sectionId: s.id },
       });
       report.blocks += 1;

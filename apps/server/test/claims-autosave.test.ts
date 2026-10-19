@@ -237,6 +237,20 @@ describe('POST /books/:id/claims/:claimId/suggest and /apply', () => {
     expect(r.status).toBe(200);
     expect(r.body.version.source).toBe('owner:claim-fix');
   });
+
+  it('accepts the owner’s own rewrite', async () => {
+    t = await testApp();
+    const { bookId, chapterId } = await writtenBook(t);
+    const claim = await openClaim(t, bookId, chapterId);
+    const r = await t.call<{ claim: ClaimView; version: Version }>('POST', `/api/v1/books/${bookId}/claims/${claim.id}/apply`, {
+      text: 'In my own words.',
+      approach: 'own',
+    });
+    expect(r.status).toBe(200);
+    expect(r.body.claim.status).toBe('softened');
+    expect(r.body.version).toMatchObject({ source: 'owner:claim-fix' });
+    expect(r.body.version.bodyMd).toContain('In my own words.');
+  });
 });
 
 describe('PUT /books/:id/sections/:sectionId/autosave', () => {
@@ -248,33 +262,33 @@ describe('PUT /books/:id/sections/:sectionId/autosave', () => {
     const count = async () => (await t!.call<{ items: unknown[] }>('GET', `/api/v1/sections/${chapterId}/versions`)).body.items.length;
     const n0 = await count();
 
-    const first = await t.call<{ version: Version; coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft one.', baseVersionId: start.id });
+    const first = await t.call<Version & { coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft one.', baseVersionId: start.id });
     expect(first.status).toBe(200);
-    expect(first.body).toMatchObject({ coalesced: false, version: { source: 'owner:autosave' } });
-    const second = await t.call<{ version: Version; coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft two.', baseVersionId: first.body.version.id });
-    expect(second.body).toMatchObject({ coalesced: true, version: { id: first.body.version.id } });
+    expect(first.body).toMatchObject({ coalesced: false, source: 'owner:autosave' });
+    const second = await t.call<Version & { coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft two.', baseVersionId: first.body.id });
+    expect(second.body).toMatchObject({ coalesced: true, id: first.body.id });
     expect(await count()).toBe(n0 + 1);
     expect((await current(t, chapterId)).bodyMd).toBe('# One\n\nDraft two.');
 
     // A stale base is a conflict carrying the current version id.
     const stale = await t.call<{ error: { code: string; details: { currentVersionId: string } } }>('PUT', url, { bodyMd: 'x', baseVersionId: start.id });
     expect(stale.status).toBe(409);
-    expect(stale.body.error.details.currentVersionId).toBe(first.body.version.id);
+    expect(stale.body.error.details.currentVersionId).toBe(first.body.id);
     expect((await t.call('PUT', url, { bodyMd: 'x' })).status).toBe(400);
 
     // The version list names the version before this edit session.
     const list = await t.call<{ currentVersionId: string; previousVersionId: string }>('GET', `/api/v1/sections/${chapterId}/versions`);
-    expect(list.body).toMatchObject({ currentVersionId: first.body.version.id, previousVersionId: start.id });
+    expect(list.body).toMatchObject({ currentVersionId: first.body.id, previousVersionId: start.id });
 
     // An explicit save closes the window: the next autosave is a new version.
-    const saved = await t.call<Version>('POST', `/api/v1/sections/${chapterId}/versions`, { bodyMd: '# One\n\nSaved.', baseVersionId: first.body.version.id });
+    const saved = await t.call<Version>('POST', `/api/v1/sections/${chapterId}/versions`, { bodyMd: '# One\n\nSaved.', baseVersionId: first.body.id });
     expect(saved.status).toBe(201);
-    const third = await t.call<{ version: Version; coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft three.', baseVersionId: saved.body.id });
+    const third = await t.call<Version & { coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft three.', baseVersionId: saved.body.id });
     expect(third.body.coalesced).toBe(false);
 
     // An autosave older than five minutes is not updated in place either.
-    await sql`update section_versions set created_at = created_at - ${AUTOSAVE_WINDOW_MS + 1000} where id = ${third.body.version.id}`.execute(t.handle.db);
-    const fourth = await t.call<{ version: Version; coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft four.', baseVersionId: third.body.version.id });
+    await sql`update section_versions set created_at = created_at - ${AUTOSAVE_WINDOW_MS + 1000} where id = ${third.body.id}`.execute(t.handle.db);
+    const fourth = await t.call<Version & { coalesced: boolean }>('PUT', url, { bodyMd: '# One\n\nDraft four.', baseVersionId: third.body.id });
     expect(fourth.body.coalesced).toBe(false);
     expect(await count()).toBe(n0 + 4);
 
@@ -285,11 +299,11 @@ describe('PUT /books/:id/sections/:sectionId/autosave', () => {
   });
 });
 
-describe('POST /books/:id/sections/:sectionId/rerun-checks', () => {
+describe('POST /sections/:id/recheck (the preflight rerun-checks action)', () => {
   it('queues only the missing steps with an estimate, and refuses when nothing is missing or a job is running', async () => {
     t = await testApp();
     const { bookId, chapterId } = await writtenBook(t);
-    const url = `/api/v1/books/${bookId}/sections/${chapterId}/rerun-checks`;
+    const url = `/api/v1/sections/${chapterId}/recheck`;
     expect((await t.call('POST', url, {})).status).toBe(409);
 
     const cur = await current(t, chapterId);
@@ -309,6 +323,5 @@ describe('POST /books/:id/sections/:sectionId/rerun-checks', () => {
     expect(job.body.status).toBe('succeeded');
     expect(job.body.result['reran']).toEqual(['checks']);
     expect((await t.call('POST', url, {})).status).toBe(409);
-    expect((await t.call('POST', `/api/v1/books/01NOTABOOK0000000000000000/sections/${chapterId}/rerun-checks`, {})).status).toBe(404);
   });
 });

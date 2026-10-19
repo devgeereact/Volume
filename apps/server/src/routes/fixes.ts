@@ -4,7 +4,7 @@ import type { AppServices } from '../app.js';
 import type { RequestCtx } from '../auth/context.js';
 import { AppError, notFound, parse } from '../http/errors.js';
 import { AutosaveSchema, type Claim, type Section, type SectionVersion } from '../repos/manuscript.js';
-import { advanceIfWritingComplete, CHECKS_MISSING_CHECKER, SUMMARY_MISSING_CHECKER } from '../jobs/book-data.js';
+import { advanceIfWritingComplete } from '../jobs/book-data.js';
 import {
   bookSources,
   CLAIM_FIX_APPROACHES,
@@ -17,9 +17,9 @@ import {
   spliceSentence,
 } from '../jobs/claim-fix.js';
 import type { AiStage, AiStageInput } from '../ports/ai.js';
-import { EmptyBody, writer } from './common.js';
+import { writer } from './common.js';
 
-// Claim fixes, autosave and the rerun of missing checks (owner request, 19 October 2026). Every route is scoped to
+// Claim fixes and autosave (owner request, 19 October 2026). Every route is scoped to
 // the book in the path: a section or claim of another book is 404.
 
 const Id = z.string().min(1).max(64);
@@ -33,7 +33,8 @@ const SuggestBody = z
 const ApplyBody = z
   .object({
     text: z.string().max(5000),
-    approach: z.enum(CLAIM_FIX_APPROACHES),
+    /** 'own': the owner rewrote the sentence themselves (saved as owner:claim-fix, claim softened or verified). */
+    approach: z.enum([...CLAIM_FIX_APPROACHES, 'own']),
     /** The suggest job the text came from: the version source is ai:claim-fix only when the text is one of its options unchanged. */
     jobId: Id.optional(),
     /** The version the owner saw; a different current version is a 409 conflict. */
@@ -45,6 +46,24 @@ const ApplyBody = z
 const SuggestResult = z.object({ options: z.array(z.object({ text: z.string(), approach: z.string() })) });
 
 const round = (n: number): number => Math.round(n * 10000) / 10000;
+
+/** Cost of stage runs with the models the settings pick (as POST /books/:id/estimate does). */
+export async function estimateRuns(
+  s: AppServices,
+  ctx: RequestCtx,
+  bookId: string,
+  runs: { stage: AiStage; input: AiStageInput }[],
+): Promise<{ lowUsd: number; highUsd: number }> {
+  let low = 0;
+  let high = 0;
+  for (const r of runs) {
+    const model = await s.runner.resolveModel(ctx, bookId, r.stage);
+    const e = await s.ai.estimate(r.stage, r.input, model ? { model } : {});
+    low += e.lowUsd;
+    high += e.highUsd;
+  }
+  return { lowUsd: round(low), highUsd: round(high) };
+}
 
 export function fixRoutes(app: FastifyInstance, s: AppServices): void {
   const m = s.repos.manuscript;
@@ -75,19 +94,6 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
     return { current, at };
   };
 
-  /** Cost of stage runs with the models the settings pick (as POST /books/:id/estimate does). */
-  const estimate = async (ctx: RequestCtx, bookId: string, runs: { stage: AiStage; input: AiStageInput }[]): Promise<{ lowUsd: number; highUsd: number }> => {
-    let low = 0;
-    let high = 0;
-    for (const r of runs) {
-      const model = await s.runner.resolveModel(ctx, bookId, r.stage);
-      const e = await s.ai.estimate(r.stage, r.input, model ? { model } : {});
-      low += e.lowUsd;
-      high += e.highUsd;
-    }
-    return { lowUsd: round(low), highUsd: round(high) };
-  };
-
   // ---------- claim fixes ----------
 
   /** 202 with the claim_fix job and its estimate. The job's result is { claimId, sectionId, baseVersionId, sentence, options }. */
@@ -99,7 +105,7 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
     const { current, at } = await claimInText(req.ctx, claim);
     const instruction = body.instruction ? body.instruction : null;
     const variables = await claimFixVariables(s.repos, req.ctx, claim, current.bodyMd, at, instruction);
-    const cost = await estimate(req.ctx, p.id, [{ stage: 'claim_fix', input: { promptId: 'editing.claim-fix', variables, projectId: p.id } }]);
+    const cost = await estimateRuns(s, req.ctx, p.id, [{ stage: 'claim_fix', input: { promptId: 'editing.claim-fix', variables, projectId: p.id } }]);
     const job = await s.queue.enqueue(req.ctx, { kind: 'claim_fix', projectId: p.id, payload: { claimId: claim.id, sectionId: claim.sectionId, instruction } });
     void reply.code(202);
     return { jobId: job.id, job, estimate: cost };
@@ -170,7 +176,7 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
 
   // ---------- autosave ----------
 
-  /** 200 { version, coalesced }. 409 conflict { details: { currentVersionId } } when baseVersionId is not the current version. */
+  /** 200 with the saved version plus coalesced. 409 conflict { details: { currentVersionId } } when baseVersionId is not the current version. */
   app.put('/books/:id/sections/:sectionId/autosave', async (req) => {
     writer(req);
     const p = parse(BookSection, req.params);
@@ -185,49 +191,6 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
       type: 'section.saved',
       data: { sectionId: section.id, versionId: v.id, version: v.version, wordCount: v.wordCount, source: v.source, coalesced },
     });
-    return {
-      version: {
-        id: v.id,
-        version: v.version,
-        source: v.source,
-        wordCount: v.wordCount,
-        parentVersionId: v.parentVersionId,
-        createdAt: v.createdAt,
-        updatedAt: v.updatedAt,
-      },
-      coalesced,
-    };
-  });
-
-  // ---------- rerun of missing checks ----------
-
-  /**
-   * Queues only the steps that failed after the text was saved (write_section with rerunMissing): the summary when the
-   * current text has none or an open summary_missing flag, the claims and consistency checks when it has an open
-   * checks_missing flag. 202 { jobId, job, steps, estimate }; 409 when nothing is missing or a job already works on it.
-   */
-  app.post('/books/:id/sections/:sectionId/rerun-checks', async (req, reply) => {
-    writer(req);
-    const p = parse(BookSection, req.params);
-    parse(EmptyBody, req.body);
-    const section = await sectionOfBook(req.ctx, p.id, p.sectionId);
-    const current = section.currentVersionId ? await m.getVersion(req.ctx, section.currentVersionId) : null;
-    if (!current) throw new AppError('invalid_state', 'This section has no text to summarise or check yet. Write it first.');
-    const open = (await m.listChecks(req.ctx, { versionId: current.id })).filter((c) => c.status === 'open');
-    const steps = [
-      ...(current.summary === null || open.some((c) => c.checker === SUMMARY_MISSING_CHECKER) ? (['summary'] as const) : []),
-      ...(open.some((c) => c.checker === CHECKS_MISSING_CHECKER) ? (['checks'] as const) : []),
-    ];
-    if (steps.length === 0) throw new AppError('invalid_state', 'Nothing is missing: this section has its summary and its checks.');
-    const active = await s.queue.activeForSection(req.ctx, p.id, section.id);
-    if (active[0]) throw new AppError('conflict', 'A job is already working on this section. Wait for it to finish.', { jobId: active[0].id });
-    const variables = { markdown: current.bodyMd, section: { id: section.id, title: section.title } };
-    const cost = await estimate(req.ctx, p.id, [
-      ...(steps.includes('summary') ? [{ stage: 'summarise' as const, input: { promptId: 'checks.summarise-and-ledger', variables, projectId: p.id } }] : []),
-      ...(steps.includes('checks') ? [{ stage: 'checks' as const, input: { promptId: 'checks.claims-and-consistency', variables, projectId: p.id } }] : []),
-    ]);
-    const job = await s.queue.enqueue(req.ctx, { kind: 'write_section', projectId: p.id, payload: { sectionId: section.id, rerunMissing: true } });
-    void reply.code(202);
-    return { jobId: job.id, job, steps, estimate: cost };
+    return { ...v, coalesced };
   });
 }

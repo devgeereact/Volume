@@ -108,10 +108,10 @@ export function vetOptions(
  * The claim status after a fix: removed for a removal, verified for an attribution to one of the book's research
  * sources (a valid [[S<n>]] marker in the new text), softened for everything else.
  */
-export function claimStatusFor(approach: ClaimFixApproach, text: string, sourceCount: number): 'removed' | 'verified' | 'softened' {
+export function claimStatusFor(approach: ClaimFixApproach | 'own', text: string, sourceCount: number): 'removed' | 'verified' | 'softened' {
   if (approach === 'remove' || !text.trim()) return 'removed';
   const cited = markersIn(text);
-  if (approach === 'attribute' && cited.length > 0 && cited.every((n) => n >= 1 && n <= sourceCount)) return 'verified';
+  if ((approach === 'attribute' || approach === 'own') && cited.length > 0 && cited.every((n) => n >= 1 && n <= sourceCount)) return 'verified';
   return 'softened';
 }
 
