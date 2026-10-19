@@ -204,8 +204,9 @@ describe('5. estimates', () => {
     });
     expect(e.status).toBe(200);
     expect(e.body.sections).toBe(writable.length);
-    expect(e.body.calls).toBe(writable.length * 3); // writing, summary and checks per section
-    expect(e.body.lowUsd).toBeCloseTo(0.001 * e.body.calls, 6);
+    // Writing, summary and checks per section, then the listing job's three matter prompts (one mock estimate).
+    expect(e.body.calls).toBe(writable.length * 3 + 3);
+    expect(e.body.lowUsd).toBeCloseTo(0.001 * (writable.length * 3 + 1), 6);
     expect(e.body.highUsd).toBeGreaterThan(e.body.lowUsd);
     expect(e.body.model).toEqual(anyString);
 

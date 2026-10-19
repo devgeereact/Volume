@@ -7,9 +7,10 @@ import * as VolumeAi from '@volume/ai';
 import type { AiProvider } from '@volume/ai';
 import { afterEach, describe, expect, it } from 'vitest';
 import { MockAiAdapter } from '../src/adapters/mock-ai.js';
-import { createOpenRouterAi, type OpenRouterAiAdapter } from '../src/adapters/openrouter-ai.js';
+import { createOpenRouterAi, estimatePlan, type OpenRouterAiAdapter } from '../src/adapters/openrouter-ai.js';
 import { buildExportBook } from '../src/jobs/book-data.js';
-import type { AiPort, AiStage, AiStageInput, AiStageResult, RunStageOptions } from '../src/ports/ai.js';
+import type { AiCostEstimate, AiPort, AiStage, AiStageInput, AiStageResult, RunStageOptions } from '../src/ports/ai.js';
+import { LISTING_PROMPT_CALLS } from '../src/routes/estimate.js';
 import { str, testApp, type TestApp } from './helpers.js';
 
 type Obj = Record<string, unknown>;
@@ -156,5 +157,41 @@ describe('4. the matter stage writes the listing', () => {
     expect(system(real.seen[0])).toContain('what the book does for the reader and the promise it makes');
     const jobs = await t.call<{ items: { kind: string; status: string }[] }>('GET', `/api/v1/books/${id}/jobs`);
     expect(jobs.body.items.find((j) => j.kind === 'listing')?.status).toBe('succeeded');
+  });
+});
+
+/** The mock AI with a known price per stage: the matter stage costs 0.5 USD, every other stage 0.001 USD. */
+class PricedAi extends ListingAi {
+  readonly estimated: { stage: AiStage; input: AiStageInput }[] = [];
+  override estimate: AiPort['estimate'] = (stage, input): Promise<AiCostEstimate> => {
+    this.estimated.push({ stage, input: structuredClone(input) });
+    const usd = stage === 'matter_metadata' ? 0.5 : 0.001;
+    return Promise.resolve({ lowUsd: usd, highUsd: usd * 2 });
+  };
+}
+
+describe('4. the writing estimate includes the listing job', () => {
+  it('adds the three matter prompts to a whole-book writing estimate, and not to a chosen section or a written book', async () => {
+    expect(estimatePlan('matter_metadata', { variables: {} }).map((p) => p.task)).toHaveLength(LISTING_PROMPT_CALLS);
+    const ai = new PricedAi();
+    t = await testApp({ ai });
+    const id = await newBook(t);
+    type Est = { lowUsd: number; highUsd: number; calls: number; sections: number };
+    const all = await t.call<Est>('POST', `/api/v1/books/${id}/estimate`, { stage: 'writing' });
+    expect(all.status).toBe(200);
+    const matter = ai.estimated.filter((e) => e.stage === 'matter_metadata');
+    expect(matter).toHaveLength(1);
+    expect((matter[0]?.input.variables['previousSummaries'] as unknown[]).length).toBeGreaterThan(0);
+    expect(all.body.calls).toBe(all.body.sections * 3 + LISTING_PROMPT_CALLS);
+    expect(all.body.lowUsd).toBeCloseTo(0.5 + 0.001 * all.body.sections * 3, 6);
+
+    const tree = await t.call<{ body: { id: string }[] }>('GET', `/api/v1/books/${id}/sections`);
+    const one = await t.call<Est>('POST', `/api/v1/books/${id}/estimate`, { stage: 'writing', sectionIds: [tree.body.body[0]!.id] });
+    expect(one.body).toMatchObject({ sections: 1, calls: 3 });
+    expect(one.body.lowUsd).toBeLessThan(0.5);
+
+    await t.call('POST', `/api/v1/books/${id}/write`, {});
+    await t.services.runner.runUntilIdle();
+    expect((await t.call<Est>('POST', `/api/v1/books/${id}/estimate`, { stage: 'writing' })).body).toMatchObject({ sections: 0, calls: 0, lowUsd: 0 });
   });
 });
