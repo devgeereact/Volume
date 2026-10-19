@@ -1,3 +1,21 @@
+## Public landing, how it works and sign-in, 19 October 2026 (Claude Code)
+
+Branch `feat/landing-hero` (PR #16), rebuilt on main. Decision D-053 (D-051 is move-a-book, D-052 is PR #14). Owner asked to merge #17, #16, #14 in that order and deploy.
+
+Done: signed-out visitors on a hosted build see the landing hero at `/`, How it works at `/how-it-works` and a branded sign-in at `/sign-in` (and any other path). Signed-in and local builds reach the pages at `/welcome` and `/how-it-works`. Built with GSAP 3.15 (SplitText, ScrambleText), Lenis 1.3.27 and adapted React Bits components in `apps/web/src/site/`.
+
+Proven on the rebased branch (Node 26.8.1): typecheck, lint, format:check PASS; Vitest 1,095 passed, 4 skipped; web build PASS; e2e 17 of 17. Browser at 1440 and 390, dark, reduced motion (first build). Screenshots: `../reports/volume/screenshots/landing-hero/`.
+
+Next: check the themed Clerk form on the host after deploy. Owner: restore GitHub Actions (no runs are created for any push; account-level).
+
+## Merge and deploy, 19 October 2026 (Claude Code)
+
+Owner asked to merge the open PRs and deploy. Merged #7, #8, #9, #11, #10, #12, #13 into main (a7bff19); #11 and #13 retargeted from `feat/server-hardening` to main; #13 conflicts (CHANGELOG, `files/magic.ts`) resolved by keeping both sides, and its test fixed for the listing job from #10. Draft #14 left for the owner. Deployed a7bff19 as release `20261019T103759Z` (rollback `20261018T131543Z`) with `--migrate --no-ci-check` after the owner's cPanel backup; migration 0010 applied.
+
+Books: 5 project zips exported from the Mac's local server to `~/Volume-book-exports/2026-10-19/` (owner's machine only, never in git). Next: owner imports each on the live site (Library > Import project) under a pen name that exists there, then rebuilds files.
+
+Also next: rebase `feat/landing-hero` onto main and open its PR; fix the one-line `engines` drift in `package-lock.json`; GitHub Actions has no runs on record (check billing).
+
 ## Overnight build, 18 to 19 October 2026 (Claude Code, lead with subagents)
 
 Owner goal: build the remaining part, test with real content so nothing unpostable costs money, keep it under the Gideon Akinlotan account for review at 06:00. Nothing below is merged or deployed; every item is a PR for the owner.

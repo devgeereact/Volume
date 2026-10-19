@@ -19,6 +19,30 @@ export function screenErrors(children: RouteObject[]): RouteObject {
 // Screen paths and navigation share the same catalogue; preserve aliases and lazy chunks.
 // The outer errorElement is the last resort, for an error in the shell itself.
 export const routes: RouteObject[] = [
+  // Public pages inside the app (signed in, or a local build). Signed-out visitors get them from
+  // site/PublicSite, with the landing hero at /.
+  {
+    lazy: async () => ({ Component: (await import("../site/SiteLayout")).default }),
+    hydrateFallbackElement: <div className="min-h-dvh bg-canvas" />,
+    errorElement: <RouteError />,
+    children: [
+      screenErrors([
+        { path: "/welcome", lazy: async () => ({ Component: (await import("../site/LandingPage")).default }) },
+        { path: "/how-it-works", lazy: async () => ({ Component: (await import("../site/HowItWorksPage")).default }) },
+      ]),
+    ],
+  },
+  hostedSignIn
+    ? { path: "/sign-in", element: <Navigate to="/" replace /> }
+    : {
+        path: "/sign-in",
+        hydrateFallbackElement: <div className="min-h-dvh bg-canvas" />,
+        errorElement: <RouteError />,
+        lazy: async () => {
+          const { default: SignInPage } = await import("../site/SignInPage");
+          return { Component: () => <SignInPage mode="local" /> };
+        },
+      },
   {
     element: <AppShell />,
     errorElement: <RouteError />,

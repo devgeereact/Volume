@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { ClerkProvider, SignIn, useAuth, useClerk } from "@clerk/react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { ClerkProvider, useAuth, useClerk } from "@clerk/react";
 import { apiRequest, isApiError, setAuthTokenGetter } from "../api/client";
 import { Button } from "../components/ui/Button";
 import { Loader } from "../components/ui/Loader";
@@ -10,6 +10,8 @@ const PUBLISHABLE_KEY: string = (import.meta.env["VITE_CLERK_PUBLISHABLE_KEY"] a
 
 /** True when the build has a Clerk key, so every screen sits behind sign-in. */
 export const hostedSignIn = PUBLISHABLE_KEY.length > 0;
+
+const PublicSite = lazy(() => import("../site/PublicSite"));
 
 function Centre({ children }: { children: ReactNode }) {
   return <main className="grid min-h-dvh place-items-center bg-canvas px-4 py-10">{children}</main>;
@@ -69,14 +71,18 @@ function Gate({ children }: { children: ReactNode }) {
         <Loader label="Opening Volume" />
       </Centre>
     );
+  // Signed out: the public pages (landing hero, how it works, the branded sign-in).
   if (!isSignedIn)
     return (
-      <Centre>
-        <div className="flex flex-col items-center gap-6">
-          <h1 className="font-book text-display text-ink">Volume</h1>
-          <SignIn routing="hash" />
-        </div>
-      </Centre>
+      <Suspense
+        fallback={
+          <Centre>
+            <Loader label="Opening Volume" />
+          </Centre>
+        }
+      >
+        <PublicSite />
+      </Suspense>
     );
   return <AccessCheck>{children}</AccessCheck>;
 }
