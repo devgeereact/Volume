@@ -1,3 +1,12 @@
+## Public landing, how it works and sign-in, 19 October 2026 (Claude Code)
+
+Branch `feat/landing-hero` (from `review/integration-2026-10-19` 0ca7a52), uncommitted. Decision D-051.
+
+Done: signed-out visitors on a hosted build see the landing hero at `/`, How it works at `/how-it-works` and a branded sign-in at `/sign-in` (and any other path). Signed-in and local builds reach the pages at `/welcome` and `/how-it-works`. Built with GSAP 3.15 (SplitText, ScrambleText), Lenis 1.3.27 and adapted React Bits components in `apps/web/src/site/`.
+
+Proven (Node 26.8.1): typecheck, lint, format:check PASS; Vitest PASS (web 117; server flaky `log-safety` once, 392 passed on rerun); web build PASS; e2e 15 of 17 (the same 2 fail without this work, see KNOWN-ISSUES). Browser at 1440 and 390, dark, reduced motion. Screenshots: `../reports/volume/screenshots/landing-hero/`.
+
+Next: owner reviews the pages; commit when asked; hosted check of the themed Clerk form (NOT TESTED locally, sign-in is off there).
 ## Overnight build, 18 to 19 October 2026 (Claude Code, lead with subagents)
 
 Owner goal: build the remaining part, test with real content so nothing unpostable costs money, keep it under the Gideon Akinlotan account for review at 06:00. Nothing below is merged or deployed; every item is a PR for the owner.
