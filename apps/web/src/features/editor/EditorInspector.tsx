@@ -58,6 +58,8 @@ interface EditorInspectorProps {
   canUndo?: boolean | undefined;
   /** API mode: the soften box is always editable, prefilled with the suggested wording when there is one. */
   softenEditable?: boolean | undefined;
+  /** API mode: more ways to fix an open claim in this section (suggested replacements, own wording). */
+  renderClaimTools?: ((claim: MsClaim) => ReactNode) | undefined;
   /** A line under the tabs, for example an error from the server. */
   notice?: ReactNode;
   /** API mode: what the writer's guardrails flagged in this section's latest AI run (null when none ran). */
@@ -212,7 +214,17 @@ function CheckRow({ ok, label, claim, children }: { ok: boolean; label: string; 
 
 const statusText: Record<ClaimStatus, string> = { open: "Open", verified: "Verified", softened: "Softened", removed: "Removed" };
 
-function ClaimsPanel({ bookId, section, claims, onClaim, sectionLabel, canUndo = true, softenEditable = false, readOnly }: EditorInspectorProps) {
+function ClaimsPanel({
+  bookId,
+  section,
+  claims,
+  onClaim,
+  sectionLabel,
+  canUndo = true,
+  softenEditable = false,
+  readOnly,
+  renderClaimTools,
+}: EditorInspectorProps) {
   const sorted = [...claims].sort((a, b) => Number(b.sectionId === section.id) - Number(a.sectionId === section.id));
   if (claims.length === 0)
     return <p className="text-body text-ink-secondary">No claims in this book. The checker found nothing medical, legal or statistical to verify.</p>;
@@ -233,6 +245,7 @@ function ClaimsPanel({ bookId, section, claims, onClaim, sectionLabel, canUndo =
             canUndo={canUndo}
             softenEditable={softenEditable}
             readOnly={readOnly === true}
+            tools={renderClaimTools}
           />
         ))}
       </ul>
@@ -249,8 +262,10 @@ function ClaimCard({
   canUndo,
   softenEditable,
   readOnly,
+  tools,
 }: {
   readOnly: boolean;
+  tools: EditorInspectorProps["renderClaimTools"];
   claim: MsClaim;
   here: boolean;
   where: string;
@@ -365,6 +380,7 @@ function ClaimCard({
           </div>
         </div>
       )}
+      {here && !readOnly && mode === "idle" && tools?.(claim)}
       {!open && here && canUndo && !readOnly && (
         <Button size="sm" variant="ghost" icon={Undo2} className="mt-1.5 -ml-2" onClick={() => onClaim(claim, "undo")}>
           Undo

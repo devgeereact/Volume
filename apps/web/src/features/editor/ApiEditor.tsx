@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { History, MessageSquarePlus, PanelRightClose, PanelRightOpen, RotateCw, Save } from "lucide-react";
+import { History, MessageSquarePlus, PanelRightClose, PanelRightOpen, RotateCw, Save, Undo2 } from "lucide-react";
 import { Banner, Button, EmptyState, IconButton, Modal, modKey } from "../../components/ui";
 import type { Book, PenName } from "../../demo";
 import { isApiError } from "../../api/client";
@@ -18,10 +18,12 @@ import {
   useSection,
   useSectionTree,
   useSectionVersion,
+  useSectionVersionList,
   useSectionVersions,
   useSuggestions,
   useWriteSection,
   useBookFind,
+  useEstimate,
   useRememberJob,
   useTextChanged,
 } from "../../api/hooks";
@@ -68,14 +70,18 @@ import { ManuscriptTree } from "./ManuscriptTree";
 import { findIssues, findRanges, findRegex, type Issue, type RewriteKind } from "./textTools";
 import type { SuggestionState } from "./useManuscript";
 import { VersionDrawer } from "./VersionDrawer";
+import { autosaveText } from "./autosave";
+import { ClaimRewrite } from "./ClaimRewrite";
+import { draftStore, useSectionAutosave } from "./useSectionAutosave";
+import { draftKey, type LocalDraft } from "./autosave";
 
 /* Editor on the Volume server (API mode). The same galley, tree and inspector as the demo editor, with
    the text, versions, suggestions, claims and author notes read from and saved to the server. Typing
-   anywhere edits the text; each change is saved as a "human" version a moment after you leave the
-   paragraph (or at once with Save version). A save that started from an old version gets a 409 and a
-   plain message, and nothing is overwritten. */
+   anywhere edits the text; it autosaves about 2 seconds after typing stops, on leaving the editor and
+   before leaving the section, into one version per edit session (Save version keeps a named one). A
+   copy waits in this browser until the server has it. A save that started from an old version gets a
+   409, nothing is overwritten, and the owner keeps theirs as a new version or loads the newer text. */
 
-const AUTOSAVE_MS = 1500;
 /** One shared empty list, so hooks that depend on the blocks see a stable value before the section loads. */
 const NO_BLOCKS: MsBlock[] = [];
 const KIND_TITLES: Record<string, string> = {
@@ -241,6 +247,7 @@ function Body({
 
   const sectionQ = useSection(sectionId);
   const versionsQ = useSectionVersions(sectionId);
+  const versionListQ = useSectionVersionList(sectionId);
   const claimsQ = useClaims(bookId);
   const suggestionsQ = useSuggestions(sectionId);
   const notesQ = useBookNotes(bookId);
@@ -282,6 +289,10 @@ function Body({
   const [noteText, setNoteText] = useState<Record<string, string>>({});
   const [review, setReview] = useState<Review | null>(null);
   const [writeJob, setWriteJob] = useState<string | null>(null);
+  const [recovered, setRecovered] = useState<(LocalDraft & { sectionId: string }) | null>(null);
+  const [prevOpen, setPrevOpen] = useState(false);
+  const [sessionPrev, setSessionPrev] = useState<{ sectionId: string; id: string } | null>(null);
+  const [keeping, setKeeping] = useState(false);
   const look = useMemo(() => interiorLook(book), [book]);
   const canWrite = useCanWrite();
   const template = apiBook?.template ?? book.template;
@@ -319,7 +330,6 @@ function Body({
   const liveBlocks = useMemo(() => blocks.map((b) => ({ ...b, text: textOf(b) })), [blocks, textOf]);
   const liveMd = markdownFromBlocks(liveBlocks);
   const dirty = ready && liveMd !== doc.savedMd;
-  const committedDirty = ready && markdownFromBlocks(blocks) !== doc.savedMd;
   const stale = ready && serverVersionId !== null && doc.versionId !== serverVersionId;
 
   const words = useMemo(
@@ -343,6 +353,54 @@ function Body({
   const target = apiBook?.wordTarget ?? apiSections.reduce((n, s) => n + (s.enabled ? (s.wordTarget ?? 0) : 0), 0);
 
   /* ---------- Saving ---------- */
+  const autosave = useSectionAutosave({
+    bookId,
+    sectionId,
+    doc: ready ? doc : null,
+    onSaved: (md, v) => {
+      setDoc((d) => (d && d.sectionId === v.sectionId ? { ...d, versionId: v.id, version: v.version, savedMd: md } : d));
+      if (v.previousVersionId) setSessionPrev({ sectionId: v.sectionId, id: v.previousVersionId });
+    },
+  });
+  const typingAllowed = canWrite && !review;
+  useEffect(() => {
+    if (ready && typingAllowed) autosave.change(liveMd);
+  }, [ready, typingAllowed, liveMd, autosave]);
+
+  // A copy typed in this browser that never reached the server: offer it back once per section.
+  const checkedDraft = useRef<string | null>(null);
+  useEffect(() => {
+    if (!ready || checkedDraft.current === sectionId) return;
+    checkedDraft.current = sectionId;
+    const local = draftStore.read(draftKey(sectionId));
+    if (local && local.bodyMd !== doc.savedMd) setRecovered({ ...local, sectionId });
+    else if (local) draftStore.remove(draftKey(sectionId));
+  }, [ready, sectionId, doc]);
+
+  function restoreLocal() {
+    if (!recovered || recovered.sectionId !== sectionId) return;
+    setDrafts({});
+    setDoc((d) => (d && d.sectionId === sectionId ? { ...d, blocks: blocksFromMarkdown(recovered.bodyMd, `r${Date.now().toString(36)}`) } : d));
+    setRecovered(null);
+    setAnnounce("Your text from this browser is back. It saves in a moment.");
+  }
+  function discardLocal() {
+    draftStore.remove(draftKey(sectionId));
+    setRecovered(null);
+  }
+
+  // Leaving the page with text not yet on the server: save it and ask the browser to wait.
+  useEffect(() => {
+    function onUnload(e: BeforeUnloadEvent) {
+      if (!autosave.dirty()) return;
+      void autosave.flush();
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", onUnload);
+    return () => window.removeEventListener("beforeunload", onUnload);
+  }, [autosave]);
+
+  /** Save version: a named version now, apart from the autosave session. */
   const saveNow = useCallback(
     async (note: string | null = null): Promise<boolean> => {
       // Typed text lives in drafts until the paragraph is left; it is saved as is, and the blocks are
@@ -353,6 +411,7 @@ function Body({
       try {
         const v = await save.mutateAsync({ bookId, sectionId, input: { bodyMd: md, note: note ?? "Your edits", baseVersionId: doc.versionId } });
         setDoc((d) => (d && d.sectionId === sectionId ? { ...d, versionId: v.id, version: v.version, savedMd: md } : d));
+        autosave.reset(md, v.id);
         setProblem(null);
         setSaveNote(`Saved as version ${v.version} at ${formatTime(new Date(v.createdAt).toISOString())}.`);
         setAnnounce(`Saved as version ${v.version}.`);
@@ -368,27 +427,14 @@ function Body({
         return false;
       }
     },
-    [blocks, drafts, doc, sectionId, bookId, save],
+    [blocks, drafts, doc, sectionId, bookId, save, autosave],
   );
-
-  // Autosave: a moment after a paragraph is committed (blur, Enter, a fix), save a human version.
-  const saveRef = useRef(saveNow);
-  useEffect(() => {
-    saveRef.current = saveNow;
-  });
-  useEffect(() => {
-    if (!committedDirty || review || problem?.conflict || save.isPending) return;
-    const t = window.setTimeout(() => void saveRef.current(), AUTOSAVE_MS);
-    return () => window.clearTimeout(t);
-  }, [committedDirty, blocks, review, problem?.conflict, save.isPending]);
-
-  // Leaving the section saves what is left.
-  useEffect(() => () => void saveRef.current(), [sectionId]);
 
   /** Server-side text changes (suggestions, claims, notes, restore) start from saved text. */
   async function saveFirst(): Promise<boolean> {
-    if (!dirty) return true;
-    return saveNow("Saved before an editor change");
+    if (!dirty && !autosave.dirty()) return true;
+    autosave.change(liveMd);
+    return autosave.flush();
   }
 
   /** "Mark edit done": save any open changes, then go on to the Cover step. */
@@ -398,11 +444,36 @@ function Body({
     if (saved) void navigate(`/books/${bookId}/cover`);
   }
 
+  /** After a conflict: save the text on screen as a new version on top of the newer one. */
+  async function keepMine() {
+    if (!doc) return;
+    setKeeping(true);
+    try {
+      const st = autosave.status;
+      let base = st.kind === "conflict" ? st.currentVersionId : null;
+      if (!base) base = (await sectionQ.refetch()).data?.current?.id ?? null;
+      const v = await save.mutateAsync({ bookId, sectionId, input: { bodyMd: liveMd, note: "Kept my text after a conflict", baseVersionId: base } });
+      setDrafts({});
+      setDoc({ sectionId, versionId: v.id, version: v.version, blocks: blocksFromMarkdown(liveMd, v.id.slice(-8)), savedMd: liveMd });
+      autosave.reset(liveMd, v.id);
+      setProblem(null);
+      setAnnounce(`Your text is saved as version ${v.version}. The other text stays in the version list.`);
+    } catch (e) {
+      setProblem({ conflict: false, text: `Not saved. ${errorText(e)}` });
+    } finally {
+      setKeeping(false);
+    }
+  }
+
   async function reloadSection() {
     setDrafts({});
     setProblem(null);
     const r = await sectionQ.refetch();
-    if (r.data && r.data.section.id === sectionId) setDoc(docFrom(r.data));
+    if (r.data && r.data.section.id === sectionId) {
+      const next = docFrom(r.data);
+      setDoc(next);
+      autosave.reset(next.savedMd, next.versionId);
+    }
   }
 
   useEffect(() => {
@@ -411,6 +482,7 @@ function Body({
     setReplaceResult(null);
     setProblem(null);
     setDrafts({});
+    setPrevOpen(false);
   }, [sectionId]);
   useEffect(() => {
     if (dirty) setSaveNote(null);
@@ -989,9 +1061,39 @@ function Body({
   const over = sTarget !== null && words > sTarget ? words - sTarget : 0;
   const metaRight = over > 0 ? `${formatNumber(over)} words over target` : versionNo > 0 ? `Version ${versionNo}` : "Not written yet";
   const issues = useMemo(() => findIssues(liveBlocks), [liveBlocks]);
-  const statusLine = save.isPending
-    ? "Saving"
-    : (saveNote ?? (dirty ? "Unsaved changes, saving when you leave the paragraph" : versionNo > 0 ? `Saved as version ${versionNo}` : "Nothing saved yet"));
+  const auto = autosave.status;
+  const statusLine =
+    save.isPending || auto.kind === "saving"
+      ? "Saving"
+      : auto.kind === "saved" || auto.kind === "error" || auto.kind === "conflict"
+        ? autosaveText(auto, (at) => formatTime(new Date(at).toISOString()))
+        : (saveNote ?? (dirty ? "Unsaved changes" : versionNo > 0 ? `Saved as version ${versionNo}` : "Nothing saved yet"));
+
+  /* ---------- Previous version: the one before this edit session ---------- */
+  const curVersion = detail?.section.id === sectionId ? detail.current : null;
+  const prevId =
+    versionListQ.data?.previousVersionId ??
+    (sessionPrev?.sectionId === sectionId ? sessionPrev.id : null) ??
+    curVersion?.previousVersionId ??
+    curVersion?.parentVersionId ??
+    null;
+  const prevNumber = prevId ? (versionsQ.data ?? []).find((v) => v.id === prevId)?.version : undefined;
+  const prevName = prevNumber !== undefined ? `Version ${prevNumber}` : "Previous version";
+
+  async function restorePrevious() {
+    if (!prevId) return;
+    if (!(await saveFirst())) return;
+    try {
+      const r = await restore.mutateAsync({ bookId, sectionId, versionId: prevId });
+      setPrevOpen(false);
+      setRestoredNote(`${prevName} restored and saved as version ${r.version}. The text before it stays in the list.`);
+      setAnnounce(`${prevName} restored as version ${r.version}.`);
+    } catch (e) {
+      setProblem({ conflict: false, text: errorText(e) });
+    }
+  }
+
+  const claimEstimate = useEstimate(bookId, "claim_fix", { enabled: canWrite && tab === "claims" && sectionClaims.length > 0 });
 
   useStepAction({ label: "Mark edit done", onClick: () => setDoneOpen(true) });
 
@@ -1039,9 +1141,14 @@ function Body({
         <div className="px-4 pt-4 pb-16 sm:px-6 xl:px-8">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="text-[18px] leading-6 font-semibold text-ink">Editor</h1>
-            <p className="num text-small text-ink-secondary" role="status">
+            <p className={cn("num text-small", auto.kind === "error" || auto.kind === "conflict" ? "text-claim" : "text-ink-secondary")} role="status">
               {statusLine}
             </p>
+            {auto.kind === "error" && (
+              <Button size="sm" variant="ghost" icon={RotateCw} className="-ml-2" title={auto.message} onClick={() => void autosave.retry()}>
+                Retry
+              </Button>
+            )}
             <div className="ml-auto flex flex-wrap items-center gap-1.5">
               {canWrite && (
                 <Button
@@ -1054,6 +1161,14 @@ function Body({
                   Add note
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                icon={Undo2}
+                onClick={() => setPrevOpen(true)}
+                disabledReason={prevId ? undefined : "No earlier version of this section yet."}
+              >
+                Previous version
+              </Button>
               <Button
                 variant="ghost"
                 icon={History}
@@ -1116,6 +1231,46 @@ function Body({
             </div>
           )}
           <div className="mt-4">
+            {auto.kind === "conflict" && (
+              <Banner
+                tone="attention"
+                title="This section changed somewhere else"
+                className="mb-4"
+                action={
+                  <span className="flex flex-wrap gap-1.5">
+                    <Button size="sm" variant="primary" loading={keeping} loadingLabel="Saving" onClick={() => void keepMine()}>
+                      Keep mine as a new version
+                    </Button>
+                    <Button size="sm" icon={RotateCw} onClick={() => void reloadSection()}>
+                      Load theirs
+                    </Button>
+                  </span>
+                }
+              >
+                Your typing was not saved over the newer text, and it is still on screen. Keep yours as a new version (the newer text stays in the version
+                list), or load the newer text and drop yours.
+              </Banner>
+            )}
+            {recovered && recovered.sectionId === sectionId && (
+              <Banner
+                tone="attention"
+                title="Unsaved text from this browser"
+                className="mb-4"
+                action={
+                  <span className="flex flex-wrap gap-1.5">
+                    <Button size="sm" variant="primary" onClick={restoreLocal}>
+                      Restore my text
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={discardLocal}>
+                      Discard it
+                    </Button>
+                  </span>
+                }
+              >
+                {`You typed this at ${formatTime(new Date(recovered.at).toISOString())} and it did not reach the server.`}
+                {recovered.baseVersionId !== doc?.versionId ? " The section has changed since, so restoring saves your text as the newest version." : ""}
+              </Banner>
+            )}
             {notice}
             {detail?.section.id === sectionId && (
               <>
@@ -1130,43 +1285,49 @@ function Body({
                 <LoadingBlock label="Loading the section" rows={8} />
               )
             ) : (
-              <EditorCanvas
-                section={{ ...section, blocks: shownBlocks }}
-                readOnly={!canWrite}
-                insertKinds={insertKinds}
-                onInsert={onInsert}
-                onRemoveBlock={onRemoveBlock}
-                label={`${look.name} interior`}
-                metaRight={metaRight}
-                look={look}
-                notes={sectionNotes}
-                voiceOf={voiceOf}
-                focusNoteId={focusNote}
-                onNoteFocused={onNoteFocused}
-                onAddNote={(id) => addNote(id)}
-                onNoteText={(id, text) => {
-                  if (id.startsWith("local-")) setLocalNotes((l) => l.map((n) => (n.id === id ? { ...n, text } : n)));
-                  else setNoteText((m) => ({ ...m, [id]: text }));
+              <div
+                onBlur={(e) => {
+                  if (!(e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget))) void autosave.flush();
                 }}
-                onNoteRun={(id, mode) => void runNote(id, mode)}
-                onNoteDiscard={(id) => void discardNote(id)}
-                onNoteAccept={acceptNote}
-                onNoteReject={() => void rejectNote()}
-                claims={sectionClaims}
-                findRe={findRe}
-                currentMatch={current ? { blockId: current.blockId, index: current.index } : null}
-                pendingFocus={pendingFocus}
-                onFocused={onFocused}
-                onDraft={onDraft}
-                onCommit={onCommit}
-                onSplit={onSplit}
-                onAcceptRewrite={() => void acceptRewrite()}
-                onRewrite={askRewrite}
-                onWriteSection={() => void writeThis()}
-                writing={writeSection.isPending || writeWatch.running}
-                writeDisabledReason={undefined}
-                onPasteOwn={pasteOwn}
-              />
+              >
+                <EditorCanvas
+                  section={{ ...section, blocks: shownBlocks }}
+                  readOnly={!canWrite}
+                  insertKinds={insertKinds}
+                  onInsert={onInsert}
+                  onRemoveBlock={onRemoveBlock}
+                  label={`${look.name} interior`}
+                  metaRight={metaRight}
+                  look={look}
+                  notes={sectionNotes}
+                  voiceOf={voiceOf}
+                  focusNoteId={focusNote}
+                  onNoteFocused={onNoteFocused}
+                  onAddNote={(id) => addNote(id)}
+                  onNoteText={(id, text) => {
+                    if (id.startsWith("local-")) setLocalNotes((l) => l.map((n) => (n.id === id ? { ...n, text } : n)));
+                    else setNoteText((m) => ({ ...m, [id]: text }));
+                  }}
+                  onNoteRun={(id, mode) => void runNote(id, mode)}
+                  onNoteDiscard={(id) => void discardNote(id)}
+                  onNoteAccept={acceptNote}
+                  onNoteReject={() => void rejectNote()}
+                  claims={sectionClaims}
+                  findRe={findRe}
+                  currentMatch={current ? { blockId: current.blockId, index: current.index } : null}
+                  pendingFocus={pendingFocus}
+                  onFocused={onFocused}
+                  onDraft={onDraft}
+                  onCommit={onCommit}
+                  onSplit={onSplit}
+                  onAcceptRewrite={() => void acceptRewrite()}
+                  onRewrite={askRewrite}
+                  onWriteSection={() => void writeThis()}
+                  writing={writeSection.isPending || writeWatch.running}
+                  writeDisabledReason={undefined}
+                  onPasteOwn={pasteOwn}
+                />
+              </div>
             )}
             {review && !proposal && weaveWatch.running && (
               <p role="status" className="mt-3 text-small text-ink-secondary">
@@ -1214,6 +1375,21 @@ function Body({
             return g ? { passed: g.passed, items: g.needsAttention } : null;
           })()}
           canUndo={false}
+          renderClaimTools={(c) => (
+            <ClaimRewrite
+              key={c.id}
+              bookId={bookId}
+              claim={c}
+              estimate={claimEstimate.data ?? null}
+              estimateLoading={claimEstimate.isPending && claimEstimate.fetchStatus !== "idle"}
+              beforeApply={saveFirst}
+              onReload={() => {
+                void reloadSection();
+                void claimsQ.refetch();
+              }}
+              onAnnounce={setAnnounce}
+            />
+          )}
           softenEditable
           readOnly={!canWrite}
         />
@@ -1244,6 +1420,32 @@ function Body({
               : `${openClaims} ${openClaims === 1 ? "claim is" : "claims are"} still open. Preflight warns about ${openClaims === 1 ? "it" : "them"} until you check ${openClaims === 1 ? "it" : "them"}.`}
           </li>
         </ul>
+      </Modal>
+
+      <Modal
+        open={prevOpen}
+        onClose={() => setPrevOpen(false)}
+        size="lg"
+        title="Previous version"
+        description={`${prevName}, from before this edit session, beside the text now. Restoring saves it as a new version; nothing is lost.`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPrevOpen(false)}>
+              Close
+            </Button>
+            {canWrite && (
+              <Button variant="primary" icon={Undo2} loading={restore.isPending} loadingLabel="Restoring" onClick={() => void restorePrevious()}>
+                Restore this version
+              </Button>
+            )}
+          </>
+        }
+      >
+        {prevOpen && prevId && (
+          <div className="-mx-2 max-h-[60vh] overflow-y-auto rounded-md border border-border">
+            <ApiCompare sectionId={sectionId} left={prevId} right={null} currentBlocks={liveBlocks} leftName={prevName} rightName="Now" />
+          </div>
+        )}
       </Modal>
 
       <VersionDrawer

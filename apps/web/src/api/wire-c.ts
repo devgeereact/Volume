@@ -186,7 +186,7 @@ export type EditorOrigin = "AI write" | "Checker fix" | "AI edit" | "AI rewrite"
 /** A server version's source as the editor's label. */
 export function versionOrigin(v: Pick<ApiSectionVersion, "source">): EditorOrigin {
   const s = v.source;
-  if (s === "human" || s === "copy") return "Owner";
+  if (s === "human" || s === "copy" || s.startsWith("owner:")) return "Owner";
   if (s === "restore") return "Restore";
   if (s === "ai:editing") return "AI edit";
   if (s === "ai:weave") return "AI rewrite";

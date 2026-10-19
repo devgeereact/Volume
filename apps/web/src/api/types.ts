@@ -495,7 +495,7 @@ export type BookPatch = Partial<Omit<BookInput, "profileId">> & {
 };
 
 /** POST /books/:id/estimate. */
-export type EstimateStage = "research" | "titles" | "blueprint" | "blueprint_part" | "writing";
+export type EstimateStage = "research" | "titles" | "blueprint" | "blueprint_part" | "writing" | "checks" | "claim_fix";
 
 export interface EstimateInput {
   stage: EstimateStage;
@@ -859,14 +859,29 @@ export interface ApiSectionVersion {
   wordCount: number;
   source: string;
   parentVersionId: string | null;
+  /** The version before this edit session (autosave coalesces typing into one version). */
+  previousVersionId?: string | null;
   promptRunId: string | null;
   summary: string | null;
   note: string | null;
   createdAt: EpochMs;
 }
 
+/** PUT /books/:id/sections/:sectionId/autosave. */
+export interface AutosaveInput {
+  bodyMd: string;
+  baseVersionId: string | null;
+}
+
 /** Row in GET /sections/:id/versions: the list leaves out the text; read one version for it. */
 export type ApiSectionVersionSummary = Omit<ApiSectionVersion, "content" | "bodyMd" | "plaintext">;
+
+/** GET /sections/:id/versions: newest first, with the version before the current edit session. */
+export interface SectionVersionList {
+  items: ApiSectionVersionSummary[];
+  currentVersionId?: string | null;
+  previousVersionId?: string | null;
+}
 
 export interface ApiCheckResult {
   id: string;
@@ -1091,6 +1106,30 @@ export interface ClaimResolveResponse {
   textChanged?: boolean;
 }
 
+export type ClaimApproach = "soften" | "generalise" | "attribute" | "reframe" | "remove";
+
+/** One replacement from POST /books/:id/claims/:claimId/suggest (the job's result holds three). */
+export interface ClaimOption {
+  text: string;
+  approach: ClaimApproach | OpenString;
+  rationale: string;
+  needsSource: boolean;
+}
+
+export interface ClaimSuggestResult {
+  options: ClaimOption[];
+}
+
+/** 202 for claim suggestions and check reruns: the job, with the estimate when the server gives one. */
+export interface EstimatedJob extends AcceptedJob {
+  estimate?: Estimate | null;
+}
+
+export interface ClaimApplyInput {
+  text: string;
+  approach: ClaimApproach | "own" | OpenString;
+}
+
 /* ---------- Production: cover, exports, marketing ---------- */
 
 export interface CoverConcept {
@@ -1126,7 +1165,17 @@ export interface ApiPreflightItem {
   area: string;
   severity: ApiPreflightSeverity;
   message: string;
-  fix?: { route: string; label: string };
+  fix?: PreflightFix;
+}
+
+/** How to fix a preflight item: a screen to open (with an anchor), or an action to run here. */
+export interface PreflightFix {
+  route?: string;
+  label: string;
+  /** "rerun-checks": run the section checks again (POST /books/:id/sections/:sectionId/rerun-checks). */
+  action?: "rerun-checks" | OpenString;
+  sectionId?: string;
+  anchor?: string;
 }
 
 export interface ApiPreflightReport {
