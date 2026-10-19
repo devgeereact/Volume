@@ -660,7 +660,7 @@ export function useAutosaveSection() {
 export function useRerunChecks() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { bookId: string; sectionId: string }) => manuscriptApi.rerunChecks(v.bookId, v.sectionId),
+    mutationFn: (v: { bookId: string; sectionId: string }) => manuscriptApi.rerunChecks(v.sectionId),
     onSuccess: (r) => rememberJob(qc, r),
   });
 }

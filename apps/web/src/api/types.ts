@@ -876,8 +876,7 @@ export interface AutosaveInput {
 }
 
 /** 200 from autosave: the version (new, or the session's version updated in place) and whether it was coalesced. */
-export interface AutosaveResponse {
-  version: Pick<ApiSectionVersion, "id" | "version" | "source" | "wordCount" | "parentVersionId" | "createdAt"> & { updatedAt: EpochMs };
+export interface AutosaveResponse extends ApiSectionVersion {
   coalesced: boolean;
 }
 
@@ -1153,7 +1152,7 @@ export interface ClaimApplyInput {
   note?: string;
 }
 
-/** 202 from POST /books/:id/sections/:sectionId/rerun-checks: the job, the steps it reruns and their cost. */
+/** 202 from POST /sections/:id/recheck: the job, the missing steps it reruns and their cost. */
 export interface RerunChecksResponse extends EstimatedJob {
   steps: ("summary" | "checks" | OpenString)[];
 }
@@ -1200,7 +1199,7 @@ export interface ApiPreflightItem {
 export interface PreflightFix {
   route?: string;
   label: string;
-  /** "rerun-checks": run the missing section checks again (POST /books/:id/sections/:sectionId/rerun-checks). */
+  /** "rerun-checks": run the missing section checks again (POST /sections/:sectionId/recheck). */
   action?: "rerun-checks" | OpenString;
   sectionId?: string;
   anchor?: string;
