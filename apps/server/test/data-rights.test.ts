@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ClerkAuthProvider, type ClerkUserLookup, type ClerkVerifier } from '../src/auth/clerk.js';
 import { readZip, writeZip, zipStream } from '../src/lib/zip.js';
+import { newId } from '../src/lib/util.js';
 import { WORKSPACE_TABLES } from '../src/repos/workspace-data.js';
 import { HOST, ORIGIN, str, testApp, testConfig, type TestApp } from './helpers.js';
 
@@ -123,7 +124,52 @@ describe('GET /workspace/export', () => {
     expect(Buffer.from(file!.data).equals(PNG)).toBe(true);
     // The invited self-publisher's workspace is not in it.
     const pubWorkspace = (await t.call<Obj>('GET', '/api/v1/me', undefined, as('user_pub'))).body['workspaceId'];
-    expect(res.body.toString('latin1')).not.toContain(str(pubWorkspace));
+    // Checked on the inflated entries: the raw bytes are deflated and would hide a leak.
+    for (const e of entries) {
+      expect(e.name).not.toContain(str(pubWorkspace));
+      expect(Buffer.from(e.data).toString('latin1'), e.name).not.toContain(str(pubWorkspace));
+    }
+  });
+
+  it('pages through large tables without losing or repeating rows', async () => {
+    const at = Date.now();
+    const ids: string[] = [];
+    for (let i = 0; i < 60; i += 1) {
+      const id = newId();
+      ids.push(id);
+      await t.handle.db
+        .insertInto('promptRuns')
+        .values({
+          id,
+          workspaceId: t.owner.workspaceId,
+          projectId: null,
+          jobId: null,
+          stage: 'writing',
+          promptId: null,
+          promptVersion: null,
+          promptHash: null,
+          provider: 'mock',
+          modelSlug: 'mock/model',
+          generationId: null,
+          inputTokens: 0,
+          outputTokens: 0,
+          costUsd: 0,
+          latencyMs: 0,
+          status: 'ok',
+          error: null,
+          output: `output ${i}`,
+          guardrails: null,
+          createdAt: at,
+          updatedAt: at,
+        })
+        .execute();
+    }
+    const res = await download('user_owner', '10.0.0.6');
+    expect(res.status).toBe(200);
+    const runs = JSON.parse(Buffer.from(readZip(res.body).find((e) => e.name === 'tables/promptRuns.json')!.data).toString()) as Obj[];
+    const exported = runs.map((r) => str(r['id']));
+    expect(new Set(exported).size).toBe(exported.length);
+    for (const id of ids) expect(exported).toContain(id);
   });
 
   it('refuses editors and viewers', async () => {
@@ -144,13 +190,16 @@ describe('leaving and removal', () => {
   it('lets an invited member leave with a typed confirmation, deleting the account', async () => {
     const leaver = await userIdOf('user_leaver');
     expect(leaver).not.toBeNull();
+    const invId = (await t.handle.db.selectFrom('invitations').select('id').where('email', '=', 'leaver@example.test').executeTakeFirstOrThrow()).id;
     expect((await t.call('POST', '/api/v1/me/leave', {}, as('user_leaver'))).status).toBe(400);
     expect((await t.call('POST', '/api/v1/me/leave', { confirm: 'leave' }, as('user_leaver'))).status).toBe(409);
     expect((await t.call('POST', '/api/v1/me/leave', { confirm: 'LEAVE' }, as('user_leaver'))).status).toBe(204);
     expect(await userIdOf('user_leaver')).toBeNull();
     expect((await t.call('GET', '/api/v1/books', undefined, as('user_leaver'))).status).toBe(403);
-    const inv = await t.handle.db.selectFrom('invitations').select('status').where('email', '=', 'leaver@example.test').executeTakeFirstOrThrow();
-    expect(inv.status).toBe('revoked');
+    // The invitation is revoked and the deleted person's address is gone.
+    const inv = await t.handle.db.selectFrom('invitations').select(['status', 'email', 'acceptedUserId']).where('id', '=', invId).executeTakeFirstOrThrow();
+    expect(inv).toEqual({ status: 'revoked', email: '', acceptedUserId: null });
+    expect(await t.handle.db.selectFrom('invitations').select('id').where('email', '=', 'leaver@example.test').execute()).toEqual([]);
     // The owner's book is untouched.
     expect((await t.call('GET', `/api/v1/books/${bookId}`, undefined, as('user_owner'))).status).toBe(200);
   });
@@ -200,6 +249,15 @@ describe('DELETE /workspace', () => {
       return n;
     };
     const before = await ownerCount();
+    const invId = (await t.handle.db.selectFrom('invitations').select('id').where('email', '=', 'pub@example.test').executeTakeFirstOrThrow()).id;
+
+    // A queued job blocks the delete, and nothing is touched.
+    const job = await t.services.queue.enqueue({ workspaceId: ws, userId: pub, role: 'owner' }, { kind: 'noop', projectId: null, payload: {} });
+    expect((await t.call('DELETE', '/api/v1/workspace', { confirm: 'DELETE' }, as('user_pub'))).status).toBe(409);
+    const asset = await t.handle.db.selectFrom('assets').select(['status', 'chunkCount']).where('workspaceId', '=', ws).executeTakeFirstOrThrow();
+    expect(asset.status).toBe('ready');
+    expect(asset.chunkCount).toBeGreaterThan(0);
+    await t.handle.db.updateTable('jobs').set({ status: 'cancelled' }).where('id', '=', job.id).execute();
 
     expect((await t.call('DELETE', '/api/v1/workspace', { confirm: 'DELETE' }, as('user_pub'))).status).toBe(204);
 
@@ -208,8 +266,8 @@ describe('DELETE /workspace', () => {
     expect(await t.handle.db.selectFrom('workspaces').select('id').where('id', '=', ws).execute()).toEqual([]);
     expect(await userIdOf('user_pub')).toBeNull();
     expect(await t.handle.db.selectFrom('users').select('id').where('id', '=', pub).execute()).toEqual([]);
-    const inv = await t.handle.db.selectFrom('invitations').select('status').where('email', '=', 'pub@example.test').executeTakeFirstOrThrow();
-    expect(inv.status).toBe('revoked');
+    const inv = await t.handle.db.selectFrom('invitations').select(['status', 'email']).where('id', '=', invId).executeTakeFirstOrThrow();
+    expect(inv).toEqual({ status: 'revoked', email: '' });
     expect(await ownerCount()).toBe(before);
     expect((await t.call('GET', '/api/v1/me', undefined, as('user_pub'))).status).toBe(403);
     expect((await t.call('GET', `/api/v1/books/${bookId}`, undefined, as('user_owner'))).status).toBe(200);
