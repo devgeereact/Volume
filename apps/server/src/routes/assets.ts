@@ -22,7 +22,7 @@ const ALLOWED_MIME = new Set([
 /**
  * The owner's own cover files ("use my own cover"): the eBook front cover is JPEG or TIFF (rule ebook.cover
  * fileTypes in config/kdp-rules) and the paperback wrap is one PDF. Both belong to a book, and the first bytes must
- * match the type (JPEG FF D8 FF, TIFF II*\0 or MM\0*, PDF %PDF-), whatever the name or Content-Type says.
+ * match the type before anything is stored (`sniffed`, files/magic.ts), whatever the name says.
  */
 export const OWN_COVER_KINDS = {
   own_ebook_cover: { mimes: ['image/jpeg', 'image/tiff'], label: 'a JPEG or TIFF image' },
@@ -30,19 +30,6 @@ export const OWN_COVER_KINDS = {
 } as const;
 type OwnCoverKind = keyof typeof OWN_COVER_KINDS;
 const isOwnCoverKind = (k: string): k is OwnCoverKind => k in OWN_COVER_KINDS;
-
-/** True when the file starts with the signature of its declared type. */
-export function magicMatches(mime: string, head: Buffer): boolean {
-  if (mime === 'image/jpeg') return head.length >= 3 && head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff;
-  if (mime === 'image/tiff')
-    return (
-      head.length >= 4 &&
-      ((head[0] === 0x49 && head[1] === 0x49 && head[2] === 0x2a && head[3] === 0x00) ||
-        (head[0] === 0x4d && head[1] === 0x4d && head[2] === 0x00 && head[3] === 0x2a))
-    );
-  if (mime === 'application/pdf') return head.subarray(0, 5).toString('latin1') === '%PDF-';
-  return false;
-}
 
 const UploadQuery = z.object({
   kind: z.enum(['import', 'logo', 'interior_image', 'author_photo', 'cover_concept', 'own_ebook_cover', 'own_wrap_pdf', 'other']),
@@ -103,23 +90,9 @@ export function assetRoutes(app: FastifyInstance, s: AppServices): void {
         },
         body,
       );
-      if (isOwnCoverKind(q.kind) && !(await startsLike(s, req.ctx, meta.id, mime))) {
-        await s.blobs.delete(req.ctx, meta.id);
-        throw new AppError('unsupported_media_type', `This file is not ${OWN_COVER_KINDS[q.kind].label}, whatever its name says.`);
-      }
       void reply.code(201);
       return meta;
     });
     return Promise.resolve();
   });
-}
-
-/** Reads only the first chunk of a stored asset and checks its signature. */
-async function startsLike(s: AppServices, ctx: Parameters<AppServices['blobs']['stream']>[0], assetId: string, mime: string): Promise<boolean> {
-  const { body } = await s.blobs.stream(ctx, assetId);
-  for await (const chunk of body) {
-    body.destroy();
-    return magicMatches(mime, chunk as Buffer);
-  }
-  return false;
 }

@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { VolumeExportAdapter } from '../src/adapters/volume-export.js';
 import { buildExportBook } from '../src/jobs/book-data.js';
-import { magicMatches } from '../src/routes/assets.js';
+import { matchesSignature } from '../src/files/magic.js';
 import type { ExportBook } from '../src/ports/export.js';
 import { HOST, ORIGIN, str, testApp, type TestApp } from './helpers.js';
 
@@ -38,12 +38,12 @@ async function upload(kind: string, filename: string, mime: string, payload: Buf
 
 describe('own cover uploads', () => {
   it('checks the file signature, not the name', () => {
-    expect(magicMatches('image/jpeg', JPEG)).toBe(true);
-    expect(magicMatches('image/jpeg', PNG)).toBe(false);
-    expect(magicMatches('image/tiff', Buffer.from([0x49, 0x49, 0x2a, 0x00]))).toBe(true);
-    expect(magicMatches('image/tiff', Buffer.from([0x4d, 0x4d, 0x00, 0x2a]))).toBe(true);
-    expect(magicMatches('application/pdf', PDF)).toBe(true);
-    expect(magicMatches('application/pdf', JPEG)).toBe(false);
+    expect(matchesSignature('image/jpeg', JPEG)).toBe(true);
+    expect(matchesSignature('image/jpeg', PNG)).toBe(false);
+    expect(matchesSignature('image/tiff', Buffer.from([0x49, 0x49, 0x2a, 0x00]))).toBe(true);
+    expect(matchesSignature('image/tiff', Buffer.from([0x4d, 0x4d, 0x00, 0x2a]))).toBe(true);
+    expect(matchesSignature('application/pdf', PDF)).toBe(true);
+    expect(matchesSignature('application/pdf', JPEG)).toBe(false);
   });
 
   it('refuses a PNG sent as a JPEG and removes it, and needs a book and the right type', async () => {
