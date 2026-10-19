@@ -2,6 +2,18 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 19 October 2026
+
+Claims, autosave and reruns (D-052).
+
+#### Added
+- Fix a claim to verify from the report: three suggested rewrites (soften, generalise, cite a research source, reframe or remove) that add no new facts, figures or sources. Pick one, edit it or write your own.
+- The editor saves your work as you type. A long editing session stays one version, and Versions shows the version from before you started.
+- Missing summaries and checks show what a rerun would cost, and a second click while one is running does not start another.
+
+#### Changed
+- The export checks offer "Run it again" for a section whose summary or checks are missing, and say you can upload your own cover when the pack has none.
+
 ## 18 October 2026
 
 Production hub (D-048, D-049).
