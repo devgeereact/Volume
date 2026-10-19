@@ -359,3 +359,17 @@ describe('5. accepting several line edits in a row', () => {
     expect(body).toBe('This is the first line.\n\nThe second line is short.\n\nThe third line.');
   });
 });
+
+describe('6. POST /books takes the template from the book type', () => {
+  it('fills the template from config/book-types.json when the request leaves it out, and keeps one it gives', async () => {
+    const app = await testApp();
+    t = app;
+    const p = await app.call<Obj>('POST', '/api/v1/profiles', { penName: 'Test Author', bioThirdPerson: 'Test Author writes.' });
+    const make = async (body: Obj) => (await app.call<Obj>('POST', '/api/v1/books', { profileId: p.body['id'], idea: 'x', ...body })).body;
+    expect((await make({ bookTypeId: 'contemporary-romance' }))['template']).toBe('fiction');
+    expect((await make({ bookTypeId: 'workbook' }))['template']).toBe('workbook');
+    expect((await make({ bookTypeId: 'picture-book' }))['template']).toBe('picture-book');
+    expect((await make({ bookTypeId: 'workbook', template: 'nonfiction' }))['template']).toBe('nonfiction');
+    expect((await make({}))['template']).toBe('nonfiction');
+  });
+});
