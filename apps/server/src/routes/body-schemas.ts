@@ -6,9 +6,11 @@ import { ExercisePlanSchema, StoryBibleSchema } from '../ports/ai.js';
  * records. They match what the web app sends (apps/web/src/features/cover/ApiCover.tsx, features/blueprint).
  *
  * - Typography is `.strict()`: the web builds it fresh, so an unknown key is refused (400).
- * - The cover brief and the blueprint parts are typed field by field, and unknown keys are dropped, not stored:
- *   the web echoes back what the server stored, and AI-written briefs and blueprints may hold extra keys, so
- *   refusing them would block the owner's own saves.
+ * - The cover brief is typed field by field and unknown keys are dropped: the web echoes back what the server
+ *   stored, and AI-written briefs may hold extra keys, so refusing them would block the owner's own saves.
+ * - Blueprint parts and chapters type the known fields and keep any other key as bounded JSON, so an edit or a
+ *   restore of a stored version never loses keys the planner wrote (promise, opening_hook, story_ideas,
+ *   source_ids and any future ones). Limits are generous enough for any stored AI blueprint.
  */
 
 const text = (max: number) => z.string().max(max);
@@ -67,41 +69,52 @@ export const CoverTypographySchema = z
   })
   .strict();
 
-const ChapterPatchSchema = z.object({
-  number: z.number().int().min(0).max(1000),
-  title: text(300),
-  part: z.number().int().min(0).max(1000).nullable().optional(),
-  subheadings: lines(50, 300).optional(),
-  summary: text(10000).optional(),
-  word_target: z.number().int().positive().max(200000).optional(),
-  key_points: lines(50, 1000).optional(),
-  takeaways: z.boolean().optional(),
-  bridge_note: text(5000).optional(),
-  exercises: z.array(ExercisePlanSchema).max(10).optional(),
-  povCharacter: text(300).optional(),
-  setting: text(300).optional(),
-  scenes: lines(50, 2000).optional(),
-});
+const ChapterPatchSchema = z
+  .object({
+    number: z.number().int().min(0).max(1000),
+    title: text(500),
+    part: z.number().int().min(0).max(1000).nullable().optional(),
+    subheadings: lines(100, 500).optional(),
+    summary: text(20000).optional(),
+    word_target: z.number().int().positive().max(200000).optional(),
+    key_points: lines(100, 2000).optional(),
+    takeaways: z.boolean().optional(),
+    bridge_note: text(5000).optional(),
+    exercises: z.array(ExercisePlanSchema).max(20).optional(),
+    povCharacter: text(500).optional(),
+    setting: text(2000).optional(),
+    scenes: lines(100, 4000).optional(),
+    // Nonfiction plan fields from the planner (adapters/openrouter-ai.ts chapterOut).
+    promise: text(5000).optional(),
+    opening_hook: text(5000).optional(),
+    story_ideas: lines(50, 2000).optional(),
+    source_ids: lines(200, 64).optional(),
+  })
+  .catchall(boundedJson(3))
+  .refine((o) => Object.keys(o).length <= 60, { message: 'Too many keys in a chapter.' });
 
 /** PATCH /books/:id/blueprint { parts }: top-level blueprint keys to replace. The merged result is checked again. */
-export const BlueprintPartsSchema = z.object({
-  title: text(300).optional(),
-  subtitle: text(300).optional(),
-  summary: text(20000).optional(),
-  audience: text(5000).optional(),
-  usps: lines(50, 1000).optional(),
-  tone_notes: text(5000).optional(),
-  hook_style: text(100).optional(),
-  parts: z
-    .array(z.object({ number: z.number().int().min(0).max(1000), title: text(300) }))
-    .max(50)
-    .optional(),
-  chapters: z.array(ChapterPatchSchema).max(200).optional(),
-  front: MatterSchema.optional(),
-  back: MatterSchema.optional(),
-  back_blurb: text(5000).optional(),
-  description_draft: text(10000).optional(),
-  categories: lines(20, 300).optional(),
-  keywords: lines(20, 200).optional(),
-  storyBible: StoryBibleSchema.optional(),
-});
+export const BlueprintPartsSchema = z
+  .object({
+    title: text(500).optional(),
+    subtitle: text(500).optional(),
+    summary: text(20000).optional(),
+    audience: text(5000).optional(),
+    usps: lines(50, 2000).optional(),
+    tone_notes: text(5000).optional(),
+    hook_style: text(100).optional(),
+    parts: z
+      .array(z.object({ number: z.number().int().min(0).max(1000), title: text(500) }))
+      .max(50)
+      .optional(),
+    chapters: z.array(ChapterPatchSchema).max(300).optional(),
+    front: MatterSchema.optional(),
+    back: MatterSchema.optional(),
+    back_blurb: text(5000).optional(),
+    description_draft: text(10000).optional(),
+    categories: lines(30, 500).optional(),
+    keywords: lines(30, 500).optional(),
+    storyBible: StoryBibleSchema.optional(),
+  })
+  .catchall(boundedJson(4))
+  .refine((o) => Object.keys(o).length <= 60, { message: 'Too many blueprint parts.' });

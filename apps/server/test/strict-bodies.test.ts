@@ -89,10 +89,42 @@ describe('PATCH /books/:id/blueprint', () => {
     });
     expect(edit.status).toBe(200);
     expect(edit.body.data['summary']).toBe('New summary.');
-    // A restore sends the whole blueprint, including any extra keys the planner stored; those are dropped, not refused.
+    // A restore sends the whole blueprint, including any extra keys the planner stored; they are kept, not refused.
     const restore = await t.call<{ data: Obj }>('PATCH', `/api/v1/books/${bookId}/blueprint`, { parts: { ...data, someExtra: { a: 1 } } });
     expect(restore.status).toBe(200);
     expect(restore.body.data['summary']).toBe(data['summary']);
+    expect(restore.body.data['someExtra']).toEqual({ a: 1 });
+  });
+
+  it('keeps every key of a stored AI chapter through an edit and a restore', async () => {
+    const bp = await t.call<{ blueprint: { version: number; data: Obj } }>('GET', `/api/v1/books/${bookId}/blueprint`);
+    // The chapter shape the planner stores (adapters/openrouter-ai.ts chapterOut), with long but real values.
+    const aiChapter = {
+      number: 1,
+      title: 'Morning light',
+      part: null,
+      subheadings: Array.from({ length: 8 }, (_, i) => `Subheading ${i + 1}`),
+      summary: 'A summary. '.repeat(300),
+      word_target: 3200,
+      key_points: ['One', 'Two'],
+      takeaways: true,
+      bridge_note: 'Leads into chapter two.',
+      promise: 'You will learn to start the day calmly.',
+      opening_hook: 'Picture the kettle at six.',
+      story_ideas: ['The canal walk', 'The first cup'],
+      source_ids: ['01ARZ3NDEKTSV4RRFFQ69G5FAV'],
+      futureKey: { nested: ['kept'] },
+    };
+    const stored = { ...bp.body.blueprint.data, chapters: [aiChapter], bookInfo: { estimatedWords: 40000 } };
+    const v = await t.services.repos.planning.addBlueprintVersion(t.owner, bookId, stored, { source: 'ai', note: 'Stored AI shape', parentVersionId: null });
+    const edited = { ...aiChapter, title: 'Morning light, edited' };
+    const edit = await t.call<{ data: Obj }>('PATCH', `/api/v1/books/${bookId}/blueprint`, { parts: { chapters: [edited] }, baseVersion: v.version });
+    expect(edit.status).toBe(200);
+    expect((edit.body.data['chapters'] as Obj[])[0]).toMatchObject(edited);
+    const restore = await t.call<{ data: Obj }>('PATCH', `/api/v1/books/${bookId}/blueprint`, { parts: stored });
+    expect(restore.status).toBe(200);
+    expect((restore.body.data['chapters'] as Obj[])[0]).toMatchObject(aiChapter);
+    expect(restore.body.data['bookInfo']).toEqual({ estimatedWords: 40000 });
   });
 
   it('refuses wrong types and runaway nesting', async () => {
@@ -102,7 +134,8 @@ describe('PATCH /books/:id/blueprint', () => {
       { chapters: 'none' },
       { chapters: [{ number: 'one', title: 'x' }] },
       { usps: [1, 2] },
-      { title: 'x'.repeat(400) },
+      { title: 'x'.repeat(600) },
+      { chapters: [{ number: 1, title: 'x', promise: 7 }] },
       { front: { dedication: deep } },
       { storyBible: { characters: [{ role: 'no name' }] } },
     ];
