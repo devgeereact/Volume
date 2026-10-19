@@ -1419,7 +1419,7 @@ export class OpenRouterAiAdapter implements AiPort {
             const beats = list(s['beats']).filter(isRec);
             return {
               hook: firstText(...strList(s['hooks']), s['title']),
-              beats: beats.map((b) => `${plain(b['second'])}: ${plain(b['say'])}`.replace(/^: /, '')),
+              beats: beats.map(tiktokBeat).filter((x): x is string => x !== null),
               on_screen: [text(s['onScreenTextHook']), ...beats.map((b) => text(b['show']))].filter((x): x is string => x !== null),
               cta: firstText(s['cta']) ?? '',
               seconds: Math.round(firstNum(step.input['lengthSeconds']) ?? 30),
@@ -1765,6 +1765,24 @@ export function conceptCountOf(v: Rec): number {
 
 function coverImageInput(v: Rec, brief: unknown, concept: unknown, aspectRatio: string): Rec {
   return { book: bookInput(v), brief, concept, cover: { target: 'ebook front cover', aspectRatio } };
+}
+
+/** Dashes and hyphen look-alikes a model puts in a beat's time ("0–2", "0‑2"). */
+const TIME_DASHES = /[‐-―−]/g;
+/** Punctuation and dashes left at either end of a beat field (", ", ": ", "— "). */
+const EDGE_PUNCT = /^[\s,;:\-‐-―−]+|[\s,;:\-‐-―−]+$/g;
+
+/**
+ * One TikTok beat as "<time>: <words>", or just the words when the time is empty or holds no letter or digit (a lone
+ * dash or comma). The live acceptance run of 19 October 2026 saved every beat as ", : words": an empty time was joined
+ * in anyway. Dashes in a time become plain hyphens ("0-2"), so the house style fix leaves the time alone. Null when the
+ * beat says nothing.
+ */
+export function tiktokBeat(b: Rec): string | null {
+  const say = plain(b['say']).replace(EDGE_PUNCT, '').trim();
+  const time = plain(b['second']).replace(TIME_DASHES, '-').replace(EDGE_PUNCT, '').trim();
+  if (!say) return null;
+  return /[\p{L}\p{N}]/u.test(time) ? `${time}: ${say}` : say;
 }
 
 /** TikTok scripts and Instagram captions when the job names no count (AC12.1, AC12.2; the job sends the template's). */

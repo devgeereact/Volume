@@ -147,6 +147,18 @@ export const coverBuildHandler: JobHandler = async (jc) => {
   return { result: { ebookAssetId: ebookAsset.id, wrapAssetId: wrapAsset.id } };
 };
 
+/**
+ * A TikTok script body with no line starting in stray punctuation (", : words"), which an empty beat time or a dash
+ * the house style fix removed can leave behind (live acceptance run, 19 October 2026). Empty lines are dropped.
+ */
+export function tidyBeatLines(body: string): string {
+  return body
+    .split('\n')
+    .map((l) => l.replace(/^[\s,;:]+/, '').trimEnd())
+    .filter((l) => l.length > 0)
+    .join('\n');
+}
+
 /** Marketing fields the house style fix leaves alone (hashtags are search terms, kind is a code). */
 const MARKETING_KEEP: ReadonlySet<string> = new Set(['kind', 'hashtags']);
 
@@ -236,7 +248,9 @@ export const marketingHandler: JobHandler = async (jc) => {
     });
   }
   // House style auto-fix on the AI's posts and email (live acceptance run: 42 en dashes in one book's posts).
-  const fixed = fixHouseStyleDeep(items, houseStyle(jc.services.configDir), MARKETING_KEEP).value;
+  const fixed = fixHouseStyleDeep(items, houseStyle(jc.services.configDir), MARKETING_KEEP).value.map((i) =>
+    i.kind === 'tiktok_script' ? { ...i, body: tidyBeatLines(i.body) } : i,
+  );
   items.splice(0, items.length, ...fixed);
   if (target) {
     const next = items.find((i) => i.kind === target.kind);
