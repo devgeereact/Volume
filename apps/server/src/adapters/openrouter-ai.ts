@@ -1345,7 +1345,11 @@ export class OpenRouterAiAdapter implements AiPort {
             image_idea: firstText(c['imageIdea']) ?? '',
           }));
       } else {
-        out['email'] = { subjects: strList(o['subjectLines']), preview: firstText(o['previewText']) ?? '', body: o['body'] };
+        out['email'] = {
+          subjects: strList(o['subjectLines']),
+          preview: firstText(o['previewText']) ?? '',
+          body: typeof o['body'] === 'string' ? dropNoneLines(o['body']) : o['body'],
+        };
       }
     }
     return out;
@@ -1675,6 +1679,19 @@ function coverImageInput(v: Rec, brief: unknown, concept: unknown, aspectRatio: 
 /** TikTok scripts and Instagram captions when the job names no count (AC12.1, AC12.2; the job sends the template's). */
 const MARKETING_COUNT_DEFAULT = 5;
 
+/** The launch email's link line when the book has no link yet: the owner pastes the Amazon link over it. */
+export const BOOK_LINK_PLACEHOLDER = '[Amazon link]';
+export const LAUNCH_DATE_NOT_SET = 'launch day (the date is not set yet)';
+export const KDP_SELECT_NOT_SET = 'not chosen yet';
+
+/** Drops lines that hold only "None" (an empty prompt value the model copied into its answer). */
+export function dropNoneLines(s: string): string {
+  return s
+    .replace(/^[ \t]*None\.?[ \t]*(?:\r?\n|$)/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function marketingPlan(v: Rec): { task: string; input: Rec }[] {
   const kinds = Array.isArray(v['kinds']) ? strList(v['kinds']) : ['tiktok_script', 'instagram_caption', 'launch_email'];
   const base = baseInput(v);
@@ -1695,9 +1712,11 @@ function marketingPlan(v: Rec): { task: string; input: Rec }[] {
       input: {
         ...base,
         description: firstText(v['description'], v['summary']) ?? '',
-        launchDate: firstText(v['launchDate']) ?? '',
-        bookLink: firstText(v['bookLink']) ?? '',
-        kdpSelect: typeof kdp === 'boolean' ? kdp : '',
+        // An empty value renders as "None", which the model copied into the email (live acceptance run, 18 October
+        // 2026): unknown launch facts go as plain words, and the link as a placeholder the owner replaces.
+        launchDate: firstText(v['launchDate']) ?? LAUNCH_DATE_NOT_SET,
+        bookLink: firstText(v['bookLink']) ?? BOOK_LINK_PLACEHOLDER,
+        kdpSelect: typeof kdp === 'boolean' ? kdp : KDP_SELECT_NOT_SET,
       },
     });
   }

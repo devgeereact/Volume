@@ -7,7 +7,14 @@ import * as VolumeAi from '@volume/ai';
 import { StageInputs, type AiProvider } from '@volume/ai';
 import { afterEach, describe, expect, it } from 'vitest';
 import { MockAiAdapter } from '../src/adapters/mock-ai.js';
-import { bookInput, createOpenRouterAi, fillPromptVariables, type OpenRouterAiAdapter } from '../src/adapters/openrouter-ai.js';
+import {
+  BOOK_LINK_PLACEHOLDER,
+  bookInput,
+  createOpenRouterAi,
+  dropNoneLines,
+  fillPromptVariables,
+  type OpenRouterAiAdapter,
+} from '../src/adapters/openrouter-ai.js';
 import { storyInput } from '../src/jobs/picture-book.js';
 import type { AiPort, AiStage, AiStageInput, AiStageResult, RunStageOptions } from '../src/ports/ai.js';
 import { str, testApp, type TestApp } from './helpers.js';
@@ -161,5 +168,35 @@ describe('2. the author brief reaches titles and blueprint', () => {
     await ai.runStage('titles', { promptId: 'titles.title-options', variables: { idea: 'Side projects', notes: BRIEF, title: null } }, { model: MODEL });
     const directions = seen.find((r) => r.meta?.promptId === 'titles.topic-directions');
     expect(directions?.messages.map((m) => m.content).join('\n')).toContain(BRIEF);
+  });
+});
+
+describe('4. no literal "None" in the launch email', () => {
+  it('sends the launch facts the book does not have as words and a link placeholder, never "None"', async () => {
+    const { ai, seen } = await recordingAdapter((id, raw) => {
+      if (id !== 'marketing.launch-email') return raw;
+      const o = JSON.parse(raw) as Obj;
+      return JSON.stringify({ ...o, body: 'Hello,\n\nThe book is out.\n\nNone\n\nThanks for reading.' });
+    });
+    const r = await ai.runStage(
+      'marketing',
+      { promptId: 'marketing.launch-pack', variables: { title: 'Side Projects', subtitle: 'A plan', kinds: ['launch_email'] } },
+      { model: MODEL },
+    );
+    const prompt =
+      seen
+        .find((q) => q.meta?.promptId === 'marketing.launch-email')
+        ?.messages.map((m) => m.content)
+        .join('\n') ?? '';
+    expect(prompt).toContain(`plain link line \`${BOOK_LINK_PLACEHOLDER}\``);
+    expect(prompt).not.toMatch(/goes live on None|KDP Select status: None|link line `None`/);
+    const email = (r.output as { email: { body: string } }).email;
+    expect(email.body).toBe('Hello,\n\nThe book is out.\n\nThanks for reading.');
+  });
+
+  it('drops only lines that are just "None"', () => {
+    expect(dropNoneLines('A\nNone\nB')).toBe('A\nB');
+    expect(dropNoneLines('A\n  None.  \n\nB')).toBe('A\n\nB');
+    expect(dropNoneLines('None of this is hard.\nNone')).toBe('None of this is hard.');
   });
 });
