@@ -1,13 +1,23 @@
 import { parseManuscript, serialiseManuscript } from '@volume/core';
 import type { Readable } from 'node:stream';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import { AppError, parse } from '../http/errors.js';
 import { createRepos } from '../repos/index.js';
 import { createTextChecker } from '../jobs/guardrails.js';
+import { matchesSignature } from '../files/magic.js';
+import { parseMultipart } from '../lib/multipart.js';
 import { ProjectTransfer } from '../repos/transfer.js';
 import { idOf, writer } from './common.js';
+
+/** Project imports per client IP per minute (on top of the global write limit). */
+export const PROJECT_IMPORT_RATE = { max: 5, timeWindow: 60_000 };
+
+/** Imports running at once in this process: one per workspace, two in all (each holds a whole zip in memory). */
+export const MAX_IMPORTS_RUNNING = 2;
+
+const ImportFields = z.object({ profileId: z.string().trim().min(1).max(64) }).strict();
 
 /** Moving a book: a zip of its data and files out, and the same zip back in with new ids. */
 export function transferRoutes(app: FastifyInstance, s: AppServices): void {
@@ -101,6 +111,61 @@ export function transferRoutes(app: FastifyInstance, s: AppServices): void {
       void reply.code(201);
       return { ...result, book: await s.repos.books.require(req.ctx, result.bookId) };
     });
+    return Promise.resolve();
+  });
+
+  // Moving a book from another Volume (D-051). multipart/form-data with two parts: profileId (a pen name in the
+  // caller's workspace) and file (the project zip from export-project). Always makes a new book; nothing existing
+  // is changed. Owner or editor. Nothing from the zip is logged.
+  const importing = new Set<string>();
+  void app.register((scope) => {
+    // Fastify collects the body as one buffer and answers 413 past the limit, before this parser runs.
+    const bodyLimit = s.config.maxUploadBytes + 64 * 1024;
+    scope.addContentTypeParser(/^multipart\/form-data/i, { parseAs: 'buffer', bodyLimit }, (_req, body, done) => done(null, body));
+
+    scope.post('/books/import-project', { bodyLimit, config: { rateLimit: PROJECT_IMPORT_RATE } }, async (req, reply) => {
+      writer(req);
+      // A browser always says where a form post comes from: an Origin header (checked against APP_ORIGIN when the
+      // request starts) or Sec-Fetch-Site same-origin. Without either, refuse, so no other page can send a zip here.
+      if (req.headers.origin === undefined && req.headers['sec-fetch-site'] !== 'same-origin')
+        throw new AppError('forbidden', 'Import a project from the Volume app.');
+      const workspaceId = req.ctx.workspaceId;
+      if (importing.has(workspaceId)) throw new AppError('conflict', 'An import is already running in this workspace. Wait for it to finish.');
+      if (importing.size >= MAX_IMPORTS_RUNNING) throw new AppError('conflict', 'Volume is busy with other imports. Try again in a minute.');
+      importing.add(workspaceId);
+      try {
+        return await importOne(req, reply);
+      } finally {
+        importing.delete(workspaceId);
+      }
+    });
+
+    const importOne = async (req: FastifyRequest, reply: FastifyReply) => {
+      const body = req.body;
+      const type = req.headers['content-type'] ?? '';
+      if (!Buffer.isBuffer(body) || !/^multipart\/form-data/i.test(type))
+        throw new AppError('unsupported_media_type', 'Send the project as multipart/form-data with the fields profileId and file.');
+      const parts = parseMultipart(type, body);
+      const files = parts.filter((p) => p.name === 'file');
+      const fields = Object.fromEntries(parts.filter((p) => p.name !== 'file').map((p) => [p.name, p.data.toString('utf8')]));
+      if (parts.length - files.length !== Object.keys(fields).length) throw new AppError('validation_failed', 'Send each form field once.');
+      const input = parse(ImportFields, fields);
+      const file = files[0];
+      if (files.length !== 1 || !file || file.filename === null) throw new AppError('validation_failed', 'Attach one project zip in the file field.');
+      if (file.data.byteLength > s.config.maxUploadBytes) throw new AppError('payload_too_large', 'The project file is larger than the allowed size.');
+      if (!matchesSignature('application/zip', file.data)) throw new AppError('unsupported_media_type', 'This file is not a zip file.');
+      const profile = await s.repos.profiles.require(req.ctx, input.profileId);
+      if (profile.status !== 'active') throw new AppError('invalid_state', 'Restore this pen name before importing a book.');
+      const result = await transfer.importProject(req.ctx, file.data, { profileId: profile.id, requireManifest: true });
+      void reply.code(201);
+      return {
+        bookId: result.bookId,
+        profileId: result.profileId,
+        rows: result.rows,
+        assets: result.assets,
+        book: await s.repos.books.require(req.ctx, result.bookId),
+      };
+    };
     return Promise.resolve();
   });
 }

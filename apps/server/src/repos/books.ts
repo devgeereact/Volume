@@ -12,7 +12,7 @@ export const BOOK_STATUSES = ['active', 'published', 'archived'] as const;
 /** Paperback trims the API accepts (config/kdp-rules paperback.trimSizes.list, plus 8x10 kept from before). */
 export const TRIMS = ['5x8', '5.25x8', '5.5x8.5', '6x9', '7x10', '8.5x11', '8x10', '8.5x8.5'] as const;
 
-const AiDisclosureSchema = z.object({
+export const AiDisclosureSchema = z.object({
   text: z.enum(['ai_generated', 'ai_assisted', 'none']),
   images: z.enum(['ai_generated', 'ai_assisted', 'none']),
   translation: z.enum(['ai_generated', 'ai_assisted', 'none']),
