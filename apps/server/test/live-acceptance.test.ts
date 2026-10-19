@@ -18,6 +18,7 @@ import {
 } from '../src/adapters/openrouter-ai.js';
 import { loadHouseStyle } from '@volume/core/node';
 import { cleanTitleText } from '../src/jobs/handlers/planning.js';
+import { savedTextContext } from '../src/jobs/guardrails.js';
 import { fixHouseStyle } from '../src/jobs/house-style-fix.js';
 import { storyInput } from '../src/jobs/picture-book.js';
 import type { AiPort, AiStage, AiStageInput, AiStageResult, RunStageOptions } from '../src/ports/ai.js';
@@ -371,5 +372,22 @@ describe('6. POST /books takes the template from the book type', () => {
     expect((await make({ bookTypeId: 'picture-book' }))['template']).toBe('picture-book');
     expect((await make({ bookTypeId: 'workbook', template: 'nonfiction' }))['template']).toBe('nonfiction');
     expect((await make({}))['template']).toBe('nonfiction');
+  });
+});
+
+describe('save-time guardrails get the author facts', () => {
+  it('sends the profile facts and the brief for non-fiction, and nothing for fiction', async () => {
+    const app = await testApp();
+    t = app;
+    const p = await app.call<Obj>('POST', '/api/v1/profiles', { penName: 'Test Author', bioThirdPerson: 'Test Author teaches night classes in Leeds.' });
+    const make = async (body: Obj) =>
+      str((await app.call<Obj>('POST', '/api/v1/books', { profileId: p.body['id'], idea: 'Side projects', notes: BRIEF, ...body })).body['id']);
+    const guide = await app.services.repos.books.require(app.owner, await make({ bookTypeId: 'nonfiction' }));
+    const facts = (await savedTextContext(app.services.repos, app.services.configDir, app.owner, guide)).authorFacts ?? '';
+    expect(facts).toContain('Test Author teaches night classes in Leeds.');
+    expect(facts).toContain('Side projects');
+    expect(facts).toContain(BRIEF);
+    const novel = await app.services.repos.books.require(app.owner, await make({ bookTypeId: 'contemporary-romance' }));
+    expect(await savedTextContext(app.services.repos, app.services.configDir, app.owner, novel)).not.toHaveProperty('authorFacts');
   });
 });

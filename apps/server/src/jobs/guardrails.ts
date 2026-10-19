@@ -1,4 +1,17 @@
-import { assignSourceIds, loadHouseStyle, savedTextReport, type GuardrailHit, type GuardrailReport, type HouseStyle } from '@volume/ai';
+import {
+  assignSourceIds,
+  formatProfileFacts,
+  loadHouseStyle,
+  savedTextReport,
+  type GuardrailContext,
+  type GuardrailHit,
+  type GuardrailReport,
+  type HouseStyle,
+} from '@volume/ai';
+import type { RequestCtx } from '../auth/context.js';
+import { loadBookStructure } from '../config/book-structure.js';
+import type { Book } from '../repos/books.js';
+import type { Profile } from '../repos/profiles.js';
 import type { AiGuardrailHit, AiGuardrails } from '../ports/ai.js';
 import type { TextGuardrailChecker } from '../repos/manuscript.js';
 import type { Repos } from '../repos/index.js';
@@ -38,21 +51,51 @@ export function toAiGuardrails(r: GuardrailReport): AiGuardrails {
   };
 }
 
-/** The checker ManuscriptRepo runs on every save: the book's sources (S1, S2... in the writer's order), profile links and ISBNs. */
+/** Templates whose text is told by characters, not the author: the author-anecdote check does not run on them. */
+const STORY_TEMPLATES: ReadonlySet<string> = new Set(['fiction', 'picture-book']);
+
+/**
+ * The facts the saved text may state about the author: the profile facts block (as the prompts get it) and the owner's
+ * brief (idea and notes). Null when the profile is missing. Sent as GuardrailContext.authorFacts, which the
+ * author-anecdote guardrail reads (branch fix/prompt-honesty); older @volume/ai versions ignore it.
+ */
+export function savedAuthorFacts(profile: Profile | null, book: Pick<Book, 'idea' | 'notes'>): string | null {
+  if (!profile) return null;
+  const facts = formatProfileFacts({
+    penName: profile.penName,
+    isRealPerson: profile.isRealPerson,
+    credentials: profile.credentials,
+    location: profile.location,
+    bio: profile.bioThirdPerson,
+    links: profile.links.map((l) => l.url ?? l.value ?? '').filter((u) => u.length > 0),
+  });
+  return [facts ?? '', book.idea ?? '', book.notes ?? ''].filter((x) => x.trim() !== '').join('\n');
+}
+
+/** The guardrail context for text saved in a book: its sources, profile links, ISBNs and the author facts. */
+export async function savedTextContext(repos: Repos, configDir: string, ctx: RequestCtx, book: Book): Promise<GuardrailContext & { authorFacts?: string }> {
+  const profile = await repos.profiles.get(ctx, book.profileId);
+  const sources = await repos.planning.listSources(ctx, { projectId: book.id, useInBook: true });
+  const hs = houseStyleFor(configDir);
+  // The author-anecdote guardrail needs the facts the author has given; story templates skip it (left out).
+  const story = STORY_TEMPLATES.has((await loadBookStructure(configDir, book.bookTypeId, book.template)).templateId);
+  const authorFacts = story ? null : savedAuthorFacts(profile, book);
+  return {
+    sources: assignSourceIds(sources.map((s) => ({ title: s.title ?? s.url, url: s.url, snippet: s.excerpt ?? '' }))),
+    allowedUrls: (profile?.links ?? []).map((l) => l.url ?? l.value ?? '').filter((u) => u.length > 0),
+    allowedIsbns: [book.isbnPaperback, book.isbnEbook].filter((x): x is string => !!x),
+    bannedPhrases: [...hs.bannedPhrases],
+    ...(authorFacts !== null ? { authorFacts } : {}),
+  };
+}
+
+/** The checker ManuscriptRepo runs on every save: savedTextContext over the saved words. */
 export function createTextChecker(repos: Repos, configDir: string): TextGuardrailChecker {
   return async (ctx, projectId, bodyMd) => {
     if (!bodyMd.trim()) return null;
     const book = await repos.books.get(ctx, projectId);
     if (!book) return null;
-    const profile = await repos.profiles.get(ctx, book.profileId);
-    const sources = await repos.planning.listSources(ctx, { projectId, useInBook: true });
-    const hs = houseStyleFor(configDir);
-    const report = savedTextReport(bodyMd, hs, {
-      sources: assignSourceIds(sources.map((s) => ({ title: s.title ?? s.url, url: s.url, snippet: s.excerpt ?? '' }))),
-      allowedUrls: (profile?.links ?? []).map((l) => l.url ?? l.value ?? '').filter((u) => u.length > 0),
-      allowedIsbns: [book.isbnPaperback, book.isbnEbook].filter((x): x is string => !!x),
-      bannedPhrases: [...hs.bannedPhrases],
-    });
-    return toAiGuardrails(report);
+    const guard = await savedTextContext(repos, configDir, ctx, book);
+    return toAiGuardrails(savedTextReport(bodyMd, houseStyleFor(configDir), guard));
   };
 }
