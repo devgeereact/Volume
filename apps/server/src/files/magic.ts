@@ -2,12 +2,13 @@ import { AppError } from '../http/errors.js';
 
 /**
  * Image uploads must be what they claim (D-050): the first bytes are checked against the declared type before
- * anything is stored. Signatures: PNG (RFC 2083 / ISO 15948), JPEG SOI marker FF D8 FF, WebP RIFF....WEBP, PDF %PDF-.
+ * anything is stored. Signatures: PNG (RFC 2083 / ISO 15948), JPEG SOI marker FF D8 FF, WebP RIFF....WEBP, PDF %PDF-, zip PK 03 04.
  * Kinds that hold pictures do not take application/octet-stream, so an image cannot skip the check that way.
  */
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const JPEG = Buffer.from([0xff, 0xd8, 0xff]);
+const ZIP = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
 
 const SIGNATURES: Record<string, { need: number; test: (head: Buffer) => boolean; label: string }> = {
   'image/png': { need: 8, test: (h) => h.subarray(0, 8).equals(PNG), label: 'PNG' },
@@ -19,6 +20,8 @@ const SIGNATURES: Record<string, { need: number; test: (head: Buffer) => boolean
   },
   // PDF files begin with the %PDF- header (ISO 32000-1, 7.5.2).
   'application/pdf': { need: 5, test: (h) => h.subarray(0, 5).toString('latin1') === '%PDF-', label: 'PDF' },
+  // Zip files (project zips) begin with a local file header, PK 03 04 (PKWARE APPNOTE 4.3.7).
+  'application/zip': { need: 4, test: (h) => h.subarray(0, 4).equals(ZIP), label: 'zip' },
 };
 
 /** Checks a whole buffer's first bytes against the declared type. */
