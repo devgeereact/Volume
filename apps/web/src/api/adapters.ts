@@ -9,26 +9,13 @@
    "Gaps". Times arrive as epoch milliseconds and leave as ISO strings. */
 
 import { getProfile, STAGE_IDS, type AuthorProfile, type ModelStageId, type ProfileBioStatus, type ProfilePublishing, type ProfileVoice } from "../demo/config";
-import type {
-  Book,
-  ClaimToVerify,
-  PenName,
-  PreflightItem,
-  PublishedInfo,
-  ResearchSource,
-  SectionStatus,
-  StageId,
-  TemplateId,
-  TitleOption,
-} from "../demo/types";
+import type { Book, PenName, PreflightItem, PublishedInfo, StageId, TemplateId, TitleOption } from "../demo/types";
 import type {
   ApiBlueprintVersion,
   ApiBook,
   ApiBookDetail,
-  ApiClaim,
   ApiPreflightItem,
   ApiProfile,
-  ApiResearchSource,
   ApiSection,
   ApiTitleDirection,
   ApiTitleOption,
@@ -289,21 +276,6 @@ export function toPrototypeBook(b: ApiBook | ApiBookDetail): Book {
 
 /* ---------- Research ---------- */
 
-export function toPrototypeSource(s: ApiResearchSource): ResearchSource {
-  return {
-    id: s.id,
-    title: s.title ?? s.url,
-    publisher: s.domain ?? "",
-    domain: s.domain ?? "",
-    url: s.url,
-    mock: false,
-    unresolved: s.unresolved === true,
-    redirectUrl: s.redirectUrl ?? null,
-    summary: s.excerpt ?? "",
-    useInBook: s.useInBook,
-  };
-}
-
 /* ---------- Titles ---------- */
 
 export function titleDirections(set: ApiTitleSet): ApiTitleDirection[] {
@@ -386,27 +358,6 @@ export function blueprintData(v: ApiBlueprintVersion): BlueprintData {
   };
 }
 
-export function toClaimToVerify(c: ApiClaim, sectionsById?: Map<string, ApiSection>): ClaimToVerify {
-  const section = c.sectionId ? sectionsById?.get(c.sectionId) : undefined;
-  const status: ClaimToVerify["status"] =
-    c.status === "verified" || c.status === "author_experience"
-      ? "verified"
-      : c.status === "softened"
-        ? "softened"
-        : c.status === "removed"
-          ? "removed"
-          : "open";
-  return {
-    id: c.id,
-    location: section?.title ?? str(c.location["label"]),
-    chapter: section?.kind === "chapter" ? section.number : null,
-    text: c.sentence,
-    reason: c.checkNeeded ?? c.category,
-    suggestion: "",
-    status,
-  };
-}
-
 /* ---------- Writing ---------- */
 
 /** Flattens the section tree in reading order (front, body with part children, back). */
@@ -418,25 +369,6 @@ export function flattenSections(tree: SectionTree): ApiSection[] {
   }
   out.push(...tree.back);
   return out;
-}
-
-export function toSectionStatus(s: ApiSection): SectionStatus {
-  if (s.blueprintChanged) return "attention";
-  switch (s.status) {
-    case "writing":
-      return "writing";
-    case "checking":
-      return "checking";
-    case "done":
-      return "done";
-    case "attention":
-    case "needs_attention":
-    case "failed":
-      return "attention";
-    default:
-      // "empty" and "queued" both show as queued; the prototype has no "not written yet" state.
-      return "queued";
-  }
 }
 
 /* ---------- Export ---------- */

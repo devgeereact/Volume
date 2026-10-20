@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Eye } from "lucide-react";
 import { Banner } from "../components/ui";
 import { READ_ONLY_NOTE, roleLabels, useVolumeMe } from "../api/wire-d";
@@ -17,11 +16,6 @@ export function useCanWrite(): boolean {
 /** True when the caller may change settings, budgets and members (owner only). */
 export function useCanManage(): boolean {
   return useVolumeMe().canManage;
-}
-
-/** Renders its children only for a role that can write. */
-export function WriteOnly({ children, fallback = null }: { children: ReactNode; fallback?: ReactNode }) {
-  return <>{useCanWrite() ? children : fallback}</>;
 }
 
 /** The one note a viewer sees where the write buttons would be. Nothing for owners and editors. */

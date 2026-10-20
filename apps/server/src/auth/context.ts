@@ -27,8 +27,6 @@ export class StubAuthProvider implements AuthProvider {
   }
 }
 
-export const ROLES = ['owner', 'editor', 'viewer'] as const satisfies readonly Role[];
-
 const RANK: Record<Role, number> = { viewer: 0, editor: 1, owner: 2 };
 
 /** True when the caller's role is at least `min` (owner > editor > viewer). Unknown roles count as viewer. */
