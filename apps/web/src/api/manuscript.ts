@@ -114,7 +114,7 @@ export const manuscriptApi = {
   /** Every claim of the book in reading order, with counts by status (default open). */
   claimsOverview: (bookId: string, status: ClaimOverviewFilter = "open", o?: Opts) =>
     api.get<ClaimsOverview>(`/books/${seg(bookId)}/claims/overview`, { ...o, query: { status } }),
-  /** Three stronger replacements as a job (202); the result is ClaimSuggestResult. */
+  /** Three stronger replacements as a job (202); the result carries the claim, its sentence and up to three options. */
   suggestClaim: (bookId: string, claimId: string, input: { instruction?: string }, o?: Opts) =>
     api.post<EstimatedJob>(`/books/${seg(bookId)}/claims/${seg(claimId)}/suggest`, input, o),
   /** Saves the replacement as a new version and resolves the claim; 409 when the sentence changed. */

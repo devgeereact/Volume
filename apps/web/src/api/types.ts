@@ -1150,15 +1150,6 @@ export interface ClaimOption {
   needsSource: boolean;
 }
 
-export interface ClaimSuggestResult {
-  claimId: string;
-  sectionId: string;
-  /** The version the options were made from; apply sends it back so a changed section is a 409. */
-  baseVersionId: string;
-  sentence: string;
-  options: ClaimOption[];
-}
-
 /** 202 for claim suggestions and check reruns: the job, with the estimate when the server gives one. */
 export interface EstimatedJob extends AcceptedJob {
   estimate?: CostRange | null;

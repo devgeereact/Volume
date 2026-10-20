@@ -211,12 +211,6 @@ export interface BookDoc {
 
 // ---------- zod schemas ----------
 
-export const inlineRunSchema = z.object({
-  text: z.string(),
-  bold: z.boolean().optional(),
-  italic: z.boolean().optional(),
-});
-
 export const blockSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('paragraph'), text: z.string() }),
   z.object({ type: z.literal('heading2'), text: z.string() }),

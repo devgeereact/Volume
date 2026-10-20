@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { isValid, monotonicFactory } from 'ulid';
+import { monotonicFactory } from 'ulid';
 import type { z } from 'zod';
 
 const nextUlid = monotonicFactory();
@@ -7,10 +7,6 @@ const nextUlid = monotonicFactory();
 /** Monotonic ULID: sortable, so job_events ids double as SSE event ids. */
 export function newId(): string {
   return nextUlid();
-}
-
-export function isUlid(value: string): boolean {
-  return value.length === 26 && isValid(value);
 }
 
 export function now(): number {
@@ -51,13 +47,6 @@ export function flag(v: boolean | undefined | null): 0 | 1 {
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
-}
-
-/** Removes keys whose value is undefined (keeps exactOptionalPropertyTypes happy). */
-export function compact<T extends Record<string, unknown>>(obj: T): { [K in keyof T]?: Exclude<T[K], undefined> } {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(obj)) if (v !== undefined) out[k] = v;
-  return out as { [K in keyof T]?: Exclude<T[K], undefined> };
 }
 
 export function affected(result: { numUpdatedRows?: bigint; numDeletedRows?: bigint } | undefined): number {

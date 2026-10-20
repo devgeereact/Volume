@@ -1,6 +1,17 @@
 # Deployment
 
-Volume runs on the owner's cPanel account as one CloudLinux Passenger Node.js app at https://volume.gakinz.com (D-037, D-038, D-039). Development stays local (see [development](DEVELOPMENT.md)). Deploys are done by hand by the lead agent with the owner's approval; nothing in this repository deploys by itself.
+Volume runs on the owner's cPanel account as one CloudLinux Passenger Node.js app at https://volume.gakinz.com (D-037, D-038, D-039). Development stays local (see [development](DEVELOPMENT.md)). The lead agent deploys with `npm run deploy` after the owner's approval; nothing in this repository deploys by itself.
+
+## Current release
+
+| Item | Value (20 October 2026) |
+| --- | --- |
+| Live release | `20261020T021731Z`, built from main `ed416b2` |
+| Rollback target | `20261019T190641Z` (`npm run deploy -- --rollback`) |
+| Migrations applied in production | `0001` to `0011`. `0006`, `0008` and `0009` on 18 October 2026, `0010_listing_source` on 19 October 2026, `0011_version_author` on 19 October 2026 (evening) |
+| CI | GitHub Actions has created no runs for the owner's account since 19 October 2026. It is an account-level block, still present after the billing fix on 20 October 2026. Deploys therefore use `--no-ci-check` with the owner's OK; local evidence stands in (typecheck, lint, format, Vitest 1,176 passed and 4 skipped, e2e 17 of 17). |
+
+To roll back: `npm run deploy -- --rollback` switches `current` to the release before it and stops the `lsnode` process. Migrations are additive, so the previous release still runs on the newer schema.
 
 ## Shape
 
@@ -30,7 +41,7 @@ Fastify answers everything: the built web app (files and the SPA fallback), `/ap
 
 `app.cjs` loads that file before the server starts (Playwright reads `PLAYWRIGHT_BROWSERS_PATH` at import), and path settings may start with `~/`. Values set in the selector win over the file. `CLERK_PUBLISHABLE_KEY` on the server must be the same key the web build used; the server decodes its Frontend API host (`clerk.volume.gakinz.com`) for the Content Security Policy.
 
-Do not press "Run NPM Install" in the selector: each release installs its own `node_modules` with `npm ci`. The web server is LiteSpeed: its `lsnode` process resolves `current` to a release folder when it starts and does not restart on `tmp/restart.txt` after the link moves (seen 18 October 2026). `cloudlinux-selector restart` also fails, because it looks for a Node environment named after the release folder. To restart, stop the `lsnode` process (`ps -ef | grep lsnode`, then `kill <pid>`); LiteSpeed starts a new one on the next request. The docroot `.htaccess` points `PassengerNodejs` at `~/nodevenv/apps/volume/releases/20261016T224127Z/24/bin/node`, so keep that folder. That path is CloudLinux's `node_wrapper`, which loads the selector's environment from its own folder, so the line stays as the selector wrote it; `npm run deploy` refuses to run when the binary it names is missing.
+Do not press "Run NPM Install" in the selector: each release installs its own `node_modules` with `npm ci`. The web server is LiteSpeed: its `lsnode` process resolves `current` to a release folder when it starts and does not restart on `tmp/restart.txt` after the link moves (seen 18 October 2026). `cloudlinux-selector restart` also fails, because it looks for a Node environment named after the release folder. To restart, stop the `lsnode` process (`ps -ef | grep lsnode`, then `kill <pid>`); LiteSpeed starts a new one on the next request. `npm run deploy` does this step itself. The docroot `.htaccess` points `PassengerNodejs` at `~/nodevenv/apps/volume/releases/20261016T224127Z/24/bin/node`, so keep that folder. That path is CloudLinux's `node_wrapper`, which loads the selector's environment from its own folder, so the line stays as the selector wrote it; `npm run deploy` refuses to run when the binary it names is missing.
 
 ## Build on the Mac
 
@@ -43,7 +54,7 @@ The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `m
 
 ## Deploy (one command, from the Mac)
 
-`npm run deploy` (`scripts/deploy.mjs`, host facts in `deploy/production.json`) runs every step below and checks the result. Run it on `main`, clean and pushed, after CI on that commit has passed.
+`npm run deploy` (`scripts/deploy.mjs`, host facts in `deploy/production.json`) runs every step below and checks the result. Run it on `main`, clean and pushed. When GitHub Actions can run, wait for CI on that commit to pass. While Actions is blocked, add `--no-ci-check` with the owner's OK.
 
 | Command | Does |
 | --- | --- |
@@ -51,7 +62,7 @@ The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `m
 | `npm run deploy` | Builds, uploads to `releases/<utc>`, installs with Node 24, links the shared settings file, checks migrations, switches `current`, restarts and runs the live checks. A failed check switches back to the previous release by itself. |
 | `npm run deploy -- --migrate` | Same, and applies pending migrations. Without it the script stops before going live when any are pending. Take the cPanel database backup first. |
 | `npm run deploy -- --rollback` | Switches `current` to the release before it and restarts. |
-| `--no-ci-check` | Skips the CI check (use only when GitHub Actions cannot run). |
+| `--no-ci-check` | Skips the CI check. Use only with the owner's OK, while GitHub Actions cannot run. |
 
 It never deletes a release and never reads or copies the settings file (the link is a symlink). The steps it runs, for doing them by hand:
 
@@ -60,9 +71,9 @@ It never deletes a release and never reads or copies the settings file (the link
 3. Link shared config into the release: a symlink named after the settings file pointing at `../../shared/` (the app also finds it through `VOLUME_ENV_FILE`).
 4. Back up the database (cPanel Backup or `mariadb-dump --defaults-file=<private temp file> --single-transaction --no-tablespaces`, run with `set -o pipefail` so a failed dump stops the step; the migration user has no `LOCK TABLES` grant), then migrate as the migration user: `node server/migrate.mjs status` (exit 2 means pending), then `node server/migrate.mjs`. The app refuses to start while migrations are pending.
 5. Flip the link: `ln -sfn releases/<utc> ~/apps/volume/current`, then stop the running `lsnode` process (see Passenger settings above). Confirm the page loads the new `/assets/index-*.js` from `build/release/web/index.html`.
-6. Run the post-deploy checks below. Rollback: point `current` back at the previous release and stop the `lsnode` process. Migrations are additive, so the previous release still runs on the newer schema.
+6. Run the post-deploy checks below. Rollback: `npm run deploy -- --rollback`, or by hand point `current` back at the previous release and stop the `lsnode` process. Migrations are additive, so the previous release still runs on the newer schema.
 
-Migration order: `0006_picture_books`, `0008_volume_mode` and `0009_invitations` ship together in one release (`0007` is reserved and not shipped). Production has none of them yet, so step 4 applies them in order. Kysely refuses a migration older than one already applied, and unordered migrations stay off on purpose: a development database that applied `0008` or `0009` before `0006` existed will not take `0006`. Recreate that local database (or restore one taken before `0008`); never edit the migration table by hand. `apps/server/test/migrations.test.ts` checks that a fresh SQLite database applies `0001` to `0009` in order and that every migration compiles for MySQL.
+Migration order: `0006_picture_books`, `0008_volume_mode` and `0009_invitations` shipped together on 18 October 2026 (`0007` is reserved and not shipped). Production has applied `0001` to `0011` (see Current release). Kysely refuses a migration older than one already applied, and unordered migrations stay off on purpose: a development database that applied `0008` or `0009` before `0006` existed will not take `0006`. Recreate that local database (or restore one taken before `0008`); never edit the migration table by hand. `apps/server/test/migrations.test.ts` checks that a fresh SQLite database applies `0001` to `0011` in order and that every migration compiles for MySQL.
 
 ## One-off host steps
 
@@ -75,7 +86,7 @@ Migration order: `0006_picture_books`, `0008_volume_mode` and `0009_invitations`
   */4 * * * * curl -fsS -o /dev/null https://volume.gakinz.com/api/health
   ```
 
-- First run only, to bring the owner's local library across (on the Mac, before the hosted app has started once, through an SSH tunnel such as `ssh -N -L 3307:localhost:3306 devgeereact@premium17.web-hosting.com`):
+- Superseded, not needed (19 October 2026): the owner moved the local books by project zip instead (D-051, see [Moving a book](#moving-a-book-from-the-mac-to-the-hosted-app)). Do not run this against a host that has books, because `--replace` wipes it. Kept for reference. The original first-run steps (on the Mac, before the hosted app had started once, through an SSH tunnel such as `ssh -N -L 3307:localhost:3306 devgeereact@premium17.web-hosting.com`):
 
   ```sh
   MYSQL_HOST=127.0.0.1 MYSQL_PORT=3307 MYSQL_DATABASE=<db> MYSQL_USER=<runtime user> \
@@ -89,8 +100,8 @@ Migration order: `0006_picture_books`, `0008_volume_mode` and `0009_invitations`
 
 Once the hosted app holds books, never copy the database again (`db:copy-to-mysql --replace` wipes the host). Move one book at a time by project zip (D-051):
 
-1. On the Mac, open the book and choose Export project. Volume saves `<title>.volume-project.zip` (a manifest with checksums, the book's rows and its files; never the legal name, location, jobs, AI call records or spend).
-2. On https://volume.gakinz.com, signed in as the owner or an editor, choose Import project in Settings or the Library, pick the pen name the book should belong to, and choose the zip.
+1. On the Mac, open the book, go to Export and choose Move this book > Download project. Volume saves `<title>.volume-project.zip` (a manifest with checksums, the book's rows and its files; never the legal name, location, jobs, AI call records or spend).
+2. On https://volume.gakinz.com, signed in as the owner or an editor, go to Library > Import project, pick the pen name the book should belong to, and choose the zip.
 3. The hosted app checks the zip and makes a new book with new ids under that pen name, marked "Moved from another Volume on <date>". Nothing that is already there changes. Build export files (PDF, EPUB, pack) again on the host.
 
 The zip must be under `MAX_UPLOAD_BYTES` (50 MB unless set), and the expanded files under 160 MB. Imports are limited to 5 per minute per visitor. API: `POST /api/v1/books/import-project`, multipart/form-data with `profileId` and `file`.
@@ -101,8 +112,11 @@ The zip must be under `MAX_UPLOAD_BYTES` (50 MB unless set), and the expanded fi
 | --- | --- |
 | `https://volume.gakinz.com/api/health` | 200, body exactly `{"status":"ok"}` |
 | `https://volume.gakinz.com/api/v1/books` (no sign-in) | 401, `{"error":{"code":"unauthorized",...}}` |
-| `https://volume.gakinz.com/` | 200 HTML, `Content-Security-Policy` and `Strict-Transport-Security` headers, Clerk sign-in shown |
-| Same, signed in as the owner | Library loads with the owner's books; Settings shows MySQL |
+| `https://volume.gakinz.com/` (signed out) | 200 HTML, `Content-Security-Policy` and `Strict-Transport-Security` headers, the landing hero (D-053, D-054) |
+| `https://volume.gakinz.com/sign-in` (signed out) | The branded Clerk sign-in form (D-053) |
+| `https://volume.gakinz.com/library` (signed out) | Sign-in, not the books |
+| `https://volume.gakinz.com/library` (signed in as the owner) | Library loads with the owner's books; Settings shows MySQL |
+| Sign in from a new device | Lands on `/library` (D-054; a deep link returns to its own page) |
 | Same, signed in as anyone else | "This account is not allowed" (API answers 403) |
 | Origin IP directly, without Cloudflare | 403 from the origin lock |
 | Export a short book to PDF | PDF downloads (proves Chromium and the libraries) |

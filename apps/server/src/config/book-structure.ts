@@ -27,12 +27,6 @@ export function sectionKindFor(templateSectionId: string): string {
   return KIND_OVERRIDES[templateSectionId] ?? templateSectionId.replace(/-/g, '_');
 }
 
-/** Template section id for a server section kind (the reverse of sectionKindFor). */
-export function templateIdForKind(kind: string): string {
-  const hit = Object.entries(KIND_OVERRIDES).find(([, k]) => k === kind);
-  return hit ? hit[0] : kind.replace(/_/g, '-');
-}
-
 /** Who writes a section: the AI writer, app code, or the owner (created switched off until the owner fills it). */
 export type SectionWriter = 'ai' | 'code' | 'owner';
 

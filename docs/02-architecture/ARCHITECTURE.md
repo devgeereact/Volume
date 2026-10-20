@@ -13,7 +13,7 @@ volume/
   docs/         00-foundation/ ... 09-release/, book-production/, reference/, source-drafts/
   config/       kdp-rules/ models.defaults.json house-style.json book-templates/
   prompts/      research/ titles/ blueprint/ writing/ checks/ editing/ matter/ cover/ marketing/ children/
-  apps/web/     src/app/ src/features/ src/demo/ src/shell/ src/components/
+  apps/web/     src/app/ src/auth/ src/features/ src/site/ src/demo/ src/shell/ src/components/
   apps/server/
   packages/core/ packages/ai/ packages/export/ packages/ui/
   assets/fonts/  tests/  scripts/  qa/  data/ (root only, git-ignored)
@@ -30,6 +30,7 @@ volume/
 | `config/book-templates/` | Section lists, word targets and rules per template | | 0 |
 | `prompts/` | Versioned prompt files per stage, indexed in `docs/book-production/PROMPTS.md` | | 0 |
 | `apps/web` | Screens: Vite, React, React Router, Tailwind v4, motion/react, TanStack Query, TipTap | `packages/ui`, `packages/core` (types and pure helpers only) | 1 |
+| `apps/web/src/site/` | Public pages for signed-out visitors on a hosted build (`PublicSite`): landing at `/`, How it works, branded sign-in. GSAP 3.15.0, Lenis 1.3.27 and adapted React Bits (MIT) for these pages only, in a lazy chunk (D-053, D-054) | `apps/web` | after 8 |
 | `apps/server` | Fastify API under `/api/v1`, zod validation, Kysely (SQLite or MySQL, D-015, D-019), job queue, SSE, file storage, serves the built web app | `core`, `ai`, `export` | 1 |
 | `packages/core` | Book model (sections, blocks), Markdown parser and writer, house-style rules, deterministic checkers, KDP maths, shared zod schemas. No network, no file system | | 1 |
 | `packages/ai` | OpenRouter client, mock provider, model registry, prompt loader, context packer, guardrails, cost estimator. Server only | `core` | 2 |
@@ -142,7 +143,7 @@ The provider is chosen at start-up: `mock` when no key is set or in tests, `open
 - Every table except `workspaces` and `users` has `workspace_id`, indexed. Repositories refuse a query without it.
 - IDs are ULIDs (sortable, safe to show, no counters to leak).
 - On first start the server creates one workspace and one owner user. Locally the stub attaches them to every request. Hosted, Clerk sign-in maps an allowed Clerk user to a Volume user through `users.clerk_user_id` (the first one binds the owner); routes and services are unchanged because they already take `ctx`.
-- Roles exist from day one (`owner`, `editor`, `viewer`) on `memberships`; v1 only uses `owner`.
+- Roles are `owner`, `editor` and `viewer`, stored on `memberships` (D-047). With the default `ACCOUNTS_MODE=owner-only`, only the allowlisted owner accounts can sign in. With `ACCOUNTS_MODE=invite`, the owner can invite editors and viewers by email (DEPLOYMENT.md, "Accounts setting").
 - File paths include the workspace: `data/workspaces/<workspace_id>/projects/<project_id>/`.
 
 ## Storage layout

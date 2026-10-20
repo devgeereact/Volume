@@ -145,11 +145,6 @@ export function spineTextAllowed(rules: KdpRules, pages: number): boolean {
   return pages >= num(r.value, r.id, 'value');
 }
 
-export function spineTextMinPages(rules: KdpRules): number {
-  const r = getRule(rules, 'paperback.spine.textMinPages');
-  return num(r.value, r.id, 'value');
-}
-
 /** Interior page size with bleed (picture books): width + addWidth, height + addHeight (FACTS 3.7). */
 export function interiorBleedSizeIn(rules: KdpRules, trim: TrimSize): TrimSize {
   const r = getRule(rules, 'print.bleed');

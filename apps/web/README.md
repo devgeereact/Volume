@@ -61,7 +61,10 @@ apps/web/
   scripts/screenshot.mjs   Playwright screenshots, own preview server on 5182
   scripts/smoke.mjs        Playwright walk through the main flow, own preview server on 5182
   src/
-    main.tsx, App.tsx      providers and the router (every route is listed in App.tsx)
+    main.tsx               entry; mounts app/Application.tsx
+    app/                   Application.tsx (providers) and routes.tsx (every route is listed there)
+    auth/                  hosted sign-in (Clerk) for the hosted build
+    site/                  public pages for signed-out visitors on a hosted build: PublicSite, landing, How it works, sign-in, bits/ (GSAP and Lenis, D-053)
     screens.ts             every screen: title, purpose line, route, owner, empty state, icon
     styles/app.css         imports tailwindcss + @volume/ui tokens and theme, base layer, cover, caret, nib
     styles/fonts.css       self-hosted Fontsource files under the token family names
@@ -81,12 +84,12 @@ The three screen agents have finished. Since the integration pass (4 October 202
 | Agent A | `library/`, `profiles/`, `settings/`, `archive/` | Library, Profiles, Profile editor, Settings, Archive |
 | Agent B | `new-book/`, `research/`, `titles/`, `blueprint/` | New book wizard, Research, Titles, Blueprint |
 | Agent C | `writing/`, `editor/`, `cover/`, `export/`, `marketing/` | Writing, Editor, Cover studio, Export, Marketing |
-| Foundation | everything else in `src/` (`components/ui`, `shell`, `lib`, `demo`, `styles`, `App.tsx`, `screens.ts`), `scripts/` | Shell, shared components, mock data, style guide (`features/components/`) |
+| Foundation | everything else in `src/` (`components/ui`, `shell`, `lib`, `demo`, `styles`, `app/`, `site/`, `screens.ts`), `scripts/` | Shell, shared components, mock data, style guide (`features/components/`) |
 
 Rules:
 
 - Each screen agent edits only its own route folders. Screen-only components go in that folder (for example `features/blueprint/OutlineRail.tsx`).
-- Keep the default export of each page file; `App.tsx` imports it.
+- Keep the default export of each page file; `app/routes.tsx` imports it.
 - Need a change to a shared component, the shell or the data? Ask the foundation owner, or add a new file in your folder and say so in your report. Do not fork a shared component.
 - New mock data that only one screen needs can live in that screen's folder; data two screens share belongs in `src/demo/`.
 
@@ -94,12 +97,16 @@ Rules:
 
 | Route | Screen | File |
 |---|---|---|
-| `/` and `/library` | Library (covers view; `?view=ledger` for the ledger table) | `features/library/LibraryPage.tsx` |
+| `/` | Landing hero, the front of the app for every visitor (D-054). Signed out on a hosted build, the public site serves it | `site/LandingPage.tsx` |
+| `/welcome` | Redirects to `/` (D-054) | `app/routes.tsx` |
+| `/how-it-works` | How it works: the stages on a sample book (D-053) | `site/HowItWorksPage.tsx` |
+| `/sign-in` | Branded sign-in on a hosted build (signed in, it opens `/library`); the local sign-in page on local builds | `site/SignInPage.tsx` |
+| `/library` | Library, the app's home (covers view; `?view=ledger` for the ledger table). Signing in leads here (D-054) | `features/library/LibraryPage.tsx` |
 | `/published` | Published shelf: books live on Amazon, grouped by month, with formats, list prices and dates | `features/published/PublishedPage.tsx` (foundation) |
 | `/profiles` | Profiles | `features/profiles/ProfilesPage.tsx` |
 | `/profiles/:profileId` (`/profiles/new` to add) | Profile editor (tabs Identity, Voice DNA, Publishing defaults, Models, Memory) | `features/profiles/ProfileEditorPage.tsx` |
 | `/books/new` | New book wizard | `features/new-book/NewBookPage.tsx` |
-| `/new-book` | Redirects to `/books/new` | `App.tsx` |
+| `/new-book` | Redirects to `/books/new` | `app/routes.tsx` |
 | `/books/:bookId` | Opens the book at its current step | `features/books/BookIndexRedirect.tsx` |
 | `/books/:bookId/research` | Research | `features/research/ResearchPage.tsx` |
 | `/books/:bookId/titles` | Titles | `features/titles/TitlesPage.tsx` |
@@ -108,10 +115,14 @@ Rules:
 | `/books/:bookId/editor/:sectionId?` | Editor | `features/editor/EditorPage.tsx` |
 | `/books/:bookId/cover` | Cover studio | `features/cover/CoverPage.tsx` |
 | `/books/:bookId/export` | Export | `features/export/ExportPage.tsx` |
+| `/books/:bookId/claims` | Claims to verify for one book, with fix options (D-052) | `features/editor/ClaimsPage.tsx` |
 | `/books/:bookId/marketing` | Marketing | `features/marketing/MarketingPage.tsx` |
 | `/settings/:tab?` | Settings, see the tabs below | `features/settings/SettingsPage.tsx` |
 | `/archive` | Archive | `features/archive/ArchivePage.tsx` |
-| `/components` | Living style guide, both themes | `features/components/ComponentsPage.tsx` |
+| `/volume` | Volume mode: batches across pen names (phase 8) | `features/volume-mode/BatchesPage.tsx` |
+| `/volume/batches/:batchId` | One batch | `features/volume-mode/BatchDetailPage.tsx` |
+| `/volume/schedule` | Schedule: the weekly title limit per format | `features/volume-mode/SchedulePage.tsx` |
+| `/components` | Living style guide, both themes. Local builds only; the hosted app shows Page not found | `features/components/ComponentsPage.tsx` |
 | anything else | Page not found | `shell/NotFound.tsx` |
 
 Settings tabs, in screen order (`settingsTabs` in `screens.ts`; Settings, the breadcrumbs and this table read it). `/settings` opens the first one; the others are `/settings/<id>`, and an unknown id redirects to `/settings`.

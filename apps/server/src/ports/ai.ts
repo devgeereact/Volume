@@ -59,7 +59,6 @@ export const ExercisePlanSchema = z.object({
   purpose: z.string().default(''),
   lines: z.number().int().nullable().default(null),
 });
-export type ExercisePlan = z.infer<typeof ExercisePlanSchema>;
 
 /** The fiction story bible (D-043), kept in the blueprint data as `storyBible`. No table of its own. */
 export const StoryBibleSchema = z.looseObject({
@@ -84,7 +83,6 @@ export const StoryBibleSchema = z.looseObject({
   povPlan: z.string().default(''),
   ending: z.string().default(''),
 });
-export type StoryBible = z.infer<typeof StoryBibleSchema>;
 
 export const BlueprintChapterSchema = z.looseObject({
   number: z.number().int(),
@@ -157,7 +155,6 @@ export const LEDGER_KINDS = [
   'anecdote',
   'promise',
 ] as const;
-export type LedgerKind = (typeof LEDGER_KINDS)[number];
 
 export const SummariseOutputSchema = z.object({
   summary: z.string(),

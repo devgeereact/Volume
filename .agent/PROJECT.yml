@@ -47,8 +47,8 @@ hosting:
   database: MariaDB on localhost, runtime user and migration user
   proxy: Cloudflare, Full (strict), origin lock in the docroot .htaccess
   auth: Clerk application "Volume", owner allowlist
-  deploy: manual by the lead agent (build:release, rsync, npm ci --omit=dev, migrate, flip current, touch tmp/restart.txt)
-stack: [node-24-production, node-26-development, typescript, npm-workspaces, react, tailwind-4, vite, fastify, kysely, mariadb, mysql, sqlite-dev-only, clerk, passenger, cloudflare, playwright, openrouter]
+  deploy: "`npm run deploy` by the lead agent with the owner's approval (scripts/deploy.mjs, host facts in deploy/production.json; build, upload, npm ci --omit=dev, migrate with --migrate, flip current, stop the lsnode process, live checks; --rollback, --dry-run); --no-ci-check while GitHub Actions is blocked (see DEPLOYMENT.md)"
+stack: [node-24-production, node-26-development, typescript, npm-workspaces, react, tailwind-4, vite, fastify, kysely, mariadb, mysql, sqlite-dev-only, clerk, passenger, cloudflare, playwright, openrouter, gsap, lenis]
 current_task: .agent/CURRENT-TASK.md
 handoff_log: .agent/HANDOFF.md
 review_gate: owner reviews at phase boundaries; implementation plan approved 2026-10-07; cPanel hosting decision 2026-10-16

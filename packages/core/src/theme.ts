@@ -20,10 +20,6 @@ export const HOUSE_MARGINS: Record<string, MarginsIn> = {
   '8.5x11': { topIn: 0.9, bottomIn: 0.95, insideIn: 0.9, outsideIn: 0.7 },
 };
 
-export function trimKey(widthIn: number, heightIn: number): TrimKey {
-  return `${widthIn}x${heightIn}`;
-}
-
 export function parseTrimKey(key: string): { widthIn: number; heightIn: number } {
   const m = /^(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)$/.exec(key.replace(/\s*in$/, '').trim());
   if (!m) throw new Error(`Bad trim "${key}". Use for example "6x9".`);

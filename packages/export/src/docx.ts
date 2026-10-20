@@ -64,37 +64,6 @@ const pt = (points: number) => Math.round(points * 20); // twips
 const half = (points: number) => Math.round(points * 2); // half-points
 const hex = (c: string) => c.replace('#', '').slice(0, 6).toUpperCase();
 
-/** Style ids (the names Word shows are in STYLE_NAMES). */
-export const DOCX_STYLE_IDS = [
-  'Normal',
-  'FirstParagraph',
-  'Heading1',
-  'Heading2',
-  'Heading3',
-  'Heading4',
-  'TitlePageTitle',
-  'TitlePageSubtitle',
-  'TitlePageAuthor',
-  'Copyright',
-  'CopyrightFirst',
-  'ContentsHeading',
-  'ContentsEntry',
-  'ContentsSubentry',
-  'PartTitle',
-  'Epigraph',
-  'Dedication',
-  'ListBullet',
-  'ListNumber',
-  'TakeawaysHeading',
-  'TakeawaysItem',
-  'SceneBreak',
-  'DemoNote',
-  'Callout',
-  'Quote',
-  'TableText',
-  'Caption',
-] as const;
-
 function runsFor(text: string, extra: { size?: number } = {}): TextRun[] {
   return parseInline(text).map(
     (r) =>

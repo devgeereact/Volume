@@ -35,6 +35,8 @@ This application adopts GEE OS 1.4.5 on the `cpanel` profile (D-040), keeping th
 | House writing style for books | `config/house-style.json` |
 | Security and privacy | `docs/05-security/SECURITY.md`, sign-in `docs/05-security/AUTH-MODEL.md` |
 | Hosting, deploy contract, Passenger settings | `docs/07-operations/DEPLOYMENT.md`, `deploy/`, `.env.example` (names only) |
+| Moving a book between Volumes (project zip, D-051) | `docs/07-operations/DEPLOYMENT.md` ("Moving a book") |
+| Restoring Volume on a computer (setup, `.env` rules) | `docs/07-operations/SETUP.md` |
 | Tests | `docs/06-quality/TEST-STRATEGY.md` |
 | Decisions and open issues | `docs/08-change-management/DECISIONS.md`, `KNOWN-ISSUES.md` |
 | AI test fixtures (mock provider) | `packages/ai/test/fixtures/` |
@@ -46,6 +48,7 @@ If two files disagree, stop and ask which is right, then fix both.
 
 - npm workspaces monorepo, TypeScript strict everywhere (no `any`, no `@ts-ignore`). Node 26 for development (Mise), Node 24.21 in production; code must run on Node 24.11+ (D-037).
 - `apps/web`: Vite, React, React Router, Tailwind v4, motion/react, TanStack Query, TipTap (free extensions only), Clerk (`@clerk/react`) when built with `VITE_CLERK_PUBLISHABLE_KEY`.
+- Public pages (`apps/web/src/site/`, D-053): GSAP 3.15.0 (SplitText, ScrambleText), `@gsap/react` 2.1.2, Lenis 1.3.27, and React Bits SplitText, ShinyText and DecryptedText adapted (MIT). A lazy chunk loaded only by the public pages; reduced motion is respected.
 - `apps/server`: Fastify, zod, Kysely (SQLite locally, MariaDB/MySQL on the cPanel host) with migrations, in-process job queue, SSE, Clerk session checks (`@clerk/backend`), and in the release layout the built web app. Binds to 127.0.0.1 only; Passenger and Cloudflare sit in front on the host (D-038, D-039).
 - `packages/core` (book model, parser, rules, checkers, KDP maths), `packages/ai` (OpenRouter client, registry, prompt loader), `packages/export` (PDF via Paged.js in Playwright, DOCX, EPUB, TXT, MD, covers, preflight, pack), `packages/ui` (design tokens and components).
 - AI: OpenRouter only, one key `OPENROUTER_API_KEY`, server side only. Model per stage from `config/models.defaults.json`, changeable by the owner in Settings.
@@ -61,12 +64,16 @@ npm run dev                   # dev: web 127.0.0.1:5180, API 127.0.0.1:5181
 npm run typecheck             # typecheck every workspace
 npm run lint                  # ESLint, whole repo
 npm run test                  # Vitest in every workspace
-npm run e2e                   # builds, then Playwright on 127.0.0.1:5311 and 5312
+npm run e2e                   # builds, then 17 Playwright tests in 9 specs on 127.0.0.1:5311 to 5318 (not 5314); 5313 must be free
 npm run build -w apps/server  # build the API
 npm run build -w apps/web     # build the web app
 npm run doctor                # runtime, native modules, pinned Chromium
 npm run docs:check            # Markdown link check
 npm run build:release         # release folder for the host (build/release); see docs/07-operations/DEPLOYMENT.md
+npm run deploy -- --dry-run   # host preflight only, changes nothing
+npm run deploy                # real deploy: owner approval first; add --migrate (after a cPanel backup) if migrations are pending, --rollback to go back; --no-ci-check while GitHub Actions is blocked (owner OK)
+npm run format:check          # Prettier check, whole repo
+npm run hooks:test            # hook tests
 npm run migrate -w apps/server         # apply migrations (MYSQL_MIGRATE_USER on MySQL)
 ```
 

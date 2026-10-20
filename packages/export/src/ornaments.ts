@@ -68,30 +68,6 @@ function gridSvg(colour: string, width: number): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 62 32" width="${width}" height="${(width / 2).toFixed(1)}" aria-hidden="true">${lines.join('')}</svg>`;
 }
 
-/** Names a theme or cover style may use. Unknown names draw nothing. */
-export const ORNAMENT_NAMES = [
-  'sprig',
-  'herb',
-  'botanical',
-  'diamond',
-  'asterism',
-  'stars',
-  'stars-moon',
-  'fleuron',
-  'leaf',
-  'floral-heart',
-  'wave',
-  'waves',
-  'star-rule',
-  'heart-line',
-  'dot',
-  'line',
-  'rule',
-  'bar',
-  'grid',
-  'circuit-grid',
-] as const;
-
 /** Ornament markup for a theme value: a built-in name, an inline <svg>, or nothing. */
 export function ornamentSvg(name: string, colour: string, width: number): string {
   const n = name.trim();

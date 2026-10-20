@@ -2,9 +2,9 @@
 
 Nine phases, 0 to 8. Each ends with an **owner review gate**: the owner sees the result, tries it, and says go or fix before the next phase starts. No phase starts on top of an unreviewed one. Acceptance lines for phases 1 to 5 are taken from the approved plan.
 
-## Current checkpoint, 6 October 2026
+## Current checkpoint, 20 October 2026
 
-Implementation is at phase 5 with local corrections verified, not a completed v1 release gate. Free titles and blueprint pass, full free writing failed, sampled Word layouts pass, Kindle/KDP acceptance is outstanding and cPanel is deferred by the owner. Later phases 6 to 8 remain outside this pass. See KNOWN-ISSUES.md and the local/free validation reports for current evidence. Deliverables and acceptance below remain the approved targets, not a claim that every gate passed.
+Phases 0 to 8 are built. Phases 6 to 8 (fiction and workbook, picture books, Volume mode and accounts) were built on 17 October 2026 under D-041 to D-047. The app is hosted and live at https://volume.gakinz.com since 18 October 2026 (current release 20261020T021731Z). The live acceptance run of 18 October 2026 is not passed: no book has yet gone through to a postable pack end to end. Owner gates 5 to 8 are still open. Free titles and blueprint passed earlier, full free writing failed on summary truncation (D-035), and Kindle/KDP acceptance is outstanding. See KNOWN-ISSUES.md and the evidence reports for current status. Deliverables and acceptance below remain the approved targets, not a claim that every gate passed.
 
 ## Phase 0: workspace, rules, agents, design guide and demo
 

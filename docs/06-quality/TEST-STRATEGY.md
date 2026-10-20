@@ -82,7 +82,7 @@ Screenshots at 1440 and 390 px wide on every screen; no console errors allowed.
 
 ## Latest acceptance evidence
 
-On 6 October, 499 local tests and all measured coverage thresholds passed; five mock browser scenarios passed. See LOCAL-VALIDATION-2026-10-06.md. The browser suite has since grown to seven tests in four specs (`npm run e2e`). Free live testing was separately authorised through the existing server with only verified zero-priced models: titles/blueprint pass, full writing fails, and both Gemma routes fail upstream. This does not validate paid defaults, research or covers. See FREE-AI-VALIDATION-2026-10-06.md. MySQL is deferred by the owner.
+On 6 October, 499 local tests and all measured coverage thresholds passed; five mock browser scenarios passed. See LOCAL-VALIDATION-2026-10-06.md. The browser suite has since grown to 17 tests in 9 specs (`npm run e2e`). It uses ports 5311 to 5318 (not 5314), and port 5313 must be free for the restart spec. On 20 October 2026, Vitest gave 1,176 passed and 4 skipped, and e2e 17 of 17 on main `ed416b2`. Free live testing was separately authorised through the existing server with only verified zero-priced models: titles/blueprint pass, full writing fails, and both Gemma routes fail upstream. This does not validate paid defaults, research or covers. See FREE-AI-VALIDATION-2026-10-06.md. MySQL is deferred by the owner.
 
 ## Live AI runs
 

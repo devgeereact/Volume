@@ -12,13 +12,6 @@ export const layoutLabels: Record<SpreadLayout, string> = {
   "text-bottom": "Text at the bottom",
 };
 
-export const layoutShort: Record<SpreadLayout, string> = {
-  "text-left": "Left",
-  "text-right": "Right",
-  "text-top": "Top",
-  "text-bottom": "Bottom",
-};
-
 /** The positive messages the template names (storyRules.message: "One positive message: kindness, courage, ..."). */
 export const messageOptions: string[] = (template.storyRules.message.split(":")[1] ?? "kindness")
   .split(",")
