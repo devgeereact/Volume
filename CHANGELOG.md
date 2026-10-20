@@ -2,6 +2,11 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 20 October 2026
+
+#### Fixed
+- The sign-in page shows "Sign in to Volume" once, not twice.
+
 ## 19 October 2026
 
 Moving a book between Volumes (D-051); claims, autosave and reruns (D-052).

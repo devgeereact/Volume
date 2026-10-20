@@ -12,6 +12,8 @@ import { SiteLayout } from "./SiteLayout";
 export const publicRoutes: RouteObject[] = [
   {
     element: <SiteLayout home="/" signedIn={false} />,
+    // The pages are lazy chunks; this covers the first render while one loads.
+    hydrateFallbackElement: <div className="min-h-dvh bg-canvas" />,
     errorElement: <RouteError />,
     children: [
       {
