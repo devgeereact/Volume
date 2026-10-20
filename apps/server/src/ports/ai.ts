@@ -514,10 +514,16 @@ export class AiRetryableError extends Error {
 /** Thrown when the chosen model is gone (404) or unavailable. Never retried silently with another model. */
 export class AiModelUnavailableError extends Error {
   override name = 'AiModelUnavailableError';
+  /** The stage whose model failed, and the next fallback the owner can switch to (null when none is listed). */
+  readonly stage: string | null;
+  readonly nextFallback: string | null;
   constructor(
     message: string,
     readonly model: string,
+    extra: { stage?: string | null; nextFallback?: string | null } = {},
   ) {
     super(message);
+    this.stage = extra.stage ?? null;
+    this.nextFallback = extra.nextFallback ?? null;
   }
 }

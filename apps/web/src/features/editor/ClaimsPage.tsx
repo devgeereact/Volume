@@ -10,6 +10,7 @@ import { cn } from "../../lib/cn";
 import { useBook } from "../../lib/useBook";
 import { ErrorPanel, LoadingBlock } from "../writing/screenState";
 import { ClaimRewrite } from "./ClaimRewrite";
+import { FixWholeBook } from "./FixWholeBook";
 import { categoryLabel, FILTERS, filterCount, groupBySection, toMsClaim } from "./claimsOverview";
 
 /* Claims (API mode): every claim of the book in one place, in reading order, older books included. The
@@ -48,10 +49,22 @@ function Claims({ bookId }: { bookId: string }) {
   const canWrite = useCanWrite();
   const estimate = useEstimate(bookId, "claim_fix", { enabled: canWrite && (q.data?.counts.open ?? 0) > 0 });
   const groups = q.data ? groupBySection(q.data.items) : [];
+  const openQ = useClaimsOverview(bookId, "open");
 
   return (
     <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
       <PageHeader title="Claims" summary="Every statement to check before you publish, in reading order." />
+      {canWrite && openQ.data && (
+        <FixWholeBook
+          bookId={bookId}
+          claims={openQ.data.items}
+          estimate={estimate.data ?? null}
+          onDone={() => {
+            void q.refetch();
+            void openQ.refetch();
+          }}
+        />
+      )}
       <div role="group" aria-label="Show claims" className="mt-4 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <Chip key={f.id} pressed={filter === f.id} count={filterCount(q.data?.counts, f.id)} onClick={() => setFilter(f.id)}>

@@ -29,6 +29,7 @@ import { conceptsFor, layoutCover, withPalette, type CoverBrief, type TitlePosit
 import { BriefCard, CoverInspector } from "./CoverPage";
 import { OwnCoverPanel } from "./OwnCoverPanel";
 import { WrapPreview } from "./WrapPreview";
+import { ModelFallbackBanner, modelProblemOf, type ModelProblem } from "../settings/ModelFallback";
 
 /* Cover studio on the Volume server (API mode): the brief is saved with PUT /cover/brief, concepts and
    the final covers are jobs with progress over SSE, concept images come from /assets, and Volume's
@@ -115,6 +116,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
   const [announce, setAnnounce] = useState("");
   const [pagesText, setPagesText] = useState<string>("");
   const toast = useToast();
+  const [modelFix, setModelFix] = useState<{ problem: ModelProblem; retry: "concepts" | "build" } | null>(null);
 
   // The typographic layer: the book's own cover style (concept A in the demo is always the book's style).
   const own = useMemo(() => conceptsFor(book)[0]!, [book]);
@@ -151,8 +153,14 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       setAnnounce("Concepts ready.");
       toast.show({ tone: "success", title: "Cover concepts ready", body: "Pick the one you like best, then press Use this concept." });
     } else {
-      setProblem(`The concepts were not made. ${w.error ?? "Nothing was charged for images that did not arrive. Try again."}`);
-      toast.show({ tone: "error", title: "Cover concepts were not made", body: w.error ?? "Try again." });
+      const mp = modelProblemOf(w);
+      if (mp) setModelFix({ problem: mp, retry: "concepts" });
+      else setProblem(`The concepts were not made. ${w.error ?? "Nothing was charged for images that did not arrive. Try again."}`);
+      toast.show({
+        tone: "error",
+        title: "Cover concepts were not made",
+        body: mp ? "The model for this step is not available. Use the button on the page to switch and try again." : (w.error ?? "Try again."),
+      });
     }
   });
   const buildWatch = useJobWatch(bookId, buildJob, (w) => {
@@ -161,8 +169,14 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       setAnnounce("Covers built.");
       toast.show({ tone: "success", title: "Covers built", body: "The eBook cover and paperback wrap are ready. They go into the pack on Export." });
     } else {
-      setProblem(`The covers were not built. ${w.error ?? "Try again."}`);
-      toast.show({ tone: "error", title: "The covers were not built", body: w.error ?? "Try again." });
+      const mp = modelProblemOf(w);
+      if (mp) setModelFix({ problem: mp, retry: "build" });
+      else setProblem(`The covers were not built. ${w.error ?? "Try again."}`);
+      toast.show({
+        tone: "error",
+        title: "The covers were not built",
+        body: mp ? "The model for this step is not available. Use the button on the page to switch and try again." : (w.error ?? "Try again."),
+      });
     }
   });
   const making = makeConcepts.isPending || conceptWatch.running;
@@ -318,6 +332,14 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
         status={status}
         action={canWrite ? action : null}
       />
+      {modelFix && (
+        <ModelFallbackBanner
+          className="mt-4 max-w-[860px]"
+          problem={modelFix.problem}
+          onDismiss={() => setModelFix(null)}
+          onRetry={() => void (modelFix.retry === "concepts" ? startConcepts() : startBuild())}
+        />
+      )}
       {problem && (
         <Banner
           tone="error"

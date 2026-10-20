@@ -423,6 +423,7 @@ export class JobRunner {
         status: 'failed',
         error: `${err.message} Choose another model for this stage.`,
         errorCode: 'model_unavailable',
+        result: { model: err.model, stage: err.stage, nextFallback: err.nextFallback },
       });
       return;
     }

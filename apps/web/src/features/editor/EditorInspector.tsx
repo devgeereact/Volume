@@ -114,7 +114,7 @@ export function EditorInspector(props: EditorInspectorProps) {
 }
 
 /** One line that says what to do next in this section, with a button that goes there. */
-function NextStep({ issues, onTab, tab, sectionClaims, pending }: EditorInspectorProps & { sectionClaims: number; pending: number }) {
+function NextStep({ bookId, issues, onTab, tab, sectionClaims, pending }: EditorInspectorProps & { sectionClaims: number; pending: number }) {
   const fixable = issues.filter((i) => i.fix !== null).length;
   const rewrite = issues.length - fixable;
   let text: string;
@@ -153,6 +153,11 @@ function NextStep({ issues, onTab, tab, sectionClaims, pending }: EditorInspecto
         <Button size="sm" variant="ghost" className="-my-1" onClick={() => onTab(go.tab)}>
           {go.label}
         </Button>
+      )}
+      {!done && (
+        <Link to={`/books/${bookId}/claims`} className="basis-full text-small font-semibold text-select underline-offset-2 hover:underline">
+          Fix the whole book in one go
+        </Link>
       )}
     </div>
   );
