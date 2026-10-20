@@ -74,6 +74,7 @@ import type { SuggestionState } from "./useManuscript";
 import { VersionDrawer } from "./VersionDrawer";
 import { autosaveText } from "./autosave";
 import { ClaimRewrite } from "./ClaimRewrite";
+import { ModelFallbackBanner, modelProblemOf, type ModelProblem } from "../settings/ModelFallback";
 import { categoryLabel } from "./claimsOverview";
 import { DiffText } from "./DiffText";
 import { draftStore, useSectionAutosave } from "./useSectionAutosave";
@@ -308,6 +309,7 @@ function Body({
   const [review, setReview] = useState<Review | null>(null);
   const [writeJob, setWriteJob] = useState<string | null>(null);
   const toast = useToast();
+  const [modelFix, setModelFix] = useState<{ problem: ModelProblem; retry: (() => void) | null } | null>(null);
   const [recovered, setRecovered] = useState<(LocalDraft & { sectionId: string }) | null>(null);
   const [prevOpen, setPrevOpen] = useState(false);
   const [keeping, setKeeping] = useState(false);
@@ -919,22 +921,32 @@ function Body({
         },
       });
     } else {
-      setProblem({ conflict: false, text: `The editor pass did not finish. ${w.error ?? "Try again."}` });
+      const mp = modelProblemOf(w);
+      if (mp) {
+        const again = done.pass;
+        setModelFix({
+          problem: mp,
+          retry: () => {
+            setPass(again);
+            void runPass(again);
+          },
+        });
+      } else setProblem({ conflict: false, text: `The editor pass did not finish. ${w.error ?? "Try again."}` });
       toast.show({ tone: "error", title: `${name} did not finish`, body: w.error ?? "Nothing changed. Try again." });
     }
   });
   const passRunning = (!!passJob && passJob.sectionId === sectionId && passJob.pass === pass && !passWatch.finished) || editPass.isPending;
   const passRun = suggestions.some((s) => s.pass === pass) || (passesRun[sectionId] ?? []).includes(pass);
 
-  async function runPass() {
+  async function runPass(which: SuggestionPass = pass) {
     if (!(await saveFirst())) return;
     try {
-      const r = await editPass.mutateAsync({ bookId, sectionId, input: { pass } });
-      setPassJob({ jobId: r.jobId, sectionId, pass });
+      const r = await editPass.mutateAsync({ bookId, sectionId, input: { pass: which } });
+      setPassJob({ jobId: r.jobId, sectionId, pass: which });
       setProblem(null);
       toast.show({
         tone: "working",
-        title: `${passName(pass)} started`,
+        title: `${passName(which)} started`,
         body: "The AI is reading this section. About a minute. You can keep working; you will get a message when it is done.",
       });
     } catch (e) {
@@ -1018,7 +1030,9 @@ function Body({
       );
     } else {
       setReview(null);
-      setProblem({ conflict: false, text: `The note was not woven in. ${w.error ?? "Nothing changed. Try again."}` });
+      const mp = modelProblemOf(w);
+      if (mp) setModelFix({ problem: mp, retry: null });
+      else setProblem({ conflict: false, text: `The note was not woven in. ${w.error ?? "Nothing changed. Try again."}` });
       toast.show({ tone: "error", title: "The note was not woven in", body: w.error ?? "Nothing changed. Try again." });
     }
   });
@@ -1166,7 +1180,9 @@ function Body({
       setAnnounce("Draft written. Review it; your edits save as you go.");
       toast.show({ tone: "success", title: "Section written", body: "Read it through. Anything underlined in red needs checking." });
     } else {
-      setProblem({ conflict: false, text: `The section was not written. ${w.error ?? "Try again."}` });
+      const mp = modelProblemOf(w);
+      if (mp) setModelFix({ problem: mp, retry: () => void writeThis() });
+      else setProblem({ conflict: false, text: `The section was not written. ${w.error ?? "Try again."}` });
       toast.show({ tone: "error", title: "The section was not written", body: w.error ?? "Try again." });
     }
   });
@@ -1401,6 +1417,9 @@ function Body({
                 {`You typed this at ${formatTime(new Date(recovered.at).toISOString())} and it did not reach the server.`}
                 {recoveredBehind ? " The section has newer text since then, so compare the two before you choose." : ""} The page is read only until you choose.
               </Banner>
+            )}
+            {modelFix && (
+              <ModelFallbackBanner className="mb-4" problem={modelFix.problem} onDismiss={() => setModelFix(null)} onRetry={() => modelFix.retry?.()} />
             )}
             {notice}
             {detail?.section.id === sectionId && (

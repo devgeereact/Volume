@@ -190,7 +190,7 @@ Live run 3 ("Small Offer, Real Customers") added these rules. Code: `packages/co
 | Network, 5xx, 408, 429 | Retry with backoff (2 s, 10 s, 60 s, jitter, `Retry-After` wins), up to 3 attempts |
 | Invalid JSON or schema mismatch | One repair request with the zod errors; then fail the call as `invalid_output` |
 | Stream stops early | Discard partial text, retry the section |
-| Model missing or 404 | Stop, offer the next fallback model to the owner (never silent) |
+| Model missing or 404 | Stop, offer the next fallback model to the owner (never silent). The failed job's result names the stage and the fallback; the screen shows "Use <fallback> and try again", which sets the workspace model for that stage and reruns |
 | Content refusal | Mark `needs_attention` with the refusal text; owner edits the plan or picks another model |
 
 ## Cost meter and budgets

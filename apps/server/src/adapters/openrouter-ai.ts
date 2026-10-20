@@ -742,7 +742,7 @@ function asAiError(e: unknown): AiErrorLike | null {
 }
 
 /** Looks through an error and its causes for the first value of a field. */
-function fromChain(e: unknown, field: 'retryAfterMs' | 'status' | 'model'): unknown {
+function fromChain(e: unknown, field: 'retryAfterMs' | 'status' | 'model' | 'nextFallback'): unknown {
   let cur: unknown = e;
   for (let i = 0; i < 5 && cur instanceof Error; i += 1) {
     const v = (cur as unknown as Rec)[field];
@@ -801,7 +801,11 @@ export function mapVolumeAiError(e: unknown, ctx: { stage: string; model?: strin
         return new AiRetryableError(`No provider could serve the ${ctx.stage} model just now: ${a.message}`, retryAfterMs);
       }
       const model = fromChain(a, 'model');
-      return new AiModelUnavailableError(a.message, typeof model === 'string' && model !== 'unknown' ? model : (ctx.model ?? 'unknown'));
+      const next = fromChain(a, 'nextFallback');
+      return new AiModelUnavailableError(a.message, typeof model === 'string' && model !== 'unknown' ? model : (ctx.model ?? 'unknown'), {
+        stage: ctx.stage,
+        nextFallback: typeof next === 'string' ? next : null,
+      });
     }
     case 'aborted':
       return abortError();
