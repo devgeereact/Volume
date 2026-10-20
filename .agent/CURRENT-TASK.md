@@ -12,7 +12,7 @@
 ## Next
 
 1. Owner: get the GitHub account flag lifted (account reinstatement request); then push `ci/run-check` and check CI on `main`.
-2. Until then: run the full local checks before every deploy (the deploy script skips CI with `--no-ci-check`).
+2. Until then: deploy with `npm run deploy -- --no-ci-check`, which now runs typecheck, lint, format:check, test and e2e on this computer first and stops on any failure.
 3. Owner: hold the phase 5 to 8 gates by trying each book type on the live site.
 4. One free live run with the new prompts (`LIVE_AI=1`, budget zero), only with the owner's authorisation, then a fresh live acceptance pass.
 5. Owner: OpenRouter `data_collection` setting and privacy contact facts.

@@ -62,7 +62,8 @@ The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `m
 | `npm run deploy` | Builds, uploads to `releases/<utc>`, installs with Node 24, links the shared settings file, checks migrations, switches `current`, restarts and runs the live checks. A failed check switches back to the previous release by itself. |
 | `npm run deploy -- --migrate` | Same, and applies pending migrations. Without it the script stops before going live when any are pending. Take the cPanel database backup first. |
 | `npm run deploy -- --rollback` | Switches `current` to the release before it and restarts. |
-| `--no-ci-check` | Skips the CI check. Use only with the owner's OK, while GitHub Actions cannot run. |
+| `--no-ci-check` | Skips the GitHub CI check and runs the same gates on this computer instead: `npm run typecheck`, `lint`, `format:check`, `test` and `e2e` (about four minutes; e2e needs ports 5311 to 5318 free, 5313 included). Any failure stops the deploy before the build. Use with the owner's OK while GitHub Actions cannot run. |
+| `--skip-local-checks` | Only with `--no-ci-check`: runs no checks at all. Emergency use only, and say so in the handoff. |
 
 It never deletes a release and never reads or copies the settings file (the link is a symlink). The steps it runs, for doing them by hand:
 
