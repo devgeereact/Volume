@@ -6,8 +6,8 @@ Volume runs on the owner's cPanel account as one CloudLinux Passenger Node.js ap
 
 | Item | Value (20 October 2026) |
 | --- | --- |
-| Live release | `20261020T021731Z`, built from main `ed416b2` |
-| Rollback target | `20261019T190641Z` (`npm run deploy -- --rollback`) |
+| Live release | `20261020T035644Z`, built from main `072dec3` |
+| Rollback target | `20261020T021731Z` (`npm run deploy -- --rollback`) |
 | Migrations applied in production | `0001` to `0011`. `0006`, `0008` and `0009` on 18 October 2026, `0010_listing_source` on 19 October 2026, `0011_version_author` on 19 October 2026 (evening) |
 | CI | GitHub Actions has created no runs for the owner's account since 19 October 2026. It is an account-level block, still present after the billing fix on 20 October 2026. Deploys therefore use `--no-ci-check` with the owner's OK; local evidence stands in (typecheck, lint, format, Vitest 1,176 passed and 4 skipped, e2e 17 of 17). |
 

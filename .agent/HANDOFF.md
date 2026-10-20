@@ -420,3 +420,8 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Open: PR #21 (`chore/agent-guard-gh`) awaits the owner. Live acceptance from 18 October 2026 is still FAIL (no book postable end to end yet).
 - Checks: docs only, no source, config or prompt changed. `prettier --check` and `npm run docs:check` were NOT RUN in this session (no shell tool was available to the docs agent; the lead to run them). Grep check for em dashes and banned words on the edited files: PASS (the only hit is the house-style list in AGENTS.md).
 - Not touched: `.env.example`, `scripts/agent_guard.py`, CHANGELOG.md (dead code is not user-visible), every source file.
+
+## 2026-10-20 (early morning), Claude Code (claude-opus-5-5), clean-up PR #22 deployed
+- PR #22 merged (dead code removal 29784d5, docs refresh) and deployed: main 072dec3 as release `20261020T035644Z` (`npm run deploy -- --no-ci-check`, no migrations), rollback `20261020T021731Z`.
+- Live checks: `/api/health` 200; `/api/v1/books`, `/%61pi/v1/health`, `/api/%761/books` 401 unsigned; `/`, `/library`, `/sign-in`, `/how-it-works` 200; HSTS, CSP, `X-Robots-Tag` present; browser: landing hero with How it works and Sign in, no console warnings.
+- Git: only `main` and `chore/agent-guard-gh` (PR #21) on GitHub and locally; one worktree (the main checkout).
