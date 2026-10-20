@@ -37,7 +37,8 @@ const clerkAppearance = {
   elements: {
     rootBox: "w-full",
     cardBox: "w-full max-w-[420px] rounded-lg border border-border shadow-sheet",
-    headerTitle: "font-book text-title",
+    // The page already has its own "Sign in to Volume" heading, so Clerk's card header would repeat it.
+    header: { display: "none" },
   },
 };
 
