@@ -4,11 +4,11 @@ import { cn } from "../lib/cn";
 import { SmoothScroll } from "./SmoothScroll";
 import "./site.css";
 
-/* The public pages' frame: brand mark, two links, the page, one quiet footer line. Signed-out
-   visitors see it at / (hosted builds). Signed-in users and local builds reach it at /welcome. */
+/* The public pages' frame: brand mark, two links, the page, one quiet footer line. The landing at /
+   is the front of the app for everyone (D-054); signed-in users get "Open library" instead of "Sign in". */
 
 interface SiteContextValue {
-  /** Where the brand mark goes: / for signed-out visitors, /welcome inside the app. */
+  /** Where the brand mark goes (the landing). */
   home: string;
   signedIn: boolean;
 }
@@ -22,7 +22,7 @@ export function useSite(): SiteContextValue {
 /** Primary call to action on the public pages: sign in, or open the library when already in. */
 export function useSiteCta(): { to: string; label: string } {
   const { signedIn } = useSite();
-  return signedIn ? { to: "/", label: "Open the library" } : { to: "/sign-in", label: "Sign in to start" };
+  return signedIn ? { to: "/library", label: "Open the library" } : { to: "/sign-in", label: "Sign in to start" };
 }
 
 const pill =
@@ -46,7 +46,7 @@ export function SiteLayout({ home, signedIn }: SiteContextValue) {
               <NavLink to="/how-it-works" className={({ isActive }) => cn("transition-colors hover:text-ink", isActive && "font-semibold text-ink")}>
                 How it works
               </NavLink>
-              <Link to={signedIn ? "/" : "/sign-in"} className={pill}>
+              <Link to={signedIn ? "/library" : "/sign-in"} className={pill}>
                 {signedIn ? "Open library" : "Sign in"}
               </Link>
             </div>
@@ -65,5 +65,5 @@ export function SiteLayout({ home, signedIn }: SiteContextValue) {
 
 /** The frame as the app's router uses it (signed in, or a local build). */
 export default function InAppSiteLayout() {
-  return <SiteLayout home="/welcome" signedIn />;
+  return <SiteLayout home="/" signedIn />;
 }

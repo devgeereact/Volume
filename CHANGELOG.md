@@ -4,6 +4,9 @@ User-visible changes, newest first. Dates in British format.
 
 ## 20 October 2026
 
+#### Changed
+- volume.gakinz.com opens on the landing page for everyone. Signing in takes you to the Library, which now lives at /library; when you are already signed in, the landing's button says Open library.
+
 #### Fixed
 - The sign-in page shows "Sign in to Volume" once, not twice.
 

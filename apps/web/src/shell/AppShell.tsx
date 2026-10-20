@@ -51,7 +51,7 @@ export function AppShell() {
 
   const phone = bp === "phone";
   const collapsed = bp === "tablet" || Boolean(book) || (api && inBook);
-  const onLibrary = pathname === "/" || pathname === "/library";
+  const onLibrary = pathname === "/library";
   const onJobScreen = pathname.startsWith(bookStepPath(job.bookId, "writing"));
   // A server job's bar hides on the Library (its own live line) and on the screen that shows that job.
   const serverJob = serverJobs.find((j) => j.status === "failed" || !pathname.startsWith(bookStepPath(j.bookId, stepForJob(j.kind))));

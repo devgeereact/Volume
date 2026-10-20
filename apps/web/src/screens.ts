@@ -82,7 +82,7 @@ export const screens: Record<ScreenId, ScreenDef> = {
     id: "library",
     title: "Library",
     purpose: "See every book by pen name and status; open or start one.",
-    path: "/",
+    path: "/library",
     folder: "features/library",
     owner: "A",
     step: null,

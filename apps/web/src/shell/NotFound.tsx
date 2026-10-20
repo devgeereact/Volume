@@ -15,7 +15,7 @@ export function NotFound({ what = "page" }: { what?: "page" | "book" | "profile"
         body="It may have been archived, or the link is out of date."
         action={
           <Link
-            to="/"
+            to="/library"
             className="inline-flex h-10 items-center rounded-sm bg-accent px-4 text-label font-semibold text-on-accent shadow-button hover:bg-accent-hover"
           >
             Go to Library

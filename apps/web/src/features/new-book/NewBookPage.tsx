@@ -199,7 +199,7 @@ export default function NewBookPage() {
         <PageHeader title="New book" />
         <ReadOnlyBanner />
         <p>
-          <Link to="/" className="text-label text-select underline underline-offset-2">
+          <Link to="/library" className="text-label text-select underline underline-offset-2">
             Back to the Library
           </Link>
         </p>

@@ -19,21 +19,22 @@ export function screenErrors(children: RouteObject[]): RouteObject {
 // Screen paths and navigation share the same catalogue; preserve aliases and lazy chunks.
 // The outer errorElement is the last resort, for an error in the shell itself.
 export const routes: RouteObject[] = [
-  // Public pages inside the app (signed in, or a local build). Signed-out visitors get them from
-  // site/PublicSite, with the landing hero at /.
+  // The landing hero is the front of the app at / for everyone (D-054); the Library is at /library.
+  // Signed-out visitors on a hosted build get these pages from site/PublicSite instead.
   {
     lazy: async () => ({ Component: (await import("../site/SiteLayout")).default }),
     hydrateFallbackElement: <div className="min-h-dvh bg-canvas" />,
     errorElement: <RouteError />,
     children: [
       screenErrors([
-        { path: "/welcome", lazy: async () => ({ Component: (await import("../site/LandingPage")).default }) },
+        { path: "/", lazy: async () => ({ Component: (await import("../site/LandingPage")).default }) },
+        { path: "/welcome", element: <Navigate to="/" replace /> },
         { path: "/how-it-works", lazy: async () => ({ Component: (await import("../site/HowItWorksPage")).default }) },
       ]),
     ],
   },
   hostedSignIn
-    ? { path: "/sign-in", element: <Navigate to="/" replace /> }
+    ? { path: "/sign-in", element: <Navigate to="/library" replace /> }
     : {
         path: "/sign-in",
         hydrateFallbackElement: <div className="min-h-dvh bg-canvas" />,
@@ -48,7 +49,6 @@ export const routes: RouteObject[] = [
     errorElement: <RouteError />,
     children: [
       screenErrors([
-        { path: "/", element: <LibraryPage /> },
         { path: "/library", element: <LibraryPage /> },
         { path: screens.published.path, lazy: async () => ({ Component: (await import("../features/published/PublishedPage")).default }) },
         { path: screens.profiles.path, lazy: async () => ({ Component: (await import("../features/profiles/ProfilesPage")).default }) },

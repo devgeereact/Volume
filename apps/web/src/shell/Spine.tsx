@@ -25,7 +25,7 @@ export function BrandMark({ className }: { className?: string | undefined }) {
 }
 
 function isActive(pathname: string, path: string): boolean {
-  if (path === "/") return pathname === "/" || pathname === "/library" || (pathname.startsWith("/books/") && pathname !== "/books/new");
+  if (path === "/library") return pathname === "/library" || (pathname.startsWith("/books/") && pathname !== "/books/new");
   if (path === "/published") return pathname === "/published";
   if (path === "/books/new") return pathname === "/books/new";
   if (path.startsWith("/settings")) return pathname.startsWith("/settings");
@@ -68,7 +68,7 @@ export function Spine({ collapsed, book, onNavigate, className }: SpineProps) {
       )}
     >
       <Link
-        to="/"
+        to="/library"
         onClick={onNavigate}
         className={cn("flex items-center gap-2.5 rounded-sm text-ink-on-spine", collapsed ? "mb-5 justify-center p-1" : "mb-6 px-2")}
         aria-label="Volume, go to Library"
