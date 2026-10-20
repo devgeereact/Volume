@@ -22,7 +22,7 @@ For a new session, read this file, then [AGENTS.md](AGENTS.md) (every rule) and 
 
 ## Status
 
-20 October 2026: live at https://volume.gakinz.com on release `20261020T021731Z` (main `ed416b2`), with rollback target `20261019T190641Z`. Phases 0 to 8 are built; phases 6 to 8 were built on 17 October 2026 (D-041 to D-047). The owner gates for phases 5 to 8 are open. The live acceptance run of 18 October 2026 is not passed: no book has yet gone through to a postable pack end to end.
+20 October 2026: live at https://volume.gakinz.com on release `20261020T035644Z` (main `072dec3`), with rollback target `20261020T021731Z`. Phases 0 to 8 are built; phases 6 to 8 were built on 17 October 2026 (D-041 to D-047). The owner gates for phases 5 to 8 are open. The live acceptance run of 18 October 2026 is not passed: no book has yet gone through to a postable pack end to end.
 
 GitHub Actions creates no runs for the owner's account (an account-level block, still present after the billing fix on 20 October 2026), so deploys use `--no-ci-check` with the owner's OK. Open issues are in [known issues](KNOWN-ISSUES.md). The current release, deploy and rollback steps are in [deployment](docs/07-operations/DEPLOYMENT.md).
 

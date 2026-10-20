@@ -2,11 +2,11 @@
 
 ## State on 20 October 2026
 
-- Live at https://volume.gakinz.com on release `20261020T021731Z` (main `ed416b2`). Rollback target `20261019T190641Z` (`npm run deploy -- --rollback`). Migrations 0001 to 0011 applied in production.
+- Live at https://volume.gakinz.com on release `20261020T035644Z` (main `072dec3`). Rollback target `20261020T021731Z` (`npm run deploy -- --rollback`). Migrations 0001 to 0011 applied in production.
 - Merged to main on 19 and 20 October (PRs #7 to #20): picture-book e2e fix, web polish, server hardening (D-050), own cover upload and listing preflight, acceptance fixes, move a book by project zip (D-051), claim fixes and autosave (D-052), public landing and branded sign-in (D-053), landing as the front with the Library at `/library` (D-054).
-- Local evidence on `ed416b2`: typecheck, lint and format PASS; Vitest 1,176 passed and 4 skipped; e2e 17 of 17.
+- Local evidence on `072dec3`: typecheck, lint and format PASS; Vitest 1,176 passed and 4 skipped; e2e 17 of 17.
 - GitHub Actions creates no runs for the owner's account. It is an account-level block, still present after the billing fix on 20 October. Deploys use `npm run deploy -- --no-ci-check` with the owner's OK.
-- Git cleaned: only `main` and `chore/agent-guard-gh` (PR #21) remain, local and on GitHub. Dead code and docs refresh are on `chore/refresh-2026-10-20`, about to merge.
+- Git cleaned: only `main` and `chore/agent-guard-gh` (PR #21) remain, local and on GitHub. Dead code removed and every guide brought up to date (PR #22, merged and deployed 20 October 2026).
 - Live acceptance from 18 October 2026 is FAIL: no book has yet gone through to a postable pack end to end.
 
 ## Next
