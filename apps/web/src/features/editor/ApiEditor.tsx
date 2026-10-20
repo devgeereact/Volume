@@ -56,6 +56,7 @@ import { isTerminalJob } from "../../api/types";
 import { cn } from "../../lib/cn";
 import { formatNumber, formatTime } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
+import { useToast } from "../../lib/toast";
 import { interiorLook } from "../../lib/interiorLook";
 import { ErrorPanel, LoadingBlock } from "../writing/screenState";
 import { SummaryMissingNotice } from "../writing/SummaryMissingNotice";
@@ -64,7 +65,7 @@ import { useCanWrite } from "../../lib/access";
 import { workbookPlainText, type InsertKind } from "../../lib/workbookMarkdown";
 import { ApiCompare } from "./ApiCompare";
 import { EditorCanvas } from "./EditorCanvas";
-import { EditorInspector, type InspectorTab } from "./EditorInspector";
+import { EditorInspector, passName, type InspectorTab } from "./EditorInspector";
 import { FindReplace, type FindState } from "./FindReplace";
 import type { MsBlock, MsClaim, MsGroup, MsNote, MsSection, MsSuggestion, MsVersion, NoteMode, SuggestionPass } from "./manuscript";
 import { ManuscriptTree } from "./ManuscriptTree";
@@ -278,7 +279,7 @@ function Body({
 
   const [doc, setDoc] = useState<Doc | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<InspectorTab>("suggestions");
+  const [tab, setTab] = useState<InspectorTab>("fix");
   const [pass, setPass] = useState<SuggestionPass>("line");
   const [passJob, setPassJob] = useState<{ jobId: string; sectionId: string; pass: SuggestionPass } | null>(null);
   const [passesRun, setPassesRun] = useState<Record<string, SuggestionPass[]>>({});
@@ -295,11 +296,18 @@ function Body({
   const [announce, setAnnounce] = useState("");
   const [panelOpen, setPanelOpen] = useState(true);
   const [focusNote, setFocusNote] = useState<string | null>(null);
+  const [focusClaim, setFocusClaim] = useState<string | null>(null);
+  const showClaim = (id: string) => {
+    setTab("fix");
+    setPanelOpen(true);
+    setFocusClaim(id);
+  };
   const [doneOpen, setDoneOpen] = useState(false);
   const [localNotes, setLocalNotes] = useState<MsNote[]>([]);
   const [noteText, setNoteText] = useState<Record<string, string>>({});
   const [review, setReview] = useState<Review | null>(null);
   const [writeJob, setWriteJob] = useState<string | null>(null);
+  const toast = useToast();
   const [recovered, setRecovered] = useState<(LocalDraft & { sectionId: string }) | null>(null);
   const [prevOpen, setPrevOpen] = useState(false);
   const [keeping, setKeeping] = useState(false);
@@ -890,10 +898,30 @@ function Body({
   const passWatch = useJobWatch(bookId, passJob?.jobId, (w) => {
     if (!passJob) return;
     setPassesRun((m) => ({ ...m, [passJob.sectionId]: [...new Set([...(m[passJob.sectionId] ?? []), passJob.pass])] }));
+    const done = passJob;
     setPassJob(null);
     void suggestionsQ.refetch();
-    if (w.ok) setAnnounce("Suggestions ready.");
-    else setProblem({ conflict: false, text: `The editor pass did not finish. ${w.error ?? "Try again."}` });
+    const name = passName(done.pass);
+    if (w.ok) {
+      setAnnounce("Suggestions ready.");
+      toast.show({
+        tone: "success",
+        title: `${name} finished`,
+        body: `${sectionLabel(done.sectionId)}: the AI edits are ready to accept or reject.`,
+        action: {
+          label: "Show",
+          onClick: () => {
+            if (done.sectionId !== sectionId) void navigate(`/books/${bookId}/editor/${done.sectionId}`);
+            setPass(done.pass);
+            setTab("suggestions");
+            setPanelOpen(true);
+          },
+        },
+      });
+    } else {
+      setProblem({ conflict: false, text: `The editor pass did not finish. ${w.error ?? "Try again."}` });
+      toast.show({ tone: "error", title: `${name} did not finish`, body: w.error ?? "Nothing changed. Try again." });
+    }
   });
   const passRunning = (!!passJob && passJob.sectionId === sectionId && passJob.pass === pass && !passWatch.finished) || editPass.isPending;
   const passRun = suggestions.some((s) => s.pass === pass) || (passesRun[sectionId] ?? []).includes(pass);
@@ -904,6 +932,11 @@ function Body({
       const r = await editPass.mutateAsync({ bookId, sectionId, input: { pass } });
       setPassJob({ jobId: r.jobId, sectionId, pass });
       setProblem(null);
+      toast.show({
+        tone: "working",
+        title: `${passName(pass)} started`,
+        body: "The AI is reading this section. About a minute. You can keep working; you will get a message when it is done.",
+      });
     } catch (e) {
       setProblem({ conflict: false, text: errorText(e) });
     }
@@ -973,6 +1006,11 @@ function Body({
     const res = (w.result ?? {}) as { versionId?: unknown };
     if (w.ok && typeof res.versionId === "string") {
       setReview((r) => (r ? { ...r, versionId: res.versionId as string } : r));
+      toast.show({
+        tone: "success",
+        title: review.mode === "weave" ? "Your note is woven in" : "New section ready",
+        body: "It shows in blue in the text. Accept or reject it there.",
+      });
       setAnnounce(
         review.mode === "weave"
           ? "Your note is woven in. Review it in blue pencil, then accept or reject."
@@ -981,6 +1019,7 @@ function Body({
     } else {
       setReview(null);
       setProblem({ conflict: false, text: `The note was not woven in. ${w.error ?? "Nothing changed. Try again."}` });
+      toast.show({ tone: "error", title: "The note was not woven in", body: w.error ?? "Nothing changed. Try again." });
     }
   });
 
@@ -1123,13 +1162,19 @@ function Body({
   const writeWatch = useJobWatch(bookId, writeJob, (w) => {
     setWriteJob(null);
     void sectionQ.refetch();
-    if (w.ok || w.status === "needs_attention") setAnnounce("Draft written. Review it; your edits save as you go.");
-    else setProblem({ conflict: false, text: `The section was not written. ${w.error ?? "Try again."}` });
+    if (w.ok || w.status === "needs_attention") {
+      setAnnounce("Draft written. Review it; your edits save as you go.");
+      toast.show({ tone: "success", title: "Section written", body: "Read it through. Anything underlined in red needs checking." });
+    } else {
+      setProblem({ conflict: false, text: `The section was not written. ${w.error ?? "Try again."}` });
+      toast.show({ tone: "error", title: "The section was not written", body: w.error ?? "Try again." });
+    }
   });
   async function writeThis() {
     try {
       const r = await writeSection.mutateAsync({ bookId, sectionId });
       setWriteJob(r.jobId);
+      toast.show({ tone: "working", title: "Writing this section", body: "The AI is drafting it now. This can take a few minutes." });
     } catch (e) {
       setProblem({ conflict: false, text: errorText(e) });
     }
@@ -1173,7 +1218,7 @@ function Body({
     }
   }
 
-  const claimEstimate = useEstimate(bookId, "claim_fix", { enabled: canWrite && tab === "claims" && sectionClaims.length > 0 });
+  const claimEstimate = useEstimate(bookId, "claim_fix", { enabled: canWrite && tab === "fix" && sectionClaims.length > 0 });
 
   useStepAction({ label: "Mark edit done", onClick: () => setDoneOpen(true) });
 
@@ -1412,6 +1457,7 @@ function Body({
                   writing={writeSection.isPending || writeWatch.running}
                   writeDisabledReason={undefined}
                   onPasteOwn={pasteOwn}
+                  onClaimClick={showClaim}
                 />
               </div>
             )}
@@ -1427,6 +1473,18 @@ function Body({
 
       <div className={cn("min-h-0 border-t border-border xl:border-t-0", !panelOpen && "xl:hidden")}>
         <EditorInspector
+          focusClaimId={focusClaim}
+          aiBusy={
+            passJob && !passWatch.finished
+              ? `${passName(passJob.pass)} on ${sectionLabel(passJob.sectionId)}${passWatch.message ? `, ${passWatch.message}` : ""}.`
+              : review && weaveWatch.running
+                ? review.mode === "expand"
+                  ? "writing a new section from your note."
+                  : "weaving your note into the text."
+                : writeJob && writeWatch.running
+                  ? "writing this section."
+                  : null
+          }
           bookId={bookId}
           tab={tab}
           onTab={setTab}

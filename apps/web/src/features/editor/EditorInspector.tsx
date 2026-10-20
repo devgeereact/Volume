@@ -1,21 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { Check, Flag, MessageSquarePlus, Sparkles, Undo2, X } from "lucide-react";
-import {
-  Button,
-  Checkbox,
-  Figure,
-  Input,
-  Inspector,
-  InspectorSection,
-  Loader,
-  modKey,
-  SegmentedControl,
-  Skeleton,
-  Tabs,
-  tabPanelProps,
-  Textarea,
-} from "../../components/ui";
+import { ArrowRight, Check, Flag, MessageSquarePlus, Sparkles, Undo2, X } from "lucide-react";
+import { Button, Checkbox, Figure, Input, Inspector, InspectorSection, Loader, modKey, Skeleton, Tabs, tabPanelProps, Textarea } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { formatNumber } from "../../lib/format";
 import type { ClaimStatus, MsClaim, MsNote, MsSection, MsSuggestion, NoteStatus, SuggestionPass } from "./manuscript";
@@ -23,9 +9,18 @@ import type { SuggestionState } from "./useManuscript";
 import { DiffText } from "./DiffText";
 import type { Issue } from "./textTools";
 
-export type InspectorTab = "checks" | "claims" | "suggestions" | "notes";
+export type InspectorTab = "fix" | "suggestions" | "notes";
 
 const passLabels: Record<SuggestionPass, string> = { structure: "Structure", line: "Line edit (UK)", voice: "Voice" };
+/** Short name of an AI edit pass, for buttons and messages. */
+export function passName(p: SuggestionPass): string {
+  return p === "line" ? "Line edit" : passLabels[p];
+}
+const passHelp: Record<SuggestionPass, string> = {
+  structure: "Looks at the order of the section, the links between parts and the takeaways.",
+  line: "Polishes sentence by sentence, in British English.",
+  voice: "Makes the text sound like the pen name.",
+};
 const passCosts: Record<SuggestionPass, string> = { structure: "about $0.05", line: "about $0.03", voice: "about $0.03" };
 
 interface EditorInspectorProps {
@@ -66,14 +61,19 @@ interface EditorInspectorProps {
   guardrails?: { passed: boolean; items: { message: string; severity: string; match: string | null }[] } | null | undefined;
   /** A viewer's role: everything reads, no fix, decision or note buttons. */
   readOnly?: boolean | undefined;
+  /** A claim picked from the text: its card is shown and highlighted on the To fix tab. */
+  focusClaimId?: string | null | undefined;
+  /** What the AI is doing for this book right now, shown above everything else (null: nothing). */
+  aiBusy?: string | null | undefined;
 }
 
-/** Inspector tabs for the Editor: Checks, Claims, Suggestions and Versions. */
+/** Inspector for the Editor: what to do next, then three tabs (To fix, AI edits, Notes). */
 export function EditorInspector(props: EditorInspectorProps) {
-  const { tab, onTab, claims, suggestions, suggestionState } = props;
-  const openClaims = claims.filter((c) => c.status === "open").length;
+  const { tab, onTab, claims, suggestions, suggestionState, section, issues } = props;
+  const sectionClaims = claims.filter((c) => c.status === "open" && c.sectionId === section.id).length;
   const pending = suggestions.filter((s) => (suggestionState[s.id] ?? "pending") === "pending").length;
   const openNotes = props.notes.filter((n) => n.status === "draft" || n.status === "working" || n.status === "ready").length;
+  const toFix = sectionClaims + issues.length;
   return (
     <Inspector label="Editor inspector" width="100%" className="xl:h-full">
       <Tabs
@@ -83,16 +83,29 @@ export function EditorInspector(props: EditorInspectorProps) {
         value={tab}
         onChange={(t) => onTab(t as InspectorTab)}
         items={[
-          { id: "checks", label: "Checks" },
-          { id: "claims", label: "Claims", count: openClaims || undefined, countTone: "claim" },
-          { id: "suggestions", label: "Edits", count: pending || undefined },
+          { id: "fix", label: "To fix", count: toFix || undefined, countTone: sectionClaims > 0 ? "claim" : undefined },
+          { id: "suggestions", label: "AI edits", count: pending || undefined },
           { id: "notes", label: "Notes", count: openNotes || undefined },
         ]}
       />
+      {props.aiBusy && (
+        <p role="status" className="mb-3 flex items-start gap-2 rounded-md bg-select-wash px-3 py-2.5 text-small text-ink">
+          <Loader />
+          <span>
+            <b className="font-semibold">AI working: </b>
+            {props.aiBusy}
+          </span>
+        </p>
+      )}
+      {!props.readOnly && <NextStep {...props} sectionClaims={sectionClaims} pending={pending} />}
       {props.notice}
       <div {...tabPanelProps("ed-insp", tab)} className="relative focus-visible:outline-offset-4">
-        {tab === "checks" && <ChecksPanel {...props} />}
-        {tab === "claims" && <ClaimsPanel {...props} />}
+        {tab === "fix" && (
+          <>
+            <ClaimsPanel {...props} />
+            <ChecksPanel {...props} />
+          </>
+        )}
         {tab === "suggestions" && <SuggestionsPanel {...props} />}
         {tab === "notes" && <NotesPanel {...props} />}
       </div>
@@ -100,14 +113,58 @@ export function EditorInspector(props: EditorInspectorProps) {
   );
 }
 
-function ChecksPanel({ section, words, issues, onFixIssue, claims, guardrails, readOnly }: EditorInspectorProps) {
+/** One line that says what to do next in this section, with a button that goes there. */
+function NextStep({ issues, onTab, tab, sectionClaims, pending }: EditorInspectorProps & { sectionClaims: number; pending: number }) {
+  const fixable = issues.filter((i) => i.fix !== null).length;
+  const rewrite = issues.length - fixable;
+  let text: string;
+  let go: { tab: InspectorTab; label: string } | null = null;
+  if (sectionClaims > 0) {
+    text = `Check ${sectionClaims} ${sectionClaims === 1 ? "claim" : "claims"} underlined in red. Mark each one checked, soften it or remove it.`;
+    go = { tab: "fix", label: "Show claims" };
+  } else if (fixable > 0) {
+    text = `Fix ${fixable} house style ${fixable === 1 ? "problem" : "problems"} (em dashes or US spelling). One click each.`;
+    go = { tab: "fix", label: "Show fixes" };
+  } else if (rewrite > 0) {
+    text = `Rewrite ${rewrite} banned ${rewrite === 1 ? "phrase" : "phrases"} in your own words.`;
+    go = { tab: "fix", label: "Show phrases" };
+  } else if (pending > 0) {
+    text = `${pending} AI ${pending === 1 ? "edit is" : "edits are"} waiting. Accept or reject each one.`;
+    go = { tab: "suggestions", label: "Show AI edits" };
+  } else {
+    text = "This section is clear. Go to the next section, or ask the AI for edits first if you want them.";
+  }
+  const done = go === null;
+  return (
+    <div
+      role="status"
+      className={cn("mb-4 flex flex-wrap items-start gap-2 rounded-md px-3 py-2.5 text-small", done ? "bg-success-wash text-ink" : "bg-accent-wash text-ink")}
+    >
+      {done ? (
+        <Check size={14} strokeWidth={2} aria-hidden className="mt-0.5 shrink-0 text-success" />
+      ) : (
+        <ArrowRight size={14} strokeWidth={2} aria-hidden className="mt-0.5 shrink-0 text-accent-text" />
+      )}
+      <span className="min-w-0 flex-1">
+        <b className="font-semibold">{done ? "Done here. " : "Next: "}</b>
+        {text}
+      </span>
+      {go && go.tab !== tab && (
+        <Button size="sm" variant="ghost" className="-my-1" onClick={() => onTab(go.tab)}>
+          {go.label}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function ChecksPanel({ section, words, issues, onFixIssue, guardrails, readOnly }: EditorInspectorProps) {
   const target = section.wordTarget;
   const over = target !== null ? words - target : 0;
   const inRange = target === null || Math.abs(over) <= target * 0.15;
   const emDashes = issues.filter((i) => i.kind === "em-dash");
   const spellings = issues.filter((i) => i.kind === "spelling");
   const banned = issues.filter((i) => i.kind === "banned");
-  const open = claims.filter((c) => c.status === "open" && c.sectionId === section.id).length;
   return (
     <>
       <InspectorSection title="Words in this section">
@@ -170,7 +227,6 @@ function ChecksPanel({ section, words, issues, onFixIssue, claims, guardrails, r
               </span>
             ))}
           </CheckRow>
-          <CheckRow ok={open === 0} claim label={open === 0 ? "No open claims here" : `${open} ${open === 1 ? "claim" : "claims"} to verify`} />
         </ul>
       </InspectorSection>
       {guardrails !== undefined && (
@@ -224,14 +280,25 @@ function ClaimsPanel({
   softenEditable = false,
   readOnly,
   renderClaimTools,
+  focusClaimId,
 }: EditorInspectorProps) {
-  const sorted = [...claims].sort((a, b) => Number(b.sectionId === section.id) - Number(a.sectionId === section.id));
+  // Open claims in this section first, then the rest of this section, then other sections.
+  const rank = (c: MsClaim) => (c.sectionId === section.id ? 0 : 2) + (c.status === "open" ? 0 : 1);
+  const sorted = [...claims].sort((a, b) => rank(a) - rank(b));
   if (claims.length === 0)
-    return <p className="text-body text-ink-secondary">No claims in this book. The checker found nothing medical, legal or statistical to verify.</p>;
+    return (
+      <InspectorSection title="Claims to check">
+        <p className="flex items-center gap-1.5 text-small text-success">
+          <Check size={14} strokeWidth={2} aria-hidden />
+          Nothing to check. No medical, legal or statistical claims found.
+        </p>
+      </InspectorSection>
+    );
   return (
-    <>
+    <InspectorSection title="Claims to check">
       <p className="mb-3 text-small text-ink-secondary">
-        Medical, legal and statistical statements go here until you check them. Preflight warns while any stay open.
+        Sentences underlined in red make a medical, legal or statistical claim. Click one in the text, or use the cards below: mark it checked if it is right,
+        soften it, or remove it. The underline then goes away.
       </p>
       {softenEditable && (
         <Link to={`/books/${bookId}/claims`} className="mb-3 inline-flex text-small font-semibold text-select underline-offset-2 hover:underline">
@@ -251,10 +318,11 @@ function ClaimsPanel({
             softenEditable={softenEditable}
             readOnly={readOnly === true}
             tools={renderClaimTools}
+            focused={focusClaimId === c.id}
           />
         ))}
       </ul>
-    </>
+    </InspectorSection>
   );
 }
 
@@ -268,7 +336,9 @@ function ClaimCard({
   softenEditable,
   readOnly,
   tools,
+  focused,
 }: {
+  focused: boolean;
   readOnly: boolean;
   tools: EditorInspectorProps["renderClaimTools"];
   claim: MsClaim;
@@ -285,8 +355,19 @@ function ClaimCard({
   const ownWording = softenEditable || claim.softened === "";
   const [softer, setSofter] = useState(claim.softened || claim.sentence);
   const open = claim.status === "open";
+  const ref = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (focused) ref.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [focused]);
   return (
-    <li className={cn("rounded-md border p-3", open ? "border-transparent bg-claim-wash" : "border-border bg-canvas")}>
+    <li
+      ref={ref}
+      className={cn(
+        "scroll-mt-4 rounded-md border p-3",
+        open ? "border-transparent bg-claim-wash" : "border-border bg-canvas",
+        focused && "outline-2 outline-offset-2 outline-claim",
+      )}
+    >
       <p className="flex flex-wrap items-center justify-between gap-2 text-caption">
         <span className={cn("inline-flex items-center gap-1 font-semibold", open ? "text-claim" : "text-ink-secondary")}>
           <Flag size={12} strokeWidth={2} aria-hidden />
@@ -306,14 +387,17 @@ function ClaimCard({
         <div className="mt-2.5 flex flex-wrap gap-1.5">
           {here && readOnly ? null : here ? (
             <>
-              <Button size="sm" onClick={() => setMode("verify")}>
-                Verify
+              <Button size="sm" icon={Check} onClick={() => onClaim(claim, "verify", "marked as checked by you")}>
+                It is right, mark checked
               </Button>
-              <Button size="sm" onClick={() => setMode("soften")}>
+              <Button size="sm" variant="ghost" onClick={() => setMode("verify")}>
+                Add a source
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setMode("soften")}>
                 Soften
               </Button>
               <Button size="sm" variant="ghost" onClick={() => onClaim(claim, "remove")}>
-                Remove
+                Remove sentence
               </Button>
             </>
           ) : (
@@ -411,27 +495,42 @@ function SuggestionsPanel({
 }: EditorInspectorProps) {
   const list = suggestions.filter((s) => s.pass === pass);
   const pending = list.filter((s) => (suggestionState[s.id] ?? "pending") === "pending");
+  const waiting = (p: SuggestionPass) => suggestions.filter((s) => s.pass === p && (suggestionState[s.id] ?? "pending") === "pending").length;
   return (
     <>
-      <SegmentedControl
-        size="sm"
-        className="w-full"
-        label="Editor pass"
-        value={pass}
-        onChange={onPass}
-        options={(["structure", "line", "voice"] as SuggestionPass[]).map((p) => ({ value: p, label: p === "line" ? "Line edit" : passLabels[p] }))}
-      />
-      <p className="mt-2 text-small text-ink-secondary">
-        {pass === "structure" && "Order, bridges and takeaways for this section."}
-        {pass === "line" && "Sentence by sentence, in British English."}
-        {pass === "voice" && "Checks the text sounds like the pen name's voice."}
+      <p className="mb-3 text-small text-ink-secondary">
+        Optional. The AI reads this section and suggests changes. Nothing changes until you accept. Pick the kind of edit:
       </p>
+      <div role="radiogroup" aria-label="Kind of AI edit" className="grid gap-1.5">
+        {(["line", "structure", "voice"] as SuggestionPass[]).map((p) => {
+          const n = waiting(p);
+          return (
+            <button
+              key={p}
+              type="button"
+              role="radio"
+              aria-checked={pass === p}
+              onClick={() => onPass(p)}
+              className={cn(
+                "grid gap-0.5 rounded-md border px-3 py-2 text-left",
+                pass === p ? "border-select bg-select-wash" : "border-border bg-sheet hover:bg-sunken",
+              )}
+            >
+              <span className="flex items-center justify-between gap-2 text-label text-ink">
+                {p === "line" ? "Line edit" : passLabels[p]}
+                {n > 0 && <span className="num text-caption font-semibold text-select">{n} waiting</span>}
+              </span>
+              <span className="text-small text-ink-secondary">{passHelp[p]}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {passRunning ? (
         <div role="status" aria-label={`Running ${passLabels[pass]}`} className="mt-4 grid gap-2">
           <p className="flex items-center gap-2 text-small text-ink-secondary">
             <Loader />
-            The editor is reading this section
+            The AI is reading this section. This takes about a minute. You can keep working; a message shows when it is done.
           </p>
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-16 w-full" />

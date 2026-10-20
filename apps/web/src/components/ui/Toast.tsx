@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import { Check, CircleAlert, Flag, X } from "lucide-react";
+import { Check, CircleAlert, Flag, Sparkles, X } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { Button } from "./Button";
 import { IconButton } from "./IconButton";
 
-export type ToastTone = "success" | "attention" | "error";
+export type ToastTone = "success" | "attention" | "error" | "working";
 
 export interface ToastProps {
   tone: ToastTone;
@@ -19,6 +19,7 @@ const icons = {
   success: { icon: Check, classes: "bg-success-wash text-success" },
   attention: { icon: Flag, classes: "bg-accent-wash text-accent-text" },
   error: { icon: CircleAlert, classes: "bg-claim-wash text-claim" },
+  working: { icon: Sparkles, classes: "bg-select-wash text-select" },
 };
 
 /**

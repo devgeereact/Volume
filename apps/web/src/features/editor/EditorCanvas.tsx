@@ -67,6 +67,8 @@ interface EditorCanvasProps {
   writing: boolean;
   writeDisabledReason: string | undefined;
   onPasteOwn: () => void;
+  /** Clicking a claim's underline in the text: shows that claim's card so it can be dealt with. */
+  onClaimClick?: ((claimId: string) => void) | undefined;
   /** False hides the selection rewrite toolbar. */
   rewrites?: boolean | undefined;
   /** A viewer's role: the text shows, nothing can be typed, noted or inserted. */
@@ -332,6 +334,7 @@ export function EditorCanvas(props: EditorCanvasProps) {
                           onCommit={props.onCommit}
                           onSplit={props.onSplit}
                           onAddNote={props.onAddNote}
+                          onClaimClick={props.onClaimClick}
                         />
                       </div>
                       {notesHere.length > 0 && (
@@ -596,6 +599,7 @@ interface EditableBlockProps {
   onDraft: (blockId: string, text: string) => void;
   onCommit: (blockId: string, text: string) => void;
   onSplit: (blockId: string, offset: number, text: string) => void;
+  onClaimClick?: ((claimId: string) => void) | undefined;
 }
 
 /** TipTap owns text and undo history; existing block callbacks preserve the manuscript and note layout. */
@@ -620,7 +624,13 @@ function EditableBlock(props: EditableBlockProps) {
                   for (const claim of value.claims) {
                     const start = text.indexOf(claim.sentence);
                     if (start >= 0 && claim.sentence)
-                      decorations.push(Decoration.inline(start + 1, start + claim.sentence.length + 1, { class: "vol-claim-mark" }));
+                      decorations.push(
+                        Decoration.inline(start + 1, start + claim.sentence.length + 1, {
+                          class: "vol-claim-mark",
+                          "data-claim-id": claim.id,
+                          title: "Claim to check. Click to verify, soften or remove it.",
+                        }),
+                      );
                   }
                   for (const [index, [start, end]] of findRanges(text, value.findRe).entries()) {
                     if (end > start)
@@ -673,6 +683,7 @@ function EditableBlock(props: EditableBlockProps) {
           role: "textbox",
           "aria-label": block.kind === "h" ? "Manuscript subheading" : "Manuscript paragraph",
           spellcheck: "true",
+          lang: "en-GB",
           class: cn("rounded-xs outline-none focus-visible:bg-select-wash/40", indent && "indent-[1.5em]"),
         },
         handleKeyDown(view, event) {
@@ -688,6 +699,14 @@ function EditableBlock(props: EditableBlockProps) {
             return true;
           }
           return true;
+        },
+        handleClick(_view, _pos, event) {
+          const mark = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-claim-id]") : null;
+          const id = mark?.dataset.claimId;
+          const onClaimClick = binding.read().onClaimClick;
+          if (!id || !onClaimClick) return false;
+          onClaimClick(id);
+          return false;
         },
         handlePaste(view, event) {
           const text = event.clipboardData?.getData("text/plain").replace(/\s*\n+\s*/g, " ") ?? "";

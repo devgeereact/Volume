@@ -121,7 +121,7 @@ function Editor({ book, initial }: { book: Book; initial: Manuscript }) {
   const section = ms.sections.find((s) => s.id === param) ?? ms.sections.find((s) => s.id === fallbackId) ?? ms.sections[0]!;
 
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<InspectorTab>(book.id === "handover" ? "claims" : "suggestions");
+  const [tab, setTab] = useState<InspectorTab>("fix");
   const [pass, setPass] = useState<SuggestionPass>("line");
   const [passRunning, setPassRunning] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
@@ -136,6 +136,12 @@ function Editor({ book, initial }: { book: Book; initial: Manuscript }) {
   const [announce, setAnnounce] = useState("");
   const [panelOpen, setPanelOpen] = useState(true);
   const [focusNote, setFocusNote] = useState<string | null>(null);
+  const [focusClaim, setFocusClaim] = useState<string | null>(null);
+  const showClaim = (id: string) => {
+    setTab("fix");
+    setPanelOpen(true);
+    setFocusClaim(id);
+  };
   const [doneOpen, setDoneOpen] = useState(false);
   const look = useMemo(() => interiorLook(book), [book]);
   const pen = getPenName(book.penNameId);
@@ -607,6 +613,7 @@ function Editor({ book, initial }: { book: Book; initial: Manuscript }) {
               writing={writing}
               writeDisabledReason={queuedInJob ? "The running job writes this section after chapter 6." : undefined}
               onPasteOwn={pasteOwn}
+              onClaimClick={showClaim}
             />
           </div>
         </div>
@@ -614,6 +621,7 @@ function Editor({ book, initial }: { book: Book; initial: Manuscript }) {
 
       <div className={cn("min-h-0 border-t border-border xl:border-t-0", !panelOpen && "xl:hidden")}>
         <EditorInspector
+          focusClaimId={focusClaim}
           readOnly={!canWrite}
           bookId={book.id}
           tab={tab}

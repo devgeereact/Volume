@@ -239,6 +239,9 @@
     text-decoration-thickness: 1.5px;
     text-underline-offset: 4px;
   }
+  .vol-claim-mark[data-claim-id] {
+    cursor: pointer;
+  }
 }
 
 @keyframes vol-caret {
