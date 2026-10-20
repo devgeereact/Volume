@@ -131,6 +131,7 @@ describe('1. book list rows', () => {
     expect(row['sectionCount']).toBe(tree.body.totals.sections);
     expect(row['jobRunning']).toBe(false);
     expect(row['coverAssetId']).toBeNull();
+    expect(row['coverEbookAssetId']).toBeNull();
 
     await t.call('POST', `/api/v1/books/${id}/cover/concepts`, {});
     rows = await t.call<{ items: Obj[] }>('GET', '/api/v1/books');

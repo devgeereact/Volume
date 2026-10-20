@@ -443,6 +443,8 @@ export interface ApiBookExtras {
   runningJob: ApiRunningJob | null;
   /** The chosen cover concept. */
   coverAssetId: string | null;
+  /** The finished eBook cover (built or uploaded), when there is one. */
+  coverEbookAssetId: string | null;
   formats: ApiPublishedFormat[];
   /** Upload packs built. */
   packVersion: number;

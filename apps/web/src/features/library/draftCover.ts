@@ -25,8 +25,9 @@ export function titleLines(title: string): string[] {
 const cache = new Map<string, CoverDesign | null>();
 
 /** The book's cover, or a draft from its cover style when it has none yet. */
-export function libraryCover(book: Book): { design: CoverDesign | null; draft: boolean } {
-  if (book.cover) return { design: book.cover, draft: false };
+export function libraryCover(book: Book): { design: CoverDesign | null; draft: boolean; image: string | null } {
+  if (book.cover) return { design: book.cover, draft: false, image: null };
+  const image = book.coverImage?.src ?? null;
   if (!cache.has(book.id)) {
     let design: CoverDesign | null;
     try {
@@ -38,5 +39,5 @@ export function libraryCover(book: Book): { design: CoverDesign | null; draft: b
     }
     cache.set(book.id, design);
   }
-  return { design: cache.get(book.id) ?? null, draft: true };
+  return { design: cache.get(book.id) ?? null, draft: image === null, image };
 }

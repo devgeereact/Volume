@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useCanWrite } from "../../lib/access";
 import { Link } from "react-router";
-import { Check, Download, RotateCw } from "lucide-react";
+import { Check, Download, RotateCw, Upload } from "lucide-react";
 import { Banner, Button, buttonClasses, Loader, PageHeader, ProgressBar, SegmentedControl, Skeleton, StatusChip, Switch } from "../../components/ui";
 import type { Book, PenName } from "../../demo";
 import { assetsApi } from "../../api/assets";
@@ -10,6 +10,7 @@ import type { ApiBookDetail, ApiCover, CoverConcept } from "../../api/types";
 import { errorText, jobStatusText, useJobWatch } from "../../api/wire-c";
 import { cn } from "../../lib/cn";
 import { useStepAction, type StepAction } from "../../lib/stepAction";
+import { useToast } from "../../lib/toast";
 import { ErrorPanel, LoadingBlock } from "../writing/screenState";
 import {
   coverBleedIn,
@@ -113,6 +114,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
   const [problem, setProblem] = useState<string | null>(null);
   const [announce, setAnnounce] = useState("");
   const [pagesText, setPagesText] = useState<string>("");
+  const toast = useToast();
 
   // The typographic layer: the book's own cover style (concept A in the demo is always the book's style).
   const own = useMemo(() => conceptsFor(book)[0]!, [book]);
@@ -145,13 +147,23 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
 
   const conceptWatch = useJobWatch(bookId, conceptJob, (w) => {
     setConceptJob(null);
-    if (w.ok) setAnnounce("Concepts ready.");
-    else setProblem(`The concepts were not made. ${w.error ?? "Nothing was charged for images that did not arrive. Try again."}`);
+    if (w.ok) {
+      setAnnounce("Concepts ready.");
+      toast.show({ tone: "success", title: "Cover concepts ready", body: "Pick the one you like best, then press Use this concept." });
+    } else {
+      setProblem(`The concepts were not made. ${w.error ?? "Nothing was charged for images that did not arrive. Try again."}`);
+      toast.show({ tone: "error", title: "Cover concepts were not made", body: w.error ?? "Try again." });
+    }
   });
   const buildWatch = useJobWatch(bookId, buildJob, (w) => {
     setBuildJob(null);
-    if (w.ok) setAnnounce("Covers built.");
-    else setProblem(`The covers were not built. ${w.error ?? "Try again."}`);
+    if (w.ok) {
+      setAnnounce("Covers built.");
+      toast.show({ tone: "success", title: "Covers built", body: "The eBook cover and paperback wrap are ready. They go into the pack on Export." });
+    } else {
+      setProblem(`The covers were not built. ${w.error ?? "Try again."}`);
+      toast.show({ tone: "error", title: "The covers were not built", body: w.error ?? "Try again." });
+    }
   });
   const making = makeConcepts.isPending || conceptWatch.running;
   const building = build.isPending || buildWatch.running;
@@ -188,6 +200,11 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       setConceptJob(r.jobId);
       setPicked(null);
       setProblem(null);
+      toast.show({
+        tone: "working",
+        title: "Making cover concepts",
+        body: "The image model is drawing them. About a minute. A message shows when they are ready.",
+      });
       setAnnounce("Making concepts.");
     } catch (e) {
       setProblem(errorText(e));
@@ -212,6 +229,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       const r = await build.mutateAsync({ bookId });
       setBuildJob(r.jobId);
       setProblem(null);
+      toast.show({ tone: "working", title: "Building your covers", body: "The eBook cover and the paperback wrap. A message shows when they are ready." });
     } catch (e) {
       setProblem(errorText(e));
     }
@@ -264,10 +282,42 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
 
   return (
     <>
-      <PageHeader title="Cover studio" summary="Brief, concepts and type, then the eBook cover and the paperback wrap." />
-      <p role="status" className="mt-2 text-small text-ink-secondary">
-        {status}
-      </p>
+      <PageHeader title="Cover studio" summary="Your cover is made here in four steps. Or skip them and upload a cover you already have." />
+      {apiBook?.status === "published" && (
+        <Banner tone="info" title="This book is already published" className="mt-4 max-w-[860px]">
+          You can still change its cover. Make or pick a new one and build it, then build the pack again on Export and upload the new files to KDP.
+        </Banner>
+      )}
+      <CoverSteps
+        steps={[
+          {
+            label: "Brief",
+            help: "Optional. The mood, colours and symbols you want. Leave it and the AI writes one from your blueprint.",
+            done: hasBrief,
+            current: editing,
+          },
+          {
+            label: "Make concepts",
+            help: "The AI draws a few background designs to choose from.",
+            done: concepts.length > 0,
+            current: !editing && (concepts.length === 0 || making),
+          },
+          {
+            label: "Pick one",
+            help: "Click the design you like, then Use this concept. Set the title size and colours under it.",
+            done: !!chosen,
+            current: !editing && concepts.length > 0 && !making && (!chosen || (!!pick && pick.assetId !== chosen.assetId)),
+          },
+          {
+            label: "Build covers",
+            help: "Makes the final eBook cover and the paperback wrap with spine.",
+            done: built,
+            current: !editing && !!chosen && !(pick && pick.assetId !== chosen.assetId),
+          },
+        ]}
+        status={status}
+        action={canWrite ? action : null}
+      />
       {problem && (
         <Banner
           tone="error"
@@ -314,7 +364,8 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
               )}
             </div>
             <p className="mt-1 text-small text-ink-secondary">
-              Background art from the image model, marked AI-generated. Volume sets the title, subtitle and author in the book's cover style.
+              Background art from the image model, marked AI-generated. Volume sets the title, subtitle and author in the book's cover style. Making new
+              concepts replaces these, so download any you want to keep first.
             </p>
             {making ? (
               <div role="status" aria-label="Making concepts" className="mt-4 grid gap-3">
@@ -338,7 +389,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
             ) : concepts.length === 0 ? (
               <div className="mt-4 rounded-md border border-dashed border-border-strong p-5">
                 <p className="text-label text-ink">No concepts yet.</p>
-                <p className="mt-1 text-small text-ink-secondary">Make concepts, at the foot of the page, to get directions to compare.</p>
+                <p className="mt-1 text-small text-ink-secondary">Press Make concepts above to get designs to compare.</p>
               </div>
             ) : (
               <div role="radiogroup" aria-label="Concepts" className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -368,6 +419,14 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                         {chosen?.assetId === c.assetId && <StatusChip status="passed">In use</StatusChip>}
                       </span>
                       {c.why && <span className="text-small text-ink-secondary">{c.why}</span>}
+                      <a
+                        href={assetsApi.downloadUrl(c.assetId)}
+                        download
+                        className="inline-flex items-center gap-1 text-small font-medium text-select underline-offset-2 hover:underline"
+                      >
+                        <Download size={14} aria-hidden />
+                        Download art
+                      </a>
                       {c.mock && <span className="text-small text-accent-text">Placeholder image from the test image model.</span>}
                     </label>
                   );
@@ -609,5 +668,64 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
         {announce}
       </span>
     </>
+  );
+}
+
+/** The cover process at the top of the studio: four numbered steps, the current one with its button. */
+function CoverSteps({
+  steps,
+  status,
+  action,
+}: {
+  steps: { label: string; help: string; done: boolean; current: boolean }[];
+  status: string;
+  action: StepAction | null;
+}) {
+  return (
+    <section aria-label="How your cover is made" className="mt-5 max-w-[1100px] rounded-md border border-border bg-sheet p-4 sm:p-5">
+      <ol className="grid gap-3 md:grid-cols-4">
+        {steps.map((st, i) => (
+          <li
+            key={st.label}
+            aria-current={st.current ? "step" : undefined}
+            className={cn("grid content-start gap-1 rounded-sm p-3", st.current ? "bg-select-wash ring-2 ring-select" : "bg-canvas")}
+          >
+            <span className="flex items-center gap-2 text-label text-ink">
+              <span
+                className={cn(
+                  "grid size-6 shrink-0 place-items-center rounded-full text-caption font-semibold",
+                  st.done ? "bg-success text-sheet" : st.current ? "bg-select text-sheet" : "border border-border-strong text-ink-secondary",
+                )}
+              >
+                {st.done ? <Check size={13} strokeWidth={2.5} aria-hidden /> : i + 1}
+              </span>
+              {st.label}
+              <span className="sr-only">{st.done ? ", done" : st.current ? ", do this now" : ""}</span>
+            </span>
+            <span className="text-small text-ink-secondary">{st.help}</span>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <p role="status" className="min-w-0 flex-1 text-small text-ink">
+          <b className="font-semibold">Now: </b>
+          {status}
+        </p>
+        {action && (action.onClick || action.to) && (
+          <Button
+            icon={action.label.startsWith("Make") ? RotateCw : undefined}
+            estimate={action.estimate}
+            disabledReason={action.disabledReason}
+            onClick={action.onClick}
+          >
+            {action.label}
+          </Button>
+        )}
+        <a href="#own-cover-title" className={buttonClasses("ghost")}>
+          <Upload size={16} aria-hidden />
+          Use my own cover instead
+        </a>
+      </div>
+    </section>
   );
 }

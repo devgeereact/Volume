@@ -36,7 +36,7 @@ function BookCard({
 }) {
   const pen = penName(book.penNameId);
   const status = splitLeadingFigure(book.statusLine);
-  const { design, draft } = libraryCover(book);
+  const { design, draft, image } = libraryCover(book);
   return (
     <li>
       <Link
@@ -44,7 +44,17 @@ function BookCard({
         className="group grid grid-cols-[64px_minmax(0,1fr)] items-start gap-x-3.5 rounded-sm outline-offset-4 sm:block"
         title={draft ? "Draft cover from the book's cover style. Make the real one in the Cover studio." : undefined}
       >
-        <Cover title={book.title} subtitle={book.subtitle} author={pen?.name ?? ""} design={design} lift hideSubtitle={draft} className="w-full" decorative />
+        <Cover
+          title={book.title}
+          subtitle={book.subtitle}
+          author={pen?.name ?? ""}
+          design={design}
+          image={image}
+          lift
+          hideSubtitle={draft}
+          className="w-full"
+          decorative
+        />
         <span className="block min-w-0">
           <h3 className="text-[14px] leading-[18px] font-semibold text-ink sm:mt-3">{book.title}</h3>
           <span className="mt-0.5 block text-[13px] leading-[18px] text-ink-secondary">{pen?.name}</span>
@@ -65,7 +75,9 @@ function BookCard({
               )}
             </span>
           )}
-          {draft && <span className="mt-0.5 block text-[12.5px] leading-4 text-ink-tertiary">Draft cover</span>}
+          {(draft || book.coverImage?.final === false) && (
+            <span className="mt-0.5 block text-[12.5px] leading-4 text-ink-tertiary">{draft ? "Draft cover" : "Cover concept, not built yet"}</span>
+          )}
         </span>
       </Link>
       {statusActions && (

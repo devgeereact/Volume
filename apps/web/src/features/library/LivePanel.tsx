@@ -49,7 +49,15 @@ export function LivePanel() {
       className="relative grid grid-cols-[72px_minmax(0,1fr)] gap-x-5 gap-y-5 overflow-hidden rounded-lg border border-border bg-sheet py-5 pr-5 pl-[22px] shadow-sheet sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-x-7 sm:py-[22px] sm:pr-6 xl:grid-cols-[112px_minmax(0,1fr)_300px]"
     >
       <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-accent" />
-      <Cover title={book.title} subtitle={book.subtitle} author={pen?.name ?? ""} design={book.cover} className="w-full self-start" decorative />
+      <Cover
+        title={book.title}
+        subtitle={book.subtitle}
+        author={pen?.name ?? ""}
+        design={book.cover}
+        image={book.coverImage?.src}
+        className="w-full self-start"
+        decorative
+      />
 
       <div className="min-w-0">
         <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] leading-4 font-semibold text-accent-text">

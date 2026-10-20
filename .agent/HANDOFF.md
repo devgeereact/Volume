@@ -425,3 +425,19 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - PR #22 merged (dead code removal 29784d5, docs refresh) and deployed: main 072dec3 as release `20261020T035644Z` (`npm run deploy -- --no-ci-check`, no migrations), rollback `20261020T021731Z`.
 - Live checks: `/api/health` 200; `/api/v1/books`, `/%61pi/v1/health`, `/api/%761/books` 401 unsigned; `/`, `/library`, `/sign-in`, `/how-it-works` 200; HSTS, CSP, `X-Robots-Tag` present; browser: landing hero with How it works and Sign in, no console warnings.
 - Git: only `main` and `chore/agent-guard-gh` (PR #21) on GitHub and locally; one worktree (the main checkout).
+
+## 2026-10-20 (evening), Claude Code (claude-opus-5-5), simpler Editor and AI run messages
+
+- Owner report: Editor too complicated (too many tabs: Checks, Claims, Edits, Notes plus Structure, Line edit, Voice), no messages while AI runs, red-underlined claims could not be dealt with from the text.
+- Changed (not committed, not deployed): `apps/web/src/features/editor/EditorInspector.tsx` (tabs To fix, AI edits, Notes; Next-step line; AI working line; explained pass choices; one-click "It is right, mark checked"; claim card focus), `EditorCanvas.tsx` (claim underline clickable via `data-claim-id`, `lang="en-GB"`), `ApiEditor.tsx` (toasts on pass, weave and write start/finish/failure; aiBusy; claim click opens panel), `EditorPage.tsx` (demo wiring), `components/ui/Toast.tsx` (tone `working`), `styles/app.css` (pointer on claim marks). CHANGELOG and UX-SPEC updated.
+- Checks: `npm run typecheck -w apps/web` PASS; eslint on changed files PASS; prettier written; `npm run test -w apps/web` PASS (173). Browser check on the demo book Handover at 1440: To fix tab, Next line, mark checked clears underline and chapter flag: PASS. NOT TESTED: API-mode toasts against a live job, phone width, full `npm run e2e`.
+- Next: owner tries it locally or approves commit, PR and deploy (`npm run deploy -- --no-ci-check`).
+
+## 2026-10-20 (night), Claude Code (claude-opus-5-5), Cover studio process and real cover thumbnails
+
+- Owner: Cover studio unclear (where and how the cover is made), wants to change covers of imported or published books, see covers made, thumbnails in the Library. Owner chose: real covers everywhere; no database change (so no concept history).
+- Server: `repos/library.ts` book extras add `coverEbookAssetId` (covers.ebookAssetId, built or own upload). No migration. `test/gaps.test.ts` asserts it.
+- Web: `Book.coverImage` (`api/wire-a.ts` toWiredBook); `Cover` takes `image`; used by `libraryCover` (PipelineView, LedgerView, Profiles, Published) and BookLayout, LivePanel. `features/cover/ApiCover.tsx`: CoverSteps strip with current action and own-cover link, published-book banner, toasts, Download art per concept. PublishedPage: Change cover link.
+- Checks: typecheck web and server PASS; eslint changed files PASS; prettier written; web Vitest 173 PASS; server Vitest 470 passed, 3 skipped; `npm run e2e` 17 of 17 PASS. NOT TESTED: a visual check of the Cover studio in API mode, and the real image thumbnails in a browser.
+- Gaps left: no concept history (owner declined the DB change); no unpublish button (not needed to change a cover).
+- Next: owner approval to commit, PR and deploy both changes (`npm run deploy -- --no-ci-check`, no migrations).

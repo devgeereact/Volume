@@ -25,7 +25,7 @@ Every screen uses the app shell from `docs/03-design/DESIGN-SYSTEM.md`: left nav
 | `/settings/:tab?` | Settings (models, budgets, key, backups, house style, KDP rules) |
 | `/archive` | Archive |
 | `/published` | Published books |
-| `/books/:id/claims` | Claims to verify for one book, with fix options (D-052). Linked from the editor's Claims tab and from preflight |
+| `/books/:id/claims` | Claims to verify for one book, with fix options (D-052). Linked from the editor's To fix tab and from preflight |
 | `/volume` | Volume mode: batches across pen names (phase 8) |
 | `/volume/batches/:batchId` | One batch |
 | `/volume/schedule` | Schedule: the weekly title limit per format |
@@ -96,7 +96,7 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 
 ### Editor [M9]
 - **Purpose:** read, edit and polish every section.
-- **Regions:** section list with badges; TipTap editor; inspector tabs: Checks, Claims, Suggestions, Versions.
+- **Regions:** section list with badges; TipTap editor; inspector: an "AI working" line while a job runs, a "Next" line naming the next action in this section, then tabs To fix (claims and house-style checks), AI edits (Line edit, Structure, Voice, each explained) and Notes; Versions open from the toolbar. Clicking a claim underline opens its card. AI jobs started here show a toast when they start and when they finish or fail.
 - **Components:** toolbar (headings, bold, italic, list, takeaways, scene break), suggestion card (original, proposed, reason, accept, reject), version compare, find and replace panel, selection menu "Rewrite with instruction", editor pass menu (structure, line, voice).
 - **Primary action:** Save version (`Cmd S`).
 - **Empty:** a section with no text shows "Write this section" and "Paste your own".
@@ -105,7 +105,8 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 ### Cover studio [M10]
 - **Purpose:** from brief to final eBook cover and paperback wrap.
 - **Regions:** brief editor; concept grid (3 to 4); typography controls; preview switcher (eBook, wrap, thumbnail at 160 px); inspector shows spec (size, spine, page count used, DPI).
-- **Primary action:** steps in order: Write brief, Make concepts, Use this concept, Build covers.
+- **Primary action:** steps in order: Write brief, Make concepts, Use this concept, Build covers. A four-step strip at the top (Brief, Make concepts, Pick one, Build covers) marks done and current steps, says what to do now and carries the current step's button, plus "Use my own cover instead". Each concept has Download art, since making new concepts replaces them. Published books show a note that the cover can still change (build, rebuild the pack, upload to KDP). Concept and build jobs show start and finish toasts.
+- **Thumbnails:** Library cards, ledger rows, the book bar, the live panel, Profiles and the Published shelf show the built or uploaded eBook cover, else the chosen concept art ("Cover concept, not built yet"), else the draft cover. The Published shelf links to Change cover.
 - **Empty:** "Write a cover brief" with cost. **Loading:** concept placeholders with progress. **Error:** image failed (no charge), wrap blocked until the interior PDF exists.
 
 ### Export [M11]

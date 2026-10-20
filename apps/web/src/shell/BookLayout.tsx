@@ -24,7 +24,16 @@ function BookBar({ book, penName, current, runningBookId }: { book: Book; penNam
   return (
     <div className="flex h-(--shell-bookbar) items-center gap-4 border-b border-border bg-canvas px-4 sm:px-6 lg:px-10">
       <div className="hidden shrink-0 items-center gap-2.5 sm:flex">
-        <Cover title={book.title} author={penName?.name ?? ""} design={book.cover} width={26} hideSubtitle decorative className="[--vol-shadow-cover:none]" />
+        <Cover
+          title={book.title}
+          author={penName?.name ?? ""}
+          design={book.cover}
+          image={book.coverImage?.src}
+          width={26}
+          hideSubtitle
+          decorative
+          className="[--vol-shadow-cover:none]"
+        />
         <span className="hidden max-w-[11rem] min-w-0 2xl:block">
           <span className="block truncate text-small font-semibold text-ink">{book.title}</span>
           <span className="block truncate text-caption text-ink-secondary">{penName?.name}</span>

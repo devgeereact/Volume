@@ -11,6 +11,7 @@ import { getPenName as demoPenName } from "../demo/penNames";
 import { useNow } from "../lib/useNow";
 import type { Book, PenName } from "../demo/types";
 import { isoFromMs, toPenName, toPrototypeBook } from "./adapters";
+import { assetsApi } from "./assets";
 import { booksApi } from "./books";
 import { isApiError } from "./client";
 import { emptyLiveState, type BookLiveState } from "./events";
@@ -158,6 +159,11 @@ export function toWiredBook(b: ApiBookRow): Book {
           formats: b.formats.map((f) => ({ format: f.format, listPriceGbp: f.listPriceGbp, pages: f.pages })) as NonNullable<Book["published"]>["formats"],
         }
       : null,
+    coverImage: b.coverEbookAssetId
+      ? { src: assetsApi.downloadUrl(b.coverEbookAssetId, true), final: true }
+      : b.coverAssetId
+        ? { src: assetsApi.downloadUrl(b.coverAssetId, true), final: false }
+        : null,
   };
 }
 
