@@ -55,7 +55,7 @@ interface BookMeta {
 
 interface BookDoc { meta: BookMeta; sections: Section[] }
 
-const bookDocSchema, sectionSchema, blockSchema, bookMetaSchema, inlineRunSchema; // zod
+const bookDocSchema, sectionSchema, blockSchema, bookMetaSchema; // zod
 function enabledSections(book: BookDoc): Section[];
 function sectionHeading(s: Section): string;           // "Chapter 1: Title"
 ```
@@ -163,7 +163,6 @@ function getRule(rules: KdpRules, id: string): KdpRule;             // throws Kd
 function spineWidthIn(rules: KdpRules, pages: number, paper: 'white' | 'cream'): number;
 function wrapSizeIn(rules: KdpRules, args: { trim: TrimSize; pages: number; paper: Paper }): WrapSize;
 function spineTextAllowed(rules: KdpRules, pages: number): boolean;  // from 80 pages
-function spineTextMinPages(rules: KdpRules): number;
 function interiorBleedSizeIn(rules: KdpRules, trim: TrimSize): TrimSize;
 function coverMinDpi(rules: KdpRules): number;
 function barcodeArea(rules: KdpRules): KdpResult<{ widthIn: number; heightIn: number; position: string }>;  // unverified
@@ -210,7 +209,6 @@ function normaliseCoverStyle(raw: unknown, base?: CoverStyle, paletteId?: string
 function coverStylesFromConfig(raw: unknown): CoverStyle[];
 function marginsFor(theme: InteriorTheme, trim: TrimKey, kdpMinInsideIn?: number): MarginsIn;
 function parseTrimKey(key: string): { widthIn: number; heightIn: number };   // "6x9"
-function trimKey(widthIn: number, heightIn: number): TrimKey;
 function numberToWords(n: number): string;
 ```
 

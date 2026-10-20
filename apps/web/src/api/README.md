@@ -8,21 +8,23 @@ The typed client layer between the screens and the Volume server (`apps/server`,
 |---|---|
 | `client.ts` | `fetch` wrapper (`apiDownload` for the one call that answers with a file, the project zip). Base `/api/v1`, JSON only, `AbortSignal` on every call, `credentials: "omit"`, no keys. Every failure is an `ApiError` with `status`, `code`, `message`, `details` (from `{ error: { code, message, details } }`). A stopped server gives `code: "network_error"`, `status: 0`. |
 | `types.ts` | Server response and request types, plain TypeScript. Times are epoch milliseconds. Types named `Api*` have a different prototype twin in `data/types.ts`. |
-| `system.ts`, `catalogue.ts`, `profiles.ts`, `books.ts`, `planning.ts`, `manuscript.ts`, `production.ts`, `jobs.ts`, `assets.ts` | One plain async function per endpoint, grouped by area (`booksApi.get(id)`, `planningApi.createBlueprint(id)` and so on). Every server call the app makes is here; screens never build a URL themselves. |
+| `system.ts`, `profiles.ts`, `books.ts`, `planning.ts`, `manuscript.ts`, `production.ts`, `jobs.ts`, `assets.ts` | One plain async function per endpoint, grouped by area (`booksApi.get(id)`, `planningApi.createBlueprint(id)` and so on). Every server call the app makes is here; screens never build a URL themselves. |
 | `hooks.ts` | TanStack Query hooks and `queryKeys`. Mutations invalidate the keys they change. Calls that start a job (202) cache the job under `["job", id]`. |
 | `events.ts` | `useBookEvents(bookId)`, `useWorkspaceEvents()`, `useBookLive(bookId)` and `applyBookEvent()`: SSE into the query cache, with reconnect and replay. |
-| `adapters.ts` | Server shapes to prototype shapes (`toPrototypeBook`, `toPenName`, `blueprintData`, `toSectionStatus` and others). |
+| `adapters.ts` | Server shapes to prototype shapes (`toPrototypeBook`, `toPenName`, `blueprintData`, `flattenSections` and others). |
 | `wire-a.ts`, `wire-b.ts`, `wire-c.ts` | Screen glue only, no endpoint calls: API or demo mode, plain error words, pen names and books for the current mode, the job bar, step jobs with live progress, writing row states, editor blocks, job watching. A serves the shell, Library, Published, Archive, Profiles, Settings and New book; B Research, Titles, Blueprint and Writing; C Editor, Cover, Export and Marketing. |
 | `volume.ts`, `wire-d.ts` | Volume mode (phase 8): `/me`, members and invitations, batches, gates and the title schedule; `wire-d.ts` adds the caller's role (`useVolumeMe`, `canWrite`, `membersVisible`) and the members list in both modes. Demo mode takes `?role=editor` or `?role=viewer`. Batch progress arrives through `applyVolumeEvent` on the workspace stream. |
 | `source.ts` | `useDataSource()`: `"api"` when `GET /api/v1/health` answers, `"mock"` otherwise. Rechecks every 30 seconds. |
 | `queryClient.ts` | The app's one `QueryClient` (4xx and network errors are not retried). `main.tsx` wraps the app in its provider. |
-| `index.ts` | Re-exports everything above. |
 | `__checks__/live-check.ts` | Live check against a running server (see "Checking"). Not imported by the app. |
 
 ## Using it in a screen
 
 ```tsx
-import { useBook, useBookEvents, useDataSource, toPrototypeBook } from "../../api";
+import { useBook } from "../../api/hooks";
+import { useBookEvents } from "../../api/events";
+import { useDataSource } from "../../api/source";
+import { toPrototypeBook } from "../../api/adapters";
 import { getBook } from "../../demo";
 
 const source = useDataSource();
@@ -30,6 +32,8 @@ const { data } = useBook(source === "api" ? bookId : undefined);
 useBookEvents(source === "api" ? bookId : undefined);
 const book = source === "api" && data ? toPrototypeBook(data) : getBook(bookId);
 ```
+
+There is no barrel file (`index.ts` was removed). Import each module directly, for example `from "../../api/books"` or `from "../../api/hooks"`.
 
 - Pass `undefined` as the id to keep a query switched off (route params, mock mode).
 - Long work returns at once with a job. Show progress from `useBookLive(bookId).data.jobs[jobId]` (status, progress, message, done of total) or `useJob(jobId)`. `useBookEvents` refreshes the right area when the job finishes.
@@ -47,11 +51,11 @@ const book = source === "api" && data ? toPrototypeBook(data) : getBook(bookId);
 | Published (`published/`) | `useBooks({ status: "published" })`, `useSetPublishedDetails` | `toPrototypeBook` |
 | Profiles (`profiles/`) | `useProfiles`, `useProfile`, `useProfileSamples`, `useProfileMemory`; saves through `profilesApi` (`features/profiles/profileApi.ts`) | `toPenName`, `toAuthorProfile` |
 | New book (`new-book/`) | `useProfiles`, `useCreateBook` | |
-| Research (`research/`) | `useResearch`, `useResearchRun`, `useStartResearch`, `useSetSourceUse`, `useBookLive`, `useEstimate` | `toPrototypeSource` |
+| Research (`research/`) | `useResearch`, `useResearchRun`, `useStartResearch`, `useSetSourceUse`, `useBookLive`, `useEstimate` | |
 | Titles (`titles/`) | `useTitleSets`, `useGenerateTitles` (with a `directionKey`), `useChooseTitle`, `useSetFavourite`, `useEstimate` | `toTitleOptions` |
-| Blueprint (`blueprint/`) | `useBlueprint`, `useBlueprintVersions`, `useCreateBlueprint`, `usePatchBlueprint`, `useRegenerateBlueprintPart`, `useApproveBlueprint`, `useClaims`, `useEstimate` | `blueprintData`, `toClaimToVerify` |
-| Writing (`writing/`) | `useSectionTree`, `useWriteBook`, `useWriteSection`, `useBookLive`, `useJob`, `useJobControl`, `useClaims`, `useBookCosts`, `useEstimate` | `toSectionStatus`, `flattenSections` |
-| Editor (`editor/`) | `useSectionTree`, `useSection`, `useSaveVersion`, `useSectionVersions`, `useSectionVersion`, `useSectionDiff`, `useRestoreVersion`, `useEditPass`, `useSuggestions`, `useAcceptSuggestion`, `useRejectSuggestion`, `useAddNote`, `usePatchNote`, `useClaims`, `useResolveClaim`, `useBookFind`, `useTextChanged`, `useRememberJob`; `manuscriptApi.rewriteSelection`, `replace`, `reopenNote`, `weaveNotes` (weave or expand) | `toClaimToVerify` |
+| Blueprint (`blueprint/`) | `useBlueprint`, `useBlueprintVersions`, `useCreateBlueprint`, `usePatchBlueprint`, `useRegenerateBlueprintPart`, `useApproveBlueprint`, `useClaims`, `useEstimate` | `blueprintData` |
+| Writing (`writing/`) | `useSectionTree`, `useWriteBook`, `useWriteSection`, `useBookLive`, `useJob`, `useJobControl`, `useClaims`, `useBookCosts`, `useEstimate` | `flattenSections` |
+| Editor (`editor/`) | `useSectionTree`, `useSection`, `useSaveVersion`, `useSectionVersions`, `useSectionVersion`, `useSectionDiff`, `useRestoreVersion`, `useEditPass`, `useSuggestions`, `useAcceptSuggestion`, `useRejectSuggestion`, `useAddNote`, `usePatchNote`, `useClaims`, `useResolveClaim`, `useBookFind`, `useTextChanged`, `useRememberJob`; `manuscriptApi.rewriteSelection`, `replace`, `reopenNote`, `weaveNotes` (weave or expand) | |
 | Cover (`cover/`) | `useCover`, `usePutCoverBrief`, `useCoverConcepts`, `useChooseCover`, `useBuildCover`; images via `assetsApi.downloadUrl(id, true)` | |
 | Export (`export/`) | `usePreflight`, `useExports`, `useStartExports`; files via `productionApi.exportDownloadUrl(id)`; royalties from `listPrices` and the print PDF page count with `@volume/core` | `toPreflightItem` |
 | Marketing (`marketing/`) | `useMarketing`, `useGenerateMarketing`, `usePatchMarketing`, `useMarketingStatus`, `useRememberJob`; `productionApi.regenerateMarketing` | |

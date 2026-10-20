@@ -77,7 +77,7 @@ Target: WCAG 2.2 AA everywhere, no exceptions for "internal tools".
 - Ease out on enter, ease in on exit. No bounces or springs on working screens.
 - Motion explains a change (a panel slides from where it lives, a new version fades in). It is never decoration.
 - Streaming text: appended in small chunks at most every 250 ms, without moving the reader's scroll position unless they are at the bottom.
-- Use `motion/react` with a shared set of presets in `packages/ui`.
+- Use `motion/react` with a shared set of presets in `packages/ui`. The exception is the public pages (`apps/web/src/site/`), which use GSAP and Lenis (D-053). Reduced motion is respected there too.
 
 ## States every component needs
 

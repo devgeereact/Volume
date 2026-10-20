@@ -62,7 +62,7 @@ AC:
 
 Stories: as the owner, I want to start a book from a rough idea or a working title in under a minute.
 
-Steps: 1 profile; 2 template (non-fiction, fiction and workbook write end to end from phase 6; picture books show "arrives in phase 7" until that phase; fiction also asks for point of view and tense); 3 idea or working title, optional notes, audience hint, target length (from the template range); 4 trim size (5 x 8, 5.5 x 8.5, 6 x 9 default, 8.5 x 11), paper (white or cream), book budget (US dollars, default from Settings); 5 review and start research.
+Steps: 1 profile; 2 template (non-fiction, fiction and workbook write end to end from phase 6; picture books are built (phase 7) and use the picture-book template; fiction also asks for point of view and tense); 3 idea or working title, optional notes, audience hint, target length (from the template range); 4 trim size (5 x 8, 5.5 x 8.5, 6 x 9 default, 8.5 x 11), paper (white or cream), book budget (US dollars, default from Settings); 5 review and start research.
 
 AC:
 - AC3.1 The wizard creates a project with all template sections in order, status `idea`.
@@ -178,7 +178,17 @@ AC:
 - AC13.5 Backups: on or off, time, last backup, "back up now", folder path.
 - AC13.6 House style viewer (read only in v1), KDP rules version and date, with a reminder when the rules are more than 90 days old.
 
+## Features added after the plan (October 2026)
+
+- **Public landing, How it works and sign-in (D-053, D-054).** Signed-out visitors on the hosted app see the landing hero at `/`, How it works at `/how-it-works` and the branded sign-in at `/sign-in`. Signing in leads to the Library at `/library`, and deep links return to their own page. `/welcome` redirects to `/`.
+- **Move a book by project zip (D-051).** Export > Move this book > Download project writes a zip with the book's rows and files, never the legal name, location, jobs, AI call records or spend. Library > Import project makes a new book under a chosen pen name. Nothing that is already there changes.
+- **Claim fixes, autosave and previous version (D-052).** The book Claims screen (`/books/:id/claims`) offers fix options for each claim and one-click pack fixes. The editor autosaves, and it has a previous-version action.
+- **Own cover upload.** Upload your own cover instead of generating one. Print symbols are checked for KDP safety, and the listing and blurb get preflight checks.
+- **Data rights and hardening (D-050).** Workspace export, account deletion, retention of AI output and job events, upload checks, log redaction and HSTS.
+
 ## Phases and acceptance (from the plan)
+
+Status at 20 October 2026: phases 0 to 8 are built, and phases 6 to 8 were built on 17 October 2026. The owner gates are still open for phases 5 to 8. See `ROADMAP.md` for the current checkpoint.
 
 | Phase | Scope | Done when |
 |---|---|---|

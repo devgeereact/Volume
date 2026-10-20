@@ -14,7 +14,7 @@ npm run typecheck -w apps/server
 npm run test -w apps/server       # vitest, SQLite in memory
 npm run migrate -w apps/server    # apply migrations (as MYSQL_MIGRATE_USER on MySQL when set)
 npm run migrate:status -w apps/server   # list pending migrations, change nothing
-npm run db:copy-to-mysql -w apps/server -- --from <file.sqlite>   # one-off library copy (docs/07-operations/DEPLOYMENT.md)
+npm run db:copy-to-mysql -w apps/server -- --from <file.sqlite>   # superseded: not needed since books moved by project zip (D-051); never run against a host with books (docs/07-operations/DEPLOYMENT.md)
 npm run seed -w apps/server       # copy config/profiles/*.json into the database (new ones only)
 ```
 
@@ -150,6 +150,7 @@ test/                 vitest suites (SQLite in memory; MySQL only with MYSQL_TES
 | `POST /books/:id/export-project` | A zip to move the book: `project.json` (the book, its pen name without legal name, location or real-person flag, and every row under it) and `assets/<id>` (its files). Jobs, job events and AI call records are left out |
 | `GET /workspace/export` | Owner only. A streamed zip of the whole workspace: `workspace.json`, `tables/<table>.json` and `files/<asset id>/<name>` (D-050). 2 per minute per client, one at a time per workspace (409) |
 | `POST /me/leave`, `DELETE /members/:userId`, `DELETE /workspace` | Data rights (D-050). Bodies `{ confirm: "LEAVE" }` (invited editor or viewer; owners 409), `{ confirm: "REMOVE" }` (workspace owner) and `{ confirm: "DELETE" }` (owner of a guest workspace; the instance owner's workspace 403, a running job 409). Wrong confirmation 409 `invalid_state`, missing 400. An account left with no membership is deleted. 204 |
+| `POST /books/import-project` | multipart/form-data with `profileId` (a pen name in this workspace) and `file` (the project zip, D-051). Always makes a new book under that pen name, with new ids; nothing existing changes. Owner or editor only. Limited to 5 imports per minute per visitor. Refused unless the request carries an Origin header or same-origin fetch metadata, so other pages cannot post a zip here |
 | `POST /projects/import?profileId` | Body: that zip (`Content-Type: application/zip`). Loads it into this workspace with new ids; links to rows that were not moved are cleared. Without `profileId` the matching active pen name in this workspace is used (same id, then same seeded source key, then one profile with the same pen name); only when none matches is a copy made. 201 `{ bookId, profileId, profileCreated, rows, assets, book }`; 400 for a file that is not a Volume project |
 | `DELETE /books/:id` | Owner-confirmed delete. Body `{ confirm: "<exact title>" }` (title, else idea, else Untitled). 409 unless archived, the title matches and no job is running. Everything under the book goes (cascade from `projects`, plus its files, jobs and events); AI spend rows stay, unlinked and with their output and error text cleared (D-050), so the month's spend is right. 204 |
 | `GET /books/:id/costs` | Budget, spend and prompt runs |

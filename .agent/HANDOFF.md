@@ -401,3 +401,22 @@ Next: owner decides on the summary-missing behaviour and the `checks.maxTokens` 
 - Checks: typecheck, lint, format:check PASS; Vitest 1,176 passed, 4 skipped; e2e 17 of 17; local browser: `/` landing with "Open library" to `/library`, `/library` shows the Library with its sidebar item active, no console errors.
 - Not touched: `scripts/agent_guard.py` has an uncommitted change nobody in this session made (removes the ask rule for `gh pr merge`, `gh secret set`, `gh repo delete/edit`, `gh workflow run`, `gh release create`); owner to decide.
 - Next: deploy (no migration); owner checks sign-in leads to the Library on a new device.
+
+## 7 October 2026: running-header correction (recovered from CURRENT-TASK on 20 October 2026)
+
+Corrected suppressed small capitals in PDF running headers and added a rendered-PDF regression. At the time, full visual parity remained FAIL; reference images and tolerance were unchanged. Ornament rendering was intact. Evidence: ../reports/volume/qa/reports/PDF-SMALLCAPS-2026-10-07.md. Later superseded: PDF parity fixed on 7 October (D-034), macOS `compare:pdf` PASS on 14 October 2026.
+
+## 8 October 2026: workspace audit status (recovered from CURRENT-TASK on 20 October 2026)
+
+Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs/handlers/writing.ts:357` (unused `all`) in uncommitted edits made after the 7 October handoff. Those edits (`writing.ts`, `jobs/book-data.ts`, `routes/manuscript.ts`, `checks.maxTokens` 8000 to 16000, untracked `summary-missing.test.ts` and `SummaryMissingNotice.tsx`) looked like the "save chapter when summary fails" work, still an owner decision. They were left untouched. Export, PDF and cover rendering were BLOCKED because Playwright's `chromium_headless_shell-1243` was missing. Report: ../reports/volume/AUDIT-AND-POLISH-2026-10-08.md.
+
+## 2026-10-20, Claude Code (claude-opus-5-5), docs refresh, dead code and git clean-up
+
+- Deploy: main `ed416b2` live as release `20261020T021731Z` (rollback target `20261019T190641Z`), run with `npm run deploy -- --no-ci-check` after the owner's OK. Live checks: `/` shows the landing, `/library` needs sign-in, and the owner confirmed sign-in lands on `/library` from a new device.
+- GitHub Actions still creates no runs for the owner's account after the billing fix on 20 October 2026. Owner to restore it with GitHub Support.
+- Git and worktrees: only `main` and `chore/agent-guard-gh` remain, local and on GitHub. Extra worktrees removed, including `../Volume-phases`.
+- Dead code removed on `chore/refresh-2026-10-20` (not user-visible): `apps/web/src/App.tsx` (re-export only; routes are in `apps/web/src/app/routes.tsx`), `apps/web/src/api/index.ts` (barrel nobody imported), `apps/web/src/api/catalogue.ts`; unused exports: server `ROLES`, `templateIdForKind`, `isUlid`, `compact`; web `toPrototypeSource`, `toClaimToVerify`, `toSectionStatus`, `ClaimSuggestResult` type, `layoutShort`, `WriteOnly`; core `spineTextMinPages`, `trimKey`, `inlineRunSchema`; export `DOCX_STYLE_IDS`, `ORNAMENT_NAMES`; server port types `ExercisePlan`, `StoryBible`, `LedgerKind` (they live in `@volume/ai`).
+- Docs refreshed to the current state: README, AGENTS.md, CURRENT-TASK, PROJECT.yml, DEPLOYMENT (current release, CI note, migrations 0001 to 0011, book move by project zip), KNOWN-ISSUES, ROADMAP, PRODUCT-SPEC, ARCHITECTURE, API-SPEC, UX-SPEC, DESIGN-SYSTEM, SETUP, PRODUCTION-CHECK, TEST-STRATEGY, docs index, app and package READMEs. DECISIONS: D-053 point 1 marked superseded by D-054.
+- Open: PR #21 (`chore/agent-guard-gh`) awaits the owner. Live acceptance from 18 October 2026 is still FAIL (no book postable end to end yet).
+- Checks: docs only, no source, config or prompt changed. `prettier --check` and `npm run docs:check` were NOT RUN in this session (no shell tool was available to the docs agent; the lead to run them). Grep check for em dashes and banned words on the edited files: PASS (the only hit is the house-style list in AGENTS.md).
+- Not touched: `.env.example`, `scripts/agent_guard.py`, CHANGELOG.md (dead code is not user-visible), every source file.

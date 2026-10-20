@@ -124,6 +124,9 @@ All routes use server-resolved owner/workspace context. Requests are validated b
 | POST | `/api/v1/books/:id/export-project` | `apps/server/src/routes/transfer.ts` |
 | POST | `/api/v1/books/import-manuscript` | `apps/server/src/routes/transfer.ts` |
 | POST | `/api/v1/projects/import` | `apps/server/src/routes/transfer.ts` |
+| POST | `/api/v1/books/import-project` | `apps/server/src/routes/transfer.ts` |
+
+Moving a book (D-051): `POST /api/v1/books/:id/export-project` returns the project zip. `POST /api/v1/books/import-project` takes `multipart/form-data` with `profileId` (a pen name in the caller's workspace) and `file` (the zip). It always makes a new book, owner or editor only, and is limited to 5 imports per minute per visitor. `POST /api/v1/projects/import` takes the raw zip as `application/zip` (optional `?profileId=`) and is the older route.
 
 ## Claim fixes, autosave and rerunning checks (19 October 2026)
 

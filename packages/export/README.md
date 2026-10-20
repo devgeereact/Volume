@@ -89,7 +89,6 @@ layout and corrected if Paged.js drifts, with a warning), fonts embedded as data
 ```ts
 function exportDocx(book: BookDoc, theme?: InteriorTheme, opts?: DocxOptions): Promise<Buffer>;
 interface DocxOptions { trim?: TrimKey; embedFonts?: boolean /* true */; images?: Record<string, Buffer>; fonts?: FontLibrary }
-const DOCX_STYLE_IDS: readonly string[];
 function addMirrorMargins(settingsXml: string, embedTrueTypeFonts?: boolean): string;
 
 function exportEpub(book: BookDoc, theme?: InteriorTheme, opts?: EpubOptions): Promise<Buffer>;
@@ -204,7 +203,6 @@ function resolveFamily(lib: FontLibrary, wanted: string, fallback: string, warni
 function fontFaceCss(lib: FontLibrary, families: string[]): string;
 function fontBytes(lib: FontLibrary, family: string, weight: number, style?: 'normal' | 'italic'): Buffer | undefined;
 function ornamentSvg(name: string, colour: string, width: number): string;
-const ORNAMENT_NAMES: readonly string[];
 ```
 
 ## Fonts

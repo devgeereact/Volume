@@ -24,6 +24,13 @@ Every screen uses the app shell from `docs/03-design/DESIGN-SYSTEM.md`: left nav
 | `/books/:id/marketing` | Marketing |
 | `/settings/:tab?` | Settings (models, budgets, key, backups, house style, KDP rules) |
 | `/archive` | Archive |
+| `/published` | Published books |
+| `/books/:id/claims` | Claims to verify for one book, with fix options (D-052). Linked from the editor's Claims tab and from preflight |
+| `/volume` | Volume mode: batches across pen names (phase 8) |
+| `/volume/batches/:batchId` | One batch |
+| `/volume/schedule` | Schedule: the weekly title limit per format |
+| `/new-book` | Redirects to `/books/new` |
+| `/components` | Developer style guide, local builds only. The hosted app shows Page not found |
 
 ## Screens
 

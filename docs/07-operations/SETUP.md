@@ -18,4 +18,8 @@ macOS and Linux use the same commands. On Linux, Chromium may require system lib
 
 OpenRouter credentials are optional for mock development. This repository does not read or create a private .env during setup/doctor. Configure secrets privately when needed; the owner-reserved .env.example is not overwritten. Production/live AI checks require separate approval and budget. See [development](DEVELOPMENT.md) for fixture-only startup and [backup recovery](BACKUP-RECOVERY.md) for owner data.
 
-Validation on this workstation is Linux only. A committed macOS CI job is a planned verification path, not proof of execution. Record actual platform results in ../reports/volume/qa/reports/ (outside the repository).
+- On the Mac only, create `.env` by copying `.env.example` and fill in the values privately. Never commit it, never paste keys into code, prompts or chat.
+- Outside production, `AUTH_MODE` defaults to `local`, so local builds have no sign-in. `/` shows the landing page and "Open library" leads to `/library`. Production refuses `local` and needs Clerk.
+- The Ubuntu computer builds and tests with its own restricted credentials. Never copy the Mac's `.env` or any key between computers.
+
+The Mac is the primary machine. The macOS gate passed on 14 October 2026 (doctor, typecheck, lint, format, docs, hooks, all Vitest suites, `compare:pdf`, both builds and e2e 7 of 7), and remote CI passed on macOS and Ubuntu that day. Record later platform results in ../reports/volume/qa/reports/ (outside the repository).
