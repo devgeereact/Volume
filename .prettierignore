@@ -35,3 +35,6 @@ assets/
 packages/ui/tokens.css
 packages/ui/theme.css
 packages/ui/tokens.json
+
+# Local graphify tool output (not in git)
+graphify-out/
