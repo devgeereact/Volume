@@ -34,7 +34,6 @@ ASK_COMMANDS = [
     (r'\bsupabase\s+(db\s+(push|reset)|migration\s+repair|functions\s+deploy|secrets\s+set)\b', 'changes a Supabase project'),
     (r'\b(bin/)?migrate\.php\b.*\b(apply|--apply)\b', 'applies database migrations'),
     (r'\brollback\.sh\b.*--go\b', 'live rollback'),
-    (r'\b(gh\s+(repo\s+(delete|edit)|secret\s+set|workflow\s+run|release\s+create|pr\s+merge))\b', 'changes GitHub state'),
     (r'\b(wrangler\s+(deploy|publish|secret)|vercel\s+--prod|netlify\s+deploy\s+--prod)\b', 'production deploy'),
     (r'\b(rsync|scp|sftp)\b.*@', 'copies files to a remote server'),
     (r'\bcurl\b[^|]*\|\s*(sudo\s+)?(ba|z)?sh\b', 'pipes a download into a shell'),

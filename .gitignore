@@ -15,3 +15,6 @@ playwright-report/
 
 # WebStorm project settings, per machine
 /.idea/
+
+# Python bytecode from scripts/agent_guard.py
+__pycache__/
