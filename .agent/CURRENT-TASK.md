@@ -5,21 +5,21 @@
 - Live at https://volume.gakinz.com on release `20261020T035644Z` (main `072dec3`). Rollback target `20261020T021731Z` (`npm run deploy -- --rollback`). Migrations 0001 to 0011 applied in production.
 - Merged to main on 19 and 20 October (PRs #7 to #20): picture-book e2e fix, web polish, server hardening (D-050), own cover upload and listing preflight, acceptance fixes, move a book by project zip (D-051), claim fixes and autosave (D-052), public landing and branded sign-in (D-053), landing as the front with the Library at `/library` (D-054).
 - Local evidence on `072dec3`: typecheck, lint and format PASS; Vitest 1,176 passed and 4 skipped; e2e 17 of 17.
-- GitHub Actions creates no runs for the owner's account. It is an account-level block, still present after the billing fix on 20 October. Deploys use `npm run deploy -- --no-ci-check` with the owner's OK.
-- Git cleaned: only `main` and `chore/agent-guard-gh` (PR #21) remain, local and on GitHub. Dead code removed and every guide brought up to date (PR #22, merged and deployed 20 October 2026).
+- GitHub Actions creates no runs: GitHub's spam filter flagged the owner's account on 18 October 2026 (run #38 says "owner marked spammy"; profile and repo 404 when signed out). Only GitHub can lift it. Deploys use `npm run deploy -- --no-ci-check` with the owner's OK.
+- Git cleaned: only `main` remains (plus `ci/run-check`, kept to start a run once Actions is back). PR #21 merged 20 October. Dead code removed and every guide brought up to date (PR #22, merged and deployed 20 October 2026).
 - Live acceptance from 18 October 2026 is FAIL: no book has yet gone through to a postable pack end to end.
 
 ## Next
 
-1. Owner: decide PR #21 (`scripts/agent_guard.py` and `.gitignore`).
-2. Owner: restore GitHub Actions with GitHub Support, then check CI on `main`.
+1. Owner: get the GitHub account flag lifted (account reinstatement request); then push `ci/run-check` and check CI on `main`.
+2. Until then: run the full local checks before every deploy (the deploy script skips CI with `--no-ci-check`).
 3. Owner: hold the phase 5 to 8 gates by trying each book type on the live site.
 4. One free live run with the new prompts (`LIVE_AI=1`, budget zero), only with the owner's authorisation, then a fresh live acceptance pass.
 5. Owner: OpenRouter `data_collection` setting and privacy contact facts.
 
 ## Open owner decisions
 
-- PR #21 (agent guard rules for some `gh` commands, `__pycache__` in `.gitignore`).
+- How to run CI while GitHub is blocked (local checks only, the Ubuntu machine, or a mirror on another host).
 - OpenRouter `data_collection` setting. Setting it may remove free models.
 - Privacy contact address, retention periods, lawful bases and transfer safeguards (see KNOWN-ISSUES.md).
 - Phase 5 to 8 owner gates, and whether to offer accounts to other self-publishers (phase 8).
