@@ -497,3 +497,25 @@ describe('POST /sections/:id/recheck (the preflight rerun-checks action)', () =>
     expect((await t.call('POST', url, {})).status).toBe(409);
   });
 });
+
+describe('POST /books/:id/fix-house-style', () => {
+  it('fixes dashes and US spellings in every section as a new owner version, and changes nothing the second time', async () => {
+    t = await testApp();
+    const { bookId, chapterId } = await writtenBook(t);
+    const start = await current(t, chapterId);
+    await t.call('PUT', `/api/v1/books/${bookId}/sections/${chapterId}/autosave`, {
+      bodyMd: '# One\n\nThe color changed — slowly.',
+      baseVersionId: start.id,
+    });
+    const r = await t.call<{ sections: number; dashes: number; spellings: number }>('POST', `/api/v1/books/${bookId}/fix-house-style`, {});
+    expect(r.status).toBe(200);
+    expect(r.body.sections).toBeGreaterThanOrEqual(1);
+    expect(r.body.dashes).toBeGreaterThanOrEqual(1);
+    expect(r.body.spellings).toBeGreaterThanOrEqual(1);
+    const after = await current(t, chapterId);
+    expect(after.source).toBe('owner:style-fix');
+    expect(after.bodyMd).toContain('The colour changed, slowly.');
+    const again = await t.call<{ sections: number }>('POST', `/api/v1/books/${bookId}/fix-house-style`, {});
+    expect(again.body.sections).toBe(0);
+  });
+});

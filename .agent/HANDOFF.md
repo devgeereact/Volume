@@ -441,3 +441,16 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Checks: typecheck web and server PASS; eslint changed files PASS; prettier written; web Vitest 173 PASS; server Vitest 470 passed, 3 skipped; `npm run e2e` 17 of 17 PASS. NOT TESTED: a visual check of the Cover studio in API mode, and the real image thumbnails in a browser.
 - Gaps left: no concept history (owner declined the DB change); no unpublish button (not needed to change a cover).
 - Next: owner approval to commit, PR and deploy both changes (`npm run deploy -- --no-ci-check`, no migrations).
+
+## 2026-10-21, Claude Code (claude-opus-5-5), PR #26 merged and deployed
+
+- PR #26 merged with the owner's OK. `.prettierignore` now skips `graphify-out/` (local tool cache, git-excluded) which had failed format:check (commit 0700b69, pushed to main).
+- Deployed main `0700b69` as release `20261020T231731Z` with `npm run deploy -- --no-ci-check` (typecheck, lint, format:check, test, e2e 17 of 17 PASS locally; no migrations). Rollback `20261020T035644Z`.
+- Live: `/`, `/library`, `/api/health` 200; `/api/v1/books` 401 unsigned; new bundle `index-C1DgSews.js` served. Signed-in screens NOT TESTED by the agent; owner testing.
+
+## 2026-10-21, Claude Code (claude-opus-5-5), fix the whole book and one-click model fallback
+
+- Owner: wants one button to fix every issue and claim; cover concepts failed with an Nvidia 404 ("Function ... Not found"): the cover_brief stage model chosen in Settings is withdrawn, and the app only said "Choose another model".
+- Server: `POST /books/:id/fix-house-style` (routes/fixes.ts, version source owner:style-fix, test in claims-autosave.test.ts). AiModelUnavailableError carries stage and nextFallback; runner stores `result: { model, stage, nextFallback }` on model_unavailable.
+- Web: `features/editor/fixAll.ts` (+ test), `FixWholeBook.tsx` on the Claims page, Editor Next line link; `features/settings/ModelFallback.tsx` banner (sets the workspace override for the stage, then retries) in Cover studio, Editor and Fix the whole book. Note: a book or profile model override for that stage still wins over the workspace one (D-019).
+- Checks: typecheck PASS; eslint changed files PASS; format:check PASS; Vitest all workspaces PASS (web 176, server 471 + 3 skipped, others pass). e2e runs in the deploy.

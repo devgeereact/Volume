@@ -5,7 +5,8 @@ import type { RequestCtx } from '../auth/context.js';
 import { AppError, notFound, parse } from '../http/errors.js';
 import { KeyedLock } from '../lib/keyed-lock.js';
 import { AutosaveSchema, type Claim, type Section, type SectionVersion } from '../repos/manuscript.js';
-import { advanceIfWritingComplete } from '../jobs/book-data.js';
+import { advanceIfWritingComplete, houseStyle, profileSummary } from '../jobs/book-data.js';
+import { fixHouseStyle, ownerTexts } from '../jobs/house-style-fix.js';
 import {
   bookSources,
   CLAIM_FIX_APPROACHES,
@@ -223,6 +224,47 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
       version,
       checks: { blocks: checks.filter((c) => c.severity === 'block').length, warnings: checks.filter((c) => c.severity === 'warn').length },
     };
+  });
+
+  /**
+   * The owner's "Fix house style in the whole book": em and en dashes and US spellings in every switched-on section's
+   * current text, with the same rules as the automatic fix after writing (the profile bio is never changed). Each
+   * changed section gets a new version, so every change can be undone from Versions. No AI, no cost.
+   * 200 { sections, dashes, spellings }.
+   */
+  app.post('/books/:id/fix-house-style', async (req) => {
+    writer(req);
+    const p = parse(z.object({ id: Id }), req.params);
+    const book = await s.repos.books.require(req.ctx, p.id);
+    const profile = await profileSummary(s.repos, req.ctx, book.profileId, book);
+    const style = houseStyle(s.configDir);
+    let sections = 0;
+    let dashes = 0;
+    let spellings = 0;
+    for (const sec of await m.listSections(req.ctx, p.id)) {
+      if (!sec.enabled) continue;
+      const cur = await m.currentVersion(req.ctx, sec.id);
+      if (!cur?.bodyMd) continue;
+      const fix = fixHouseStyle(cur.bodyMd, style, { protect: ownerTexts(profile) });
+      if (fix.text === cur.bodyMd) continue;
+      const version = await m.saveVersion(req.ctx, sec.id, {
+        bodyMd: fix.text,
+        source: 'owner:style-fix',
+        baseVersionId: cur.id,
+        note: 'House style fix for the whole book',
+        createdBy: req.ctx.userId,
+      });
+      await m.addCheckResults(req.ctx, p.id, sec.id, version.id, fixCodeChecks(fix.text, s.configDir));
+      await s.bus.publish(req.ctx.workspaceId, {
+        projectId: p.id,
+        type: 'section.saved',
+        data: { sectionId: sec.id, versionId: version.id, version: version.version, wordCount: version.wordCount, source: version.source },
+      });
+      sections++;
+      dashes += fix.dashes;
+      spellings += fix.spellings;
+    }
+    return { sections, dashes, spellings };
   });
 
   // ---------- autosave ----------
