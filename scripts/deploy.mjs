@@ -2,7 +2,8 @@
 /*
  * Deploys main to the cPanel host in one command: `npm run deploy`. Steps and reasons: docs/07-operations/DEPLOYMENT.md.
  *
- *   1. Preflight: on main, clean, equal to origin/main; CI on this commit passed (gh), unless --no-ci-check.
+ *   1. Preflight: on main, clean, equal to origin/main; CI on this commit passed (gh). With --no-ci-check the local
+ *      checks run instead (typecheck, lint, format:check, test, e2e) and must pass, unless --skip-local-checks.
  *   2. Build the release (npm run build:release --require-clerk) with the public Clerk key from deploy/production.json.
  *   3. Upload to ~/apps/volume/releases/<utc>, then npm ci --omit=dev with the host's Node 24.
  *   4. Link the shared settings file into the release (a symlink; the file is never read or copied here).
@@ -10,7 +11,8 @@
  *   6. Switch ~/apps/volume/current, stop the running lsnode process (LiteSpeed ignores tmp/restart.txt), check live.
  *   7. Any failed live check switches back to the previous release and restarts it.
  *
- * Options: --dry-run (preflight and plan only), --migrate, --no-ci-check, --rollback (back to the previous release).
+ * Options: --dry-run (preflight and plan only), --migrate, --no-ci-check (local checks instead of CI),
+ * --skip-local-checks (with --no-ci-check: no checks at all, for an emergency only), --rollback (back to the previous release).
  * Never deletes a release, never touches ~/apps/volume/shared or the database outside server/migrate.mjs.
  */
 import { spawnSync } from 'node:child_process';
@@ -23,8 +25,13 @@ const dryRun = args.has('--dry-run');
 const migrate = args.has('--migrate');
 const ciCheck = !args.has('--no-ci-check');
 const rollbackOnly = args.has('--rollback');
-const known = new Set(['--dry-run', '--migrate', '--no-ci-check', '--rollback']);
+const skipLocalChecks = args.has('--skip-local-checks');
+const known = new Set(['--dry-run', '--migrate', '--no-ci-check', '--skip-local-checks', '--rollback']);
 for (const a of args) if (!known.has(a)) fail(`Unknown option ${a}. Options: ${[...known].join(', ')}.`);
+if (skipLocalChecks && ciCheck) fail('--skip-local-checks only goes with --no-ci-check.');
+
+/** What stands in for GitHub CI when it cannot run (the same gates as .github/workflows/check.yml, on this computer). */
+const LOCAL_CHECKS = ['typecheck', 'lint', 'format:check', 'test', 'e2e'];
 
 const cfg = JSON.parse(readFileSync(path.join(root, 'deploy/production.json'), 'utf8'));
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
@@ -152,7 +159,20 @@ if (ciCheck) {
   const runs = ci.out.split('\n').filter(Boolean);
   if (!runs.includes('completed success')) fail(`no passed CI run for ${short} yet (${runs.join(', ') || 'none'}). Wait for CI, or pass --no-ci-check.`);
 }
-console.log(`  main at ${short}, clean, pushed${ciCheck ? ', CI passed' : ''}`);
+if (!ciCheck) {
+  if (skipLocalChecks) console.log('  WARNING: GitHub CI and the local checks are both skipped (--skip-local-checks).');
+  else if (dryRun) console.log(`  would run the local checks instead of CI: ${LOCAL_CHECKS.map((c) => `npm run ${c}`).join(', ')}`);
+  else {
+    step('Local checks (instead of GitHub CI)');
+    for (const check of LOCAL_CHECKS) {
+      console.log(`\n  npm run ${check}`);
+      local(npm, ['run', '-s', check], { inherit: true });
+    }
+    if (local('git', ['status', '--porcelain']).out) fail('the local checks changed the working tree; commit or discard, then deploy again.');
+  }
+}
+const checked = ciCheck ? ', CI passed' : skipLocalChecks ? ', no checks run' : dryRun ? '' : ', local checks passed';
+console.log(`  main at ${short}, clean, pushed${checked}`);
 
 // ---- 2. Build ----
 step('Building the release');

@@ -71,7 +71,7 @@ npm run doctor                # runtime, native modules, pinned Chromium
 npm run docs:check            # Markdown link check
 npm run build:release         # release folder for the host (build/release); see docs/07-operations/DEPLOYMENT.md
 npm run deploy -- --dry-run   # host preflight only, changes nothing
-npm run deploy                # real deploy: owner approval first; add --migrate (after a cPanel backup) if migrations are pending, --rollback to go back; --no-ci-check while GitHub Actions is blocked (owner OK)
+npm run deploy                # real deploy: owner approval first; add --migrate (after a cPanel backup) if migrations are pending, --rollback to go back; --no-ci-check while GitHub Actions is blocked (owner OK; runs typecheck, lint, format:check, test and e2e locally first)
 npm run format:check          # Prettier check, whole repo
 npm run hooks:test            # hook tests
 npm run migrate -w apps/server         # apply migrations (MYSQL_MIGRATE_USER on MySQL)
