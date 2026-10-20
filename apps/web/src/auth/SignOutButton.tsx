@@ -15,7 +15,7 @@ function HostedSignOut() {
 export function SignOutButton() {
   if (hostedSignIn) return <HostedSignOut />;
   return (
-    <Button variant="primary" onClick={() => window.location.assign("/")}>
+    <Button variant="primary" onClick={() => window.location.assign("/library")}>
       Open Volume again
     </Button>
   );

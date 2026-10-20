@@ -20,7 +20,7 @@ interface ServerNames {
 
 function crumbsFor(pathname: string, server: ServerNames): Crumb[] {
   const parts = pathname.split("/").filter(Boolean);
-  const library = { label: "Library", to: "/" };
+  const library = { label: "Library", to: "/library" };
   if (parts.length === 0 || parts[0] === "library") return [library];
   if (parts[0] === "published") return [{ label: screens.published.title, to: "/published" }];
   if (parts[0] === "books") {

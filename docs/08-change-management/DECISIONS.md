@@ -388,3 +388,11 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
   5. Copy stays truthful: the sample book is labelled as sample content, the pages say Volume is a private studio with access by invitation, and `noindex` stays.
 - **Options considered:** landing at `/` for everyone with the Library only at `/library` (changes existing behaviour and tests); building with motion/react only (no new packages, but not what the owner asked for).
 - **Consequences:** about 34 kB gzip of extra script for signed-out visitors only. Undo by restoring the old signed-out branch in `HostedAuth.tsx` and removing `apps/web/src/site/` and the three routes.
+
+## D-054, 20 October 2026: the landing is the front of the app
+
+- **Status:** Accepted (owner asked, 20 October 2026).
+- **Context:** D-053 showed the landing hero at `/` only to signed-out visitors; a signed-in visitor to volume.gakinz.com went straight to the Library. The owner wants the landing to be the front of the app for everyone, and signing in to lead to the Library.
+- **Decision:** `/` is the landing hero for every visitor. The Library (the app's home screen) moves to `/library`, which it already answered. Signed in, the landing's nav and button say "Open library" and go to `/library`; signed out, they say "Sign in". Signing in from `/sign-in` or `/` leads to `/library` (Clerk `fallbackRedirectUrl`); signing in from a deep link returns to that link. `/sign-in` while signed in goes to `/library`; `/welcome` now redirects to `/`. Every in-app link to the Library (sidebar, breadcrumbs, Page not found, screen errors, New book, Published) points at `/library`. Sign-out still lands on `/`.
+- **Options considered:** send signed-in visitors from `/` straight to `/library` (the landing would never show to the owner); keep D-053 (the owner's complaint).
+- **Consequences:** bookmarks of `/` open the landing, one click from the Library. Undo by restoring `{ path: "/", element: <LibraryPage /> }` in the app shell and the old `screens.library.path`.

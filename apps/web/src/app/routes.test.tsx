@@ -50,10 +50,10 @@ function routePaths(list: RouteObject[], parent = ""): string[] {
 }
 
 const localPaths = [
+  "/",
   "/welcome",
   "/how-it-works",
   "/sign-in",
-  "/",
   "/library",
   "/published",
   "/profiles",
@@ -137,7 +137,7 @@ describe("route errors", () => {
     const html = await render(tree, "/broken");
     expect(html).toContain("Shell navigation");
     expect(html).toContain("This screen could not load");
-    expect(html).toMatch(/<a[^>]*href="\/"[^>]*>Go to Library<\/a>/);
+    expect(html).toMatch(/<a[^>]*href="\/library"[^>]*>Go to Library<\/a>/);
     expect(html).not.toContain("internal detail");
     expect(html).not.toContain("Never shown");
   });

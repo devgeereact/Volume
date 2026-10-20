@@ -42,6 +42,12 @@ const clerkAppearance = {
   },
 };
 
+/** Where signing in leads: the Library from /sign-in, or the page a deep link pointed at (D-054). */
+function afterSignIn(): string {
+  const { pathname, search } = window.location;
+  return pathname === "/sign-in" || pathname === "/" ? "/library" : `${pathname}${search}`;
+}
+
 export default function SignInPage({ mode }: SignInPageProps) {
   const scope = useRef<HTMLDivElement>(null);
 
@@ -95,12 +101,12 @@ export default function SignInPage({ mode }: SignInPageProps) {
             </div>
             <div className="in-form flex w-full justify-center">
               {mode === "clerk" ? (
-                <SignIn routing="hash" appearance={clerkAppearance} />
+                <SignIn routing="hash" appearance={clerkAppearance} fallbackRedirectUrl={afterSignIn()} signUpFallbackRedirectUrl={afterSignIn()} />
               ) : (
                 <div className="w-full rounded-lg border border-border bg-sheet p-6 text-center shadow-sheet">
                   <p className="m-0 text-body text-ink-secondary">This is a local build, so sign-in is off and the app opens straight away.</p>
                   <Link
-                    to="/"
+                    to="/library"
                     className="mt-5 inline-flex h-11 items-center rounded-md bg-accent px-5 text-label font-semibold text-on-accent shadow-button transition-colors hover:bg-accent-hover"
                   >
                     Open the library

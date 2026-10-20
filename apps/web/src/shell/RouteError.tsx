@@ -19,7 +19,7 @@ export function RouteError() {
             <Button size="sm" onClick={() => window.location.reload()}>
               Reload
             </Button>
-            <Link to="/" className={buttonClasses("ghost", "sm")}>
+            <Link to="/library" className={buttonClasses("ghost", "sm")}>
               Go to Library
             </Link>
           </div>

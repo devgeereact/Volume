@@ -254,7 +254,7 @@ export default function PublishedPage() {
           body="When a book goes live on Amazon, mark it published in Export and it moves to this shelf."
           drawing="books"
           action={
-            <Link to="/" className={buttonClasses("primary", "md")}>
+            <Link to="/library" className={buttonClasses("primary", "md")}>
               Open the Library
             </Link>
           }
