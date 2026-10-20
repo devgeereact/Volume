@@ -140,6 +140,8 @@ export interface Book {
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
   cover: CoverDesign | null;
+  /** Server books: the real cover image (final: the built or uploaded eBook cover; otherwise the chosen concept art). */
+  coverImage?: { src: string; final: boolean } | null | undefined;
   /** Steps that finished but need the owner to look (claims, warnings). */
   attentionSteps: BookStepId[];
   isDemo: boolean;

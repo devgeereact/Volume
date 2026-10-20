@@ -95,6 +95,7 @@ export function LedgerView({ books, live, selectedId, onSelect, penName = getPen
                         title={b.title}
                         author={pen?.name ?? ""}
                         design={libraryCover(b).design}
+                        image={libraryCover(b).image}
                         width={34}
                         hideSubtitle
                         decorative
@@ -146,6 +147,7 @@ export function LedgerView({ books, live, selectedId, onSelect, penName = getPen
                   title={b.title}
                   author={pen?.name ?? ""}
                   design={libraryCover(b).design}
+                  image={libraryCover(b).image}
                   width={40}
                   hideSubtitle
                   decorative

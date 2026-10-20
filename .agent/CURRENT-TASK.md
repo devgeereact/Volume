@@ -11,6 +11,7 @@
 
 ## Next
 
+0. Simpler Editor, AI run messages, Cover studio steps and real cover thumbnails: done locally on 20 October 2026, not committed or deployed (see HANDOFF). Next: owner OK, then commit, PR and deploy (no migrations).
 1. Owner: get the GitHub account flag lifted (account reinstatement request); then push `ci/run-check` and check CI on `main`.
 2. Until then: deploy with `npm run deploy -- --no-ci-check`, which now runs typecheck, lint, format:check, test and e2e on this computer first and stops on any failure.
 3. Owner: hold the phase 5 to 8 gates by trying each book type on the live site.

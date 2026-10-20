@@ -19,6 +19,8 @@ interface CoverProps {
   /** Set when the title is already announced next to the cover. */
   decorative?: boolean | undefined;
   className?: string | undefined;
+  /** A real cover image (server books). Drawn instead of the typographic design when set. */
+  image?: string | null | undefined;
 }
 
 /* Cover title faces. All are SIL OFL 1.1 book-content fonts installed from Fontsource
@@ -263,14 +265,24 @@ function Motif({ design }: { design: CoverDesign }) {
  * on the page like an object. Designs come from config/cover-styles.json via coverFromStyle (data/covers.ts):
  * an OFL title face, a layout, a motif and a palette. The interface never puts its own text on a cover.
  */
-export function Cover({ title, subtitle, author, design, width, hideSubtitle, lift, lifted, decorative, className }: CoverProps) {
+export function Cover({ title, subtitle, author, design, width, hideSubtitle, lift, lifted, decorative, className, image }: CoverProps) {
   const style: CSSProperties = width !== undefined ? { width } : {};
   const a11y = decorative
     ? { "aria-hidden": true as const }
     : { role: "img" as const, "aria-label": design ? `Cover of ${title}${author ? ` by ${author}` : ""}` : `No cover yet for ${title}` };
 
   let cover: ReactNode;
-  if (design) {
+  if (image) {
+    cover = (
+      <div
+        className={cn("vol-cover", !lift && className)}
+        style={style}
+        {...(decorative ? { "aria-hidden": true as const } : { role: "img" as const, "aria-label": `Cover of ${title}${author ? ` by ${author}` : ""}` })}
+      >
+        <img src={image} alt="" loading="lazy" decoding="async" className="inset-0 size-full object-cover" />
+      </div>
+    );
+  } else if (design) {
     const align = design.align ?? "left";
     const centred = align === "center";
     const accent = design.accentFamily ? `'${design.accentFamily}', ${ui}` : ui;

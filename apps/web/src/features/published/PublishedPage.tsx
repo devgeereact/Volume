@@ -55,6 +55,7 @@ function ShelfBook({
           subtitle={book.subtitle}
           author={pen?.name ?? ""}
           design={book.cover ?? libraryCover(book).design}
+          image={libraryCover(book).image}
           lift
           decorative
           className="mx-auto w-full max-w-[168px]"
@@ -114,6 +115,9 @@ function ShelfBook({
         <div className="flex flex-wrap items-center gap-2">
           <Link to={bookStepPath(book.id, "export")} className={buttonClasses("secondary", "sm")}>
             {pub.packVersion > 0 ? `Export pack v${pub.packVersion}` : "Export pack"}
+          </Link>
+          <Link to={bookStepPath(book.id, "cover")} className={buttonClasses("ghost", "sm")}>
+            Change cover<span className="sr-only"> of {book.title}</span>
           </Link>
           <Link to={bookStepPath(book.id, "marketing")} className={buttonClasses("ghost", "sm")}>
             Marketing

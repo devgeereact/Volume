@@ -5,6 +5,16 @@ User-visible changes, newest first. Dates in British format.
 ## 20 October 2026
 
 #### Changed
+- Editor side panel is simpler: three tabs, To fix (claims and house style together), AI edits and Notes, instead of four tabs plus a three-way pass switch. Each kind of AI edit (Line edit, Structure, Voice) now says what it does.
+- A "Next" line at the top of the Editor panel says what to do in this section (check a claim, fix a style problem, review AI edits) with a button that goes there, and turns green when the section is clear.
+- Red underlined claims in the text can be clicked: the panel opens on that claim. One click, "It is right, mark checked", clears it; Add a source, Soften and Remove sentence are still there.
+- AI runs in the Editor now show messages: one when a line, structure or voice edit, a note weave or a section draft starts, one when it finishes or fails (with a Show button), and an "AI working" line in the panel while it runs.
+- Cover studio shows the whole process at the top: Brief, Make concepts, Pick one, Build covers. Each step says what it does, done steps are ticked, and the button for the step you are on sits right there (it was only at the foot of the page). "Use my own cover instead" jumps to the upload panel.
+- Cover concepts can be downloaded one by one. Making new concepts replaces the old set, and the page now says so.
+- Cover concept and cover build runs show a message when they start and when they finish or fail.
+- Real covers show across the app: the Library, the small cover in each book's top bar, Profiles and the Published shelf show the built or uploaded eBook cover, or the chosen concept until it is built, instead of a draft or an empty frame.
+- Published books: a Change cover link on the Published shelf, and the Cover studio explains how to change the cover of a published book (build, rebuild the pack on Export, upload to KDP).
+- Editor text is spell-checked as British English, so British spellings are no longer underlined by the browser.
 - volume.gakinz.com opens on the landing page for everyone. Signing in takes you to the Library, which now lives at /library; when you are already signed in, the landing's button says Open library.
 
 #### Fixed

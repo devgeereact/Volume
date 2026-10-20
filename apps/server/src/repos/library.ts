@@ -31,6 +31,8 @@ export interface BookExtras {
   jobRunning: boolean;
   /** The chosen cover concept's asset, when one is chosen. */
   coverAssetId: string | null;
+  /** The finished eBook cover (built or the owner's own upload), when there is one. Thumbnails prefer it. */
+  coverEbookAssetId: string | null;
   /** Formats from the latest export job (paperback from the print PDF, Kindle eBook from EPUB or DOCX). */
   formats: PublishedFormat[];
   /** How many upload packs were built for this book (0 when none). */
@@ -39,7 +41,16 @@ export interface BookExtras {
   runningJob: { id: string; kind: string; status: string; progress: number } | null;
 }
 
-const EMPTY: BookExtras = { wordCount: 0, sectionCount: 0, jobRunning: false, coverAssetId: null, formats: [], packVersion: 0, runningJob: null };
+const EMPTY: BookExtras = {
+  wordCount: 0,
+  sectionCount: 0,
+  jobRunning: false,
+  coverAssetId: null,
+  coverEbookAssetId: null,
+  formats: [],
+  packVersion: 0,
+  runningJob: null,
+};
 const ACTIVE_JOB = ['queued', 'running', 'waiting'];
 
 export type ActivityKind = 'book_created' | 'stage_changed' | 'job_finished' | 'job_failed' | 'export_built' | 'published';
@@ -190,13 +201,15 @@ export class LibraryRepo {
 
     const covers = await this.db
       .selectFrom('covers')
-      .select(['projectId', 'chosenAssetId'])
+      .select(['projectId', 'chosenAssetId', 'ebookAssetId'])
       .where('workspaceId', '=', ctx.workspaceId)
       .where('projectId', 'in', ids)
       .execute();
     for (const c of covers) {
       const e = out.get(c.projectId);
-      if (e) e.coverAssetId = c.chosenAssetId;
+      if (!e) continue;
+      e.coverAssetId = c.chosenAssetId;
+      e.coverEbookAssetId = c.ebookAssetId;
     }
 
     const exports = await this.db

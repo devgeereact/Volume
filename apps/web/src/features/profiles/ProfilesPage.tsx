@@ -41,7 +41,7 @@ function CoverStack({ list: all }: { list: Book[] }) {
     <span aria-hidden className="flex">
       {list.map((b, i) => (
         <span key={b.id} className={cn("block w-[30px] shrink-0", i > 0 && "-ml-2.5")}>
-          <Cover title={b.title} author="" design={libraryCover(b).design} width={30} hideSubtitle decorative />
+          <Cover title={b.title} author="" design={libraryCover(b).design} image={libraryCover(b).image} width={30} hideSubtitle decorative />
         </span>
       ))}
     </span>
