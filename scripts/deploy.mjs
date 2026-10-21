@@ -13,8 +13,8 @@
  *
  * Options: --dry-run (preflight and plan only), --migrate, --no-ci-check (local checks instead of CI),
  * --skip-local-checks (with --no-ci-check: no checks at all, for an emergency only), --rollback (back to the previous release).
- *   8. After a passing deploy, delete older releases beyond the newest KEEP_RELEASES (each holds ~20,000 files and the
- *      host caps inodes). Never deletes the live or previous release, the one the Node.js selector is registered
+ *   8. After a passing deploy, delete older releases beyond the newest KEEP_RELEASES working ones (each holds ~20,000
+ *      files and the host caps inodes); a release whose install failed (no node_modules) never counts as one. Never deletes the live or previous release, the one the Node.js selector is registered
  *      against (it names PassengerNodejs), or anything newer than this deploy (a concurrent upload).
  * Never touches ~/apps/volume/shared or the database outside server/migrate.mjs.
  */
@@ -74,6 +74,29 @@ function remote(script, opts = {}) {
     .join('\n');
   if (r.status !== 0 && !opts.allowFail) fail(`remote step failed (exit ${r.status}).\n${stderr}`);
   return { status: r.status, out: (r.stdout ?? '').trim(), err: stderr };
+}
+
+/** Every release folder on the host, as ['ok' | 'broken', name]; broken means its install failed (no node_modules). */
+function hostReleases() {
+  return remote(`cd ${app}/releases && for r in *; do if [ -d "$r/node_modules" ]; then echo "ok $r"; else echo "broken $r"; fi; done`)
+    .out.split('\n')
+    .map((l) => l.split(' '))
+    .filter((p) => p.length === 2 && /^\d{8}T\d{6}Z$/.test(p[1]));
+}
+
+/**
+ * Releases to delete after the deploy of `utc`: older than it, not among the newest KEEP_RELEASES working ones, and
+ * not the new, previous live or Node.js selector release. A broken release never holds a keep slot.
+ */
+function staleReleases(listed, utc) {
+  const selector = passengerNode.match(/\/releases\/([^/]+)\//)?.[1];
+  const protectedReleases = new Set([utc, current, selector].filter(Boolean));
+  const working = listed
+    .filter((p) => p[0] === 'ok')
+    .map((p) => p[1])
+    .sort();
+  const kept = new Set(working.slice(-KEEP_RELEASES));
+  return listed.map((p) => p[1]).filter((r) => r < utc && !kept.has(r) && !protectedReleases.has(r));
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -187,10 +210,8 @@ const utc = new Date()
   .replace(/\.\d+Z$/, 'Z');
 if (dryRun) {
   console.log(`  would build ${short} as releases/${utc}, then upload, install, check migrations and switch from ${current}.`);
-  const selector = passengerNode.match(/\/releases\/([^/]+)\//)?.[1];
-  const after = [...releases, utc].sort();
-  const keep = new Set([...after.slice(-KEEP_RELEASES), utc, current, selector]);
-  const prune = after.filter((r) => r < utc && !keep.has(r) && /^\d{8}T\d{6}Z$/.test(r));
+  // The new release counts as a working one once it passes.
+  const prune = staleReleases([...hostReleases(), ['ok', utc]], utc);
   console.log(`  after a passing deploy would delete: ${prune.length ? prune.map((r) => `releases/${r}`).join(', ') : 'nothing'}`);
   process.exit(0);
 }
@@ -236,11 +257,7 @@ if (problems.length) {
 // ---- 8. Prune old releases ----
 // Release names are UTC stamps, so sorting by name sorts by age. A failure here leaves extra folders, not a broken site.
 step('Pruning old releases');
-const selectorRelease = passengerNode.match(/\/releases\/([^/]+)\//)?.[1];
-const protectedReleases = new Set([utc, current, selectorRelease].filter(Boolean));
-const onHost = remote(`ls -1 ${app}/releases`).out.split('\n').filter(Boolean).sort();
-const kept = new Set(onHost.slice(-KEEP_RELEASES));
-const stale = onHost.filter((r) => r < utc && !kept.has(r) && !protectedReleases.has(r) && /^\d{8}T\d{6}Z$/.test(r));
+const stale = staleReleases(hostReleases(), utc);
 for (const r of stale) {
   const rm = remote(`rm -rf -- ${app}/releases/${r}`, { allowFail: true });
   console.log(rm.status === 0 ? `  deleted releases/${r}` : `  WARNING: could not delete releases/${r}: ${rm.err}`);
