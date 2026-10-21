@@ -17,6 +17,8 @@ User-visible changes, newest first. Dates in British format.
 - Summaries suit short pages such as the glossary and the review request, and a summary or check that fails is tried once more before it is flagged.
 
 #### Fixed
+- `npm run pages` now works when Pages is closed (it starts Pages in the background and waits for the Word import), including on Macs where the app is named Pages Creator Studio.
+- Printed and e-book files set curly quotes and apostrophes, as the owner's books are; the manuscript text keeps whatever you typed.
 - Built covers now match the Cover studio preview. Over concept art the build used a black overlay and white type; it now uses the same wash of the palette's background and the palette's own text colours as the preview, and no band over the art. Build covers again to get the matching colours.
 - Preflight counted softened (and author-experience) claims as still open, so a book whose claims were all settled kept warning about dozens. Only open claims count now, and the claims report lists each claim's real status.
 - Claims you already verified, softened or removed no longer come back as new open claims when the checks run again after an edit. A sentence already open in the section is not filed twice either.

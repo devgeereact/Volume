@@ -31,8 +31,25 @@ export const PAGES_CONVERT_SCRIPT = `on run argv
   set inFile to POSIX file (item 1 of argv)
   set outFile to POSIX file (item 2 of argv)
   with timeout of 85 seconds
+    -- Start Pages in the background when it is closed (an AppleScript open or launch fails with -600 then); an open
+    -- Pages is left as it is. Wait until it answers, then a moment more for it to finish starting.
+    if application id "${PAGES_BUNDLE_ID}" is not running then
+      do shell script "open -g -b ${PAGES_BUNDLE_ID}"
+      repeat 60 times
+        if application id "${PAGES_BUNDLE_ID}" is running then exit repeat
+        delay 0.25
+      end repeat
+      delay 2
+    end if
     tell application id "${PAGES_BUNDLE_ID}"
-      set d to open inFile
+      set docsBefore to count of documents
+      open inFile
+      -- A Word file is imported first; until then Pages answers with an import placeholder, not the document.
+      repeat 240 times
+        if (count of documents) > docsBefore then exit repeat
+        delay 0.25
+      end repeat
+      set d to front document
       try
         save d in outFile
       on error errText number errNum
@@ -44,8 +61,9 @@ export const PAGES_CONVERT_SCRIPT = `on run argv
   end timeout
 end run`;
 
-// "path to application id" finds the app without starting it; it fails with -1728 when Pages is not installed.
-const findScript = (bundleId: string) => `POSIX path of (path to application id "${bundleId.replace(/[^\w.-]/g, '')}")`;
+// Finder's "application file id" finds the app without starting it; it fails when Pages is not installed.
+// Finder resolves the app file by bundle id without starting it; "path to application id" fails while Pages is closed.
+const findScript = (bundleId: string) => `tell application "Finder" to POSIX path of (application file id "${bundleId.replace(/[^\w.-]/g, '')}" as alias)`;
 
 function osascript(args: string[], timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
