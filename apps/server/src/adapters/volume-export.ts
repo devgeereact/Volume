@@ -27,6 +27,7 @@ import {
   acquireBrowser,
   applyCoverTypography,
   buildUploadPack,
+  convertDocxToPages,
   exportDocx,
   exportEbookCover,
   exportEpub,
@@ -325,6 +326,27 @@ function toServerReport(r: VolumePreflightReport, rulesVersion: string): Preflig
 
 function throwIfAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new DOMException('Aborted', 'AbortError');
+}
+
+/**
+ * Opt-in Apple Pages copy of the DOCX for the pack: only on macOS with VOLUME_PAGES=1 (the owner's Mac, never the host).
+ * Uses the same conversion as `npm run pages` (packages/export/src/pages.ts). A failure leaves the copy out (the README
+ * then says how to make one) and never stops the pack.
+ */
+export async function pagesCopy(
+  docx: Buffer | undefined,
+  name: string,
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform,
+  convert: typeof convertDocxToPages = convertDocxToPages,
+): Promise<Buffer | undefined> {
+  if (!docx || platform !== 'darwin' || env['VOLUME_PAGES'] !== '1') return undefined;
+  try {
+    return await convert(docx, { name });
+  } catch (err) {
+    process.emitWarning(`Pages copy left out of the pack: ${err instanceof Error ? err.message : String(err)}`);
+    return undefined;
+  }
 }
 
 const bytes = (b: Buffer): Uint8Array => new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
@@ -718,8 +740,12 @@ export class VolumeExportAdapter implements ExportPort {
     const preflight = this.finals.get(files) ?? (await runPreflight(this.preflightInput(book, pack, true)));
     throwIfAborted(opts.signal);
     const ai = aiFlags(book);
+    const doc = this.doc(book);
+    const pagesFile = await pagesCopy(pack.docx, slugify(doc.meta.title) || 'book');
+    throwIfAborted(opts.signal);
+    if (pagesFile) pack.pages = pagesFile;
     const input: Parameters<typeof buildUploadPack>[0] = {
-      book: this.doc(book),
+      book: doc,
       files: pack,
       trim: book.trim,
       paper: paperOf(book),
