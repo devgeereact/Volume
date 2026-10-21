@@ -44,7 +44,7 @@ function BookCard({
   const status = splitLeadingFigure(book.statusLine);
   const { design, draft, image } = libraryCover(book);
   return (
-    <li className={cn("sm:w-[132px] sm:shrink-0 sm:snap-start xl:w-auto", folded && "hidden sm:block xl:hidden")}>
+    <li className={cn("sm:w-33 sm:shrink-0 sm:snap-start xl:w-auto", folded && "hidden sm:block xl:hidden")}>
       <Link
         to={`/books/${book.id}`}
         className="group grid grid-cols-[64px_minmax(0,1fr)] items-start gap-x-3.5 rounded-sm outline-offset-4 sm:block"
@@ -62,15 +62,15 @@ function BookCard({
           decorative
         />
         <span className="block min-w-0">
-          <h3 className="text-[14px] leading-[18px] font-semibold text-ink sm:mt-3">{book.title}</h3>
-          <span className="mt-0.5 block text-[13px] leading-[18px] text-ink-secondary">{pen?.name}</span>
+          <h3 className="text-[14px] leading-4.5 font-semibold text-ink sm:mt-3">{book.title}</h3>
+          <span className="mt-0.5 block text-[13px] leading-4.5 text-ink-secondary">{pen?.name}</span>
           {live ? (
-            <span className="mt-0.5 flex items-center gap-1.5 text-[13px] leading-[18px] font-semibold text-accent-text">
+            <span className="mt-0.5 flex items-center gap-1.5 text-[13px] leading-4.5 font-semibold text-accent-text">
               {live === "running" ? <LiveDot /> : <Pause size={12} strokeWidth={2.25} aria-hidden />}
               {live === "running" ? "Writing now" : "Paused"}
             </span>
           ) : (
-            <span className="block text-[13px] leading-[18px] text-ink-secondary">
+            <span className="block text-[13px] leading-4.5 text-ink-secondary">
               {status.figure ? (
                 <>
                   <b className="num font-semibold text-ink">{status.figure}</b>
@@ -87,7 +87,7 @@ function BookCard({
         </span>
       </Link>
       {statusActions && (
-        <BookStatusActions look="links" className="mt-1 pl-[78px] sm:mt-2 sm:pl-0" bookId={book.id} title={book.title} showPublish={canMarkPublished(book)} />
+        <BookStatusActions look="links" className="mt-1 pl-19.5 sm:mt-2 sm:pl-0" bookId={book.id} title={book.title} showPublish={canMarkPublished(book)} />
       )}
     </li>
   );
@@ -129,7 +129,7 @@ export function PipelineView({ books, live, penName = getPenName, statusActions 
               id={headingId}
               className={cn(
                 "mb-3.5 flex items-center justify-between border-b text-[13.5px] leading-none font-semibold",
-                hasLive ? "border-b-2 border-accent pb-[9px] text-ink" : "border-border-strong pb-2.5 text-ink-secondary",
+                hasLive ? "border-b-2 border-accent pb-2.25 text-ink" : "border-border-strong pb-2.5 text-ink-secondary",
               )}
             >
               {stageLabels[stage]}

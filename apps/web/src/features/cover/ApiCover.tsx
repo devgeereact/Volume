@@ -75,12 +75,7 @@ export function ApiCover({ book, apiBook, penName }: { book: Book; apiBook: ApiB
     return (
       <>
         <h1 className="font-book text-title text-ink">Cover studio</h1>
-        <ErrorPanel
-          className="mt-5 max-w-[720px]"
-          title="Could not load the cover studio"
-          body={errorText(coverQ.error)}
-          onRetry={() => void coverQ.refetch()}
-        />
+        <ErrorPanel className="mt-5 max-w-180" title="Could not load the cover studio" body={errorText(coverQ.error)} onRetry={() => void coverQ.refetch()} />
       </>
     );
   return <Studio book={book} apiBook={apiBook} author={penName?.name ?? ""} cover={coverQ.data ?? null} />;
@@ -312,7 +307,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
     <>
       <PageHeader title="Cover studio" summary="Your cover is made here in four steps. Or skip them and upload a cover you already have." />
       {apiBook?.status === "published" && (
-        <Banner tone="info" title="This book is already published" className="mt-4 max-w-[860px]">
+        <Banner tone="info" title="This book is already published" className="mt-4 max-w-215">
           You can still change its cover. Make or pick a new one and build it, then build the pack again on Export and upload the new files to KDP.
         </Banner>
       )}
@@ -348,7 +343,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       />
       {conceptsPaused && conceptJob && (
         <BudgetPausedBanner
-          className="mt-4 max-w-[860px]"
+          className="mt-4 max-w-215"
           bookId={bookId}
           jobId={conceptJob}
           message={conceptWatch.error}
@@ -358,7 +353,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       )}
       {buildPaused && buildJob && (
         <BudgetPausedBanner
-          className="mt-4 max-w-[860px]"
+          className="mt-4 max-w-215"
           bookId={bookId}
           jobId={buildJob}
           message={buildWatch.error}
@@ -369,7 +364,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       {modelFix && (
         <ModelFallbackBanner
           bookId={bookId}
-          className="mt-4 max-w-[860px]"
+          className="mt-4 max-w-215"
           problem={modelFix.problem}
           onDismiss={() => setModelFix(null)}
           onRetry={() => void (modelFix.retry === "concepts" ? startConcepts() : startBuild())}
@@ -379,7 +374,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
         <Banner
           tone="error"
           title="That did not work"
-          className="mt-4 max-w-[860px]"
+          className="mt-4 max-w-215"
           action={
             <Button size="sm" variant="ghost" onClick={() => setProblem(null)}>
               Dismiss
@@ -517,7 +512,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                       step={5}
                       value={size}
                       onChange={(e) => setSize(Number(e.target.value))}
-                      className="mt-2 h-11 w-full accent-(--vol-select)"
+                      className="mt-2 h-11 w-full accent-select"
                     />
                   </div>
                   <div className="grid gap-1.5">
@@ -676,7 +671,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                       <img
                         src={assetsApi.downloadUrl(cover.ebookAssetId, true)}
                         alt={`Built eBook cover of ${book.title}`}
-                        className="w-[180px] rounded-cover"
+                        className="w-45 rounded-cover"
                         style={{ boxShadow: "var(--vol-shadow-cover)" }}
                       />
                     )}
@@ -739,7 +734,7 @@ function CoverSteps({
   action: StepAction | null;
 }) {
   return (
-    <section aria-label="How your cover is made" className="mt-5 max-w-[1100px] rounded-md border border-border bg-sheet p-4 sm:p-5">
+    <section aria-label="How your cover is made" className="mt-5 max-w-275 rounded-md border border-border bg-sheet p-4 sm:p-5">
       <ol className="grid gap-3 md:grid-cols-4">
         {steps.map((st, i) => (
           <li
