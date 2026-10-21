@@ -171,6 +171,27 @@ export function formatProfileFacts(profile: Record<string, unknown>): string | n
   return lines.length ? lines.join('\n') : null;
 }
 
+/**
+ * The pen name's field ({{profile.field}}, owner 21 October 2026): the first two sentences of the bio (or the short
+ * bio), then the credentials; the perspective when the profile has neither. The writer takes its examples, settings,
+ * institutions and jargon from this world. Null when the profile holds none of these.
+ */
+export function formatProfileField(profile: Record<string, unknown>): string | null {
+  const bio = factText(profile['bio']) ?? factText(profile['shortBio']);
+  const credentials = factText(profile['credentials']);
+  const parts: string[] = [];
+  if (bio) {
+    const sentences = bio.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+(?=[A-Z0-9"“‘(])/);
+    parts.push(sentences.slice(0, 2).join(' '));
+  }
+  if (credentials) parts.push(`Credentials: ${credentials}.`.replace(/\.\.$/, '.'));
+  if (parts.length === 0) {
+    const who = factText(profile['perspective']);
+    if (who) parts.push(who);
+  }
+  return parts.length ? parts.join(' ') : null;
+}
+
 function listText(v: unknown): string | undefined {
   if (Array.isArray(v)) return v.length ? v.map((x) => `- ${String(x)}`).join('\n') : undefined;
   return typeof v === 'string' && v.trim() ? v : undefined;
@@ -231,7 +252,10 @@ export function buildVariables(input: Record<string, unknown>, config: ConfigBun
   }
 
   const profile = asObject(input['profile']) ?? {};
-  if (asObject(input['profile'])) v['profile.facts'] = formatProfileFacts(profile);
+  if (asObject(input['profile'])) {
+    v['profile.facts'] = formatProfileFacts(profile);
+    if (v['profile.field'] === undefined) v['profile.field'] = formatProfileField(profile);
+  }
   const voiceRaw = profile['voice'] as string | VoiceDna | null | undefined;
   if ('voice' in profile) v['profile.voice'] = formatVoice(voiceRaw, profile['acceptedEdits']);
   const dna = asObject(voiceRaw) as VoiceDna | undefined;

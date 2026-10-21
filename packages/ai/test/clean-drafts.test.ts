@@ -11,11 +11,11 @@ const config = loadConfig(CONFIG_DIR);
 const RULES = 'Must have:\n- Name only tools that appear in the research sources\nAvoid:\n- Hype and income claims';
 
 const WRITERS: [TaskId, number][] = [
-  ['writing.chapter', 7],
-  ['writing.introduction', 7],
-  ['writing.conclusion', 7],
-  ['writing.back-matter', 7],
-  ['writing.extend-section', 5],
+  ['writing.chapter', 8],
+  ['writing.introduction', 8],
+  ['writing.conclusion', 8],
+  ['writing.back-matter', 8],
+  ['writing.extend-section', 6],
 ];
 
 function system(task: TaskId, input: Record<string, unknown>): string {
