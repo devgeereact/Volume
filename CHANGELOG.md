@@ -8,6 +8,7 @@ User-visible changes, newest first. Dates in British format.
 - Claims page: "Fix the whole book". One click fixes house style (em dashes, US spellings) in every section, then every open claim: softer wording where it is on file, otherwise the AI rewrites the sentence so it claims only what is safe, never with a source you have not got. Claims whose sentence is already gone are closed. Progress shows as it works, Stop is always there, and every change is a new version you can undo. "Only house style (free)" and "Only the claims" are there too. The Editor's Next line links to it.
 
 #### Fixed
+- The model-unavailable fix now works when the withdrawn model was chosen on the book or its pen name (for example a book moved from another Volume with free test models). "Use the Settings model and try again" removes that model from the book, the pen name and Settings, so each step uses the model Settings, Models shows, and runs the step again.
 - When the model chosen for a step has been withdrawn (for example "Function ... Not found"), the Cover studio, the Editor and the Claims fix now say which step failed and offer "Use <next model> and try again", which switches that step's model in Settings and runs it again.
 
 ## 20 October 2026

@@ -1419,7 +1419,13 @@ function Body({
               </Banner>
             )}
             {modelFix && (
-              <ModelFallbackBanner className="mb-4" problem={modelFix.problem} onDismiss={() => setModelFix(null)} onRetry={() => modelFix.retry?.()} />
+              <ModelFallbackBanner
+                bookId={bookId}
+                className="mb-4"
+                problem={modelFix.problem}
+                onDismiss={() => setModelFix(null)}
+                onRetry={() => modelFix.retry?.()}
+              />
             )}
             {notice}
             {detail?.section.id === sectionId && (

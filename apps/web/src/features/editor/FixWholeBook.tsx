@@ -144,7 +144,9 @@ export function FixWholeBook({
         rewrites the sentence so it claims only what is safe, never adding a source you have not got. Each change is saved as a new version, so you can undo it
         in Versions.
       </p>
-      {modelFix && <ModelFallbackBanner className="mt-3" problem={modelFix} onDismiss={() => setModelFix(null)} onRetry={() => void run("claims")} />}
+      {modelFix && (
+        <ModelFallbackBanner bookId={bookId} className="mt-3" problem={modelFix} onDismiss={() => setModelFix(null)} onRetry={() => void run("claims")} />
+      )}
       {running ? (
         <div role="status" className="mt-4 grid gap-2">
           <ProgressBar value={running.done} max={Math.max(1, running.total)} live label={running.label} valueText={`${running.done} of ${running.total}`} />

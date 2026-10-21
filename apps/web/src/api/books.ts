@@ -34,6 +34,9 @@ export const booksApi = {
   create: (input: BookInput, o?: Opts) => api.post<ApiBookRow>("/books", input, o),
   /** Also sets list prices (pounds, null clears one) and the marketplace (null resets it). */
   update: (id: string, patch: BookPatch, o?: Opts) => api.patch<ApiBookRow>(`/books/${seg(id)}`, patch, o),
+  /** Removes a withdrawn model from the book's, its pen name's and the workspace's model choices (owner only). */
+  withdrawModel: (id: string, model: string, o?: Opts) =>
+    api.post<{ removed: { scope: "book" | "profile" | "workspace"; stage: string }[] }>(`/books/${seg(id)}/models/withdraw`, { model }, o),
   action: (id: string, action: BookAction, o?: Opts) => api.post<ApiBookRow>(`/books/${seg(id)}/${action}`, undefined, o),
   /** Marks the book published. 400 `invalid_published_at` for a date after today; 409 when the batch quality gate holds it. */
   publish: (id: string, input: PublishInput = {}, o?: Opts) =>

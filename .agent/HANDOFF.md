@@ -455,3 +455,8 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Web: `features/editor/fixAll.ts` (+ test), `FixWholeBook.tsx` on the Claims page, Editor Next line link; `features/settings/ModelFallback.tsx` banner (sets the workspace override for the stage, then retries) in Cover studio, Editor and Fix the whole book. Note: a book or profile model override for that stage still wins over the workspace one (D-019).
 - Checks: typecheck PASS; eslint changed files PASS; format:check PASS; Vitest all workspaces PASS (web 176, server 471 + 3 skipped, others pass). e2e runs in the deploy.
 - Deployed main `98bfcd3` (PR #27) as release `20261021T000422Z`, rollback `20261020T231731Z`; deploy checks incl. e2e 17 of 17 PASS; no migrations. Live `/` and `/api/health` 200, `/api/v1/books` 401 unsigned.
+
+## 2026-10-21 (later), Claude Code (claude-opus-5-5), withdrawn model set on the book
+
+- Live report: cover brief still failed with nvidia/nemotron-3-super-120b-a12b:free although Settings shows Sonnet. Cause: the model is set at book or pen name level (book wins, D-019), likely carried in from a free-model test run on another Volume; the banner only set the workspace override (and would 400 for stages like weave whose config key differs).
+- Fix: `POST /books/:id/models/withdraw` (owner) removes the model from book, profile and workspace choices; the banner ("Use the Settings model and try again") calls it, refreshes and reruns. Test added (claims-autosave.test.ts).

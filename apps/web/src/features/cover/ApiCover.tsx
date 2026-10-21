@@ -334,6 +334,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       />
       {modelFix && (
         <ModelFallbackBanner
+          bookId={bookId}
           className="mt-4 max-w-[860px]"
           problem={modelFix.problem}
           onDismiss={() => setModelFix(null)}
