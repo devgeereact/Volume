@@ -1132,7 +1132,18 @@ export class ManuscriptRepo {
     projectId: string,
     sectionId: string,
     versionId: string,
-    items: { sentence: string; category: string; checkNeeded: string; start: number | null; end: number | null; suggestedSoftening?: string | null }[],
+    items: {
+      sentence: string;
+      category: string;
+      checkNeeded: string;
+      start: number | null;
+      end: number | null;
+      suggestedSoftening?: string | null;
+      /** The checker's risk rating (claim tiers, kept in location.risk); a claim with none needs the owner's check. */
+      risk?: 'low' | 'medium' | 'high' | null;
+      /** Whether the claim would do harm if wrong (location.harmIfWrong). */
+      harmIfWrong?: boolean | null;
+    }[],
   ): Promise<Claim[]> {
     const t = now();
     const ids: string[] = [];
@@ -1169,7 +1180,12 @@ export class ManuscriptRepo {
           versionId,
           category: it.category,
           sentence: it.sentence,
-          location: toJson({ start: it.start, end: it.end }),
+          location: toJson({
+            start: it.start,
+            end: it.end,
+            ...(it.risk ? { risk: it.risk } : {}),
+            ...(typeof it.harmIfWrong === 'boolean' ? { harmIfWrong: it.harmIfWrong } : {}),
+          }),
           checkNeeded: it.checkNeeded,
           status: 'open',
           ownerNote: null,

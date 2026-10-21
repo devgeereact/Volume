@@ -63,7 +63,10 @@ export const isTiff = (b: Buffer): boolean =>
 const csvCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 
 export function claimsCsv(claims: ClaimItem[]): string {
-  const rows = [['chapter', 'sentence', 'category', 'check needed', 'status'], ...claims.map((c) => [c.chapter, c.sentence, c.category, c.check, c.status])];
+  const rows = [
+    ['chapter', 'sentence', 'category', 'check needed', 'status', 'needs check'],
+    ...claims.map((c) => [c.chapter, c.sentence, c.category, c.check, c.status, c.needsCheck === false ? 'no' : 'yes']),
+  ];
   return `${rows.map((r) => r.map(csvCell).join(',')).join('\n')}\n`;
 }
 

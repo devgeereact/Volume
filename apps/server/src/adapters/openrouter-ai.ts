@@ -1271,6 +1271,9 @@ export class OpenRouterAiAdapter implements AiPort {
                 ? `Names a firm, product or person with a regulatory or safety status. Blocks the pack until verified. ${check}`.trim()
                 : check,
             softer: firstText(q['softerVersion']),
+            // Claim tiers (21 October 2026): kept so the owner only has to act on the claims that could do harm.
+            risk: q['risk'] === 'low' || q['risk'] === 'medium' || q['risk'] === 'high' ? q['risk'] : null,
+            harmIfWrong: typeof q['harmIfWrong'] === 'boolean' ? q['harmIfWrong'] : null,
             ...span(markdown, quote),
           };
         }),

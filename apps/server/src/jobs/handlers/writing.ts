@@ -226,6 +226,8 @@ async function modelChecks(
       start: c.start,
       end: c.end,
       suggestedSoftening: c.softer,
+      risk: c.risk,
+      harmIfWrong: c.harmIfWrong,
     })),
   );
   for (const c of claims) await jc.emit('claim.added', { claimId: c.id, sectionId, category: c.category });
@@ -250,6 +252,8 @@ async function unsourcedPriceClaims(jc: JobContext, projectId: string, sectionId
         checkNeeded: `A specific price (${p.match}) with no source. Check it against a current source and cite it, make it a round example figure, or remove it. Do not add a "checked" date you have not checked.`,
         start: p.start,
         end: p.end,
+        // Code-filed claims always need the owner's check (claim tiers).
+        risk: 'high' as const,
       },
     ];
   });

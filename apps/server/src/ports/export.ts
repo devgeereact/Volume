@@ -67,6 +67,8 @@ export interface ExportClaim {
   check: string;
   /** Softened and author_experience are settled too: only 'open' still needs checking. */
   status: 'open' | 'verified' | 'softened' | 'author_experience' | 'removed';
+  /** True when the owner must check it (claim tiers, @volume/core claimNeedsCheck); false when listed for the record. */
+  needsCheck: boolean;
 }
 
 export interface ExportOptions {
