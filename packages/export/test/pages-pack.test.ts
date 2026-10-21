@@ -32,7 +32,7 @@ describe('upload pack: Apple Pages copy', () => {
   it('without a Pages copy, tells the reader how to make one', async () => {
     const { names, readme } = await pack({ docx: Buffer.from('docx') });
     expect(names.some((n) => n.endsWith('.pages'))).toBe(false);
-    expect(readme).toContain('Using Apple Pages? Open the DOCX in Pages, or run npm run pages on a Mac.\n');
+    expect(readme).toContain('Using Apple Pages? Open the DOCX in Pages and save it as a Pages document.\n');
   });
 
   it('gives no Pages hint when there is no DOCX to open', async () => {

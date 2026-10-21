@@ -1253,8 +1253,9 @@ export class OpenRouterAiAdapter implements AiPort {
     return {
       claims: list(rec(claims.output)['claims'])
         .filter(isRec)
-        // Claims scope (checks.claims v5, 21 October 2026): an item the model rates low risk and harmless if wrong is not filed.
-        .filter((q) => !(q['risk'] === 'low' && q['harmIfWrong'] === false))
+        // Claims scope (checks.claims v5, 21 October 2026): a product or brand mention the model rates low risk and harmless
+        // if wrong is not filed. Medical, legal, safety, statistical, regulatory, personal and every other type always are.
+        .filter((q) => !(q['type'] === 'product-or-brand' && q['risk'] === 'low' && q['harmIfWrong'] === false))
         .map((q) => {
           const quote = text(q['quote']);
           // Personal claims (checks.claims v2) are statements about the author the profile facts do not support.

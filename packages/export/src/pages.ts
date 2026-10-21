@@ -17,7 +17,7 @@ export const PAGES_TIMEOUT_MS = 90_000;
 export const pagesReadmeLine = (fileName: string): string =>
   `Apple Pages: manuscript/${fileName} is the DOCX manuscript as a Pages document, for final retouching on a Mac.`;
 /** README line when it has none. */
-export const PAGES_README_HINT = 'Using Apple Pages? Open the DOCX in Pages, or run npm run pages on a Mac.';
+export const PAGES_README_HINT = 'Using Apple Pages? Open the DOCX in Pages and save it as a Pages document.';
 
 export class PagesUnavailableError extends Error {
   constructor(message: string) {

@@ -591,13 +591,19 @@ describe('OpenRouter AI adapter: round 2 fields', () => {
                 claim('First paragraph about mornings.', 'product-or-brand', 'low', false),
                 claim('Second paragraph with a claim that 40% of people wake early.', 'medical-clinical', 'high', true),
                 claim('Third paragraph.', 'statistic', 'low', true),
+                claim('Fourth paragraph says rest helps a cold.', 'medical-clinical', 'low', false),
               ],
             }
           : v,
     });
     const res = await ai.runStage('checks', { variables: { markdown: MARKDOWN, section: { title: 'Waking Up' } } }, { model: MODEL });
     const claims = res.output.claims as { sentence: string; category: string }[];
-    expect(claims.map((c) => c.sentence)).toEqual(['Second paragraph with a claim that 40% of people wake early.', 'Third paragraph.']);
+    // A medical statement is filed even when the model rates it low risk and harmless (AGENTS.md: medical goes to the report).
+    expect(claims.map((c) => c.sentence)).toEqual([
+      'Second paragraph with a claim that 40% of people wake early.',
+      'Third paragraph.',
+      'Fourth paragraph says rest helps a cold.',
+    ]);
     expect(claims[0]).toMatchObject({ category: 'medical' });
   });
 

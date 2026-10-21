@@ -1154,7 +1154,8 @@ export class ManuscriptRepo {
     for (const it of items) {
       const key = normSentence(it.sentence);
       if (known.has(key)) continue;
-      if (key && replacements.some((r) => r === key || r.includes(key))) continue;
+      // Exact match only: a short fragment inside a long replacement may be a new claim and must still be filed.
+      if (key && replacements.includes(key)) continue;
       known.add(key);
       const id = newId();
       ids.push(id);

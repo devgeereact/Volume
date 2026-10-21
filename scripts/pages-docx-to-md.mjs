@@ -16,8 +16,6 @@ import { basename, extname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import JSZip from 'jszip';
 
-export const DEFAULT_AUTHOR = 'Harni Muharami';
-
 // ---------- styles ----------
 
 /** Styles whose paragraphs are never part of the book text. */
@@ -487,7 +485,7 @@ function readContents(items) {
  * Returns the Markdown and a report (title, contents chapter count, notes for a human to check).
  */
 export function paragraphsToMarkdown(input, opts = {}) {
-  const author = opts.author ?? DEFAULT_AUTHOR;
+  const author = opts.author ?? '';
   const notes = [];
   const paras = input.filter((p) => !skipStyle(p));
   const acronyms = collectAcronyms(paras.map((p) => p.text));
@@ -573,7 +571,8 @@ export function paragraphsToMarkdown(input, opts = {}) {
   if (!title) notes.push('no title found on the title page');
 
   const out = [];
-  const titleLines = [title, ...(subtitle ? [subtitle, author] : [])];
+  // The title page block is positional (title, subtitle, author): without a subtitle the author line would read as one.
+  const titleLines = [title, ...(subtitle ? [subtitle, ...(author ? [author] : [])] : [])];
   out.push(['::: titlepage', ...titleLines, ':::'].join('\n'));
   if (copyrightBlock.length) {
     const lines = copyrightBlock.map((p) => (DISCLAIMER_NAMES.has(normalise(p.text)) ? '**Disclaimer**' : curlyQuotes(p.marked)));
@@ -788,15 +787,16 @@ export async function docxToMarkdown(data, opts = {}) {
 
 async function main(argv) {
   const args = [...argv];
-  let author = DEFAULT_AUTHOR;
+  // The author is always named on the command line: the script never assumes a real person.
+  let author = '';
   const ai = args.indexOf('--author');
   if (ai >= 0) {
-    author = args[ai + 1] ?? author;
+    author = (args[ai + 1] ?? '').trim();
     args.splice(ai, 2);
   }
   const [input, outDir] = args;
-  if (!input || !outDir) {
-    console.error('Usage: node scripts/pages-docx-to-md.mjs <in.docx|folder> <outFolder> [--author "Name"]');
+  if (!input || !outDir || !author) {
+    console.error('Usage: node scripts/pages-docx-to-md.mjs <in.docx|folder> <outFolder> --author "Name"');
     process.exitCode = 2;
     return;
   }

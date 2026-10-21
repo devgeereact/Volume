@@ -132,6 +132,9 @@ function stepFailure(err: unknown): { code: string; detail: string } | null {
  * fallback is never switched in silently. A model that is unavailable is not asked twice. Anything stepFailure does not
  * catch (pause, cancel, budget, retryable provider errors) is thrown as before.
  */
+/** Step failures that one more try can fix (a malformed, cut-off or refused answer). */
+const RETRYABLE_STEP_FAILURES: ReadonlySet<string> = new Set(['invalid_output', 'output_truncated', 'ai_refusal']);
+
 async function withOneRetry<T>(
   jc: JobContext,
   step: () => Promise<T>,
@@ -139,7 +142,8 @@ async function withOneRetry<T>(
   let failed: { code: string; detail: string } | null = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     if (attempt > 0) {
-      if (failed?.code === 'model_unavailable') break;
+      // Only output problems are worth one more try; auth, credits, size and request errors fail the same way again.
+      if (!failed || !RETRYABLE_STEP_FAILURES.has(failed.code)) break;
       await jc.checkpoint();
     }
     try {
@@ -174,14 +178,15 @@ function checksMissingCheck(f: { code: string; detail: string }): { checker: str
 type CodeCheckItem = { checker: string; severity: 'info' | 'warn' | 'block'; message: string; location?: Record<string, unknown> };
 
 /** Section kinds whose text never carries a claim the owner must check: the review request, also by and how to use. */
-const NO_MODEL_CLAIMS: ReadonlySet<string> = new Set(['review_request', 'also_by', 'how_to_use']);
+const NO_MODEL_CLAIMS: ReadonlySet<string> = new Set(['review_request', 'also_by']);
 /** A glossary defines general terms; only a medical or legal definition goes to the claims report. */
-const GLOSSARY_CLAIM_CATEGORIES: ReadonlySet<string> = new Set(['medical', 'clinical', 'legal']);
+const GLOSSARY_CLAIM_CATEGORIES: ReadonlySet<string> = new Set(['medical', 'clinical', 'legal', 'safety', 'regulatory', 'personal', 'statistical']);
 
 /** The model's claims that belong in the report for a section of this kind (claims scope, 21 October 2026). */
 export function claimsInScope<T extends { category: string }>(kind: string, claims: readonly T[]): T[] {
   if (NO_MODEL_CLAIMS.has(kind)) return [];
-  if (kind === 'glossary') return claims.filter((c) => GLOSSARY_CLAIM_CATEGORIES.has(c.category));
+  // The glossary and How to use keep only claims that could do harm or misstate the author (an invented credential).
+  if (kind === 'glossary' || kind === 'how_to_use') return claims.filter((c) => GLOSSARY_CLAIM_CATEGORIES.has(c.category));
   return [...claims];
 }
 

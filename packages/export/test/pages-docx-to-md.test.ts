@@ -111,7 +111,7 @@ describe('pages-docx-to-md', () => {
       { style: 'Default', text: 'Medical Books > Nursing' },
       { style: 'Default', text: 'SEO Keywords', bold: true },
     ]);
-    const { markdown, report } = await docxToMarkdown(docx);
+    const { markdown, report } = await docxToMarkdown(docx, { author: 'Harni Muharami' });
     const book = parseManuscript(markdown);
 
     expect(book.sections.map((s) => `${s.kind}:${s.subtype}`)).toEqual([
@@ -176,7 +176,7 @@ describe('pages-docx-to-md', () => {
       { style: 'Chapter', text: 'Acknowledgements' },
       { style: 'Body', text: 'Thanks to the team.' },
     ]);
-    const { markdown } = await docxToMarkdown(docx);
+    const { markdown } = await docxToMarkdown(docx, { author: 'Harni Muharami' });
     const book = parseManuscript(markdown);
 
     expect(book.meta.title).toBe('Quiet Wards');

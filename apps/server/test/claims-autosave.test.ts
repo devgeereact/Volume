@@ -594,10 +594,12 @@ describe('claims are not filed twice', () => {
     expect(again).toEqual([]);
   });
 
-  it('keeps model claims only where they belong: none for the review request, also by or how to use; medical or legal for a glossary', () => {
-    const items = [{ category: 'other_fact' }, { category: 'medical' }, { category: 'legal' }, { category: 'statistical' }];
-    for (const kind of ['review_request', 'also_by', 'how_to_use']) expect(claimsInScope(kind, items)).toEqual([]);
-    expect(claimsInScope('glossary', items)).toEqual([{ category: 'medical' }, { category: 'legal' }]);
+  it('keeps model claims only where they belong: none for the review request or also by; harmful ones for the glossary and how to use', () => {
+    const items = [{ category: 'other_fact' }, { category: 'medical' }, { category: 'legal' }, { category: 'statistical' }, { category: 'personal' }];
+    for (const kind of ['review_request', 'also_by']) expect(claimsInScope(kind, items)).toEqual([]);
+    const harmful = [{ category: 'medical' }, { category: 'legal' }, { category: 'statistical' }, { category: 'personal' }];
+    expect(claimsInScope('glossary', items)).toEqual(harmful);
+    expect(claimsInScope('how_to_use', items)).toEqual(harmful);
     expect(claimsInScope('chapter', items)).toEqual(items);
   });
 
