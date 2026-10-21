@@ -1137,15 +1137,25 @@ export class ManuscriptRepo {
     const t = now();
     const ids: string[] = [];
     // A sentence the owner already settled (verified, softened, removed) or that is already open in this section is
-    // not filed again when the checks run on a later version: accepted claims must not come back.
-    const known = new Set(
-      (await this.db.selectFrom('claims').select('sentence').where('workspaceId', '=', ctx.workspaceId).where('sectionId', '=', sectionId).execute()).map((r) =>
-        normSentence(r.sentence),
-      ),
-    );
+    // not filed again when the checks run on a later version: accepted claims must not come back. Nor is the text a
+    // settled claim was replaced with (location.replacement, kept by the fix and soften routes): the fix is the answer.
+    const rows = await this.db
+      .selectFrom('claims')
+      .select(['sentence', 'status', 'location'])
+      .where('workspaceId', '=', ctx.workspaceId)
+      .where('sectionId', '=', sectionId)
+      .execute();
+    const known = new Set(rows.map((r) => normSentence(r.sentence)));
+    const replacements = rows.flatMap((r) => {
+      if (r.status === 'open') return [];
+      const replacement = fromJson(Obj, r.location, {})['replacement'];
+      return typeof replacement === 'string' && replacement.trim() ? [normSentence(replacement)] : [];
+    });
     for (const it of items) {
       const key = normSentence(it.sentence);
       if (known.has(key)) continue;
+      // Exact match only: a short fragment inside a long replacement may be a new claim and must still be filed.
+      if (key && replacements.includes(key)) continue;
       known.add(key);
       const id = newId();
       ids.push(id);
@@ -1196,12 +1206,21 @@ export class ManuscriptRepo {
     ctx: RequestCtx,
     id: string,
     status: 'verified' | 'softened' | 'removed' | 'author_experience',
-    extra: { ownerNote?: string | null; sourceUrl?: string | null },
+    extra: { ownerNote?: string | null; sourceUrl?: string | null; replacement?: string | null },
   ): Promise<Claim> {
     const t = now();
     const set: Partial<ClaimsTable> = { status, resolvedAt: t, updatedAt: t };
     if (extra.ownerNote !== undefined) set.ownerNote = extra.ownerNote;
     if (extra.sourceUrl !== undefined) set.sourceUrl = extra.sourceUrl;
+    // The text the sentence was replaced with, kept in the claim's location JSON (no new column), so addClaims does not
+    // file the fixed wording again on the next check.
+    if (extra.replacement !== undefined) {
+      const claim = await this.requireClaim(ctx, id);
+      const location: Record<string, unknown> = { ...claim.location };
+      if (extra.replacement && extra.replacement.trim()) location['replacement'] = extra.replacement.trim();
+      else delete location['replacement'];
+      set.location = toJson(location);
+    }
     await this.db.updateTable('claims').set(set).where('id', '=', id).where('workspaceId', '=', ctx.workspaceId).execute();
     return this.requireClaim(ctx, id);
   }

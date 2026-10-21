@@ -1388,7 +1388,7 @@
         "mustHaves": [
           "Practical variant with short lists",
           "A safety and privacy note before any tool that handles personal data",
-          "Tool names checked against research sources"
+          "Name only tools that appear in the research sources"
         ],
         "avoid": [
           "Hype and income claims",

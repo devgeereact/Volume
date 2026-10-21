@@ -100,8 +100,10 @@ const LAYOUT_SCRIPT = `(sid) => {
           const n = i + 1;
           if (startPage === null || n < startPage) p.classList.add('vol-nofolio');
           if (document.body.dataset.dropFolio === '1' && p.querySelector('[data-opener]')) p.classList.add('vol-nofolio');
-          const side = p.classList.contains('pagedjs_left_page') ? 'left' : 'right';
-          const box = p.querySelector(\`.pagedjs_margin-bottom-\${side} > .pagedjs_margin-content\`);
+          // Theme folios: data-folio="off" prints none; "center" uses the centred bottom box.
+          const folio = document.body.dataset.folio;
+          const side = folio === 'center' ? 'center' : p.classList.contains('pagedjs_left_page') ? 'left' : 'right';
+          const box = folio === 'off' ? null : p.querySelector(\`.pagedjs_margin-bottom-\${side} > .pagedjs_margin-content\`);
           if (box) {
             box.textContent = folioOf(n);
             p.classList.add('vol-folio-set');

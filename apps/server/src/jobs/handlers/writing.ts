@@ -125,6 +125,37 @@ function stepFailure(err: unknown): { code: string; detail: string } | null {
   return null;
 }
 
+/**
+ * Runs a post-write step (the summary, or the claims and consistency check) and, when it ends in a step failure, runs it
+ * once more before the caller raises summary_missing or checks_missing (plan 2026-10-21, Task 2). The retry goes through
+ * the runner again, so it uses the stage's configured model; the runner offers no way to name a fallback here, and a
+ * fallback is never switched in silently. A model that is unavailable is not asked twice. Anything stepFailure does not
+ * catch (pause, cancel, budget, retryable provider errors) is thrown as before.
+ */
+/** Step failures that one more try can fix (a malformed, cut-off or refused answer). */
+const RETRYABLE_STEP_FAILURES: ReadonlySet<string> = new Set(['invalid_output', 'output_truncated', 'ai_refusal']);
+
+async function withOneRetry<T>(
+  jc: JobContext,
+  step: () => Promise<T>,
+): Promise<{ ok: true; value: T } | { ok: false; failed: { code: string; detail: string } }> {
+  let failed: { code: string; detail: string } | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (attempt > 0) {
+      // Only output problems are worth one more try; auth, credits, size and request errors fail the same way again.
+      if (!failed || !RETRYABLE_STEP_FAILURES.has(failed.code)) break;
+      await jc.checkpoint();
+    }
+    try {
+      return { ok: true, value: await step() };
+    } catch (err) {
+      failed = stepFailure(err);
+      if (!failed) throw err;
+    }
+  }
+  return { ok: false, failed: failed as { code: string; detail: string } };
+}
+
 function summaryMissingCheck(f: { code: string; detail: string }): { checker: string; severity: 'block'; message: string; location: Record<string, unknown> } {
   return {
     checker: SUMMARY_MISSING_CHECKER,
@@ -146,6 +177,19 @@ function checksMissingCheck(f: { code: string; detail: string }): { checker: str
 
 type CodeCheckItem = { checker: string; severity: 'info' | 'warn' | 'block'; message: string; location?: Record<string, unknown> };
 
+/** Section kinds whose text never carries a claim the owner must check: the review request, also by and how to use. */
+const NO_MODEL_CLAIMS: ReadonlySet<string> = new Set(['review_request', 'also_by']);
+/** A glossary defines general terms; only a medical or legal definition goes to the claims report. */
+const GLOSSARY_CLAIM_CATEGORIES: ReadonlySet<string> = new Set(['medical', 'clinical', 'legal', 'safety', 'regulatory', 'personal', 'statistical']);
+
+/** The model's claims that belong in the report for a section of this kind (claims scope, 21 October 2026). */
+export function claimsInScope<T extends { category: string }>(kind: string, claims: readonly T[]): T[] {
+  if (NO_MODEL_CLAIMS.has(kind)) return [];
+  // The glossary and How to use keep only claims that could do harm or misstate the author (an invented credential).
+  if (kind === 'glossary' || kind === 'how_to_use') return claims.filter((c) => GLOSSARY_CLAIM_CATEGORIES.has(c.category));
+  return [...claims];
+}
+
 /**
  * The model's claims and consistency check on saved text. Consistency issues come back as warnings; claims are stored and
  * announced. A step failure (see stepFailure) comes back as `failed` instead of throwing, so the text is never lost.
@@ -153,19 +197,15 @@ type CodeCheckItem = { checker: string; severity: 'info' | 'warn' | 'block'; mes
 async function modelChecks(
   jc: JobContext,
   projectId: string,
-  sectionId: string,
+  section: Pick<Section, 'id' | 'kind'>,
   versionId: string,
   variables: Record<string, unknown>,
 ): Promise<{ checks: CodeCheckItem[]; claims: number; failed: { code: string; detail: string } | null }> {
+  const sectionId = section.id;
   const { repos } = jc.services;
-  let model;
-  try {
-    model = await jc.runAi('checks', { promptId: 'checks.claims-and-consistency', variables });
-  } catch (err) {
-    const failed = stepFailure(err);
-    if (!failed) throw err;
-    return { checks: [], claims: 0, failed };
-  }
+  const run = await withOneRetry(jc, () => jc.runAi('checks', { promptId: 'checks.claims-and-consistency', variables }));
+  if (!run.ok) return { checks: [], claims: 0, failed: run.failed };
+  const model = run.value;
   const checks: CodeCheckItem[] = model.output.consistency.map((c) => ({
     checker: 'consistency',
     severity: 'warn',
@@ -177,7 +217,7 @@ async function modelChecks(
     projectId,
     sectionId,
     versionId,
-    model.output.claims.map((c) => ({
+    claimsInScope(section.kind, model.output.claims).map((c) => ({
       sentence: c.sentence,
       category: c.category,
       checkNeeded: c.check_needed,
@@ -313,26 +353,27 @@ async function rerunMissingSteps(jc: JobContext, projectId: string, section: Sec
 
   if (doSummary) {
     await jc.progress(0.1, 'Summarising');
-    try {
-      const summary = await jc.runAi('summarise', {
+    const run = await withOneRetry(jc, () =>
+      jc.runAi('summarise', {
         promptId: 'checks.summarise-and-ledger',
         variables: { markdown: current.bodyMd, section: sectionVars, bookTypeId: book.bookTypeId, templateId: common.templateId, ledger },
-      });
+      }),
+    );
+    if (run.ok) {
+      const summary = run.value;
       await jc.checkpoint();
       await repos.manuscript.setVersionSummary(jc.ctx, current.id, summary.output.summary);
       await repos.manuscript.upsertLedger(jc.ctx, projectId, sectionId, current.id, summary.output.ledger);
       await repos.manuscript.resolveChecks(jc.ctx, current.id, SUMMARY_MISSING_CHECKER);
       await jc.emit('book.updated', { projectId, part: 'summary', sectionId });
-    } catch (err) {
-      const f = stepFailure(err);
-      if (!f) throw err;
-      failed['summary'] = f.code;
-      await flag(SUMMARY_MISSING_CHECKER, summaryMissingCheck(f));
+    } else {
+      failed['summary'] = run.failed.code;
+      await flag(SUMMARY_MISSING_CHECKER, summaryMissingCheck(run.failed));
     }
   }
   if (doChecks) {
     await jc.progress(0.5, 'Checking');
-    const r = await modelChecks(jc, projectId, sectionId, current.id, { ...common, markdown: current.bodyMd, section: { id: sectionId, ...sectionVars } });
+    const r = await modelChecks(jc, projectId, section, current.id, { ...common, markdown: current.bodyMd, section: { id: sectionId, ...sectionVars } });
     if (r.failed) {
       failed['checks'] = r.failed.code;
       await flag(CHECKS_MISSING_CHECKER, checksMissingCheck(r.failed));
@@ -465,19 +506,15 @@ export const writeSectionHandler: JobHandler = async (jc) => {
 
   // A failed summary no longer loses the written text (owner decision, 7 October 2026): the text is saved with no
   // summary and a blocking summary_missing flag, the job ends needing attention, and later sections still run.
-  let summary: { summary: string; ledger: { kind: string; key: string; detail: string }[] } | null = null;
-  let summaryFailed: { code: string; detail: string } | null = null;
-  try {
-    summary = (
-      await jc.runAi('summarise', {
-        promptId: 'checks.summarise-and-ledger',
-        variables: { markdown, section: sectionVars, bookTypeId: book.bookTypeId, templateId: common.templateId, ledger },
-      })
-    ).output;
-  } catch (err) {
-    summaryFailed = stepFailure(err);
-    if (!summaryFailed) throw err;
-  }
+  // A failed summary is tried once more before the flag is raised.
+  const summaryRun = await withOneRetry(jc, () =>
+    jc.runAi('summarise', {
+      promptId: 'checks.summarise-and-ledger',
+      variables: { markdown, section: sectionVars, bookTypeId: book.bookTypeId, templateId: common.templateId, ledger },
+    }),
+  );
+  const summary: { summary: string; ledger: { kind: string; key: string; detail: string }[] } | null = summaryRun.ok ? summaryRun.value.output : null;
+  const summaryFailed: { code: string; detail: string } | null = summaryRun.ok ? null : summaryRun.failed;
   await jc.checkpoint();
 
   // Save in one transaction at the end (idempotent: a crash before here leaves no half version).
@@ -542,7 +579,7 @@ export const writeSectionHandler: JobHandler = async (jc) => {
   // The checks get the context they need: the profile facts (personal claims), this section's plan, earlier summaries and the ledger.
   // The text is already saved: a failed check call adds a blocking checks_missing flag instead of failing the job (live
   // run of 7 October 2026: a cut-off checks answer lost chapter 2 and cancelled five later sections).
-  const model = await modelChecks(jc, projectId, sectionId, version.id, { ...common, markdown, section: { id: sectionId, ...sectionVars } });
+  const model = await modelChecks(jc, projectId, section, version.id, { ...common, markdown, section: { id: sectionId, ...sectionVars } });
   checks.push(...model.checks);
   if (model.failed) checks.push(checksMissingCheck(model.failed));
   // Dated-prices book types: a specific price with no research source goes to the claims report (never a "checked"

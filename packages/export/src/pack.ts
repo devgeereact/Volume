@@ -4,6 +4,7 @@ import { describeRules, slugify, type BookDoc, type KdpRules, type Paper, type T
 import type { ClaimItem, PreflightReport } from './preflight.ts';
 import { preflightHtml, preflightText } from './preflight.ts';
 import { htmlToParagraphs } from './txt.ts';
+import { PAGES_README_HINT, pagesReadmeLine } from './pages.ts';
 
 export interface PackFiles {
   interiorPdf?: Buffer;
@@ -13,6 +14,8 @@ export interface PackFiles {
   md?: Buffer;
   ebookCover?: Buffer;
   wrapPdf?: Buffer;
+  /** Apple Pages copy of the DOCX (packages/export/src/pages.ts), written as manuscript/<slug>.pages. */
+  pages?: Buffer;
 }
 
 export interface PackMetadata {
@@ -116,7 +119,7 @@ Picture book: the interior PDF is full colour with bleed, so choose colour ink, 
 options. This pack has no EPUB or DOCX: a picture-book eBook needs a fixed layout, which is a later format (D-044).
 `;
 
-const README = (slug: string, marketing: string, pictureBook = false, listingExtras: string[] = []) => `KDP upload pack for ${slug}
+const README = (slug: string, marketing: string, pictureBook = false, listingExtras: string[] = [], pagesLine = '') => `KDP upload pack for ${slug}
 
 manuscript/   the interior PDF (paperback), EPUB and DOCX (eBook), TXT and Markdown (your records)
 cover/        the eBook cover (JPEG, or TIFF when you uploaded one) and the paperback wrap PDF
@@ -128,7 +131,7 @@ has three pages in this order: (1) details, which must match the manuscript; (2)
 cover and preview (eBook: the EPUB or DOCX and the eBook cover JPEG; paperback: the interior PDF and the wrap PDF,
 with print options and ISBN); (3) rights and pricing. You need a unique ISBN for each format if you use one.
 Check reports/preflight.txt before you upload.
-${pictureBook ? PICTURE_BOOK_NOTE : ''}`;
+${pagesLine ? `${pagesLine}\n` : ''}${pictureBook ? PICTURE_BOOK_NOTE : ''}`;
 
 /** "a", "a and b", "a, b and c" (first letter capitalised). */
 function listLabels(labels: string[]): string {
@@ -161,11 +164,14 @@ export async function buildUploadPack(input: UploadPackInput): Promise<{ fileNam
       listLabels(marketing.map((m) => m.label)),
       input.pictureBook === true,
       listingText.map((m) => m.label),
+      // The Pages copy is for retouching, not for KDP; the hint only makes sense when there is a DOCX to open.
+      f.pages ? pagesReadmeLine(`${slug}.pages`) : f.docx ? PAGES_README_HINT : '',
     ),
   );
   if (f.interiorPdf) z.file(`manuscript/${slug}-interior-${input.trim}.pdf`, f.interiorPdf);
   if (f.epub) z.file(`manuscript/${slug}.epub`, f.epub);
   if (f.docx) z.file(`manuscript/${slug}.docx`, f.docx);
+  if (f.pages) z.file(`manuscript/${slug}.pages`, f.pages);
   if (f.txt) z.file(`manuscript/${slug}.txt`, f.txt);
   if (f.md) z.file(`manuscript/${slug}.md`, f.md);
   if (f.ebookCover) z.file(`cover/${slug}-ebook-cover.${isTiff(f.ebookCover) ? 'tif' : 'jpg'}`, f.ebookCover);

@@ -4,6 +4,17 @@ User-visible changes, newest first. Dates in British format.
 
 ## 21 October 2026
 
+#### Added
+- Clean-handbook page design, modelled on the NHS Boundary Handbook: one sans typeface, block paragraphs, "CHAPTER N" in navy over the chapter title on its own page, each section on a new page, no running heads and quiet page numbers you can switch off.
+- Pages files for final retouching. On a Mac, `npm run pages -- <pack.zip>` adds a `.pages` copy of the manuscript to the pack; the pack README tells you how when it is missing.
+- A converter that turns Pages books (exported as Word) into files Volume can import, chapters and sections intact.
+
+#### Changed
+- First drafts come out cleaner. Example prompts are filled in rather than left with [brackets], examples use "you" or a plain description instead of invented brand names, there is no "guarantee" wording and no unsourced statistics, and the writing avoids the usual AI tells. The writer now also sees the book type's own rules.
+- The claims checker files only statements that could do harm if wrong. Illustrations, the author's own advice, glossary terms and products named in passing are left alone, and a sentence you have already fixed is never filed again.
+- A pen name's writing samples now shape the writer's voice.
+- Summaries suit short pages such as the glossary and the review request, and a summary or check that fails is tried once more before it is flagged.
+
 #### Fixed
 - Built covers now match the Cover studio preview. Over concept art the build used a black overlay and white type; it now uses the same wash of the palette's background and the palette's own text colours as the preview, and no band over the art. Build covers again to get the matching colours.
 - Preflight counted softened (and author-experience) claims as still open, so a book whose claims were all settled kept warning about dozens. Only open claims count now, and the claims report lists each claim's real status.

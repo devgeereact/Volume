@@ -13,3 +13,4 @@ export * from './pack.ts';
 export * from './ornaments.ts';
 export * from './preview.ts';
 export * from './print-glyphs.ts';
+export * from './pages.ts';

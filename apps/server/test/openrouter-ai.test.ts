@@ -571,6 +571,42 @@ describe('OpenRouter AI adapter: round 2 fields', () => {
     expect(res.output.claims[0]).toMatchObject({ softer: 'Many people wake early.', category: 'statistical' });
   });
 
+  it('drops low-risk, harmless claims and keeps a medical one (claims scope, 21 October 2026)', async () => {
+    const claim = (quote: string, type: string, risk: string, harmIfWrong: boolean) => ({
+      quote,
+      type,
+      risk,
+      harmIfWrong,
+      sourceMarker: null,
+      sourceSupports: 'no-marker',
+      check: 'Check it.',
+      suggestion: 'verify',
+      softerVersion: null,
+    });
+    const { ai } = await adapterWith({
+      edit: (id, v) =>
+        id === 'checks.claims'
+          ? {
+              claims: [
+                claim('First paragraph about mornings.', 'product-or-brand', 'low', false),
+                claim('Second paragraph with a claim that 40% of people wake early.', 'medical-clinical', 'high', true),
+                claim('Third paragraph.', 'statistic', 'low', true),
+                claim('Fourth paragraph says rest helps a cold.', 'medical-clinical', 'low', false),
+              ],
+            }
+          : v,
+    });
+    const res = await ai.runStage('checks', { variables: { markdown: MARKDOWN, section: { title: 'Waking Up' } } }, { model: MODEL });
+    const claims = res.output.claims as { sentence: string; category: string }[];
+    // A medical statement is filed even when the model rates it low risk and harmless (AGENTS.md: medical goes to the report).
+    expect(claims.map((c) => c.sentence)).toEqual([
+      'Second paragraph with a claim that 40% of people wake early.',
+      'Third paragraph.',
+      'Fourth paragraph says rest helps a cold.',
+    ]);
+    expect(claims[0]).toMatchObject({ category: 'medical' });
+  });
+
   it('keeps TikTok hashtags, the Instagram image idea and every email subject line', async () => {
     const { ai } = await adapterWith({
       edit: (id, v) => {

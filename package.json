@@ -30,7 +30,8 @@
     "test:tooling": "node --test tests/integration/runtime.test.mjs",
     "docs:check": "node scripts/check-docs.mjs",
     "build:release": "node scripts/build-release.mjs",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy": "node scripts/deploy.mjs",
+    "pages": "node scripts/pages-convert.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

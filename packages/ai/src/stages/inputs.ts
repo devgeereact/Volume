@@ -133,6 +133,11 @@ const Base = z.object({
   /** Book template rules (object or compact JSON string). */
   template: opt(json),
   /**
+   * The book type's must-haves and things to avoid as plain text (writing v7 prompts), sent as {{bookTypeRules}}.
+   * The server builds it from the same genre rules {{template}} carries.
+   */
+  bookTypeRules: opt(str),
+  /**
    * Fiction story bible (D-043). Read from blueprint.storyBible when left out, and sent as {{storyBible}}.
    */
   storyBible: opt(json),
