@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useCanWrite } from "../../lib/access";
 import { Link } from "react-router";
 import { Check, Download, RotateCw, Upload } from "lucide-react";
@@ -115,16 +115,15 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
   const openJob = (kind: string) => apiBook?.recentJobs.find((j) => j.kind === kind && !isTerminalJob(j.status))?.id ?? null;
   const [conceptJob, setConceptJob] = useState<string | null>(() => openJob("cover_concepts"));
   const [buildJob, setBuildJob] = useState<string | null>(() => openJob("cover_build"));
-  // The book detail can arrive after the studio opens: pick the open jobs up then, once.
-  const pickedUp = useRef(!!apiBook);
-  useEffect(() => {
-    if (pickedUp.current || !apiBook) return;
-    pickedUp.current = true;
+  // The book detail can arrive after the studio opens: pick the open jobs up then, once (set during render).
+  const [pickedUp, setPickedUp] = useState(!!apiBook);
+  if (!pickedUp && apiBook) {
+    setPickedUp(true);
     const c = apiBook.recentJobs.find((j) => j.kind === "cover_concepts" && !isTerminalJob(j.status))?.id;
     const b = apiBook.recentJobs.find((j) => j.kind === "cover_build" && !isTerminalJob(j.status))?.id;
-    if (c) setConceptJob((cur) => cur ?? c);
-    if (b) setBuildJob((cur) => cur ?? b);
-  }, [apiBook]);
+    if (c && !conceptJob) setConceptJob(c);
+    if (b && !buildJob) setBuildJob(b);
+  }
   const [problem, setProblem] = useState<string | null>(null);
   const [announce, setAnnounce] = useState("");
   const [pagesText, setPagesText] = useState<string>("");
