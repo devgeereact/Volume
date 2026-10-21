@@ -222,4 +222,24 @@ describe('job queue', () => {
     expect(done.error).toMatch(/1 of 2 books failed\. 1 book after it was not started\./);
     await handle.close();
   });
+
+  it('runs an on-screen job (cover concepts) while a book being written fills the ai lane', async () => {
+    let release = () => {};
+    const blocked = new Promise<void>((res) => (release = res));
+    const { handle, ctx, queue, runner } = await setup({
+      write_section: async () => {
+        await blocked;
+        return {};
+      },
+      cover_concepts: () => Promise.resolve({ result: { ok: true } }),
+    });
+    for (let i = 0; i < 6; i++) await queue.enqueue(ctx, { kind: 'write_section' });
+    const cover = await queue.enqueue(ctx, { kind: 'cover_concepts' });
+    expect(cover.priority).toBeLessThan(100);
+    await runner.start();
+    await vi.waitFor(async () => expect((await queue.require(ctx, cover.id)).status).toBe('succeeded'));
+    release();
+    await runner.stop();
+    await handle.close();
+  });
 });

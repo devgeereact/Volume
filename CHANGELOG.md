@@ -4,6 +4,9 @@ User-visible changes, newest first. Dates in British format.
 
 ## 21 October 2026
 
+#### Fixed
+- Cover concepts, AI edits, note weaving, rewrites and claim fixes no longer wait behind another book that is being written. They have a slot of their own and start straight away.
+
 #### Added
 - Claims page: "Fix the whole book". One click fixes house style (em dashes, US spellings) in every section, then every open claim: softer wording where it is on file, otherwise the AI rewrites the sentence so it claims only what is safe, never with a source you have not got. Claims whose sentence is already gone are closed. Progress shows as it works, Stop is always there, and every change is a new version you can undo. "Only house style (free)" and "Only the claims" are there too. The Editor's Next line links to it.
 
