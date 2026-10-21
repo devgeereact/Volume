@@ -351,7 +351,7 @@ async function rerunMissingSteps(jc: JobContext, projectId: string, section: Sec
     if (!(await openOf(checker))) await repos.manuscript.addCheckResults(jc.ctx, projectId, sectionId, current.id, [item]);
   };
   const doSummary = current.summary === null || (await openOf(SUMMARY_MISSING_CHECKER));
-  const doChecks = await openOf(CHECKS_MISSING_CHECKER);
+  const doChecks = jc.payload['forceChecks'] === true || (await openOf(CHECKS_MISSING_CHECKER));
   // The section status is left alone until the end: a cancelled or crashed rerun must not clear "needs attention".
   const failed: Record<string, string> = {};
   let warnings = 0;

@@ -532,3 +532,9 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Checks: this session's entry only changes docs. Test and typecheck results for PR #44 are in its PR and earlier entries; not re-run here. Live run: NOT TESTED in this entry.
 - Next: owner answers the five decisions in CURRENT-TASK.md. Then fix the Nurses book chapter 8 title and repeated passage, and source or remove the two open legal claims in test book 3. Deploy PR #44 only with owner approval.
 - graphify: `graphify update .` on 21 October 2026 (957 code files, 9,631 nodes, 26,241 edges, 513 communities); graphify git hooks installed in .githooks (post-commit, post-checkout, post-merge, post-rewrite; skip when graphify is missing) so the graph stays current after each commit. graphify-out/ stays git-excluded. Doc and prompt changes need `/graphify --update` in an assistant (semantic pass).
+
+## 21 October 2026 (Claude Code): humanizer over Harni's catalogue
+
+- Four agents ran the humanizer over all 16 of Harni's source books with minimal, line-level edits: 143 edits, no em dashes left. Output in `../reports/volume/2026-10-21-humanized/` (books, patches, README). The originals and the live books are unchanged; the owner decides whether to bring any cleaned copy into Volume.
+- Checks: every patch applied cleanly (143 of 143 matched), word count 844,916 to 844,767.
+- Owner said "Apply all" (21 October 2026). All 143 edits applied to the 15 live published books through the Editor's autosave route: 54 sections now at version 2, none coalesced, so version 1 (the imported original) restores from Versions. Check before saving: every edit matched exactly one place (143 of 143). After saving: every replacement found in the live text (143 of 143); edited Lead the Ward sections hold no em dashes. "Beyond the Ward" needed none. KDP is unchanged until the owner republishes.
