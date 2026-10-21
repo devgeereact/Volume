@@ -3,6 +3,7 @@ import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFArray, PDFBool, PDFDocument, PDFName, PDFNumber, PDFRef, PDFStream, type PDFObject } from 'pdf-lib';
 import sharp, { type Metadata } from 'sharp';
 import {
+  curlQuotes,
   bleedPageSizeIn,
   checkPictureBook,
   checkTextInSafeArea,
@@ -454,7 +455,8 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
           .map((b) => (b.type === 'paragraph' ? stripInline(b.text) : ''))
           .join('\n\n')
       : '';
-    const same = text.replace(/\s+/g, ' ').trim() === input.profileBio.replace(/\s+/g, ' ').trim();
+    // The typeset book sets curly quotes (curlQuotes), so the bio is compared in the same typography.
+    const same = curlQuotes(text).replace(/\s+/g, ' ').trim() === curlQuotes(input.profileBio).replace(/\s+/g, ' ').trim();
     add({
       id: 'honesty.about-author',
       label: 'About the author equals the profile bio',
