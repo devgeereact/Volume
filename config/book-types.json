@@ -1516,12 +1516,17 @@
           "Professional disclaimer: local policy and the NMC Code come first",
           "NHS terms explained on first use",
           "Clinical statements in the claims-to-verify report",
-          "Illustrative patient stories, never identifiable"
+          "Illustrative patient stories, never identifiable",
+          "Times on the 24-hour clock (03:40, 19:30)",
+          "Characters named by role (the nurse in charge, a healthcare assistant), with at most a passing surname such as Mr Khan",
+          "The exact words to say, in curly quotes, at least twice in each section"
         ],
         "avoid": [
           "Clinical instructions presented as protocol",
           "Identifiable patients, colleagues or trusts",
-          "Invented guidance, policy numbers or statistics"
+          "Invented guidance, policy numbers or statistics",
+          "Named composite characters with first names and backstories",
+          "Bulleted lists, boxes and headings below section level in the chapters"
         ]
       },
       "defaultInteriorTheme": "healthcare-practical",
