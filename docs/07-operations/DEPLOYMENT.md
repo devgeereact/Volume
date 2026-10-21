@@ -59,13 +59,13 @@ The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `m
 | Command | Does |
 | --- | --- |
 | `npm run deploy -- --dry-run` | Reads the host and runs the preflight; changes nothing. |
-| `npm run deploy` | Builds, uploads to `releases/<utc>`, installs with Node 24, links the shared settings file, checks migrations, switches `current`, restarts and runs the live checks. A failed check switches back to the previous release by itself. |
+| `npm run deploy` | Builds, uploads to `releases/<utc>`, installs with Node 24, links the shared settings file, checks migrations, switches `current`, restarts and runs the live checks. A failed check switches back to the previous release by itself. After a passing deploy it deletes releases older than the newest three (each holds about 20,000 files and the host caps inodes), but never the live or previous release, the `20261016T224127Z` folder the Node.js selector is registered against, or anything newer than the deploy. |
 | `npm run deploy -- --migrate` | Same, and applies pending migrations. Without it the script stops before going live when any are pending. Take the cPanel database backup first. |
 | `npm run deploy -- --rollback` | Switches `current` to the release before it and restarts. |
 | `--no-ci-check` | Skips the GitHub CI check and runs the same gates on this computer instead: `npm run typecheck`, `lint`, `format:check`, `test` and `e2e` (about four minutes; e2e needs ports 5311 to 5318 free, 5313 included). Any failure stops the deploy before the build. Use with the owner's OK while GitHub Actions cannot run. |
 | `--skip-local-checks` | Only with `--no-ci-check`: runs no checks at all. Emergency use only, and say so in the handoff. |
 
-It never deletes a release and never reads or copies the settings file (the link is a symlink). The steps it runs, for doing them by hand:
+Apart from that pruning it never deletes a release, and it never reads or copies the settings file (the link is a symlink). The steps it runs, for doing them by hand:
 
 1. Rsync `build/release/` to `~/apps/volume/releases/<utc>/`.
 2. On the host, inside that folder, with Node 24 (`export PATH=/opt/alt/alt-nodejs24/root/usr/bin:$PATH`; there is no `~/nodevenv/apps/volume/current`): `npm ci --omit=dev --no-audit --no-fund`.
