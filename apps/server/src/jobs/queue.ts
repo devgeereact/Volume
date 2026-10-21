@@ -4,6 +4,10 @@ import type { Db } from '../db/connect.js';
 import type { JobsTable } from '../db/schema.js';
 import { AppError, notFound } from '../http/errors.js';
 import { affected, bool, fromJson, newId, now, toJson } from '../lib/util.js';
+
+/** On-screen jobs (runner.ts QUICK_KINDS) are claimed before bulk work queued earlier: lower priority runs first. */
+const QUICK_PRIORITY = 10;
+const QUICK_PRIORITY_KINDS = new Set<string>(['cover_concepts', 'edit_pass', 'weave_notes', 'rewrite_selection', 'claim_fix']);
 import type { EventBus } from '../sse/bus.js';
 
 /**
@@ -162,7 +166,7 @@ export class JobQueue {
         dependsOnJobId: input.dependsOnJobId ?? null,
         kind: input.kind,
         status: 'queued',
-        priority: input.priority ?? 100,
+        priority: input.priority ?? (QUICK_PRIORITY_KINDS.has(input.kind) ? QUICK_PRIORITY : 100),
         attempts: 0,
         maxAttempts: input.maxAttempts ?? 3,
         runAfter: input.runAfter ?? t,

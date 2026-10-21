@@ -91,8 +91,16 @@ export interface JobContext {
 export type JobHandler = (jc: JobContext) => Promise<JobOutcome>;
 export type HandlerMap = Partial<Record<JobKind, JobHandler>>;
 
-/** Concurrency lanes (docs: 2 AI jobs at once, 1 export job). */
+/**
+ * Jobs the owner waits for on screen (a few seconds to a minute each). They get a lane of their own, so a book
+ * being written (dozens of write_section jobs) never holds them up, and they are claimed first in the ai lane too
+ * (QUICK_PRIORITY in queue.ts).
+ */
+export const QUICK_KINDS: JobKind[] = ['cover_concepts', 'edit_pass', 'weave_notes', 'rewrite_selection', 'claim_fix'];
+
+/** Concurrency lanes (docs: 2 AI jobs at once plus 1 for quick on-screen jobs, 1 export job). */
 const LANES: { name: string; max: number; kinds: JobKind[] }[] = [
+  { name: 'quick', max: 1, kinds: QUICK_KINDS },
   {
     name: 'ai',
     max: 2,
