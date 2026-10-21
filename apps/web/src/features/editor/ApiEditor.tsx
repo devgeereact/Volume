@@ -77,6 +77,7 @@ import { ClaimRewrite } from "./ClaimRewrite";
 import { BudgetPausedBanner } from "../books/BudgetPausedBanner";
 import { ModelFallbackBanner, modelProblemOf, type ModelProblem } from "../settings/ModelFallback";
 import { categoryLabel } from "./claimsOverview";
+import { claimNeedsCheck } from "./claimTier";
 import { DiffText } from "./DiffText";
 import { draftStore, useSectionAutosave } from "./useSectionAutosave";
 import { draftBehind, draftKey, type LocalDraft } from "./autosave";
@@ -850,11 +851,13 @@ function Body({
                   ? "removed"
                   : "open",
           note: c.ownerNote ?? c.sourceUrl ?? undefined,
+          needsCheck: claimNeedsCheck(c),
         })),
     [claimsQ.data, sectionsById, sectionId, blocks],
   );
   const sectionClaims = claims.filter((c) => c.sectionId === sectionId && c.status === "open");
-  const openClaims = claims.filter((c) => c.status === "open").length;
+  // Claim tiers: only open claims that need the owner's check count here (preflight warns about those alone).
+  const openClaims = claims.filter((c) => c.status === "open" && c.needsCheck !== false).length;
   const sectionLabel = (id: string) => {
     const s = msSections.find((x) => x.id === id);
     return s ? (s.number !== null ? `Chapter ${s.number}` : s.title) : "Another section";
@@ -1610,8 +1613,8 @@ function Body({
           <li>{dirty ? "Your unsaved changes are saved as a new version first." : "Every change is saved."}</li>
           <li>
             {openClaims === 0
-              ? "No claims are open."
-              : `${openClaims} ${openClaims === 1 ? "claim is" : "claims are"} still open. Preflight warns about ${openClaims === 1 ? "it" : "them"} until you check ${openClaims === 1 ? "it" : "them"}.`}
+              ? "No open claims need your check."
+              : `${openClaims} ${openClaims === 1 ? "claim still needs" : "claims still need"} your check. Preflight warns about ${openClaims === 1 ? "it" : "them"} until you check ${openClaims === 1 ? "it" : "them"}.`}
           </li>
         </ul>
       </Modal>

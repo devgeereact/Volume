@@ -109,6 +109,7 @@ function sampleBook(over: Partial<ExportBook> = {}): ExportBook {
         category: 'other_fact',
         check: 'Check a horticultural source.',
         status: 'open',
+        needsCheck: true,
       },
     ],
     ...over,

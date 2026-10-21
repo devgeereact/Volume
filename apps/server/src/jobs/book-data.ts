@@ -1,6 +1,6 @@
 import type { BlobStore } from '../files/blob-store.js';
 import { dirname } from 'node:path';
-import { checkText, fieldDriftMessage, findHealthTerms, type CompiledHouseStyle } from '@volume/core';
+import { checkText, claimNeedsCheck, fieldDriftMessage, findHealthTerms, type CompiledHouseStyle } from '@volume/core';
 import { loadHouseStyle } from '@volume/core/node';
 import type { RequestCtx } from '../auth/context.js';
 import { sha256Hex } from '../lib/util.js';
@@ -162,6 +162,7 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
     category: c.category,
     check: c.checkNeeded ?? '',
     status: c.status === 'verified' || c.status === 'softened' || c.status === 'author_experience' || c.status === 'removed' ? c.status : 'open',
+    needsCheck: claimNeedsCheck(c),
   }));
   return {
     ...(authorPhoto ? { authorPhoto } : {}),

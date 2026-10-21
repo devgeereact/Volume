@@ -169,7 +169,7 @@ interface UploadPackInput {
   marketing?: { tiktokScripts?: string; instagramCaptions?: string; launchEmail?: string }; date?: Date;
 }
 interface PackFiles { interiorPdf?: Buffer; epub?: Buffer; docx?: Buffer; txt?: Buffer; md?: Buffer; ebookCover?: Buffer; wrapPdf?: Buffer }
-interface ClaimItem { chapter: string; sentence: string; category: string; check: string; status: 'open' | 'verified' | 'removed' }
+interface ClaimItem { chapter: string; sentence: string; category: string; check: string; status: 'open' | 'verified' | 'softened' | 'author_experience' | 'removed'; needsCheck?: boolean }
 function claimsCsv(claims: ClaimItem[]): string;
 function metadataSheet(book: BookDoc, md?: PackMetadata): string;
 function aiDisclosureNote(ai: AiDisclosure, rules: KdpRules): string;

@@ -284,7 +284,7 @@ The owner can skip the AI cover and upload their own (live acceptance 18 October
 | Back-cover blurb within the template's word range (`listing.blurb-length`; `packages.publishing` `back-cover-blurb` `limits.words`, else the nonfiction template's 120 to 200) | warn | template |
 | Marketing (TikTok scripts, Instagram captions, launch email): no em or en dashes, banned phrases or US spellings (`marketing.style`; not uploaded to KDP) | warn | house style |
 | No open blocking checks or invented-content flags | block | `docs/02-architecture/AI-PIPELINE.md` |
-| Open claims in the claims report | warn | guardrails |
+| Open claims that need your check (`claims.open`: "N open claim(s) need your check; M more are listed for the record in the claims report."). Claims listed for the record do not count; open regulatory claims still block and open personal claims still warn | warn | guardrails |
 | About the author equals profile bio (hash) | block | guardrails |
 | Also by lists only published books of this pen name | block | guardrails |
 | Copyright year correct, no unfilled `{placeholders}` | block | profile templates |
@@ -334,7 +334,7 @@ listing/back-cover-blurb.txt    the back-cover blurb as plain text (matter stage
 listing/short-bio.txt           the short author bio as plain text
 listing/ai-disclosure.txt       what was AI-generated (text, images) and why
 reports/preflight.txt
-reports/claims-to-verify.csv    chapter, sentence, category, check needed, status
+reports/claims-to-verify.csv    chapter, sentence, category, check needed, status, needs check (yes, or no for a claim listed for the record)
 reports/kdp-rules-used.txt      rules file version, fact IDs and dates
 marketing/tiktok-scripts.txt
 marketing/instagram-captions.txt

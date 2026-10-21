@@ -3,6 +3,17 @@
 
 import type { ClaimOverviewFilter, ClaimOverviewItem, ClaimsOverview } from "../../api/types";
 import type { MsClaim } from "./manuscript";
+import { claimNeedsCheck } from "./claimTier";
+
+/** Which claims the screen lists: the ones that need the owner's check, or the ones listed for the record. */
+export type ClaimTierView = "check" | "record";
+
+/** The listed claims split by tier (claimTier.ts), keeping the server's reading order in each. */
+export function splitByTier(items: readonly ClaimOverviewItem[]): Record<ClaimTierView, ClaimOverviewItem[]> {
+  const out: Record<ClaimTierView, ClaimOverviewItem[]> = { check: [], record: [] };
+  for (const c of items) out[claimNeedsCheck(c) ? "check" : "record"].push(c);
+  return out;
+}
 
 export const FILTERS: { id: ClaimOverviewFilter; label: string }[] = [
   { id: "open", label: "Open" },
@@ -68,6 +79,7 @@ export function toMsClaim(c: ClaimOverviewItem, category: string): MsClaim {
             ? "removed"
             : "open",
     note: c.ownerNote ?? c.sourceUrl ?? undefined,
+    needsCheck: claimNeedsCheck(c),
   };
 }
 

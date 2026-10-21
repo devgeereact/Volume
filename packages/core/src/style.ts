@@ -333,18 +333,22 @@ export function checkText(text: string, style: CompiledHouseStyle, opts: CheckTe
   }
   if (rules.has('guardrail')) {
     for (const g of style.guardrails) {
-      scan(g.re, (m) =>
+      scan(g.re, (m) => {
+        // A word quoted on its own ("award-winning" as a word to avoid) is mentioned, not claimed: a warning to look
+        // at, never a block. The same words in plain prose still block.
+        const mention = quotedAlone(src, m.index, m.index + m[0].length);
+        const action = mention && g.action === 'block' ? 'warn' : g.action;
         add({
           rule: 'guardrail',
-          severity: g.action === 'block' ? 'error' : 'warn',
-          message: g.message,
+          severity: action === 'block' ? 'error' : 'warn',
+          message: mention ? `${g.message} (quoted as a word, so check it is only mentioned)` : g.message,
           start: m.index,
           end: m.index + m[0].length,
           match: m[0],
           id: g.id,
-          action: g.action,
-        }),
-      );
+          action,
+        });
+      });
     }
   }
   if (rules.has('habit')) {
@@ -635,4 +639,13 @@ export function wordCountReport(
   }
   const totalTarget = overrides.total ?? template.wordTargets?.total?.default;
   return { items, total: { sectionId: 'total', title: 'Total', words: totalWords, ...judge(totalWords, totalTarget) } };
+}
+
+/** True when a match is wrapped directly in quotation marks, allowing a word or two around it ("the best"). */
+function quotedAlone(text: string, start: number, end: number): boolean {
+  const before = text.slice(Math.max(0, start - 12), start);
+  const after = text.slice(end, end + 12);
+  const open = /["\u201C\u2018'](?:\S+\s)?$/.exec(before);
+  const close = /^(?:\s\S+)?["\u201D\u2019']/.exec(after);
+  return open !== null && close !== null;
 }

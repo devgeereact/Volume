@@ -58,6 +58,8 @@ export interface MsClaim {
   softened: string;
   status: ClaimStatus;
   note?: string | undefined;
+  /** Claim tiers (claimTier.ts): false when the claim is listed for the record only; missing means it needs a check. */
+  needsCheck?: boolean | undefined;
 }
 
 export type SuggestionPass = "structure" | "line" | "voice";
