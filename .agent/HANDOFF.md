@@ -538,3 +538,12 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Four agents ran the humanizer over all 16 of Harni's source books with minimal, line-level edits: 143 edits, no em dashes left. Output in `../reports/volume/2026-10-21-humanized/` (books, patches, README). The originals and the live books are unchanged; the owner decides whether to bring any cleaned copy into Volume.
 - Checks: every patch applied cleanly (143 of 143 matched), word count 844,916 to 844,767.
 - Owner said "Apply all" (21 October 2026). All 143 edits applied to the 15 live published books through the Editor's autosave route: 54 sections now at version 2, none coalesced, so version 1 (the imported original) restores from Versions. Check before saving: every edit matched exactly one place (143 of 143). After saving: every replacement found in the live text (143 of 143); edited Lead the Ward sections hold no em dashes. "Beyond the Ward" needed none. KDP is unchanged until the owner republishes.
+
+## 2026-10-21 (night), Claude Code: git clean-up and deploy of PR #48
+
+- Who: Claude Code (Opus 5.5).
+- What: nothing left to merge (PRs #37 to #48 on `main` `94a20e6`). Removed six clean, merged agent worktrees and 14 merged local branches; deleted `feat/recheck-claims` and `fix/library-rows` on GitHub. Only `main` and `ci/run-check` remain, local and remote. The owner ran `npm run deploy -- --no-ci-check` (the assistant's run was blocked by the permission classifier).
+- Live: release `20261021T200148Z` (`94a20e6`, adds the Library rows fix, PR #48). Rollback `20261021T194030Z`.
+- Files: `.agent/CURRENT-TASK.md`, `.agent/HANDOFF.md`.
+- Checks: `npm run deploy -- --dry-run` reads live release `20261021T200148Z` PASS; `https://volume.gakinz.com/` HTTP 200 PASS. Deploy's own local checks were run by the owner; output not seen here (NOT TESTED by the assistant). Library page on live not visually checked (NOT TESTED).
+- Next: owner checks the Library page on live; the open owner decisions in CURRENT-TASK.md stand.

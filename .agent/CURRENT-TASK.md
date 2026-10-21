@@ -1,5 +1,9 @@
 # Current task
 
+## State on 21 October 2026 (evening)
+
+- Live at https://volume.gakinz.com on release `20261021T200148Z` (main `94a20e6`, PRs up to #48). Rollback target `20261021T194030Z` (`npm run deploy -- --rollback`). Git cleaned 21 October: only `main` and `ci/run-check`, local and on GitHub; no worktrees.
+
 ## State on 20 October 2026
 
 - Live at https://volume.gakinz.com on release `20261020T035644Z` (main `072dec3`). Rollback target `20261020T021731Z` (`npm run deploy -- --rollback`). Migrations 0001 to 0011 applied in production.
