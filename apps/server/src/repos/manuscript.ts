@@ -327,6 +327,11 @@ export interface SaveVersionInput {
 /** Works out the code guardrail report for a book's text as it is saved (set by the app; see jobs/guardrails.ts). */
 export type TextGuardrailChecker = (ctx: RequestCtx, projectId: string, bodyMd: string) => Promise<AiGuardrails | null>;
 
+/** A claim sentence compared loosely: case, curly quotes and spacing do not make it a new claim. */
+function normSentence(s: string): string {
+  return s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
 export class ManuscriptRepo {
   private textChecker: TextGuardrailChecker | null = null;
 
@@ -1131,7 +1136,17 @@ export class ManuscriptRepo {
   ): Promise<Claim[]> {
     const t = now();
     const ids: string[] = [];
+    // A sentence the owner already settled (verified, softened, removed) or that is already open in this section is
+    // not filed again when the checks run on a later version: accepted claims must not come back.
+    const known = new Set(
+      (await this.db.selectFrom('claims').select('sentence').where('workspaceId', '=', ctx.workspaceId).where('sectionId', '=', sectionId).execute()).map((r) =>
+        normSentence(r.sentence),
+      ),
+    );
     for (const it of items) {
+      const key = normSentence(it.sentence);
+      if (known.has(key)) continue;
+      known.add(key);
       const id = newId();
       ids.push(id);
       await this.db

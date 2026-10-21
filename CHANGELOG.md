@@ -5,6 +5,10 @@ User-visible changes, newest first. Dates in British format.
 ## 21 October 2026
 
 #### Fixed
+- Claims you already verified, softened or removed no longer come back as new open claims when the checks run again after an edit. A sentence already open in the section is not filed twice either.
+- The pack no longer blocks on example placeholders the reader is meant to type, such as "Plan a trip from [your town]" inside quotes, or "placeholders such as [your account number]". A bracket placeholder left in plain prose is still caught.
+- "Rather than a guarantee" and "instead of a guarantee" no longer count as a promise; "we guarantee" still does.
+- Fix the whole book also removes empty list items (a lone "-"), and "Fix everything" queues the missing summaries and checks for every section that lacks them.
 - A step stopped at the book's budget no longer spins for ever. The Cover studio, the Editor and Fix the whole book now say "Stopped at this book's budget", show the budget, what is spent and what the step needs, and offer "Raise budget and continue" (owner). The Cover studio also picks up a concept or build job that was already running before a reload.
 - Cover concepts, AI edits, note weaving, rewrites and claim fixes no longer wait behind another book that is being written. They have a slot of their own and start straight away.
 
