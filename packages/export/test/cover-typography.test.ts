@@ -56,4 +56,19 @@ describe('eBook cover with the owner palette', () => {
     expect(Math.abs(green - 0x4b)).toBeLessThan(12);
     expect(Math.abs(blue - 0x55)).toBeLessThan(12);
   });
+
+  it('over concept art, washes it with the palette background like the Cover studio preview (not black)', async () => {
+    // Plain white art: the corner should be 55% palette teal over white, not darkened grey.
+    const art = await sharp({ create: { width: 400, height: 600, channels: 3, background: '#FFFFFF' } })
+      .png()
+      .toBuffer();
+    const style = applyCoverTypography(DEFAULT_COVER_STYLE, { palette: { background: '#1F4B55' } });
+    const r = await exportEbookCover(loadMiniBook().meta, style, { browser, rules: loadKdpRules(), background: art });
+    const { data } = await sharp(r.jpeg).extract({ left: 4, top: 1200, width: 1, height: 1 }).raw().toBuffer({ resolveWithObject: true });
+    const mix = (c: number) => Math.round(c * 0.55 + 255 * 0.45);
+    const [red = 0, green = 0, blue = 0] = data;
+    expect(Math.abs(red - mix(0x1f))).toBeLessThan(14);
+    expect(Math.abs(green - mix(0x4b))).toBeLessThan(14);
+    expect(Math.abs(blue - mix(0x55))).toBeLessThan(14);
+  });
 });
