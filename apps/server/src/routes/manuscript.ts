@@ -193,7 +193,13 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
   // enqueue run under one lock per section, so two clicks cannot queue (and pay for) two reruns. Pack preflight fix
   // actions 'rerun-checks' point here. GET /sections/:id/recheck answers the same steps and estimate without queuing.
   const recheckLock = new KeyedLock();
-  const recheckPlan = async (ctx: RequestCtx, id: string) => {
+  const RecheckBody = z
+    .object({ checks: z.literal(true).optional() })
+    .strict()
+    .optional();
+  // { checks: true } runs the claims and consistency checks even with no failed step, for books whose text never went
+  // through them (imported manuscripts; owner, 21 October 2026).
+  const recheckPlan = async (ctx: RequestCtx, id: string, forceChecks = false) => {
     const section = await m.requireSection(ctx, id);
     const current = section.currentVersionId ? await m.getVersion(ctx, section.currentVersionId) : null;
     if (!current) return { section, steps: [] as ('summary' | 'checks')[], hasText: false, runningJobId: null, estimate: { lowUsd: 0, highUsd: 0 } };
@@ -201,7 +207,7 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
     const open = (await m.listChecks(ctx, { versionId: current.id })).filter((c) => c.status === 'open');
     const steps: ('summary' | 'checks')[] = [
       ...(current.summary === null || open.some((c) => c.checker === SUMMARY_MISSING_CHECKER) ? (['summary'] as const) : []),
-      ...(open.some((c) => c.checker === CHECKS_MISSING_CHECKER) ? (['checks'] as const) : []),
+      ...(forceChecks || open.some((c) => c.checker === CHECKS_MISSING_CHECKER) ? (['checks'] as const) : []),
     ];
     // Any unfinished job on the section's text; claim fix options only read it.
     const running = await s.queue.activeWhere(ctx, section.projectId, (j) => j.payload['sectionId'] === section.id && j.kind !== 'claim_fix');
@@ -219,15 +225,19 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
   const rerunMissing = async (req: FastifyRequest, reply: FastifyReply) => {
     writer(req);
     const id = idOf(req);
-    parse(z.object({}).strict().optional(), req.body);
+    const forceChecks = parse(RecheckBody, req.body)?.checks === true;
     await m.requireSection(req.ctx, id);
     return recheckLock.run(id, async () => {
-      const plan = await recheckPlan(req.ctx, id);
+      const plan = await recheckPlan(req.ctx, id, forceChecks);
       if (!plan.hasText) throw new AppError('invalid_state', 'This section has no text to summarise or check yet. Write it first.');
       if (plan.steps.length === 0) throw new AppError('invalid_state', 'Nothing is missing: this section has its summary and its checks.');
       if (plan.runningJobId) throw new AppError('conflict', 'A job is already working on this section. Wait for it to finish.', { jobId: plan.runningJobId });
       // The section keeps its status (needs attention) until the rerun ends, so a cancelled rerun cannot hide the flag.
-      const job = await s.queue.enqueue(req.ctx, { kind: 'write_section', projectId: plan.section.projectId, payload: { sectionId: id, rerunMissing: true } });
+      const job = await s.queue.enqueue(req.ctx, {
+        kind: 'write_section',
+        projectId: plan.section.projectId,
+        payload: { sectionId: id, rerunMissing: true, ...(forceChecks ? { forceChecks: true } : {}) },
+      });
       return { ...accepted(reply, job), steps: plan.steps, estimate: plan.estimate };
     });
   };

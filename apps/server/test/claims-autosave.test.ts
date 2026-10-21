@@ -497,6 +497,18 @@ describe('POST /sections/:id/recheck (the preflight rerun-checks action)', () =>
     expect(job.body.result['reran']).toEqual(['checks']);
     expect((await t.call('POST', url, {})).status).toBe(409);
   });
+  it('runs the claims check on request ({ checks: true }) for a section with no failed step, such as an imported book', async () => {
+    t = await testApp();
+    const { chapterId } = await writtenBook(t);
+    const url = `/api/v1/sections/${chapterId}/recheck`;
+    expect((await t.call('POST', url, {})).status).toBe(409);
+    const r = await t.call<{ jobId: string; steps: string[] }>('POST', url, { checks: true });
+    expect(r.status).toBe(202);
+    expect(r.body.steps).toContain('checks');
+    await t.services.runner.runUntilIdle();
+    const job = await t.call<{ status: string; result: Obj }>('GET', `/api/v1/jobs/${r.body.jobId}`);
+    expect(job.body.result['reran']).toContain('checks');
+  });
 });
 
 describe('POST /books/:id/fix-house-style', () => {
