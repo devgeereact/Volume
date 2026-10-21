@@ -519,3 +519,29 @@ describe('POST /books/:id/fix-house-style', () => {
     expect(again.body.sections).toBe(0);
   });
 });
+
+describe('POST /books/:id/models/withdraw', () => {
+  it('removes a withdrawn model from the book, its pen name and the workspace, and leaves other choices alone', async () => {
+    t = await testApp();
+    const p = await t.call<Obj>('POST', '/api/v1/profiles', { penName: 'Model Author', bioThirdPerson: 'Model Author writes.' });
+    const profileId = p.body['id'] as string;
+    const b = await t.call<Obj>('POST', '/api/v1/books', { profileId, idea: 'Models', title: 'Models', template: 'nonfiction' });
+    const bookId = b.body['id'] as string;
+    const gone = 'nvidia/gone-model:free';
+    expect((await t.call('PATCH', `/api/v1/books/${bookId}`, { settings: { models: { cover_brief: gone, writing: 'anthropic/kept' } } })).status).toBe(200);
+    expect((await t.call('PATCH', `/api/v1/profiles/${profileId}`, { models: { marketing: { model: gone } } })).status).toBe(200);
+    expect((await t.call('PUT', '/api/v1/settings/models', { stages: { checks: { model: gone } } })).status).toBe(200);
+
+    const r = await t.call<{ removed: { scope: string; stage: string }[] }>('POST', `/api/v1/books/${bookId}/models/withdraw`, { model: gone });
+    expect(r.status).toBe(200);
+    expect(r.body.removed).toEqual([
+      { scope: 'book', stage: 'cover_brief' },
+      { scope: 'profile', stage: 'marketing' },
+      { scope: 'workspace', stage: 'checks' },
+    ]);
+    const book = await t.call<{ settings: { models: Obj } }>('GET', `/api/v1/books/${bookId}`);
+    expect(book.body.settings.models).toEqual({ writing: 'anthropic/kept' });
+    const profile = await t.call<{ models: Obj }>('GET', `/api/v1/profiles/${profileId}`);
+    expect(profile.body.models).toEqual({});
+  });
+});

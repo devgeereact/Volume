@@ -19,7 +19,7 @@ import {
   spliceSentence,
 } from '../jobs/claim-fix.js';
 import type { AiStage, AiStageInput } from '../ports/ai.js';
-import { writer } from './common.js';
+import { owner, writer } from './common.js';
 
 // Claim fixes and autosave (owner request, 19 October 2026). Every route is scoped to
 // the book in the path: a section or claim of another book is 404.
@@ -265,6 +265,45 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
       spellings += fix.spellings;
     }
     return { sections, dashes, spellings };
+  });
+
+  /**
+   * "Stop using a model": a model the provider has withdrawn (404) is removed from this book's model choices,
+   * its pen name's and the workspace overrides, for every stage that named it. Those stages then use the next
+   * choice down (D-019 precedence), which is what Settings, Models shows. The owner asks for this from the
+   * model-unavailable banner (D-003: fallbacks are offered, never silent). 200 { removed: [{ scope, stage }] }.
+   */
+  app.post('/books/:id/models/withdraw', async (req) => {
+    owner(req);
+    const p = parse(z.object({ id: Id }), req.params);
+    const body = parse(z.object({ model: z.string().min(1).max(200) }), req.body);
+    const book = await s.repos.books.require(req.ctx, p.id);
+    const removed: { scope: 'book' | 'profile' | 'workspace'; stage: string }[] = [];
+    const without = (source: Record<string, unknown> | undefined, scope: 'book' | 'profile' | 'workspace') => {
+      const next: Record<string, unknown> = { ...(source ?? {}) };
+      for (const [stage, v] of Object.entries(next)) {
+        const name = typeof v === 'string' ? v : v && typeof v === 'object' ? (v as { model?: unknown }).model : undefined;
+        if (name === body.model) {
+          delete next[stage];
+          removed.push({ scope, stage });
+        }
+      }
+      return next;
+    };
+    const bookModels = book.settings['models'] as Record<string, unknown> | undefined;
+    const nextBook = without(bookModels, 'book');
+    if (removed.length > 0) await s.repos.books.update(req.ctx, book.id, { settings: { ...book.settings, models: nextBook } });
+    const profile = await s.repos.profiles.get(req.ctx, book.profileId);
+    if (profile) {
+      const before = removed.length;
+      const nextProfile = without(profile.models, 'profile');
+      if (removed.length > before) await s.repos.profiles.update(req.ctx, profile.id, { models: nextProfile });
+    }
+    const overrides = (await s.repos.settings.get(req.ctx, 'models.overrides')) ?? {};
+    const before = removed.length;
+    const nextOverrides = without(overrides, 'workspace') as typeof overrides;
+    if (removed.length > before) await s.repos.settings.set(req.ctx, { 'models.overrides': nextOverrides });
+    return { removed };
   });
 
   // ---------- autosave ----------

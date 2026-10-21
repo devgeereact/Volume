@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { Banner, Button } from "../../components/ui";
-import { usePutModelSettings } from "../../api/hooks";
+import { booksApi } from "../../api/books";
 import { errorText, type JobWatch } from "../../api/wire-c";
 
 /* A job failed because its stage's model is gone (errorCode model_unavailable). Fallbacks are offered, never
-   silent (D-003): this banner names the model that failed and the next fallback, and one click sets the
-   fallback for that stage in the workspace's model settings, then runs the job again. */
+   silent (D-003). The model can be set on the book, its pen name or the workspace (D-019: the book wins), so one
+   click removes the withdrawn model from all three; each stage then uses what Settings, Models shows, and the
+   job runs again. */
 
 export interface ModelProblem {
   stage: string;
@@ -18,38 +20,40 @@ export interface ModelProblem {
 export function modelProblemOf(w: Pick<JobWatch, "errorCode" | "result">): ModelProblem | null {
   if (w.errorCode !== "model_unavailable") return null;
   const r = (w.result ?? {}) as { stage?: unknown; model?: unknown; nextFallback?: unknown };
-  if (typeof r.stage !== "string") return null;
-  return {
-    stage: r.stage,
-    model: typeof r.model === "string" ? r.model : "the chosen model",
-    next: typeof r.nextFallback === "string" ? r.nextFallback : null,
-  };
+  if (typeof r.stage !== "string" || typeof r.model !== "string") return null;
+  return { stage: r.stage, model: r.model, next: typeof r.nextFallback === "string" ? r.nextFallback : null };
 }
 
 const stageName = (stage: string) => stage.replace(/_/g, " ");
 
 export function ModelFallbackBanner({
+  bookId,
   problem,
   onRetry,
   onDismiss,
   className,
 }: {
+  bookId: string;
   problem: ModelProblem;
   onRetry: () => void;
   onDismiss: () => void;
   className?: string;
 }) {
-  const put = usePutModelSettings();
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  async function switchAndRetry() {
-    if (!problem.next) return;
+  async function fixAndRetry() {
+    setBusy(true);
     try {
-      await put.mutateAsync({ stages: { [problem.stage]: { model: problem.next } } });
+      await booksApi.withdrawModel(bookId, problem.model);
+      await qc.invalidateQueries();
       setError(null);
       onDismiss();
       onRetry();
     } catch (e) {
       setError(errorText(e));
+    } finally {
+      setBusy(false);
     }
   }
   return (
@@ -59,35 +63,20 @@ export function ModelFallbackBanner({
       className={className}
       action={
         <div className="flex flex-wrap gap-2">
-          {problem.next && (
-            <Button size="sm" onClick={() => void switchAndRetry()} disabledReason={put.isPending ? "Switching the model." : undefined}>
-              Use {problem.next} and try again
-            </Button>
-          )}
+          <Button size="sm" onClick={() => void fixAndRetry()} loading={busy} loadingLabel="Switching">
+            Use the Settings model and try again
+          </Button>
           <Button size="sm" variant="ghost" onClick={onDismiss}>
             Dismiss
           </Button>
         </div>
       }
     >
-      {problem.model} did not answer, so this step was not done.{" "}
-      {problem.next ? (
-        <>
-          Switch this step to {problem.next} with one click. You can change it again any time in{" "}
-          <Link to="/settings" className="font-semibold underline underline-offset-2">
-            Settings, Models
-          </Link>
-          .
-        </>
-      ) : (
-        <>
-          Choose another model for this step in{" "}
-          <Link to="/settings" className="font-semibold underline underline-offset-2">
-            Settings, Models
-          </Link>
-          .
-        </>
-      )}
+      {problem.model} is no longer offered by its provider, so this step was not done. It is still chosen for this book or its pen name, which wins over{" "}
+      <Link to="/settings" className="font-semibold underline underline-offset-2">
+        Settings, Models
+      </Link>
+      . One click removes it everywhere it is set, so every step uses the model Settings shows, then runs this step again.
       {error && <span className="mt-1 block text-claim">{error}</span>}
     </Banner>
   );
