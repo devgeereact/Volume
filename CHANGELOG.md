@@ -18,6 +18,7 @@ User-visible changes, newest first. Dates in British format.
 - Each book now stays in its own pen name's world. The writer gets a short summary of the pen name's field from the bio and credentials, and takes its examples from that field and the book's topic. An AI or web design book no longer reaches for the NHS, GPs or hospitals as everyday examples; it uses a bank, the council or an online shop instead. A book that is not a health book shows a warning on any section that still mentions health settings, so you can check them.
 
 #### Fixed
+- A banned word quoted on its own as a word to avoid (for example "award-winning" in a list of words not to use) is now a warning to look at, not a block. The same word used as a claim in normal prose still blocks.
 - `npm run pages` now works when Pages is closed (it starts Pages in the background and waits for the Word import), including on Macs where the app is named Pages Creator Studio.
 - Printed and e-book files set curly quotes and apostrophes, as the owner's books are; the manuscript text keeps whatever you typed.
 - Built covers now match the Cover studio preview. Over concept art the build used a black overlay and white type; it now uses the same wash of the palette's background and the palette's own text colours as the preview, and no band over the art. Build covers again to get the matching colours.
