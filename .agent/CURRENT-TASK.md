@@ -11,6 +11,7 @@
 
 ## Next
 
+0. Clean production (plan docs/08-change-management/plans/2026-10-21-clean-production.md): built and reviewed on feat/clean-production; ship it, then import Harni's 16 books (files in ~/Downloads/Harni books for Volume) and set clean-handbook on her books.
 0. Simpler Editor, AI run messages, Cover studio steps and real cover thumbnails: merged (PR #26) and live on 21 October 2026 as release `20261020T231731Z` (main `0700b69`), rollback `20261020T035644Z`. Owner to test live. 21 October: Fix the whole book and one-click model fallback live as release `20261021T000422Z` (main `98bfcd3`, PR #27). Withdrawn-model fix (PR #28) live as release `20261021T072506Z` (main `09acba1`), rollback `20261021T000422Z`. Pending: merge `chore/prune-old-releases` (release pruning, host inode cap).
 1. Owner: get the GitHub account flag lifted (account reinstatement request); then push `ci/run-check` and check CI on `main`.
 2. Until then: deploy with `npm run deploy -- --no-ci-check`, which now runs typecheck, lint, format:check, test and e2e on this computer first and stops on any failure.
