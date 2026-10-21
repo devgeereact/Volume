@@ -207,6 +207,33 @@ export function promptTemplate(s: BookStructure): Rec | null {
 }
 
 /**
+ * The book type's genre rules as plain text for the writing prompts ({{bookTypeRules}}, writing v7): the must-haves and
+ * the things to avoid, one per line, so the writer reads them as rules instead of finding them inside the {{template}}
+ * JSON. Takes a promptTemplate() result (object or JSON string) and reads its bookType.genreRules. Null when the book
+ * has no book type or the type lists neither.
+ */
+export function bookTypeRulesText(template: unknown): string | null {
+  let t: unknown = template;
+  if (typeof t === 'string' && t.trimStart().startsWith('{')) {
+    try {
+      t = JSON.parse(t) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  const bookType = isRec(t) && isRec(t['bookType']) ? t['bookType'] : null;
+  const rules = bookType && isRec(bookType['genreRules']) ? bookType['genreRules'] : null;
+  if (!rules) return null;
+  const items = (v: unknown): string[] => (Array.isArray(v) ? v.map(str).filter((x): x is string => x !== null) : []);
+  const must = items(rules['mustHaves']);
+  const avoid = items(rules['avoid']);
+  const lines: string[] = [];
+  if (must.length) lines.push('Must have:', ...must.map((m) => `- ${m}`));
+  if (avoid.length) lines.push('Avoid:', ...avoid.map((a) => `- ${a}`));
+  return lines.length ? lines.join('\n') : null;
+}
+
+/**
  * True when the book type asks for dated prices: every price carries the month it was checked (genreRules.datedPrices,
  * set for the tech how-to and travel types; older configs are read from the rule wording).
  */

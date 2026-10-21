@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { bookTypeRulesText } from '../config/book-structure.js';
 import { ConfigError } from '../config/env.js';
 import { JobFailed } from '../jobs/errors.js';
 import { dedupeKey, sha256Hex } from '../lib/util.js';
@@ -382,6 +383,8 @@ export function baseInput(v: Rec): Rec {
   if (profile) out['profile'] = profile;
   out['book'] = bookInput(v);
   for (const k of ['blueprint', 'template', 'research'] as const) if (v[k] !== undefined) out[k] = v[k] ?? null;
+  // The book type's must-haves and things to avoid as plain text (writing v7 {{bookTypeRules}}), from the template rules.
+  put(out, 'bookTypeRules', firstText(v['bookTypeRules']) ?? bookTypeRulesText(v['template']));
   // The fiction story bible goes on its own as {{storyBible}}, never inside {{blueprint}} (D-043).
   const bp = out['blueprint'];
   const bible = v['storyBible'] ?? (isRec(bp) ? bp['storyBible'] : undefined);

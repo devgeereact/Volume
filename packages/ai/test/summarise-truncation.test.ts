@@ -73,9 +73,9 @@ describe('summarise budget and prompt', () => {
     expect(SUMMARY_MAX).toBeGreaterThanOrEqual(16_000);
   });
 
-  it('uses a bounded prompt by default (v5 keeps the v4 caps) and keeps v3 and v4 for pinned books', () => {
+  it('uses a bounded prompt by default (v5 and v6 keep the v4 caps) and keeps v3 and v4 for pinned books', () => {
     const v4 = loader.load(TASK);
-    expect(v4.meta.version).toBe(5);
+    expect(v4.meta.version).toBe(6);
     expect(loader.load(TASK, 4).meta.version).toBe(4);
     expect(v4.system).toContain('at most 10');
     expect(v4.system).toContain('15 words or fewer');

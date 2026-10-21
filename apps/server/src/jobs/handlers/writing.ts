@@ -125,6 +125,33 @@ function stepFailure(err: unknown): { code: string; detail: string } | null {
   return null;
 }
 
+/**
+ * Runs a post-write step (the summary, or the claims and consistency check) and, when it ends in a step failure, runs it
+ * once more before the caller raises summary_missing or checks_missing (plan 2026-10-21, Task 2). The retry goes through
+ * the runner again, so it uses the stage's configured model; the runner offers no way to name a fallback here, and a
+ * fallback is never switched in silently. A model that is unavailable is not asked twice. Anything stepFailure does not
+ * catch (pause, cancel, budget, retryable provider errors) is thrown as before.
+ */
+async function withOneRetry<T>(
+  jc: JobContext,
+  step: () => Promise<T>,
+): Promise<{ ok: true; value: T } | { ok: false; failed: { code: string; detail: string } }> {
+  let failed: { code: string; detail: string } | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (attempt > 0) {
+      if (failed?.code === 'model_unavailable') break;
+      await jc.checkpoint();
+    }
+    try {
+      return { ok: true, value: await step() };
+    } catch (err) {
+      failed = stepFailure(err);
+      if (!failed) throw err;
+    }
+  }
+  return { ok: false, failed: failed as { code: string; detail: string } };
+}
+
 function summaryMissingCheck(f: { code: string; detail: string }): { checker: string; severity: 'block'; message: string; location: Record<string, unknown> } {
   return {
     checker: SUMMARY_MISSING_CHECKER,
@@ -158,14 +185,9 @@ async function modelChecks(
   variables: Record<string, unknown>,
 ): Promise<{ checks: CodeCheckItem[]; claims: number; failed: { code: string; detail: string } | null }> {
   const { repos } = jc.services;
-  let model;
-  try {
-    model = await jc.runAi('checks', { promptId: 'checks.claims-and-consistency', variables });
-  } catch (err) {
-    const failed = stepFailure(err);
-    if (!failed) throw err;
-    return { checks: [], claims: 0, failed };
-  }
+  const run = await withOneRetry(jc, () => jc.runAi('checks', { promptId: 'checks.claims-and-consistency', variables }));
+  if (!run.ok) return { checks: [], claims: 0, failed: run.failed };
+  const model = run.value;
   const checks: CodeCheckItem[] = model.output.consistency.map((c) => ({
     checker: 'consistency',
     severity: 'warn',
@@ -313,21 +335,22 @@ async function rerunMissingSteps(jc: JobContext, projectId: string, section: Sec
 
   if (doSummary) {
     await jc.progress(0.1, 'Summarising');
-    try {
-      const summary = await jc.runAi('summarise', {
+    const run = await withOneRetry(jc, () =>
+      jc.runAi('summarise', {
         promptId: 'checks.summarise-and-ledger',
         variables: { markdown: current.bodyMd, section: sectionVars, bookTypeId: book.bookTypeId, templateId: common.templateId, ledger },
-      });
+      }),
+    );
+    if (run.ok) {
+      const summary = run.value;
       await jc.checkpoint();
       await repos.manuscript.setVersionSummary(jc.ctx, current.id, summary.output.summary);
       await repos.manuscript.upsertLedger(jc.ctx, projectId, sectionId, current.id, summary.output.ledger);
       await repos.manuscript.resolveChecks(jc.ctx, current.id, SUMMARY_MISSING_CHECKER);
       await jc.emit('book.updated', { projectId, part: 'summary', sectionId });
-    } catch (err) {
-      const f = stepFailure(err);
-      if (!f) throw err;
-      failed['summary'] = f.code;
-      await flag(SUMMARY_MISSING_CHECKER, summaryMissingCheck(f));
+    } else {
+      failed['summary'] = run.failed.code;
+      await flag(SUMMARY_MISSING_CHECKER, summaryMissingCheck(run.failed));
     }
   }
   if (doChecks) {
@@ -465,19 +488,15 @@ export const writeSectionHandler: JobHandler = async (jc) => {
 
   // A failed summary no longer loses the written text (owner decision, 7 October 2026): the text is saved with no
   // summary and a blocking summary_missing flag, the job ends needing attention, and later sections still run.
-  let summary: { summary: string; ledger: { kind: string; key: string; detail: string }[] } | null = null;
-  let summaryFailed: { code: string; detail: string } | null = null;
-  try {
-    summary = (
-      await jc.runAi('summarise', {
-        promptId: 'checks.summarise-and-ledger',
-        variables: { markdown, section: sectionVars, bookTypeId: book.bookTypeId, templateId: common.templateId, ledger },
-      })
-    ).output;
-  } catch (err) {
-    summaryFailed = stepFailure(err);
-    if (!summaryFailed) throw err;
-  }
+  // A failed summary is tried once more before the flag is raised.
+  const summaryRun = await withOneRetry(jc, () =>
+    jc.runAi('summarise', {
+      promptId: 'checks.summarise-and-ledger',
+      variables: { markdown, section: sectionVars, bookTypeId: book.bookTypeId, templateId: common.templateId, ledger },
+    }),
+  );
+  const summary: { summary: string; ledger: { kind: string; key: string; detail: string }[] } | null = summaryRun.ok ? summaryRun.value.output : null;
+  const summaryFailed: { code: string; detail: string } | null = summaryRun.ok ? null : summaryRun.failed;
   await jc.checkpoint();
 
   // Save in one transaction at the end (idempotent: a crash before here leaves no half version).

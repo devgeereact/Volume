@@ -83,8 +83,9 @@ describe('stage selection by template', () => {
     }
   });
 
-  it('non-fiction runs writing.chapter v6 and blueprint.blueprint v6; v5 stays loadable for pinned books', () => {
-    expect(loader.load('writing.chapter').meta.version).toBe(6);
+  it('non-fiction runs writing.chapter v7 and blueprint.blueprint v6; v5 and v6 stay loadable for pinned books', () => {
+    expect(loader.load('writing.chapter').meta.version).toBe(7);
+    expect(loader.load('writing.chapter', 6).meta.version).toBe(6);
     expect(loader.load('blueprint.blueprint').meta.version).toBe(6);
     expect(loader.load('writing.chapter', 5).meta.version).toBe(5);
     expect(loader.load('blueprint.blueprint', 5).meta.version).toBe(5);
@@ -148,11 +149,11 @@ describe('fiction stages (mock fixtures)', () => {
     expect(system).not.toContain('{{');
   });
 
-  it('summarise v5 logs characters and settings for fiction; v4 stays loadable', async () => {
-    expect(loader.versions('checks.summarise-and-ledger')).toEqual([1, 2, 3, 4, 5]);
+  it('summarise v5 and later log characters and settings for fiction; v4 stays loadable', async () => {
+    expect(loader.versions('checks.summarise-and-ledger')).toEqual([1, 2, 3, 4, 5, 6]);
     const s = service({ fixturesDirs: [FICTION_DIR, FIXTURES_DIR] });
     const r = await s.runStage('checks.summarise-and-ledger', { ...FICTION_INPUT, text: 'Chapter text.' });
-    expect(r.promptVersion).toBe(5);
+    expect(r.promptVersion).toBe(6);
     expect(r.stage).toBe('summarise');
     expect(r.output.ledgerAdditions.characters?.map((c) => c.name)).toEqual(['Mara Quinn', 'Tomas Reyes']);
     expect(r.output.ledgerAdditions.settings?.map((x) => x.name)).toContain('Calder Harbour');
