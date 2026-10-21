@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fieldDriftApplies } from '@volume/core';
 
 /**
  * A book's structure from config: the book type (config/book-types.json) picks its template file
@@ -74,6 +75,16 @@ async function readJson(path: string): Promise<unknown> {
 export async function loadBookTypes(configDir: string): Promise<Rec[]> {
   const raw = await readJson(join(configDir, 'book-types.json'));
   return isRec(raw) && Array.isArray(raw['types']) ? raw['types'].filter(isRec) : [];
+}
+
+/**
+ * True when the field drift warning runs for a book type (owner, 21 October 2026): a non-fiction or workbook type that
+ * is not a health type (field "health" in config/book-types.json). False for an unknown type.
+ */
+export async function fieldDriftAppliesTo(configDir: string, bookTypeId: string | null | undefined): Promise<boolean> {
+  if (!bookTypeId) return false;
+  const t = (await loadBookTypes(configDir)).find((x) => x['id'] === bookTypeId);
+  return t ? fieldDriftApplies({ id: bookTypeId, category: str(t['category']), field: str(t['field']) }) : false;
 }
 
 /** One template file by id, or null. */

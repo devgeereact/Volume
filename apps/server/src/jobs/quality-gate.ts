@@ -1,7 +1,7 @@
 import type { RequestCtx } from '../auth/context.js';
 import { AppError } from '../http/errors.js';
 import type { PreflightItem, PreflightReport } from '../ports/export.js';
-import { buildExportBook, withOwnerPlaceholders, withPackCovers } from './book-data.js';
+import { buildExportBook, withFieldDrift, withOwnerPlaceholders, withPackCovers } from './book-data.js';
 import type { JobServices } from './runner.js';
 
 type GateServices = Pick<JobServices, 'repos' | 'configDir' | 'blobs' | 'exporter'>;
@@ -14,6 +14,8 @@ export async function preflightReport(s: GateServices, ctx: RequestCtx, bookId: 
     ebook: !!cover?.ebookAssetId,
     wrap: !!cover?.wrapAssetId,
   });
+  // Text that drifts out of the pen name's field (health terms in a book that is not a health book) warns only.
+  await withFieldDrift(s.repos, ctx, s.configDir, await s.repos.books.require(ctx, bookId), report);
   const openClaims = await s.repos.manuscript.listClaims(ctx, { projectId: bookId, status: 'open' });
   // The real exporter reports claims itself (claims.open); the mock does not.
   if (openClaims.length > 0 && !report.items.some((i) => i.id === 'claims.open')) {

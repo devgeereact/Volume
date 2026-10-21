@@ -39,6 +39,7 @@ export {
   formatSummaries,
   formatLedger,
   formatProfileFacts,
+  formatProfileField,
   formatVoice,
   formatExercisePlan,
   FENCED_VARIABLES,

@@ -1,10 +1,10 @@
 import type { BlobStore } from '../files/blob-store.js';
 import { dirname } from 'node:path';
-import { checkText, type CompiledHouseStyle } from '@volume/core';
+import { checkText, fieldDriftMessage, findHealthTerms, type CompiledHouseStyle } from '@volume/core';
 import { loadHouseStyle } from '@volume/core/node';
 import type { RequestCtx } from '../auth/context.js';
 import { sha256Hex } from '../lib/util.js';
-import { CODE_KINDS, hasDatedPrices, loadBookStructure, promptTemplate, sectionKindFor } from '../config/book-structure.js';
+import { CODE_KINDS, fieldDriftAppliesTo, hasDatedPrices, loadBookStructure, promptTemplate, sectionKindFor } from '../config/book-structure.js';
 import type { ExportBook, ExportClaim, ExportSection, PreflightReport } from '../ports/export.js';
 import type { Book } from '../repos/books.js';
 import type { Repos } from '../repos/index.js';
@@ -301,6 +301,56 @@ export function styleChecks(markdown: string, configDir: string): CodeCheck[] {
       location,
     };
   });
+}
+
+/** Checker name of the field drift warning (owner, 21 October 2026). */
+export const FIELD_DRIFT_CHECKER = 'field_drift';
+
+/**
+ * The field drift warning for one section (owner, 21 October 2026): in a book whose type is not a health type
+ * (`applies`, from fieldDriftAppliesTo), the health-institution terms the text mentions (NHS, GP, hospital and so on),
+ * as one warning with the matches. Null when the check does not apply or nothing matched. Never blocks.
+ */
+export function fieldDriftCheck(markdown: string, applies: boolean): CodeCheck | null {
+  if (!applies) return null;
+  const found = findHealthTerms(markdown);
+  if (found.length === 0) return null;
+  return {
+    checker: FIELD_DRIFT_CHECKER,
+    severity: 'warn',
+    message: fieldDriftMessage(found),
+    location: { matches: found.map((f) => f.label), counts: Object.fromEntries(found.map((f) => [f.label, f.count])) },
+  };
+}
+
+/**
+ * Adds a preflight warning for each switched-on section whose current text drifts out of the pen name's field
+ * (fieldDriftCheck). Warnings never stop the pack. Returns the same report.
+ */
+export async function withFieldDrift(
+  repos: Repos,
+  ctx: RequestCtx,
+  configDir: string,
+  book: Pick<Book, 'id' | 'bookTypeId'>,
+  report: PreflightReport,
+): Promise<PreflightReport> {
+  if (!(await fieldDriftAppliesTo(configDir, book.bookTypeId))) return report;
+  for (const s of await repos.manuscript.listSections(ctx, book.id)) {
+    if (!s.enabled || !s.currentVersionId) continue;
+    const v = await repos.manuscript.getVersion(ctx, s.currentVersionId);
+    const check = v ? fieldDriftCheck(v.bodyMd, true) : null;
+    const id = `${s.area}.field-drift.${s.id}`;
+    if (!check || report.items.some((i) => i.id === id)) continue;
+    report.items.push({
+      id,
+      area: s.area,
+      severity: 'warn',
+      message: `${s.title ?? s.kind}: ${check.message}`,
+      fix: { route: 'writing', label: 'Open the section' },
+    });
+    report.warnings += 1;
+  }
+  return report;
 }
 
 /** Names the owner gave for the acknowledgements: the book's own list wins over the profile's. Empty when none. */

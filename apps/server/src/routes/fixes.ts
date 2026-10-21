@@ -5,6 +5,7 @@ import type { RequestCtx } from '../auth/context.js';
 import { AppError, notFound, parse } from '../http/errors.js';
 import { KeyedLock } from '../lib/keyed-lock.js';
 import { AutosaveSchema, type Claim, type Section, type SectionVersion } from '../repos/manuscript.js';
+import { fieldDriftAppliesTo } from '../config/book-structure.js';
 import { advanceIfWritingComplete, houseStyle, profileSummary } from '../jobs/book-data.js';
 import { fixHouseStyle, ownerTexts } from '../jobs/house-style-fix.js';
 import {
@@ -209,7 +210,8 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
     });
     if (fromAi) await s.repos.books.setAiDisclosure(req.ctx, p.id, 'text', 'ai_generated');
     // Code checks on the new text (the guardrail report is stored with the version by saveVersion).
-    const checks = fixCodeChecks(bodyMd, s.configDir);
+    const drift = await fieldDriftAppliesTo(s.configDir, (await s.repos.books.require(req.ctx, p.id)).bookTypeId);
+    const checks = fixCodeChecks(bodyMd, s.configDir, drift);
     await m.addCheckResults(req.ctx, p.id, current.sectionId, version.id, checks);
     const status = claimStatusFor(body.approach, text, sources.length);
     const sourceUrl = status === 'verified' ? (sources[(cited[0] ?? 1) - 1]?.url ?? null) : null;
@@ -243,6 +245,7 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
     const book = await s.repos.books.require(req.ctx, p.id);
     const profile = await profileSummary(s.repos, req.ctx, book.profileId, book);
     const style = houseStyle(s.configDir);
+    const drift = await fieldDriftAppliesTo(s.configDir, book.bookTypeId);
     let sections = 0;
     let dashes = 0;
     let spellings = 0;
@@ -265,7 +268,7 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
         note: 'House style fix for the whole book',
         createdBy: req.ctx.userId,
       });
-      await m.addCheckResults(req.ctx, p.id, sec.id, version.id, fixCodeChecks(fix.text, s.configDir));
+      await m.addCheckResults(req.ctx, p.id, sec.id, version.id, fixCodeChecks(fix.text, s.configDir, drift));
       await s.bus.publish(req.ctx.workspaceId, {
         projectId: p.id,
         type: 'section.saved',

@@ -3,7 +3,7 @@ import type { Claim } from '../repos/manuscript.js';
 import type { Repos } from '../repos/index.js';
 import { CLAIM_FIX_APPROACHES, type ClaimFixApproach } from '../ports/ai.js';
 import { checkText, findTemplateJunk, type CompiledHouseStyle } from '@volume/core';
-import { profileSummary, styleChecks, type CodeCheck } from './book-data.js';
+import { fieldDriftCheck, profileSummary, styleChecks, type CodeCheck } from './book-data.js';
 
 // Claim fixes (owner request, 19 October 2026): three replacement options for one sentence on the claims-to-verify
 // report from editing.claim-fix, vetted in code so no option adds a figure, link or source the book does not have.
@@ -273,10 +273,15 @@ export async function claimFixVariables(
   };
 }
 
-/** The code checks (house style and unfilled placeholders) on a fixed section's new text. No AI call. */
-export function fixCodeChecks(markdown: string, configDir: string): CodeCheck[] {
+/**
+ * The code checks (house style, unfilled placeholders and, when `fieldDrift` is true, health terms in a book that is not
+ * a health book) on a fixed section's new text. No AI call.
+ */
+export function fixCodeChecks(markdown: string, configDir: string, fieldDrift = false): CodeCheck[] {
+  const drift = fieldDriftCheck(markdown, fieldDrift);
   return [
     ...styleChecks(markdown, configDir),
+    ...(drift ? [drift] : []),
     ...findTemplateJunk(markdown).map((j): CodeCheck => ({
       checker: 'placeholder',
       severity: 'block',

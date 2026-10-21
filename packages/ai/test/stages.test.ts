@@ -164,7 +164,7 @@ describe('stage runners with the mock provider', () => {
       previousSummaries: Array.from({ length: 6 }, (_, i) => ({ number: i + 1, title: `C${i + 1}`, summary: bigSummary })),
     };
     const slug = '~anthropic/claude-sonnet-latest';
-    const s1 = service({ models: [mockModelInfo(slug, { contextLength: 9000 })] });
+    const s1 = service({ models: [mockModelInfo(slug, { contextLength: 9500 })] });
     await s1.listModels();
     const r = await run(s1, 'writing.chapter', input);
     expect(r.notes.join(' ')).toContain('older chapter summaries shortened');

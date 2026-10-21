@@ -1,5 +1,5 @@
 {
-  "$comment": "Book type catalogue (D-017). Every new book picks one type; the type names its structure template (config/book-templates/), starting word and unit ranges, genre rules, and the default interior theme (config/interior-themes.json) and cover style (config/cover-styles.json). Word and unit ranges are starting points for the owner to change per book, not market data. KDP facts are never copied here: kdpNotes point at rule ids in config/kdp-rules/. Trim sizes come from paperback.trimSizes.list, which is unverified until checked against KDP.",
+  "$comment": "Book type catalogue (D-017). Every new book picks one type; the type names its structure template (config/book-templates/), starting word and unit ranges, genre rules, and the default interior theme (config/interior-themes.json) and cover style (config/cover-styles.json). Word and unit ranges are starting points for the owner to change per book, not market data. A field of health marks a health or care type: other non-fiction types get a field drift warning when their text mentions health institutions (owner, 21 October 2026). KDP facts are never copied here: kdpNotes point at rule ids in config/kdp-rules/. Trim sizes come from paperback.trimSizes.list, which is unverified until checked against KDP.",
   "version": 1,
   "updatedOn": "2026-10-04",
   "categories": [
@@ -1414,6 +1414,7 @@
       "id": "health-wellbeing",
       "name": "Health and wellbeing",
       "category": "nonfiction",
+      "field": "health",
       "description": "Everyday wellbeing for general readers: sleep, food, movement and rest, without medical claims.",
       "templateFile": "nonfiction.json",
       "structure": {
@@ -1476,6 +1477,7 @@
       "id": "healthcare-professional",
       "name": "Healthcare professional",
       "category": "nonfiction",
+      "field": "health",
       "description": "Books for nurses and other NHS staff on practice, leadership, education and wellbeing at work.",
       "templateFile": "nonfiction.json",
       "structure": {
