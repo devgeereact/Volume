@@ -465,3 +465,9 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 
 - Owner: cover concepts "building" for over an hour. Likely cause (not confirmed on the host; production DB not read): the ai lane runs 2 jobs FIFO at priority 100, so a cover_concepts job queues behind every write_section of a book being written. Fix: `quick` lane (max 1) for QUICK_KINDS plus priority 10 for them (queue.ts). Test in queue.test.ts. Server Vitest 473 passed, 3 skipped.
 - Deployed main `f3ff6dc` (PR #31) as release `20261021T080237Z`, rollback `20261021T072506Z`; checks incl. e2e PASS; prune deleted `releases/20261020T231731Z`.
+
+## 2026-10-21, Claude Code (claude-opus-5-5), cover concepts "stuck": book budget $0
+
+- Checked live through the owner's signed-in Chrome (read-only API calls): the cover_concepts job for "Your First Chat with AI" is `paused_budget` ("needs about $0.49 more"); book budget $0, spent $0. Five of six books have budget $0 (moved in from free-model runs); "The Quiet Weekend Builder" and "First AI Side Project" also have research jobs paused at budget. The quick-lane change (PR #31) was not the cause.
+- Fix: `features/books/BudgetPausedBanner.tsx` (+ budget.test.ts) in Cover studio, Editor and Fix the whole book; Cover studio re-watches open cover jobs after a reload. Budget values were not changed: raising them is the owner's call.
+- Owner decision open: should a moved-in book with budget 0 take the workspace default budget?

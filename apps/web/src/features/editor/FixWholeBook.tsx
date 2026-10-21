@@ -15,6 +15,8 @@ import { fixAllClaims, type FixReport } from "./fixAll";
 /* The Claims page's "Fix the whole book": house style in every section (free, no AI), then every open claim,
    the cleanest way each allows (fixAll.ts). Every change is a new version, so it can be undone from Versions. */
 
+class BudgetStop extends Error {}
+
 class ModelGone extends Error {
   constructor(readonly problem: ModelProblem) {
     super("The claim-fix model is not available.");
@@ -56,6 +58,11 @@ export function FixWholeBook({
     const r = await manuscriptApi.suggestClaim(bookId, claimId, {});
     for (let i = 0; i < 360; i++) {
       const j = await jobsApi.get(r.jobId);
+      if (j.status === "paused_budget") {
+        // Cancel it (nothing was charged for it) and stop: the budget is the owner's call.
+        await jobsApi.cancel(r.jobId).catch(() => undefined);
+        throw new BudgetStop(j.error ?? "This book has reached its budget.");
+      }
       if (isTerminalJob(j.status)) {
         if (j.status === "succeeded") return { jobId: r.jobId, result: j.result };
         const mp = modelProblemOf({ errorCode: j.errorCode, result: j.result });
@@ -75,7 +82,8 @@ export function FixWholeBook({
   }
 
   async function fixClaims(): Promise<FixReport | null> {
-    let gone: ModelProblem | null = null;
+    // Set from inside the callbacks, so an object (a plain let would be narrowed to null).
+    const halt: { gone: ModelProblem | null; budget: string | null } = { gone: null, budget: null };
     const report = await fixAllClaims(
       open,
       {
@@ -85,18 +93,20 @@ export function FixWholeBook({
           try {
             return await suggest(id);
           } catch (e) {
-            if (e instanceof ModelGone) gone = e.problem;
+            if (e instanceof ModelGone) halt.gone = e.problem;
+            if (e instanceof BudgetStop) halt.budget = e.message;
             throw e;
           }
         },
         apply: (id, input) => manuscriptApi.applyClaim(bookId, id, input),
       },
       {
-        cancelled: () => stop.current || gone !== null,
+        cancelled: () => stop.current || halt.gone !== null || halt.budget !== null,
         onProgress: (done, total) => setRunning({ label: "Fixing claims", done, total }),
       },
     );
-    if (gone) setModelFix(gone);
+    if (halt.gone) setModelFix(halt.gone);
+    if (halt.budget) throw new Error(`${halt.budget} Raise this book's budget, then press Fix again.`);
     return report;
   }
 

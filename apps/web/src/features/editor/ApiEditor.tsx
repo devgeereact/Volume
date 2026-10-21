@@ -74,6 +74,7 @@ import type { SuggestionState } from "./useManuscript";
 import { VersionDrawer } from "./VersionDrawer";
 import { autosaveText } from "./autosave";
 import { ClaimRewrite } from "./ClaimRewrite";
+import { BudgetPausedBanner } from "../books/BudgetPausedBanner";
 import { ModelFallbackBanner, modelProblemOf, type ModelProblem } from "../settings/ModelFallback";
 import { categoryLabel } from "./claimsOverview";
 import { DiffText } from "./DiffText";
@@ -935,7 +936,8 @@ function Body({
       toast.show({ tone: "error", title: `${name} did not finish`, body: w.error ?? "Nothing changed. Try again." });
     }
   });
-  const passRunning = (!!passJob && passJob.sectionId === sectionId && passJob.pass === pass && !passWatch.finished) || editPass.isPending;
+  const passPaused = passWatch.status === "paused_budget";
+  const passRunning = (!!passJob && passJob.sectionId === sectionId && passJob.pass === pass && !passWatch.finished && !passPaused) || editPass.isPending;
   const passRun = suggestions.some((s) => s.pass === pass) || (passesRun[sectionId] ?? []).includes(pass);
 
   async function runPass(which: SuggestionPass = pass) {
@@ -1418,6 +1420,27 @@ function Body({
                 {recoveredBehind ? " The section has newer text since then, so compare the two before you choose." : ""} The page is read only until you choose.
               </Banner>
             )}
+            {(() => {
+              // An AI job stopped at the book's budget: say so and offer to raise it, instead of a spinner that never ends.
+              const paused =
+                passJob && passPaused
+                  ? { jobId: passJob.jobId, message: passWatch.error }
+                  : review?.jobId && weaveWatch.status === "paused_budget"
+                    ? { jobId: review.jobId, message: weaveWatch.error }
+                    : writeJob && writeWatch.status === "paused_budget"
+                      ? { jobId: writeJob, message: writeWatch.error }
+                      : null;
+              return paused ? (
+                <BudgetPausedBanner
+                  className="mb-4"
+                  bookId={bookId}
+                  jobId={paused.jobId}
+                  message={paused.message}
+                  budgetUsd={book.cost.budget}
+                  spentUsd={book.cost.spent}
+                />
+              ) : null;
+            })()}
             {modelFix && (
               <ModelFallbackBanner
                 bookId={bookId}

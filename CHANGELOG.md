@@ -5,6 +5,7 @@ User-visible changes, newest first. Dates in British format.
 ## 21 October 2026
 
 #### Fixed
+- A step stopped at the book's budget no longer spins for ever. The Cover studio, the Editor and Fix the whole book now say "Stopped at this book's budget", show the budget, what is spent and what the step needs, and offer "Raise budget and continue" (owner). The Cover studio also picks up a concept or build job that was already running before a reload.
 - Cover concepts, AI edits, note weaving, rewrites and claim fixes no longer wait behind another book that is being written. They have a slot of their own and start straight away.
 
 #### Added
