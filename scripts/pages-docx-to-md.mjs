@@ -638,7 +638,7 @@ export function paragraphsToMarkdown(input, opts = {}) {
     return [text.replace(/[:\s]+$/, ''), k];
   };
 
-  let promoted = 0;
+  const promoted = [];
   for (let i = firstSection; i < items.length; i++) {
     const p = items[i];
     if (!p) continue;
@@ -719,11 +719,11 @@ export function paragraphsToMarkdown(input, opts = {}) {
     else if (isHeadingStyle(p.style) && wordCount(p.text) <= 20 && !/[.!?]$/.test(p.text)) level = MINOR_HEADING_STYLE.test(p.style) ? 3 : 2;
     else if (shortLine && sandwiched) {
       level = 2;
-      promoted++;
+      promoted.push(p.text);
     } else if ((shortLine || (/\?$/.test(p.text) && wordCount(p.text) <= 10)) && wordCount(p.text) <= 10 && titleish && (p.bold || wordCount(nextText) > 15)) {
       // A short title-case line in a body style: a bold one is a minor heading, a plain one a section heading.
       level = p.bold ? 3 : 2;
-      promoted++;
+      promoted.push(p.text);
     }
     if (current === 'part' && level) {
       // A heading inside a part opener: keep it as an opener line.
@@ -754,7 +754,8 @@ export function paragraphsToMarkdown(input, opts = {}) {
   }
   flushList();
   flushPart();
-  if (promoted) notes.push(`${promoted} short title-case, bold or ruled body lines became headings`);
+  if (promoted.length)
+    notes.push(`${promoted.length} short title-case, bold or ruled body lines became headings, such as "${promoted.slice(0, 3).join(`", "`)}"`);
 
   return {
     markdown: `${out.join('\n\n')}\n`,
