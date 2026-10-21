@@ -88,12 +88,18 @@ Round-trip rule: parse then write returns byte-identical Markdown for any file t
 - **Measured layout:** after layout every text box is measured in the page DOM (`layout.textBoxes`, inches from the page's top-left corner) and checked with `checkTextInSafeArea()`; text that does not fit its panel is listed in `layout.overflowing`; spread pages whose picture did not load are in `layout.missingImages`.
 - **Not in phase 7:** EPUB and DOCX for picture books (a fixed-layout eBook is a later format); the upload pack README says so.
 
+### Theme tokens and the clean-handbook theme
+
+- **Theme tokens** (`config/interior-themes.json`, read by `normaliseInteriorTheme()` in `packages/core/src/theme.ts`): besides fonts, sizes, margins, opener, running heads and drop caps, a theme can set `text.paragraphSpaceLines` (block paragraphs: no indent, that many blank lines between paragraphs), `chapterOpener.ownPage` (the chapter label and title alone on a page, vertically centred; the text starts on the next page), `chapterOpener.titleUppercase`, `sizes.chapterLabelPt` (the "Chapter 3" label), `colours.label` (the label's colour; default the muted colour), `sections` (`newPage`, `uppercase`, `align`: each `##` subheading in a chapter on a new page, except one straight after the chapter heading) and `folios` (`enabled`, `position`: `outside` corners or `centre` at the foot). Themes without these keys print exactly as before.
+- **`clean-handbook`:** the look of Harni Muharami's handbooks laid out in Apple Pages. 6 x 9 in, Libre Franklin (OFL; the originals use Graphik, which is commercial) 11.5 on 16 pt, ragged right, no hyphenation, block paragraphs, even 0.78 in margins (the KDP inside minimum wins when larger), "CHAPTER N" in navy #10315B over the title in black capitals, alone and centred on its page on either side, each section on a new page with its heading centred in capitals, no running heads, ornaments or drop caps, and quiet centred page numbers (`folios.enabled: false` turns them off). Test: `packages/export/test/clean-handbook.test.ts`.
+
 ## DOCX
 
 Ported from `build_docx.py` using the `docx` package.
 - Page size per trim, mirror margins (`w:mirrorMargins`), same margins as the PDF.
 - Styles, no direct formatting: Normal, First Paragraph, Heading 1 (page break before), Heading 2, Title Page Title, Title Page Subtitle, Title Page Author, Copyright, Contents Heading, Part Title, Epigraph, Dedication, List Bullet, Takeaways Heading, Takeaways Item, Scene Break.
 - Contents: one linked entry per Heading 1 (bookmarks and internal hyperlinks), subheadings as plain indented lines, so Kindle conversion keeps a working table of contents.
+- Theme tokens carry over where Word can express them: block paragraphs (Normal with no indent and space after), a navy label run over a capitalised, centred title with the text on the next page (`ownPage`), a page break before each chapter subheading (`sections.newPage`), and the footer folio centred or left out (`folios`).
 - Footer with a PAGE field. No blank paragraphs or tabs for spacing. The only empty paragraphs are workbook ruled lines (a bottom border), which are content, not spacing.
 - Workbook blocks use existing styles only, so `styles.xml` is the same for every template: exercise label in Takeaways Heading, ruled lines as First Paragraph with a bottom border, checklist items with a Word check box (`w14:checkbox`), a fill-in page after a page break with three ruled lines per prompt.
 

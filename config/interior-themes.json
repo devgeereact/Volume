@@ -1120,6 +1120,91 @@
         "planner",
         "poetry"
       ]
+    },
+    {
+      "id": "clean-handbook",
+      "name": "Clean Handbook",
+      "description": "Calm, plain handbook pages: Libre Franklin throughout, block paragraphs, a navy CHAPTER label and every section on a fresh page.",
+      "bodyFont": "Libre Franklin",
+      "headingFont": "Libre Franklin",
+      "headingWeight": 700,
+      "accentFont": null,
+      "sizes": {
+        "bodyPt": 11.5,
+        "lineHeight": 1.39,
+        "headingPt": 14,
+        "chapterTitlePt": 24,
+        "chapterLabelPt": 34,
+        "footnotePt": 9,
+        "folioPt": 9
+      },
+      "text": {
+        "align": "left",
+        "hyphenate": false,
+        "paragraphIndentEm": 0,
+        "firstParagraphIndent": false,
+        "paragraphSpaceLines": 1,
+        "widowsOrphans": 2
+      },
+      "margins": {
+        "approach": "Even 0.78 in margins on every side, as in the handbooks laid out in Apple Pages",
+        "kdpRuleIds": [
+          "paperback.interiorMargins"
+        ],
+        "status": "unverified",
+        "note": "Inside margin grows with page count per paperback.interiorMargins (unverified until checked against KDP). Export reads the rule; the theme asks for 0.78 in and the KDP minimum wins when it is larger.",
+        "extraInsideIn": 0,
+        "insideIn": 0.78,
+        "outsideIn": 0.78,
+        "topIn": 0.78,
+        "bottomIn": 0.78,
+        "bleed": false
+      },
+      "chapterOpener": {
+        "style": "CHAPTER N label over the title, both centred, alone on the page",
+        "startsOn": "any",
+        "dropFolio": true,
+        "numberFormat": "numerals",
+        "ownPage": true,
+        "titleUppercase": true
+      },
+      "sections": {
+        "newPage": true,
+        "uppercase": true,
+        "align": "centre"
+      },
+      "sceneBreak": {
+        "glyph": "* * *",
+        "centred": true,
+        "fallback": "* * *"
+      },
+      "ornament": "none",
+      "runningHeads": "None",
+      "folios": {
+        "enabled": true,
+        "position": "centre"
+      },
+      "dropCaps": {
+        "enabled": false,
+        "lines": 0
+      },
+      "colours": {
+        "text": "#000000",
+        "accent": "#000000",
+        "muted": "#333333",
+        "label": "#10315B"
+      },
+      "colourInterior": false,
+      "readability": [
+        "One sans face and one accent colour: navy for the chapter label, black for everything else",
+        "Block paragraphs with one line of space between, ragged right and no hyphenation",
+        "Each section starts on a new page with its heading centred in capitals",
+        "No running heads, ornaments or drop caps; quiet centred page numbers that can be switched off with folios.enabled"
+      ],
+      "suitsBookTypes": [
+        "healthcare-professional",
+        "self-help"
+      ]
     }
   ]
 }

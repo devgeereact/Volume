@@ -13,7 +13,7 @@ describe('interior themes', () => {
     expect(classic?.sizes.bodyPt).toBe(11);
     expect(classic?.sizes.chapterTitlePt).toBe(26);
     expect(classic?.leading).toBe(1.35);
-    expect(classic?.paragraph).toEqual({ indentEm: 1.2, align: 'justify', hyphenate: true });
+    expect(classic?.paragraph).toEqual({ indentEm: 1.2, align: 'justify', hyphenate: true, spaceLines: 0 });
     expect(classic?.opener).toMatchObject({ style: 'centred', dropFolio: true, numberFormat: 'words', ornament: 'fleuron' });
     expect(classic?.chapterStart).toBe('right');
     expect(classic?.runningHeads).toEqual({ enabled: true, style: 'small-caps', left: 'author', right: 'book-title' });

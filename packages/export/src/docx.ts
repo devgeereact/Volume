@@ -64,10 +64,16 @@ const pt = (points: number) => Math.round(points * 20); // twips
 const half = (points: number) => Math.round(points * 2); // half-points
 const hex = (c: string) => c.replace('#', '').slice(0, 6).toUpperCase();
 
-function runsFor(text: string, extra: { size?: number } = {}): TextRun[] {
+function runsFor(text: string, extra: { size?: number; allCaps?: boolean } = {}): TextRun[] {
   return parseInline(text).map(
     (r) =>
-      new TextRun({ text: r.text, ...(r.bold ? { bold: true } : {}), ...(r.italic ? { italics: true } : {}), ...(extra.size ? { size: extra.size } : {}) }),
+      new TextRun({
+        text: r.text,
+        ...(r.bold ? { bold: true } : {}),
+        ...(r.italic ? { italics: true } : {}),
+        ...(extra.size ? { size: extra.size } : {}),
+        ...(extra.allCaps ? { allCaps: true } : {}),
+      }),
   );
 }
 
@@ -91,8 +97,8 @@ function styles(theme: InteriorTheme, body: string, heading: string): IParagraph
     s('Normal', 'Normal', {
       run: { ...font(body), size: half(Math.round((t.sizes.bodyPt + 0.4) * 2) / 2), color: hex(t.colours.text) },
       paragraph: para({
-        indent: { firstLine: tw(0.2) },
-        spacing: { before: 0, after: 0, line: lineTw },
+        indent: { firstLine: t.paragraph.spaceLines > 0 ? 0 : tw(0.2) },
+        spacing: { before: 0, after: t.paragraph.spaceLines > 0 ? pt(t.paragraph.spaceLines * t.leading * t.sizes.bodyPt) : 0, line: lineTw },
         alignment: t.paragraph.align === 'justify' ? AlignmentType.JUSTIFIED : AlignmentType.LEFT,
         widowControl: true,
       }),
@@ -319,6 +325,25 @@ export async function exportDocx(book: BookDoc, theme: InteriorTheme = DEFAULT_I
 
   const headingPara = (s: Section, style: 'Heading1' | 'PartTitle') =>
     new Paragraph({ style, children: [new Bookmark({ id: mark.get(s.id) ?? s.id, children: [new TextRun(sectionHeading(s))] })] });
+  // A chapter opener alone on its page (theme opener.ownPage): the label in its own colour over the title, centred.
+  const ownOpener = theme.opener.ownPage;
+  const openerPara = (s: Section) => {
+    const caps = theme.opener.titleUppercase;
+    const runs =
+      s.kicker && s.title && theme.opener.numberFormat !== 'none'
+        ? [
+            new TextRun({ text: s.kicker, color: hex(theme.colours.label), allCaps: theme.opener.kickerUppercase }),
+            new TextRun({ text: s.title, break: 1, allCaps: caps }),
+          ]
+        : [new TextRun({ text: sectionHeading(s), allCaps: caps })];
+    return new Paragraph({
+      style: 'Heading1',
+      alignment: AlignmentType.CENTER,
+      spacing: { before: pt(200), after: 0 },
+      children: [new Bookmark({ id: mark.get(s.id) ?? s.id, children: runs })],
+    });
+  };
+  const sec = theme.sections;
 
   for (const s of secs) {
     switch (s.subtype) {
@@ -362,18 +387,39 @@ export async function exportDocx(book: BookDoc, theme: InteriorTheme = DEFAULT_I
       for (const b of s.blocks) if (b.type === 'paragraph') children.push(new Paragraph({ style: 'FirstParagraph', children: runsFor(b.text) }));
       continue;
     }
-    children.push(headingPara(s, 'Heading1'));
+    const inChapter = s.kind === 'chapter';
+    children.push(inChapter && ownOpener ? openerPara(s) : headingPara(s, 'Heading1'));
     let afterBreak = true;
+    // The first block after an opener that sits alone on its page starts the next page.
+    let breakNext = inChapter && ownOpener;
+    let firstBlock = true;
+    const takeBreak = (): boolean => {
+      const b = breakNext;
+      breakNext = false;
+      return b;
+    };
     const renderBlock = async (b: Block): Promise<void> => {
       switch (b.type) {
         case 'paragraph': {
           const style = s.subtype === 'dedication' ? 'Dedication' : afterBreak || b.text.startsWith('**') ? 'FirstParagraph' : 'Normal';
-          children.push(new Paragraph({ style, children: runsFor(b.text) }));
+          children.push(new Paragraph({ style, ...(takeBreak() ? { pageBreakBefore: true } : {}), children: runsFor(b.text) }));
           break;
         }
-        case 'heading2':
-          children.push(new Paragraph({ style: 'Heading2', children: runsFor(b.text) }));
+        case 'heading2': {
+          // Theme sections: each subheading in a chapter on a new page, in capitals, left or centred.
+          const own = inChapter && (sec.newPage || sec.uppercase || sec.align === 'center');
+          // A subheading straight after the chapter heading stays with it unless the opener sits alone on its page.
+          const brk = takeBreak() || (inChapter && sec.newPage && !firstBlock);
+          children.push(
+            new Paragraph({
+              style: 'Heading2',
+              ...(brk ? { pageBreakBefore: true } : {}),
+              ...(own && sec.align === 'center' ? { alignment: AlignmentType.CENTER } : {}),
+              children: runsFor(b.text, own && sec.uppercase ? { allCaps: true } : {}),
+            }),
+          );
           break;
+        }
         case 'heading3':
           children.push(new Paragraph({ style: b.level === 4 ? 'Heading4' : 'Heading3', children: runsFor(b.text) }));
           break;
@@ -467,8 +513,11 @@ export async function exportDocx(book: BookDoc, theme: InteriorTheme = DEFAULT_I
       }
     };
     for (const b of s.blocks) {
+      if (breakNext && b.type !== 'paragraph' && b.type !== 'heading2') children.push(new Paragraph({ style: 'FirstParagraph', children: [new PageBreak()] }));
+      if (b.type !== 'paragraph' && b.type !== 'heading2') breakNext = false;
       await renderBlock(b);
       afterBreak = b.type !== 'paragraph';
+      firstBlock = false;
     }
   }
 
@@ -565,7 +614,11 @@ export async function exportDocx(book: BookDoc, theme: InteriorTheme = DEFAULT_I
             margin: { top: tw(m.topIn), bottom: tw(m.bottomIn), left: tw(m.insideIn), right: tw(m.outsideIn), header: tw(0.4), footer: tw(0.38), gutter: 0 },
           },
         },
-        footers: { default: footer(AlignmentType.RIGHT), even: footer(AlignmentType.LEFT), first: new Footer({ children: [] }) },
+        footers: !theme.folios.enabled
+          ? { default: new Footer({ children: [] }), even: new Footer({ children: [] }), first: new Footer({ children: [] }) }
+          : theme.folios.position === 'center'
+            ? { default: footer(AlignmentType.CENTER), even: footer(AlignmentType.CENTER), first: new Footer({ children: [] }) }
+            : { default: footer(AlignmentType.RIGHT), even: footer(AlignmentType.LEFT), first: new Footer({ children: [] }) },
         children,
       },
     ],
