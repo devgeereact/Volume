@@ -146,6 +146,18 @@ function checksMissingCheck(f: { code: string; detail: string }): { checker: str
 
 type CodeCheckItem = { checker: string; severity: 'info' | 'warn' | 'block'; message: string; location?: Record<string, unknown> };
 
+/** Section kinds whose text never carries a claim the owner must check: the review request, also by and how to use. */
+const NO_MODEL_CLAIMS: ReadonlySet<string> = new Set(['review_request', 'also_by', 'how_to_use']);
+/** A glossary defines general terms; only a medical or legal definition goes to the claims report. */
+const GLOSSARY_CLAIM_CATEGORIES: ReadonlySet<string> = new Set(['medical', 'clinical', 'legal']);
+
+/** The model's claims that belong in the report for a section of this kind (claims scope, 21 October 2026). */
+export function claimsInScope<T extends { category: string }>(kind: string, claims: readonly T[]): T[] {
+  if (NO_MODEL_CLAIMS.has(kind)) return [];
+  if (kind === 'glossary') return claims.filter((c) => GLOSSARY_CLAIM_CATEGORIES.has(c.category));
+  return [...claims];
+}
+
 /**
  * The model's claims and consistency check on saved text. Consistency issues come back as warnings; claims are stored and
  * announced. A step failure (see stepFailure) comes back as `failed` instead of throwing, so the text is never lost.
@@ -153,10 +165,11 @@ type CodeCheckItem = { checker: string; severity: 'info' | 'warn' | 'block'; mes
 async function modelChecks(
   jc: JobContext,
   projectId: string,
-  sectionId: string,
+  section: Pick<Section, 'id' | 'kind'>,
   versionId: string,
   variables: Record<string, unknown>,
 ): Promise<{ checks: CodeCheckItem[]; claims: number; failed: { code: string; detail: string } | null }> {
+  const sectionId = section.id;
   const { repos } = jc.services;
   let model;
   try {
@@ -177,7 +190,7 @@ async function modelChecks(
     projectId,
     sectionId,
     versionId,
-    model.output.claims.map((c) => ({
+    claimsInScope(section.kind, model.output.claims).map((c) => ({
       sentence: c.sentence,
       category: c.category,
       checkNeeded: c.check_needed,
@@ -332,7 +345,7 @@ async function rerunMissingSteps(jc: JobContext, projectId: string, section: Sec
   }
   if (doChecks) {
     await jc.progress(0.5, 'Checking');
-    const r = await modelChecks(jc, projectId, sectionId, current.id, { ...common, markdown: current.bodyMd, section: { id: sectionId, ...sectionVars } });
+    const r = await modelChecks(jc, projectId, section, current.id, { ...common, markdown: current.bodyMd, section: { id: sectionId, ...sectionVars } });
     if (r.failed) {
       failed['checks'] = r.failed.code;
       await flag(CHECKS_MISSING_CHECKER, checksMissingCheck(r.failed));
@@ -542,7 +555,7 @@ export const writeSectionHandler: JobHandler = async (jc) => {
   // The checks get the context they need: the profile facts (personal claims), this section's plan, earlier summaries and the ledger.
   // The text is already saved: a failed check call adds a blocking checks_missing flag instead of failing the job (live
   // run of 7 October 2026: a cut-off checks answer lost chapter 2 and cancelled five later sections).
-  const model = await modelChecks(jc, projectId, sectionId, version.id, { ...common, markdown, section: { id: sectionId, ...sectionVars } });
+  const model = await modelChecks(jc, projectId, section, version.id, { ...common, markdown, section: { id: sectionId, ...sectionVars } });
   checks.push(...model.checks);
   if (model.failed) checks.push(checksMissingCheck(model.failed));
   // Dated-prices book types: a specific price with no research source goes to the claims report (never a "checked"

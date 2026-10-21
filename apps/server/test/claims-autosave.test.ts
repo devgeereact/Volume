@@ -11,6 +11,7 @@ import {
   vetOptions,
   type ClaimFixOption,
 } from '../src/jobs/claim-fix.js';
+import { claimsInScope } from '../src/jobs/handlers/writing.js';
 import { CHECKS_MISSING_CHECKER, houseStyle, withOwnerPlaceholders, withPackCovers } from '../src/jobs/book-data.js';
 import { AUTOSAVE_WINDOW_MS, sessionStartOf } from '../src/repos/manuscript.js';
 import type { PreflightReport } from '../src/ports/export.js';
@@ -562,5 +563,51 @@ describe('claims are not filed twice', () => {
       { sentence: 'A brand new claim about 90% of people.', category: 'statistic', checkNeeded: 'x', start: null, end: null },
     ]);
     expect(added.map((c) => c.sentence)).toEqual(['A brand new claim about 90% of people.']);
+  });
+
+  it('does not file the replacement text of a fixed claim again (apply and soften)', async () => {
+    t = await testApp();
+    const { bookId, chapterId } = await writtenBook(t);
+    const claim = await openClaim(t, bookId, chapterId);
+    const r = await t.call<{ claim: ClaimView & { location: Obj } }>('POST', `/api/v1/books/${bookId}/claims/${claim.id}/apply`, {
+      text: 'Many readers find mornings calmer with a plan.',
+      approach: 'own',
+    });
+    expect(r.status).toBe(200);
+    expect(r.body.claim.location['replacement']).toBe('Many readers find mornings calmer with a plan.');
+    const cur = await current(t, chapterId);
+    const added = await t.services.repos.manuscript.addClaims(t.owner, bookId, chapterId, cur.id, [
+      { sentence: 'Many readers find mornings calmer with a plan. ', category: 'other_fact', checkNeeded: 'x', start: null, end: null },
+    ]);
+    expect(added).toEqual([]);
+
+    const fresh = await t.services.repos.manuscript.addClaims(t.owner, bookId, chapterId, cur.id, [
+      { sentence: 'A second claim, 70% of people.', category: 'statistical', checkNeeded: 'x', start: null, end: null },
+    ]);
+    const second = fresh[0]!;
+    const s = await t.call<{ claim: { location: Obj } }>('POST', `/api/v1/claims/${second.id}/soften`, { replacement: 'Some people find this helps.' });
+    expect(s.status).toBe(200);
+    expect(s.body.claim.location['replacement']).toBe('Some people find this helps.');
+    const again = await t.services.repos.manuscript.addClaims(t.owner, bookId, chapterId, cur.id, [
+      { sentence: 'Some people find this helps.', category: 'other_fact', checkNeeded: 'x', start: null, end: null },
+    ]);
+    expect(again).toEqual([]);
+  });
+
+  it('keeps model claims only where they belong: none for the review request, also by or how to use; medical or legal for a glossary', () => {
+    const items = [{ category: 'other_fact' }, { category: 'medical' }, { category: 'legal' }, { category: 'statistical' }];
+    for (const kind of ['review_request', 'also_by', 'how_to_use']) expect(claimsInScope(kind, items)).toEqual([]);
+    expect(claimsInScope('glossary', items)).toEqual([{ category: 'medical' }, { category: 'legal' }]);
+    expect(claimsInScope('chapter', items)).toEqual(items);
+  });
+
+  it('files no model claims for the review request section when the book is written', async () => {
+    t = await testApp();
+    const { bookId } = await writtenBook(t);
+    const tree = await t.call<{ back: Obj[] }>('GET', `/api/v1/books/${bookId}/sections`);
+    const review = tree.body.back.find((x) => x['kind'] === 'review_request');
+    expect(review?.['currentVersionId'] ?? review?.['current']).toBeTruthy();
+    const claims = await t.call<{ items: ClaimView[] }>('GET', `/api/v1/books/${bookId}/claims?sectionId=${review!['id'] as string}`);
+    expect(claims.body.items).toEqual([]);
   });
 });

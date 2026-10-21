@@ -556,7 +556,10 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
           });
         }
       }
-      const resolved = await m.resolveClaim(req.ctx, claim.id, action === 'soften' ? 'softened' : 'removed', { ownerNote: body?.note ?? null });
+      const resolved = await m.resolveClaim(req.ctx, claim.id, action === 'soften' ? 'softened' : 'removed', {
+        ownerNote: body?.note ?? null,
+        ...(action === 'soften' ? { replacement } : {}),
+      });
       return { claim: resolved, version, textChanged: version !== null };
     });
   }

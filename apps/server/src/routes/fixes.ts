@@ -216,6 +216,7 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
     const resolved = await m.resolveClaim(req.ctx, claim.id, status, {
       ownerNote: body.note ?? `Fixed in the editor (${body.approach}).`,
       ...(sourceUrl ? { sourceUrl } : {}),
+      replacement: text || null,
     });
     await advanceIfWritingComplete(s.repos, req.ctx, p.id);
     await s.bus.publish(req.ctx.workspaceId, {
