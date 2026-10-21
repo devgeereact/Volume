@@ -1,4 +1,5 @@
-/* "Fix every claim" on the Claims page: works through the open claims one at a time, the cleanest way each
+/* "Fix every claim" on the Claims page: works through the open claims that need the owner's check (claim
+   tiers, claimTier.ts; claims listed for the record are left as written) one at a time, the cleanest way each
    allows. A claim with softer wording on file takes it (no AI). Otherwise the claim-fix model suggests three
    replacements and the first safe one is applied: soften, generalise or reframe, or an attribution that needs
    no new source. A claim whose sentence is no longer in the text is closed as removed. No React here, so the
@@ -6,6 +7,7 @@
 
 import type { ClaimApplyInput, ClaimOption, ClaimOverviewItem } from "../../api/types";
 import { readBaseVersion, readOptions } from "./claimOptions";
+import { claimsToCheck } from "./claimTier";
 
 const ORDER = ["soften", "generalise", "reframe", "attribute"];
 
@@ -40,7 +42,7 @@ export async function fixAllClaims(
   api: FixAllApi,
   opts: { onProgress?: (done: number, total: number, claim: ClaimOverviewItem) => void; cancelled?: () => boolean } = {},
 ): Promise<FixReport> {
-  const open = claims.filter((c) => c.status === "open");
+  const open = claimsToCheck(claims);
   const report: FixReport = { done: 0, outcomes: { softened: 0, fixed: 0, gone: 0, skipped: 0, failed: 0 }, errors: [] };
   for (const c of open) {
     if (opts.cancelled?.()) break;

@@ -283,6 +283,11 @@ describe('4 and 9. checks context and continuity', () => {
     );
     expect(r.output.claims.map((c) => c.category)).toEqual(['personal', 'regulatory']);
     expect(r.output.claims[1]?.check_needed).toContain('Blocks the pack until verified');
+    // Claim tiers: the checker's risk and harmIfWrong pass through to the filed claim.
+    expect(r.output.claims.map((c) => [c.risk, c.harmIfWrong])).toEqual([
+      ['high', false],
+      ['high', true],
+    ]);
     expect(r.output.consistency[0]?.issue).toContain('Refers back to something the book never showed: "the chat by the van"');
   });
 
@@ -344,8 +349,14 @@ describe('6. dated prices', () => {
     const dated = one.body.checks.filter((c) => c.checker === 'dated_price').map((c) => c.message);
     expect(dated.length).toBeGreaterThan(0);
     for (const m of dated) expect(m).toMatch(/^£60 is a sourced price/);
-    const claims = await t.call<{ items: { sentence: string; category: string }[] }>('GET', `/api/v1/books/${id}/claims?status=open`);
-    expect(claims.body.items).toContainEqual(expect.objectContaining({ sentence: 'ChatGPT Plus costs £20 a month.', category: 'financial' }));
+    const claims = await t.call<{ items: { sentence: string; category: string; location: Record<string, unknown> }[] }>(
+      'GET',
+      `/api/v1/books/${id}/claims?status=open`,
+    );
+    // Code-filed claims always need the owner's check (claim tiers): risk high.
+    const price = claims.body.items.find((c) => c.sentence === 'ChatGPT Plus costs £20 a month.');
+    expect(price?.category).toBe('financial');
+    expect(price?.location['risk']).toBe('high');
   });
 
   it('builds the prices check line the how-to and listing prompts read', () => {

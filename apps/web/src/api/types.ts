@@ -1135,10 +1135,14 @@ export interface ClaimOverviewItem extends ApiClaim {
   section: { id: string; title: string | null; kind: string; number: number | null; enabled: boolean; position: number } | null;
   /** False when the sentence is no longer in the section's current text: suggest and apply would be 409. */
   inCurrentText: boolean;
+  /** Claim tiers: true when the owner must check it, false when it is listed for the record only. */
+  needsCheck?: boolean;
 }
 
 export interface ClaimsOverview {
   counts: Record<"open" | "verified" | "softened" | "removed" | "author_experience", number>;
+  /** Open claims by tier: the ones that need the owner's check and the ones listed for the record. */
+  tiers?: { needsCheck: number; forRecord: number };
   items: ClaimOverviewItem[];
 }
 

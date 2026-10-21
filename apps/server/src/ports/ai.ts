@@ -175,6 +175,9 @@ export const ChecksOutputSchema = z.object({
         end: z.number().int().nullable().default(null),
         /** A softer wording of the sentence, when the checks stage offers one. */
         softer: z.string().nullable().default(null),
+        /** The checker's risk rating and whether the claim would do harm if wrong (claim tiers); null when not given. */
+        risk: z.enum(['low', 'medium', 'high']).nullable().default(null),
+        harmIfWrong: z.boolean().nullable().default(null),
       }),
     )
     .default([]),

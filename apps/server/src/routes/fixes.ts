@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { claimNeedsCheck } from '@volume/core';
 import type { AppServices } from '../app.js';
 import type { RequestCtx } from '../auth/context.js';
 import { AppError, notFound, parse } from '../http/errors.js';
@@ -107,7 +108,9 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
   /**
    * Claims across this book: every claim (open by default; `status=all` for every status), oldest books included,
    * with its section and whether its sentence is still in the section's current text, ordered as the book reads.
-   * 200 { counts: { open, verified, softened, removed, author_experience }, items: [{ ...claim, section, inCurrentText }] }.
+   * 200 { counts: { open, verified, softened, removed, author_experience }, tiers: { needsCheck, forRecord },
+   * items: [{ ...claim, section, inCurrentText, needsCheck }] }. tiers counts the open claims by claim tier
+   * (@volume/core claimNeedsCheck): the ones the owner must check, and the ones listed for the record only.
    */
   app.get('/books/:id/claims/overview', async (req) => {
     const p = parse(z.object({ id: Id }), req.params);
@@ -115,7 +118,11 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
     await s.repos.books.require(req.ctx, p.id);
     const all = await m.listClaims(req.ctx, { projectId: p.id });
     const counts = { open: 0, verified: 0, softened: 0, removed: 0, author_experience: 0 } as Record<string, number>;
-    for (const c of all) counts[c.status] = (counts[c.status] ?? 0) + 1;
+    const tiers = { needsCheck: 0, forRecord: 0 };
+    for (const c of all) {
+      counts[c.status] = (counts[c.status] ?? 0) + 1;
+      if (c.status === 'open') tiers[claimNeedsCheck(c) ? 'needsCheck' : 'forRecord']++;
+    }
     const want = q.status ?? 'open';
     const chosen = want === 'all' ? all : all.filter((c) => c.status === want);
     const sections = new Map((await m.listSections(req.ctx, p.id)).map((x) => [x.id, x]));
@@ -127,6 +134,7 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
     const items: (Claim & {
       section: { id: string; title: string | null; kind: string; number: number | null; enabled: boolean; position: number } | null;
       inCurrentText: boolean;
+      needsCheck: boolean;
     })[] = [];
     for (const c of chosen) {
       const sec = c.sectionId ? sections.get(c.sectionId) : undefined;
@@ -134,11 +142,12 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
         ...c,
         section: sec ? { id: sec.id, title: sec.title, kind: sec.kind, number: sec.number, enabled: sec.enabled, position: sec.position } : null,
         inCurrentText: sec ? (await textOf(sec.id)).includes(c.sentence) : false,
+        needsCheck: claimNeedsCheck(c),
       });
     }
     const start = (c: (typeof items)[number]): number => (typeof c.location['start'] === 'number' ? c.location['start'] : 0);
     items.sort((a, b) => (a.section?.position ?? Infinity) - (b.section?.position ?? Infinity) || start(a) - start(b));
-    return { counts, items };
+    return { counts, tiers, items };
   });
 
   /**

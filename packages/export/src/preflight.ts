@@ -225,6 +225,11 @@ export interface ClaimItem {
   check: string;
   /** Softened and author_experience are settled too: only 'open' still needs checking. */
   status: 'open' | 'verified' | 'softened' | 'author_experience' | 'removed';
+  /**
+   * Claim tiers: true (or missing, for older callers) when the owner must check it; false when it is listed for the
+   * record only (low or medium risk, harmless if wrong). Only claims that need a check count towards claims.open.
+   */
+  needsCheck?: boolean;
 }
 
 export interface PreflightInput {
@@ -437,12 +442,15 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
         });
     });
   const openClaims = (input.claims ?? []).filter((c) => c.status === 'open');
+  // Claim tiers: only open claims that need the owner's check count; the rest are listed for the record in the report.
+  const needCheck = openClaims.filter((c) => c.needsCheck !== false).length;
+  const forRecord = openClaims.length - needCheck;
   add({
     id: 'claims.open',
     label: 'Claims to verify',
-    level: openClaims.length || (!input.claims && claimHits.length) ? 'warn' : 'pass',
+    level: needCheck || (!input.claims && claimHits.length) ? 'warn' : 'pass',
     detail: input.claims
-      ? `${openClaims.length} open claim(s) in the claims report.`
+      ? `${needCheck} open claim(s) need your check; ${forRecord} more are listed for the record in the claims report.`
       : `${claimHits.length} statement(s) match the claims patterns; no claims report was supplied.`,
   });
 
