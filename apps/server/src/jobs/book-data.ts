@@ -161,7 +161,7 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
     sentence: c.sentence,
     category: c.category,
     check: c.checkNeeded ?? '',
-    status: c.status === 'verified' ? 'verified' : c.status === 'removed' ? 'removed' : 'open',
+    status: c.status === 'verified' || c.status === 'softened' || c.status === 'author_experience' || c.status === 'removed' ? c.status : 'open',
   }));
   return {
     ...(authorPhoto ? { authorPhoto } : {}),
