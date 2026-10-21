@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import { Pause } from "lucide-react";
 import { Cover, LiveDot } from "../../components/ui";
@@ -22,23 +23,28 @@ interface PipelineViewProps {
 
 /** Published books shown in the column before the link to the Published shelf. */
 const PUBLISHED_SHOWN = 2;
+/** Books a stage shows on phones and in the wide columns until the owner asks for the rest (owner, 21 October 2026). */
+const STAGE_SHOWN = 3;
 
 function BookCard({
   book,
   live,
   penName,
   statusActions,
+  folded = false,
 }: {
   book: Book;
   live: "running" | "paused" | null;
   penName: (id: string) => PenName | undefined;
   statusActions: boolean;
+  /** Past the first few of a folded stage: hidden on phones and in the wide columns, kept in the scrolling row. */
+  folded?: boolean;
 }) {
   const pen = penName(book.penNameId);
   const status = splitLeadingFigure(book.statusLine);
   const { design, draft, image } = libraryCover(book);
   return (
-    <li>
+    <li className={cn("sm:w-[132px] sm:shrink-0 sm:snap-start xl:w-auto", folded && "hidden sm:block xl:hidden")}>
       <Link
         to={`/books/${book.id}`}
         className="group grid grid-cols-[64px_minmax(0,1fr)] items-start gap-x-3.5 rounded-sm outline-offset-4 sm:block"
@@ -91,9 +97,19 @@ function BookCard({
  * Cover view: books along the pipeline in eight columns (Idea to Published), each headed by the stage
  * and its count, so the columns are the stage filter. The column with live work gets a gilt underline.
  * Published keeps its two newest books here and links to the Published shelf for the rest, so no
- * column runs far below the others. Under 1280 px each stage becomes a section with a wrapping grid.
+ * column runs far below the others. Under 1280 px each stage is one row of covers that scrolls sideways, so the page
+ * does not grow with every new book; on phones and in the wide columns a stage shows its first three books and a
+ * Show all button.
  */
 export function PipelineView({ books, live, penName = getPenName, statusActions = false }: PipelineViewProps) {
+  const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
+  const toggle = (stage: string) =>
+    setOpen((was) => {
+      const next = new Set(was);
+      if (next.has(stage)) next.delete(stage);
+      else next.add(stage);
+      return next;
+    });
   return (
     <div className="grid grid-cols-1 gap-8 xl:grid-cols-8 xl:gap-4">
       {libraryColumns.map((stage) => {
@@ -105,6 +121,8 @@ export function PipelineView({ books, live, penName = getPenName, statusActions 
         const visible = hidden > 0 ? inColumn.slice(0, PUBLISHED_SHOWN) : inColumn;
         const hasLive = Boolean(live?.running && inColumn.some((b) => b.id === live.bookId));
         const headingId = `pipe-${stage}`;
+        const foldable = stage !== "published" && total > STAGE_SHOWN;
+        const unfolded = open.has(stage);
         return (
           <section key={stage} aria-labelledby={headingId} className={cn(total === 0 && "hidden xl:block")}>
             <h2
@@ -123,17 +141,28 @@ export function PipelineView({ books, live, penName = getPenName, statusActions 
             {total === 0 ? (
               <p className="text-small text-ink-tertiary">None here</p>
             ) : (
-              <ul className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] sm:gap-y-6 xl:grid-cols-1">
-                {visible.map((b) => (
+              <ul className="grid grid-cols-1 gap-4 sm:-mx-1 sm:flex sm:snap-x sm:gap-4 sm:overflow-x-auto sm:px-1 sm:pb-3 xl:mx-0 xl:grid xl:grid-cols-1 xl:gap-y-6 xl:overflow-visible xl:px-0 xl:pb-0">
+                {visible.map((b, i) => (
                   <BookCard
                     key={b.id}
                     book={b}
                     penName={penName}
                     statusActions={statusActions}
+                    folded={foldable && !unfolded && i >= STAGE_SHOWN}
                     live={live && live.bookId === b.id ? (live.running ? "running" : "paused") : null}
                   />
                 ))}
               </ul>
+            )}
+            {foldable && (
+              <button
+                type="button"
+                aria-expanded={unfolded}
+                onClick={() => toggle(stage)}
+                className="hit-44 relative mt-4 inline-block rounded-xs text-small font-semibold text-select underline underline-offset-2 sm:hidden xl:inline-block"
+              >
+                {unfolded ? "Show fewer" : `Show all ${total}`}
+              </button>
             )}
             {hidden > 0 && (
               <Link to="/published" className="hit-44 relative mt-4 inline-block rounded-xs text-small font-semibold text-select underline underline-offset-2">
