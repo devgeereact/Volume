@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCanWrite } from "../../lib/access";
 import { Link } from "react-router";
 import { Check, Download, RotateCw, Upload } from "lucide-react";
@@ -6,7 +6,8 @@ import { Banner, Button, buttonClasses, Loader, PageHeader, ProgressBar, Segment
 import type { Book, PenName } from "../../demo";
 import { assetsApi } from "../../api/assets";
 import { useBlueprint, useBuildCover, useChooseCover, useCover, useCoverConcepts, useExports, usePutCoverBrief } from "../../api/hooks";
-import type { ApiBookDetail, ApiCover, CoverConcept } from "../../api/types";
+import { isTerminalJob, type ApiBookDetail, type ApiCover, type CoverConcept } from "../../api/types";
+import { BudgetPausedBanner } from "../books/BudgetPausedBanner";
 import { errorText, jobStatusText, useJobWatch } from "../../api/wire-c";
 import { cn } from "../../lib/cn";
 import { useStepAction, type StepAction } from "../../lib/stepAction";
@@ -110,8 +111,20 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       : "style",
   );
   const [preview, setPreview] = useState<Preview>("ebook");
-  const [conceptJob, setConceptJob] = useState<string | null>(null);
-  const [buildJob, setBuildJob] = useState<string | null>(null);
+  // A job still open from before a reload (queued, running or stopped at the budget) is watched again.
+  const openJob = (kind: string) => apiBook?.recentJobs.find((j) => j.kind === kind && !isTerminalJob(j.status))?.id ?? null;
+  const [conceptJob, setConceptJob] = useState<string | null>(() => openJob("cover_concepts"));
+  const [buildJob, setBuildJob] = useState<string | null>(() => openJob("cover_build"));
+  // The book detail can arrive after the studio opens: pick the open jobs up then, once.
+  const pickedUp = useRef(!!apiBook);
+  useEffect(() => {
+    if (pickedUp.current || !apiBook) return;
+    pickedUp.current = true;
+    const c = apiBook.recentJobs.find((j) => j.kind === "cover_concepts" && !isTerminalJob(j.status))?.id;
+    const b = apiBook.recentJobs.find((j) => j.kind === "cover_build" && !isTerminalJob(j.status))?.id;
+    if (c) setConceptJob((cur) => cur ?? c);
+    if (b) setBuildJob((cur) => cur ?? b);
+  }, [apiBook]);
   const [problem, setProblem] = useState<string | null>(null);
   const [announce, setAnnounce] = useState("");
   const [pagesText, setPagesText] = useState<string>("");
@@ -179,8 +192,10 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       });
     }
   });
-  const making = makeConcepts.isPending || conceptWatch.running;
-  const building = build.isPending || buildWatch.running;
+  const conceptsPaused = conceptWatch.status === "paused_budget";
+  const buildPaused = buildWatch.status === "paused_budget";
+  const making = makeConcepts.isPending || (conceptWatch.running && !conceptsPaused);
+  const building = build.isPending || (buildWatch.running && !buildPaused);
 
   // Page count for the wrap: the build records it; before that, the latest print PDF's count.
   const pdf = (exportsQ.data ?? []).filter((e) => e.kind === "pdf_print" && e.pageCount !== null).sort((a, b) => b.createdAt - a.createdAt)[0];
@@ -256,7 +271,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
           label: making ? "Making concepts" : "Make concepts",
           estimate: "about $0.16",
           onClick: () => void startConcepts(),
-          disabledReason: making ? "Making the concepts now." : undefined,
+          disabledReason: making ? "Making the concepts now." : conceptsPaused ? "Raise the book's budget above to carry on." : undefined,
         }
       : !chosen || (pick && pick.assetId !== chosen.assetId)
         ? {
@@ -332,6 +347,26 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
         status={status}
         action={canWrite ? action : null}
       />
+      {conceptsPaused && conceptJob && (
+        <BudgetPausedBanner
+          className="mt-4 max-w-[860px]"
+          bookId={bookId}
+          jobId={conceptJob}
+          message={conceptWatch.error}
+          budgetUsd={book.cost.budget}
+          spentUsd={book.cost.spent}
+        />
+      )}
+      {buildPaused && buildJob && (
+        <BudgetPausedBanner
+          className="mt-4 max-w-[860px]"
+          bookId={bookId}
+          jobId={buildJob}
+          message={buildWatch.error}
+          budgetUsd={book.cost.budget}
+          spentUsd={book.cost.spent}
+        />
+      )}
       {modelFix && (
         <ModelFallbackBanner
           bookId={bookId}
