@@ -275,7 +275,11 @@ export function profileInput(v: unknown): Rec | null {
   put(out, 'penName', text(v['penName']));
   put(out, 'perspective', firstText(v['perspective'], voice['perspective'], voice['pov']));
   put(out, 'credentials', credentials || null);
-  put(out, 'voice', typeof v['voice'] === 'string' ? v['voice'] : voiceText(voice, memory));
+  const voiceNotes = typeof v['voice'] === 'string' ? v['voice'] : voiceText(voice, memory);
+  // The pen name's writing samples (profileSummary `samples`, already trimmed) go as voice DNA "sounds like" samples,
+  // which the AI layer sends as {{profile.voiceSample}}. With no samples the voice stays the plain text it always was.
+  const samples = strList(v['samples']);
+  put(out, 'voice', samples.length ? { notes: voiceNotes, soundsLike: samples } : voiceNotes);
   put(out, 'voiceSample', firstText(v['voiceSample'], voice['sample']));
   put(out, 'isRealPerson', firstBool(v['isRealPerson']));
   put(out, 'bio', firstText(v['bio'], v['bioThirdPerson']));

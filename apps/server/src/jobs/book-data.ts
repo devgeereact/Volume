@@ -346,7 +346,50 @@ export async function profileSummary(
     acknowledgementNames: acknowledgementNames(book, p.publishing),
   };
   if (typeof p.publishing['dedicationNames'] !== 'undefined') out['dedicationNames'] = p.publishing['dedicationNames'];
+  // The pen name's own writing reaches the writer as voice samples (plan 2026-10-21, Task 3). No samples: no key, so
+  // the prompts read exactly as before.
+  const samples = (await repos.profiles.listSamples(ctx, profileId))
+    .filter((s) => VOICE_SAMPLE_KINDS.includes(s.kind))
+    .sort((a, b) => VOICE_SAMPLE_KINDS.indexOf(a.kind) - VOICE_SAMPLE_KINDS.indexOf(b.kind))
+    .map((s) => trimSample(s.text))
+    .filter((t) => t.length > 0)
+    .slice(0, MAX_VOICE_SAMPLES);
+  if (samples.length) out['samples'] = samples;
   return out;
+}
+
+/** Profile sample kinds sent to the writer as "sounds like" samples, in order of preference. */
+const VOICE_SAMPLE_KINDS: readonly string[] = ['sounds_like', 'writing_sample'];
+/** At most this many samples go to the writer. */
+export const MAX_VOICE_SAMPLES = 2;
+/** Each sample is cut to about this many words. */
+export const VOICE_SAMPLE_WORDS = 600;
+
+/**
+ * A writing sample cut to its first `maxWords` words, ending at a paragraph boundary: whole paragraphs while they fit.
+ * A first paragraph longer than the limit is cut at the last full sentence inside it (or at the word limit when it has
+ * no sentence end there).
+ */
+export function trimSample(text: string, maxWords = VOICE_SAMPLE_WORDS): string {
+  const paragraphs = text
+    .replace(/\r\n?/g, '\n')
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const countWords = (s: string): number => s.split(/\s+/).filter(Boolean).length;
+  const kept: string[] = [];
+  let total = 0;
+  for (const p of paragraphs) {
+    const n = countWords(p);
+    if (total + n > maxWords) break;
+    kept.push(p);
+    total += n;
+  }
+  if (kept.length || paragraphs.length === 0) return kept.join('\n\n');
+  const head = (paragraphs[0] as string).split(/\s+/).slice(0, maxWords).join(' ');
+  if (/[.?!]["”’)]?$/.test(head)) return head;
+  const end = Math.max(head.lastIndexOf('. '), head.lastIndexOf('? '), head.lastIndexOf('! '));
+  return end > 0 ? head.slice(0, end + 1) : head;
 }
 
 /** Checker name of the blocking flag on a saved version whose summary failed (owner decision, 7 October 2026). */
