@@ -13,7 +13,10 @@
  *
  * Options: --dry-run (preflight and plan only), --migrate, --no-ci-check (local checks instead of CI),
  * --skip-local-checks (with --no-ci-check: no checks at all, for an emergency only), --rollback (back to the previous release).
- * Never deletes a release, never touches ~/apps/volume/shared or the database outside server/migrate.mjs.
+ *   8. After a passing deploy, delete older releases beyond the newest KEEP_RELEASES (each holds ~20,000 files and the
+ *      host caps inodes). Never deletes the live or previous release, the one the Node.js selector is registered
+ *      against (it names PassengerNodejs), or anything newer than this deploy (a concurrent upload).
+ * Never touches ~/apps/volume/shared or the database outside server/migrate.mjs.
  */
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -32,6 +35,8 @@ if (skipLocalChecks && ciCheck) fail('--skip-local-checks only goes with --no-ci
 
 /** What stands in for GitHub CI when it cannot run (the same gates as .github/workflows/check.yml, on this computer). */
 const LOCAL_CHECKS = ['typecheck', 'lint', 'format:check', 'test', 'e2e'];
+/** Releases kept after a deploy (the new one included); older ones go, except the protected ones in step 8. */
+const KEEP_RELEASES = 3;
 
 const cfg = JSON.parse(readFileSync(path.join(root, 'deploy/production.json'), 'utf8'));
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
@@ -182,6 +187,11 @@ const utc = new Date()
   .replace(/\.\d+Z$/, 'Z');
 if (dryRun) {
   console.log(`  would build ${short} as releases/${utc}, then upload, install, check migrations and switch from ${current}.`);
+  const selector = passengerNode.match(/\/releases\/([^/]+)\//)?.[1];
+  const after = [...releases, utc].sort();
+  const keep = new Set([...after.slice(-KEEP_RELEASES), utc, current, selector]);
+  const prune = after.filter((r) => r < utc && !keep.has(r) && /^\d{8}T\d{6}Z$/.test(r));
+  console.log(`  after a passing deploy would delete: ${prune.length ? prune.map((r) => `releases/${r}`).join(', ') : 'nothing'}`);
   process.exit(0);
 }
 local(npm, ['run', '-s', 'build:release', '--', '--require-clerk'], {
@@ -223,5 +233,19 @@ if (problems.length) {
   const back = await switchTo(current);
   fail(back.length ? `rollback also failed:\n  ${back.join('\n  ')}` : `rolled back to ${current}; the site runs the previous release.`);
 }
+// ---- 8. Prune old releases ----
+// Release names are UTC stamps, so sorting by name sorts by age. A failure here leaves extra folders, not a broken site.
+step('Pruning old releases');
+const selectorRelease = passengerNode.match(/\/releases\/([^/]+)\//)?.[1];
+const protectedReleases = new Set([utc, current, selectorRelease].filter(Boolean));
+const onHost = remote(`ls -1 ${app}/releases`).out.split('\n').filter(Boolean).sort();
+const kept = new Set(onHost.slice(-KEEP_RELEASES));
+const stale = onHost.filter((r) => r < utc && !kept.has(r) && !protectedReleases.has(r) && /^\d{8}T\d{6}Z$/.test(r));
+for (const r of stale) {
+  const rm = remote(`rm -rf -- ${app}/releases/${r}`, { allowFail: true });
+  console.log(rm.status === 0 ? `  deleted releases/${r}` : `  WARNING: could not delete releases/${r}: ${rm.err}`);
+}
+if (!stale.length) console.log('  nothing to prune');
+
 console.log(`\nDeployed ${short} as releases/${utc} (was ${current}). Health 200, sign-in enforced, ${bundle} served.`);
 console.log(`Roll back with: npm run deploy -- --rollback`);
