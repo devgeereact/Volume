@@ -504,10 +504,10 @@ describe('POST /books/:id/fix-house-style', () => {
     const { bookId, chapterId } = await writtenBook(t);
     const start = await current(t, chapterId);
     await t.call('PUT', `/api/v1/books/${bookId}/sections/${chapterId}/autosave`, {
-      bodyMd: '# One\n\nThe color changed — slowly.',
+      bodyMd: '# One\n\nThe color changed — slowly.\n\n- \n\n* * *\n\nEnd.',
       baseVersionId: start.id,
     });
-    const r = await t.call<{ sections: number; dashes: number; spellings: number }>('POST', `/api/v1/books/${bookId}/fix-house-style`, {});
+    const r = await t.call<{ sections: number; dashes: number; spellings: number; emptyItems: number }>('POST', `/api/v1/books/${bookId}/fix-house-style`, {});
     expect(r.status).toBe(200);
     expect(r.body.sections).toBeGreaterThanOrEqual(1);
     expect(r.body.dashes).toBeGreaterThanOrEqual(1);
@@ -515,6 +515,9 @@ describe('POST /books/:id/fix-house-style', () => {
     const after = await current(t, chapterId);
     expect(after.source).toBe('owner:style-fix');
     expect(after.bodyMd).toContain('The colour changed, slowly.');
+    expect(after.bodyMd).not.toMatch(/^- $/m);
+    expect(after.bodyMd).toContain('* * *');
+    expect(r.body).toMatchObject({ emptyItems: 1 });
     const again = await t.call<{ sections: number }>('POST', `/api/v1/books/${bookId}/fix-house-style`, {});
     expect(again.body.sections).toBe(0);
   });
@@ -543,5 +546,21 @@ describe('POST /books/:id/models/withdraw', () => {
     expect(book.body.settings.models).toEqual({ writing: 'anthropic/kept' });
     const profile = await t.call<{ models: Obj }>('GET', `/api/v1/profiles/${profileId}`);
     expect(profile.body.models).toEqual({});
+  });
+});
+
+describe('claims are not filed twice', () => {
+  it('skips a sentence the owner already settled, or one already open, when the checks run again', async () => {
+    t = await testApp();
+    const { bookId, chapterId } = await writtenBook(t);
+    const claim = await openClaim(t, bookId, chapterId);
+    expect((await t.call('POST', `/api/v1/claims/${claim.id}/verify`, { note: 'checked' })).status).toBe(200);
+    const cur = await current(t, chapterId);
+    const added = await t.services.repos.manuscript.addClaims(t.owner, bookId, chapterId, cur.id, [
+      { sentence: `  ${claim.sentence.toUpperCase()} `, category: 'medical', checkNeeded: 'x', start: null, end: null },
+      { sentence: 'A brand new claim about 90% of people.', category: 'statistic', checkNeeded: 'x', start: null, end: null },
+      { sentence: 'A brand new claim about 90% of people.', category: 'statistic', checkNeeded: 'x', start: null, end: null },
+    ]);
+    expect(added.map((c) => c.sentence)).toEqual(['A brand new claim about 90% of people.']);
   });
 });

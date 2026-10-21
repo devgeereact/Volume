@@ -123,5 +123,5 @@ export const manuscriptApi = {
   removeClaim: (claimId: string, input: { note?: string } = {}, o?: Opts) => api.post<ClaimResolveResponse>(`/claims/${seg(claimId)}/remove`, input, o),
   /** Em and en dashes and US spellings fixed in every switched-on section, one new version per changed section. No AI. */
   fixHouseStyle: (bookId: string, o?: Opts) =>
-    api.post<{ sections: number; dashes: number; spellings: number }>(`/books/${seg(bookId)}/fix-house-style`, {}, o),
+    api.post<{ sections: number; dashes: number; spellings: number; emptyItems: number }>(`/books/${seg(bookId)}/fix-house-style`, {}, o),
 };

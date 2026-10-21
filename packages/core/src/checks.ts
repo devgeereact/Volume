@@ -22,6 +22,16 @@ const LOREM_RE = /\blorem\b|\bipsum dolor\b/gi;
 const BRACKET_RE = /\[(?:needs?|insert|add|todo|placeholder|tk|tbd|tbc|fill(?: in)?|your|author|citation needed|source)\b[^\]\n]*\](?!\()/gi;
 /** "{placeholder}", "{book.title}", "{{name}}". */
 const BRACE_RE = /\{\{?\s*[A-Za-z_][\w.]*\s*\}?\}/g;
+/** Quoted stretches of a line: "...", “...”, `...`. A bracket inside one is an example the reader types, not junk. */
+function quotedSpans(line: string): [number, number][] {
+  const out: [number, number][] = [];
+  for (const re of [/"[^"\n]*"/g, /“[^”\n]*”/g, /`[^`\n]*`/g]) for (const m of line.matchAll(re)) out.push([m.index, m.index + m[0].length]);
+  return out;
+}
+
+/** "placeholders such as [your name]": the book is naming a placeholder on purpose. */
+const NAMED_PLACEHOLDER_RE = /\bplaceholders?\b[^.!?]{0,40}$/i;
+
 /** A list marker with nothing (or only punctuation) after it. */
 const EMPTY_ITEM_RE = /^(\s*)(?:[-*+]|\d+\.)\s*[\p{P}\s]*$/u;
 
@@ -34,6 +44,7 @@ export function findTemplateJunk(text: string): JunkHit[] {
   const hits: JunkHit[] = [];
   let at = 0;
   for (const line of text.split('\n')) {
+    const quoted = quotedSpans(line);
     const echo = ECHO_RE.exec(line);
     if (echo && (echo[2] ?? '').toLowerCase() === (echo[3] ?? '').toLowerCase()) {
       const lead = line.length - line.trimStart().length;
@@ -49,7 +60,12 @@ export function findTemplateJunk(text: string): JunkHit[] {
       ['brace', BRACE_RE],
     ] as const) {
       re.lastIndex = 0;
-      for (const m of line.matchAll(re)) hits.push({ kind, match: m[0], start: at + (m.index ?? 0), end: at + (m.index ?? 0) + m[0].length });
+      for (const m of line.matchAll(re)) {
+        const i = m.index;
+        // Example prompts in how-to books ("Plan a trip from [your town]") and named placeholders are deliberate.
+        if (kind === 'bracket' && (quoted.some(([a, b]) => i > a && i < b) || NAMED_PLACEHOLDER_RE.test(line.slice(0, i)))) continue;
+        hits.push({ kind, match: m[0], start: at + i, end: at + i + m[0].length });
+      }
     }
     at += line.length + 1;
   }

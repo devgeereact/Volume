@@ -847,10 +847,10 @@
     },
     {
       "id": "guarantee",
-      "pattern": "\\b(?:(?<!\\b(?:not|no|never|cannot|without|nor|nothing|\\w+n['’]t)(?:\\s+(?:a|an|any|be|been|being|always|ever|really|actually|absolutely|one|can|could|will|would|is|are|that|it|you|anyone|anything))?(?:\\s+(?:a|an|any|be|been|always|ever|really|one|can|could|will|is|are|that|it|you|anyone))?\\s+)guarantee[ds]?\\b|proven to|100% (?:effective|safe|guaranteed)|will cure|works every time|the only book you need)",
+      "pattern": "\\b(?:(?<!\\b(?:not|no|never|cannot|without|nor|nothing|rather\\s+than|instead\\s+of|\\w+n['’]t)(?:\\s+(?:a|an|any|be|been|being|always|ever|really|actually|absolutely|one|can|could|will|would|is|are|that|it|you|anyone|anything))?(?:\\s+(?:a|an|any|be|been|always|ever|really|one|can|could|will|is|are|that|it|you|anyone))?\\s+)guarantee[ds]?\\b|proven to|100% (?:effective|safe|guaranteed)|will cure|works every time|the only book you need)",
       "flags": "gi",
       "message": "Guarantee or promise of results. Remove or soften.",
-      "description": "Promises the book cannot prove. Negated uses (not a guarantee, no guarantee, never guaranteed, can't guarantee) are allowed.",
+      "description": "Promises the book cannot prove. Negated uses (not a guarantee, no guarantee, never guaranteed, can't guarantee, rather than a guarantee) are allowed.",
       "action": "block"
     },
     {

@@ -56,8 +56,15 @@ describe('template junk (live run 3: "- x: x" passed the placeholder check)', ()
       'The fact sits in a source [[S2]] and a todo list is a fine thing to keep.',
       'Q: What does it cost? A: Nothing.',
       '- Choose tools by the job they do.',
+      'Prompt the tool: "Plan a day trip from [your town] to [destination] for a Saturday."',
+      'Ask for a template that uses placeholders such as [your account number] instead of the real one.',
+      'Type `Dear [Your Name]` at the top.',
     ].join('\n');
     expect(findTemplateJunk(text)).toEqual([]);
+  });
+
+  it('still flags a bracket placeholder left in plain prose', () => {
+    expect(findTemplateJunk('Signed, [Your Name]. Thanks for reading.').map((h) => h.match)).toEqual(['[Your Name]']);
   });
 });
 

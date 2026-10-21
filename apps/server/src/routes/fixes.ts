@@ -25,6 +25,10 @@ import { owner, writer } from './common.js';
 // the book in the path: a section or claim of another book is 404.
 
 const Id = z.string().min(1).max(64);
+/** A list marker with nothing (or only punctuation) after it, as @volume/core findTemplateJunk reports it. */
+const EMPTY_ITEM = /^\s*(?:[-*+]|\d+\.)\s*[\p{P}\s]*$/u;
+/** "***", "* * *", "---": a scene break or rule, not an empty item. */
+const SCENE_BREAK = /^\s*(?:[-*_]\s*){3,}$/;
 const BookSection = z.object({ id: Id, sectionId: Id });
 const BookClaim = z.object({ id: Id, claimId: Id });
 
@@ -229,8 +233,8 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
   /**
    * The owner's "Fix house style in the whole book": em and en dashes and US spellings in every switched-on section's
    * current text, with the same rules as the automatic fix after writing (the profile bio is never changed). Each
-   * changed section gets a new version, so every change can be undone from Versions. No AI, no cost.
-   * 200 { sections, dashes, spellings }.
+   * changed section gets a new version, so every change can be undone from Versions. Empty list items go too. No AI, no
+   * cost. 200 { sections, dashes, spellings, emptyItems }.
    */
   app.post('/books/:id/fix-house-style', async (req) => {
     writer(req);
@@ -241,12 +245,18 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
     let sections = 0;
     let dashes = 0;
     let spellings = 0;
+    let emptyItems = 0;
     for (const sec of await m.listSections(req.ctx, p.id)) {
       if (!sec.enabled) continue;
       const cur = await m.currentVersion(req.ctx, sec.id);
       if (!cur?.bodyMd) continue;
       const fix = fixHouseStyle(cur.bodyMd, style, { protect: ownerTexts(profile) });
+      // Empty list items ("- " on its own line) are template junk the pack preflight blocks; scene breaks stay.
+      const kept = fix.text.split('\n').filter((l) => !EMPTY_ITEM.test(l) || SCENE_BREAK.test(l));
+      const emptied = fix.text.split('\n').length - kept.length;
+      fix.text = kept.join('\n');
       if (fix.text === cur.bodyMd) continue;
+      emptyItems += emptied;
       const version = await m.saveVersion(req.ctx, sec.id, {
         bodyMd: fix.text,
         source: 'owner:style-fix',
@@ -264,7 +274,7 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
       dashes += fix.dashes;
       spellings += fix.spellings;
     }
-    return { sections, dashes, spellings };
+    return { sections, dashes, spellings, emptyItems };
   });
 
   /**

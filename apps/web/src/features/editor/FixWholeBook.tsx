@@ -78,7 +78,25 @@ export function FixWholeBook({
     const r = await manuscriptApi.fixHouseStyle(bookId);
     return r.sections === 0
       ? "House style was already clean."
-      : `House style fixed in ${r.sections} ${r.sections === 1 ? "section" : "sections"}: ${r.dashes} dashes and ${r.spellings} US spellings.`;
+      : `House style fixed in ${r.sections} ${r.sections === 1 ? "section" : "sections"}: ${r.dashes} dashes, ${r.spellings} US spellings` +
+          (r.emptyItems ? ` and ${r.emptyItems} empty list ${r.emptyItems === 1 ? "item" : "items"} removed.` : ".");
+  }
+
+  /** Sections with text but no summary or no checks (the pack blocks on them): queue the missing steps, in the background. */
+  async function rerunMissing(): Promise<string> {
+    const tree = await manuscriptApi.tree(bookId);
+    const sections = [...tree.front, ...tree.body.flatMap((n) => [n, ...n.children]), ...tree.back].filter((x) => x.enabled);
+    let queued = 0;
+    for (const [i, sec] of sections.entries()) {
+      setRunning({ label: "Looking for missing summaries and checks", done: i, total: sections.length });
+      const plan = await manuscriptApi.recheckPreview(sec.id);
+      if (!plan.hasText || plan.steps.length === 0 || plan.runningJobId) continue;
+      await manuscriptApi.rerunChecks(sec.id);
+      queued++;
+    }
+    return queued === 0
+      ? "Every section has its summary and checks."
+      : `Missing summaries and checks queued for ${queued} ${queued === 1 ? "section" : "sections"}; they run in the background (see the job bar).`;
   }
 
   async function fixClaims(): Promise<FixReport | null> {
@@ -120,6 +138,8 @@ export function FixWholeBook({
         setRunning({ label: "Fixing house style", done: 0, total: 1 });
         lines.push(await fixStyle());
       }
+      // Summaries and checks use the AI, so only "Fix everything" runs them; "Only house style" stays free.
+      if (what === "all") lines.push(await rerunMissing());
       if (what !== "style" && open.length > 0) {
         toast.show({ tone: "working", title: "Fixing every claim", body: "One at a time. You can stop at any point; what is done stays done." });
         const r = await fixClaims();
@@ -150,9 +170,9 @@ export function FixWholeBook({
         Fix the whole book
       </h2>
       <p className="mt-1 text-small text-ink-secondary">
-        One click fixes house style (em dashes, US spellings) in every section, then every open claim: softer wording where it is on file, otherwise the AI
-        rewrites the sentence so it claims only what is safe, never adding a source you have not got. Each change is saved as a new version, so you can undo it
-        in Versions.
+        One click fixes house style (em dashes, US spellings, empty list items) in every section, runs any missing summaries and checks, then every open claim:
+        softer wording where it is on file, otherwise the AI rewrites the sentence so it claims only what is safe, never adding a source you have not got. Each
+        change is saved as a new version, so you can undo it in Versions.
       </p>
       {modelFix && (
         <ModelFallbackBanner bookId={bookId} className="mt-3" problem={modelFix} onDismiss={() => setModelFix(null)} onRetry={() => void run("claims")} />
