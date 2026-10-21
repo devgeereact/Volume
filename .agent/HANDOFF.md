@@ -547,3 +547,12 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Files: `.agent/CURRENT-TASK.md`, `.agent/HANDOFF.md`.
 - Checks: `npm run deploy -- --dry-run` reads live release `20261021T200148Z` PASS; `https://volume.gakinz.com/` HTTP 200 PASS. Deploy's own local checks were run by the owner; output not seen here (NOT TESTED by the assistant). Library page on live not visually checked (NOT TESTED).
 - Next: owner checks the Library page on live; the open owner decisions in CURRENT-TASK.md stand.
+
+## 2026-10-21 (night, later), Claude Code: editor warnings cleared and release 20261021T201339Z
+
+- Who: Claude Code (Opus 5.5).
+- What: PR #49 swapped arbitrary Tailwind pixel values for their exact scale classes in ApiCover, EditorInspector, LibraryPage and PipelineView (no visual change) and fixed markdownlint MD034 and MD029 in CURRENT-TASK.md. The owner merged PR #49 and ran the deploy (the assistant was blocked from merging and deploying by the permission classifier). Remote branch `chore/canonical-classes` deleted.
+- Live: release `20261021T201339Z` (`d1aceb0`). Rollback `20261021T200148Z`.
+- Files: apps/web/src/features/cover/ApiCover.tsx, editor/EditorInspector.tsx, library/LibraryPage.tsx, library/PipelineView.tsx, `.agent/CURRENT-TASK.md`, `.agent/HANDOFF.md`.
+- Checks: web typecheck, ESLint on the four files, Prettier, web build PASS; web Vitest 186 of 186 PASS. After deploy: dry-run reads live release `20261021T201339Z`, `/` and `/api/health` HTTP 200 PASS. e2e by the deploy script, output not seen here (NOT TESTED by the assistant). Live pages not visually checked (NOT TESTED).
+- Next: the open owner decisions in CURRENT-TASK.md.

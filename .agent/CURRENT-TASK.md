@@ -2,7 +2,7 @@
 
 ## State on 21 October 2026 (evening)
 
-- Live at <https://volume.gakinz.com> on release `20261021T200148Z` (main `94a20e6`, PRs up to #48). Rollback target `20261021T194030Z` (`npm run deploy -- --rollback`). Git cleaned 21 October: only `main` and `ci/run-check`, local and on GitHub; no worktrees.
+- Live at <https://volume.gakinz.com> on release `20261021T201339Z` (main `d1aceb0`, PRs up to #49). Rollback target `20261021T200148Z` (`npm run deploy -- --rollback`). Git cleaned 21 October: only `main` and `ci/run-check`, local and on GitHub; no worktrees.
 
 ## State on 20 October 2026
 
