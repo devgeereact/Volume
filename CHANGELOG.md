@@ -8,6 +8,7 @@ User-visible changes, newest first. Dates in British format.
 - Clean-handbook page design, modelled on the NHS Boundary Handbook: one sans typeface, block paragraphs, "CHAPTER N" in navy over the chapter title on its own page, each section on a new page, no running heads and quiet page numbers you can switch off.
 - Pages files for final retouching. On a Mac, `npm run pages -- <pack.zip>` adds a `.pages` copy of the manuscript to the pack; the pack README tells you how when it is missing.
 - A converter that turns Pages books (exported as Word) into files Volume can import, chapters and sections intact.
+- Import manuscripts takes several files at once and can mark them published as they come in, so a pen name's backlist lands on the Published shelf and in Also by in one step.
 
 #### Changed
 - First drafts come out cleaner. Example prompts are filled in rather than left with [brackets], examples use "you" or a plain description instead of invented brand names, there is no "guarantee" wording and no unsourced statistics, and the writing avoids the usual AI tells. The writer now also sees the book type's own rules.

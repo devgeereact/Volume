@@ -24,10 +24,10 @@ test("Markdown import saves edited text after reload and supports undo and plain
   const author = await profile(request);
   await page.goto("/library");
   await page.getByRole("button", { name: "Import manuscript", exact: true }).first().click();
-  const dialog = page.getByRole("dialog", { name: "Import a manuscript" });
+  const dialog = page.getByRole("dialog", { name: "Import manuscripts" });
   await dialog.getByLabel("Pen name", { exact: true }).click();
   await dialog.getByRole("option", { name: author.penName }).click();
-  await dialog.getByLabel("Markdown file").setInputFiles({
+  await dialog.getByLabel("Markdown files").setInputFiles({
     name: "browser.md",
     mimeType: "text/markdown",
     buffer: Buffer.from("::: titlepage\nBrowser Import\nA saved manuscript\nTest Author\n:::\n\n# Chapter 1: Imported chapter\n\nThe original paragraph.\n"),
