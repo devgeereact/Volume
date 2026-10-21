@@ -384,7 +384,7 @@ function ClaimCard({
           {statusText[claim.status]}
         </span>
       </p>
-      <p className={cn("mt-2 font-book text-[15px] leading-[23px] text-ink", claim.status === "removed" && "line-through decoration-ink-tertiary")}>
+      <p className={cn("mt-2 font-book text-[15px] leading-5.75 text-ink", claim.status === "removed" && "line-through decoration-ink-tertiary")}>
         {claim.status === "softened" ? claim.softened || claim.sentence : claim.sentence}
       </p>
       {open && <p className="mt-1.5 text-small text-ink-secondary">{claim.check}</p>}
@@ -440,7 +440,7 @@ function ClaimCard({
           {softenEditable && claim.softened && (
             <>
               <p className="text-small text-ink-secondary">Suggested softer wording:</p>
-              <p className="rounded-sm bg-sheet px-2.5 py-2 font-book text-[15px] leading-[23px] text-ink">
+              <p className="rounded-sm bg-sheet px-2.5 py-2 font-book text-[15px] leading-5.75 text-ink">
                 <DiffText before={claim.sentence} after={claim.softened} show="after" />
               </p>
             </>
@@ -456,7 +456,7 @@ function ClaimCard({
           ) : (
             <>
               <p className="text-small text-ink-secondary">Softer wording:</p>
-              <p className="rounded-sm bg-sheet px-2.5 py-2 font-book text-[15px] leading-[23px] text-ink">
+              <p className="rounded-sm bg-sheet px-2.5 py-2 font-book text-[15px] leading-5.75 text-ink">
                 <DiffText before={claim.sentence} after={claim.softened} show="after" />
               </p>
             </>
@@ -592,7 +592,7 @@ function SuggestionsPanel({
               const st = suggestionState[s.id] ?? "pending";
               return (
                 <li key={s.id} className={cn("rounded-md border border-border p-3", st === "pending" ? "bg-sheet" : "bg-canvas")}>
-                  <p className="font-book text-[15px] leading-[23px] text-ink">
+                  <p className="font-book text-[15px] leading-5.75 text-ink">
                     <DiffText before={s.original} after={s.proposed} />
                   </p>
                   <p className="mt-1.5 text-small text-ink-secondary">{s.reason}</p>
@@ -678,7 +678,7 @@ function NotesPanel({ notes, section, sectionLabel, onShowNote, onAddNote, canAd
                       {noteStatusText[n.status]}
                     </span>
                   </span>
-                  <span className="line-clamp-2 font-book text-[15px] leading-[22px] text-ink italic">{n.text.trim() || "Empty note"}</span>
+                  <span className="line-clamp-2 font-book text-[15px] leading-5.5 text-ink italic">{n.text.trim() || "Empty note"}</span>
                 </button>
               </li>
             );

@@ -24,7 +24,7 @@ const demoActive = allBooks.filter((b) => !b.archived);
 
 function LibrarySkeleton() {
   return (
-    <div role="status" aria-label="Loading books" className="grid gap-[22px]">
+    <div role="status" aria-label="Loading books" className="grid gap-5.5">
       <div className="grid grid-cols-[72px_1fr] gap-5 rounded-lg border border-border bg-sheet p-5 sm:grid-cols-[112px_1fr]">
         <Skeleton variant="cover" />
         <div className="grid content-start gap-3">
@@ -200,7 +200,7 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-[22px] px-4 pt-6 pb-10 sm:px-8 lg:px-10 lg:pt-7">
+    <div className="mx-auto flex w-full max-w-360 flex-col gap-5.5 px-4 pt-6 pb-10 sm:px-8 lg:px-10 lg:pt-7">
       <PageHeader
         title="Library"
         summary={summary}
@@ -213,7 +213,7 @@ export default function LibraryPage() {
                 value={query}
                 onChange={setQuery}
                 count={shown.length}
-                className="w-full sm:w-[280px]"
+                className="w-full sm:w-70"
               />
             )}
             <SegmentedControl<View>
