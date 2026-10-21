@@ -182,7 +182,8 @@ describe('honesty prompt versions', () => {
       ['blueprint.blueprint-workbook', 1],
     ];
     for (const [id, previous] of pairs) {
-      const latest = loader.load(id);
+      // The honesty version itself (later versions such as writing v7 may add inputs; the server supplies them).
+      const latest = loader.load(id, previous + 1);
       const before = loader.load(id, previous);
       expect(latest.meta.version, id).toBe(previous + 1);
       expect(latest.meta.inputs, id).toEqual(before.meta.inputs);

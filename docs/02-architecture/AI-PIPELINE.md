@@ -58,7 +58,10 @@ Every structured output is validated twice: by the task's zod schema in `package
 
 - **In:** see context packing below.
 - **Out:** streamed Markdown in the Volume dialect (`docs/book-production/EXPORT-SPEC.md`): one `#` heading, the opening hook, `##` subheadings from the blueprint, flowing first-person prose, `::: takeaways` when on, a closing bridge.
-- **Then `summarise`** (small model, JSON): `summary` (up to 120 words), `ledger[]` (`kind`, `key`, `detail`) for examples, anecdotes, people, places, metaphors, phrases, promises and terms used. Saved to `section_versions.summary` and `story_ledger`.
+- **Then `summarise`** (small model, JSON): `summary` (up to 120 words), `ledger[]` (`kind`, `key`, `detail`) for examples, anecdotes, people, places, metaphors, phrases, promises and terms used. Saved to `section_versions.summary` and `story_ledger`. From prompt v6 a front or back matter page (glossary, conclusion, review request, about the author) may have a 1 to 3 sentence summary and 0 to 6 key points.
+- **Retry before a missing-step flag (21 October 2026):** when the summary or the claims and consistency check fails (a cut-off or invalid answer, a refusal), the writer runs it once more on the stage's model before it raises `summary_missing` or `checks_missing`. The runner names no fallback model here, so none is switched in; an unavailable model is not asked twice.
+- **Book-type rules (21 October 2026):** writing v7 (chapter, introduction, conclusion, back matter) and `writing.extend-section` v5 get the book type's `genreRules.mustHaves` and `avoid` as plain text in `{{bookTypeRules}}` (`bookTypeRulesText` in `apps/server/src/config/book-structure.ts`, filled in by the adapter from `{{template}}`), plus a clean draft rules block: filled-in examples, no invented brands or case-study people, no guarantees, no unsourced statistics and the humanizer rules.
+- **Writing samples (21 October 2026):** up to two profile samples of kind `sounds_like` or `writing_sample` (sounds-like first), each cut to its first 600 words at a paragraph end, go to the AI layer as voice DNA `soundsLike` and reach the writer as `{{profile.voiceSample}}`. A profile with no samples sends exactly what it sent before.
 
 ### 5 Checkers
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { bookTypeRulesText } from '../config/book-structure.js';
 import { ConfigError } from '../config/env.js';
 import { JobFailed } from '../jobs/errors.js';
 import { dedupeKey, sha256Hex } from '../lib/util.js';
@@ -274,7 +275,11 @@ export function profileInput(v: unknown): Rec | null {
   put(out, 'penName', text(v['penName']));
   put(out, 'perspective', firstText(v['perspective'], voice['perspective'], voice['pov']));
   put(out, 'credentials', credentials || null);
-  put(out, 'voice', typeof v['voice'] === 'string' ? v['voice'] : voiceText(voice, memory));
+  const voiceNotes = typeof v['voice'] === 'string' ? v['voice'] : voiceText(voice, memory);
+  // The pen name's writing samples (profileSummary `samples`, already trimmed) go as voice DNA "sounds like" samples,
+  // which the AI layer sends as {{profile.voiceSample}}. With no samples the voice stays the plain text it always was.
+  const samples = strList(v['samples']);
+  put(out, 'voice', samples.length ? { notes: voiceNotes, soundsLike: samples } : voiceNotes);
   put(out, 'voiceSample', firstText(v['voiceSample'], voice['sample']));
   put(out, 'isRealPerson', firstBool(v['isRealPerson']));
   put(out, 'bio', firstText(v['bio'], v['bioThirdPerson']));
@@ -382,6 +387,8 @@ export function baseInput(v: Rec): Rec {
   if (profile) out['profile'] = profile;
   out['book'] = bookInput(v);
   for (const k of ['blueprint', 'template', 'research'] as const) if (v[k] !== undefined) out[k] = v[k] ?? null;
+  // The book type's must-haves and things to avoid as plain text (writing v7 {{bookTypeRules}}), from the template rules.
+  put(out, 'bookTypeRules', firstText(v['bookTypeRules']) ?? bookTypeRulesText(v['template']));
   // The fiction story bible goes on its own as {{storyBible}}, never inside {{blueprint}} (D-043).
   const bp = out['blueprint'];
   const bible = v['storyBible'] ?? (isRec(bp) ? bp['storyBible'] : undefined);
