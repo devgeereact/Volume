@@ -107,6 +107,18 @@ Once the hosted app holds books, never copy the database again (`db:copy-to-mysq
 
 The zip must be under `MAX_UPLOAD_BYTES` (50 MB unless set), and the expanded files under 160 MB. Imports are limited to 5 per minute per visitor. API: `POST /api/v1/books/import-project`, multipart/form-data with `profileId` and `file`.
 
+## Apple Pages copy of a pack (Mac only)
+
+The host cannot make Pages files (it is Linux). On the Mac, after downloading a pack:
+
+```sh
+npm run pages -- <pack.zip|pack folder>
+```
+
+It finds `manuscript/*.docx`, has Apple Pages (`com.apple.Pages`) open each one, save it as `.pages` and close that document. In a folder the `.pages` file goes next to the DOCX; in a zip it is added as `manuscript/<slug>.pages` and README.txt names it. Pages is never quit, so documents you already have open stay open. Each file has 90 seconds. On another system, or without Pages, it stops with a plain message and changes nothing.
+
+A local Volume on the Mac can add the file to every pack it builds: start it with `VOLUME_PAGES=1`. Any other platform ignores the setting; a failed conversion leaves the file out and the README says how to make one. Pages shows the DOCX fonts only when they are installed on the Mac (for `clean-handbook`, install Libre Franklin); otherwise it substitutes a system font.
+
 ## Post-deploy checks
 
 | URL | Expected |

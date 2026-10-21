@@ -174,7 +174,7 @@ function openerHtml(s: Section, theme: InteriorTheme): string {
   const numeral = theme.opener.style === 'number' && s.number !== undefined ? `<div class="numeral">${s.number}</div>` : '';
   const rule = theme.opener.rule && theme.opener.style !== 'minimal' ? '<div class="rule"></div>' : '';
   const ruleTop = theme.opener.style === 'rule' ? '<div class="rule top"></div>' : '';
-  return `<div class="opener ${theme.opener.style}" data-opener="${s.id}">${orn ? `<div class="orn">${orn}</div>` : ''}${ruleTop}${numeral}${theme.opener.style === 'number' ? '' : kicker}<h1 class="st">${escapeHtml(title)}</h1>${theme.opener.style === 'rule' ? '' : rule}</div>`;
+  return `<div class="opener ${theme.opener.style}${theme.opener.ownPage && s.kind === 'chapter' ? ' own' : ''}" data-opener="${s.id}">${orn ? `<div class="orn">${orn}</div>` : ''}${ruleTop}${numeral}${theme.opener.style === 'number' ? '' : kicker}<h1 class="st">${escapeHtml(title)}</h1>${theme.opener.style === 'rule' ? '' : rule}</div>`;
 }
 
 export function buildPrintHtml(source: BookDoc, theme: InteriorTheme, lib: FontLibrary, opts: PrintHtmlOptions): PrintHtml {
@@ -263,9 +263,29 @@ export function buildPrintHtml(source: BookDoc, theme: InteriorTheme, lib: FontL
           ? 'text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.85em;'
           : '';
   const marginBox = `font-family: '${rh}'; font-size: ${theme.sizes.runningHeadPt}pt; color: ${theme.colours.muted};`;
-  const folioBox = `font-family: '${rh}'; font-size: ${theme.sizes.folioPt}pt; color: ${theme.colours.text};`;
-  const dc = theme.dropCaps;
   const lineH = theme.leading;
+  const folioBox = `font-family: '${rh}'; font-size: ${theme.sizes.folioPt}pt; color: ${theme.colours.text};`;
+  // Folios: outside corners (default), centred at the foot, or none (theme token folios).
+  const fol = theme.folios;
+  const folioRule = (box: 'bottom-left' | 'bottom-right'): string =>
+    !fol.enabled
+      ? `@${box} { content: none; }`
+      : `@${fol.position === 'center' ? 'bottom-center' : box} { content: counter(page); ${folioBox} vertical-align: top; padding-top: 0.22in; }`;
+  const blankCentre = fol.position === 'center' ? '\n  @bottom-center { content: none; }' : '';
+  const sec = theme.sections;
+  const extraCss = [
+    sec.newPage
+      ? '.sec.chapter h2 { break-before: page; page-break-before: always; margin-top: 0; }\n.sec.chapter .opener + h2 { break-before: auto; page-break-before: auto; }'
+      : '',
+    sec.uppercase ? '.sec.chapter h2 { text-transform: uppercase; letter-spacing: 0.02em; }' : '',
+    sec.align === 'center' ? '.sec.chapter h2 { text-align: center; }' : '',
+    theme.opener.ownPage
+      ? `.opener.own { height: ${contentH}in; padding-top: 0; margin-bottom: 0; display: flex; flex-direction: column; justify-content: center; break-after: page; page-break-after: always; }\n.opener.own .kicker { font-weight: ${theme.weights.heading}; letter-spacing: 0.04em; margin-bottom: 10pt; }`
+      : '',
+    theme.opener.titleUppercase ? '.opener h1.st { text-transform: uppercase; letter-spacing: 0.01em; }' : '',
+    theme.paragraph.spaceLines > 0 ? `section.sec p + p { margin-top: ${(theme.paragraph.spaceLines * lineH).toFixed(3)}em; }` : '',
+  ].filter(Boolean);
+  const dc = theme.dropCaps;
   const startId = numberingStartId ? `#${numberingStartId}` : '.no-numbering';
 
   const css = `${symbolFallbackCss(lib)}
@@ -278,22 +298,22 @@ ${fontCss}
 @page :left {
   margin-left: ${m.outsideIn}in; margin-right: ${m.insideIn}in;
   @top-center { content: ${leftHeadCss}; ${marginBox} ${rhStyle} vertical-align: bottom; padding-bottom: 0.2in; }
-  @bottom-left { content: counter(page); ${folioBox} vertical-align: top; padding-top: 0.22in; }
+  ${folioRule('bottom-left')}
 }
 @page :right {
   margin-left: ${m.insideIn}in; margin-right: ${m.outsideIn}in;
   @top-center { content: ${rightHeadCss}; ${marginBox} ${rhStyle} vertical-align: bottom; padding-bottom: 0.2in; }
-  @bottom-right { content: counter(page); ${folioBox} vertical-align: top; padding-top: 0.22in; }
+  ${folioRule('bottom-right')}
 }
 @page :blank {
   @top-center { content: none; }
   @bottom-left { content: none; }
-  @bottom-right { content: none; }
+  @bottom-right { content: none; }${blankCentre}
 }
 .pagedjs_page.vol-nohead .pagedjs_margin-top { visibility: hidden; }
 .pagedjs_page.vol-nofolio .pagedjs_margin-bottom { visibility: hidden; }
 .pagedjs_page.vol-folio-set .pagedjs_margin-bottom-left > .pagedjs_margin-content::after,
-.pagedjs_page.vol-folio-set .pagedjs_margin-bottom-right > .pagedjs_margin-content::after,
+.pagedjs_page.vol-folio-set .pagedjs_margin-bottom-right > .pagedjs_margin-content::after,${fol.position === 'center' ? '\n.pagedjs_page.vol-folio-set .pagedjs_margin-bottom-center > .pagedjs_margin-content::after,' : ''}
 .toc a.pg.fixed::after { content: none !important; }
 ${startId} { counter-reset: page 1; }
 
@@ -345,7 +365,7 @@ section > :not([data-split-to]), .opener *, .toc * { text-align-last: auto; }
 .opener.centred .orn svg, .opener.number .orn svg { margin-left: auto; margin-right: auto; }
 .opener.minimal { padding-top: ${(theme.opener.sinkIn * 0.6).toFixed(2)}in; }
 .opener .orn svg { display: block; margin-bottom: 14pt; }
-.opener .kicker, .part-opener .kicker { font-family: '${heading}'; font-weight: ${theme.weights.subheading}; font-size: ${theme.sizes.kickerPt}pt; letter-spacing: 0.16em; ${theme.opener.kickerUppercase ? 'text-transform: uppercase;' : ''} color: ${theme.colours.muted}; margin-bottom: 7pt; }
+.opener .kicker, .part-opener .kicker { font-family: '${heading}'; font-weight: ${theme.weights.subheading}; font-size: ${theme.sizes.chapterLabelPt}pt; letter-spacing: 0.16em; ${theme.opener.kickerUppercase ? 'text-transform: uppercase;' : ''} color: ${theme.colours.label}; margin-bottom: 7pt; }
 .opener .numeral { font-family: '${display}'; font-weight: ${theme.weights.display}; font-size: ${theme.sizes.chapterTitlePt * 2.6}pt; line-height: 1; color: ${theme.colours.accent}; margin-bottom: 10pt; }
 .opener .rule { width: 0.6in; height: 1.4pt; background: ${theme.colours.accent}; margin-top: 16pt; }
 .opener.centred .rule { margin-left: auto; margin-right: auto; }
@@ -389,9 +409,11 @@ figcaption { font-size: ${theme.sizes.smallPt}pt; margin-top: 4pt; color: ${them
 .fill-in .fi { text-indent: 0; margin: 8pt 0 0; }
 .fill-in .wl { border-bottom: 0.6pt solid #888; height: 22pt; }
 p.dropcap::first-letter { float: left; font-family: '${display}'; font-weight: ${theme.weights.display}; font-size: ${(dc.lines * lineH * 0.98).toFixed(2)}em; line-height: 0.85; margin: 0.06em 0.08em 0 0; color: ${theme.colours.accent}; }
-h1.st { string-set: sectitle content(text); }
+h1.st { string-set: sectitle content(text); }${extraCss.length ? `\n${extraCss.join('\n')}` : ''}
 `)}`;
 
-  const html = `<!doctype html><html lang="${escapeHtml(book.meta.language)}"><head><meta charset="utf-8"><title>${escapeHtml(book.meta.subtitle ? `${book.meta.title}: ${book.meta.subtitle}` : book.meta.title)}</title><style>${css}</style></head><body${theme.opener.dropFolio ? ' data-drop-folio="1"' : ''}>${parts.join('\n')}</body></html>`;
+  // Read by the layout script in pdf.ts, which writes the folios itself.
+  const folioAttr = !fol.enabled ? ' data-folio="off"' : fol.position === 'center' ? ' data-folio="center"' : '';
+  const html = `<!doctype html><html lang="${escapeHtml(book.meta.language)}"><head><meta charset="utf-8"><title>${escapeHtml(book.meta.subtitle ? `${book.meta.title}: ${book.meta.subtitle}` : book.meta.title)}</title><style>${css}</style></head><body${theme.opener.dropFolio ? ' data-drop-folio="1"' : ''}${folioAttr}>${parts.join('\n')}</body></html>`;
   return { html, numberingStartId, warnings };
 }

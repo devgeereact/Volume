@@ -70,6 +70,8 @@ export interface InteriorTheme {
     chapterTitlePt: number;
     subheadingPt: number;
     kickerPt: number;
+    /** The "Chapter 3" label on chapter and part openers (defaults to kickerPt). */
+    chapterLabelPt: number;
     runningHeadPt: number;
     folioPt: number;
     smallPt: number;
@@ -77,7 +79,8 @@ export interface InteriorTheme {
   };
   /** Line height as a multiple of the body size. */
   leading: number;
-  paragraph: { indentEm: number; align: 'justify' | 'left'; hyphenate: boolean };
+  /** spaceLines: blank lines between body paragraphs (block paragraphs); 0 for none. */
+  paragraph: { indentEm: number; align: 'justify' | 'left'; hyphenate: boolean; spaceLines: number };
   /** Per-trim (or "*") overrides of the house margins. */
   margins?: Partial<Record<string, Partial<MarginsIn>>>;
   /** Extra inside margin added to the KDP minimum for the page count (interior-themes.json margins.extraInsideIn). */
@@ -94,11 +97,20 @@ export interface InteriorTheme {
     dropFolio: boolean;
     /** How "Chapter 3" is printed: Chapter 3, Chapter Three, Chapter III, or no kicker. */
     numberFormat: NumberFormat;
+    /** The opener (label and title) sits alone on its page, vertically centred; the text starts on the next page. */
+    ownPage: boolean;
+    /** Chapter titles in capitals. */
+    titleUppercase: boolean;
   };
+  /** Subheadings (h2) inside chapters: each on a new page, in capitals, left or centred. */
+  sections: { newPage: boolean; uppercase: boolean; align: 'left' | 'center' };
   sceneBreak: string;
   runningHeads: { enabled: boolean; style: RunningHeadStyle; left: RunningHeadContent; right: RunningHeadContent };
   dropCaps: { enabled: boolean; lines: number };
-  colours: { text: string; accent: string; muted: string };
+  /** label: the "Chapter 3" kicker on openers (defaults to muted). */
+  colours: { text: string; accent: string; muted: string; label: string };
+  /** Page numbers: on or off, at the outside corner or centred at the foot. */
+  folios: { enabled: boolean; position: 'outside' | 'center' };
   /** Chapters and parts open on a right-hand page (D-013) or on any page. */
   chapterStart: 'right' | 'any';
 }
@@ -109,14 +121,36 @@ export const DEFAULT_INTERIOR_THEME: InteriorTheme = {
   name: 'Volume default',
   fonts: { body: 'Source Sans 3', heading: 'Plus Jakarta Sans', display: 'Plus Jakarta Sans', runningHead: 'Source Sans 3' },
   weights: { body: 400, bold: 700, heading: 800, display: 800, subheading: 600 },
-  sizes: { bodyPt: 10.6, chapterTitlePt: 21, subheadingPt: 11.6, kickerPt: 8.4, runningHeadPt: 8.6, folioPt: 9, smallPt: 8.6, titlePagePt: 30 },
+  sizes: {
+    bodyPt: 10.6,
+    chapterTitlePt: 21,
+    subheadingPt: 11.6,
+    kickerPt: 8.4,
+    chapterLabelPt: 8.4,
+    runningHeadPt: 8.6,
+    folioPt: 9,
+    smallPt: 8.6,
+    titlePagePt: 30,
+  },
   leading: 1.48,
-  paragraph: { indentEm: 1.3, align: 'justify', hyphenate: true },
-  opener: { style: 'classic', sinkIn: 1.05, kickerUppercase: true, rule: true, ornament: 'sprig', dropFolio: false, numberFormat: 'numerals' },
+  paragraph: { indentEm: 1.3, align: 'justify', hyphenate: true, spaceLines: 0 },
+  opener: {
+    style: 'classic',
+    sinkIn: 1.05,
+    kickerUppercase: true,
+    rule: true,
+    ornament: 'sprig',
+    dropFolio: false,
+    numberFormat: 'numerals',
+    ownPage: false,
+    titleUppercase: false,
+  },
+  sections: { newPage: false, uppercase: false, align: 'left' },
   sceneBreak: '* * *',
   runningHeads: { enabled: true, style: 'small-caps', left: 'book-title', right: 'chapter-title' },
   dropCaps: { enabled: false, lines: 3 },
-  colours: { text: '#111111', accent: '#111111', muted: '#555555' },
+  colours: { text: '#111111', accent: '#111111', muted: '#555555', label: '#555555' },
+  folios: { enabled: true, position: 'outside' },
   chapterStart: 'right',
 };
 
@@ -222,6 +256,7 @@ export function normaliseInteriorTheme(raw: unknown, base: InteriorTheme = DEFAU
   t.sizes.chapterTitlePt = asNum(pick(sizes, 'chapterTitle', 'chapter', 'h1', 'title')) ?? asNum(pick(dispF, 'size')) ?? t.sizes.chapterTitlePt;
   t.sizes.subheadingPt = asNum(pick(sizes, 'subheading', 'h2', 'subhead', 'heading')) ?? t.sizes.subheadingPt;
   t.sizes.kickerPt = asNum(pick(sizes, 'kicker', 'chapterNumber', 'label')) ?? Math.max(7.5, Math.round(t.sizes.bodyPt * 0.8 * 10) / 10);
+  t.sizes.chapterLabelPt = asNum(pick(sizes, 'chapterLabel', 'openerLabel')) ?? t.sizes.kickerPt;
   t.sizes.runningHeadPt = asNum(pick(sizes, 'runningHead', 'header')) ?? Math.max(7.5, Math.round(t.sizes.bodyPt * 0.82 * 10) / 10);
   t.sizes.folioPt = asNum(pick(sizes, 'folio', 'pageNumber')) ?? Math.max(8, Math.round(t.sizes.bodyPt * 0.85 * 10) / 10);
   t.sizes.smallPt = asNum(pick(sizes, 'small', 'copyright', 'caption', 'footnote')) ?? t.sizes.smallPt;
@@ -236,6 +271,7 @@ export function normaliseInteriorTheme(raw: unknown, base: InteriorTheme = DEFAU
   const align = asStr(pick(para, 'align', 'alignment')) ?? asStr(pick(raw, 'align', 'alignment', 'justification'));
   if (align) t.paragraph.align = /left|rag/i.test(align) ? 'left' : 'justify';
   t.paragraph.hyphenate = asBool(pick(para, 'hyphenate', 'hyphens')) ?? asBool(pick(raw, 'hyphenate', 'hyphenation')) ?? t.paragraph.hyphenate;
+  t.paragraph.spaceLines = asNum(pick(para, 'spaceLines', 'paragraphSpaceLines', 'spaceBetweenLines')) ?? t.paragraph.spaceLines;
 
   const marginsRaw = pick(raw, 'margins', 'margin');
   const margins = marginsOf(marginsRaw);
@@ -264,6 +300,15 @@ export function normaliseInteriorTheme(raw: unknown, base: InteriorTheme = DEFAU
   t.opener.dropFolio = asBool(pick(opener, 'dropFolio', 'noFolio')) ?? t.opener.dropFolio;
   const nf = asStr(pick(opener, 'numberFormat', 'numbering'));
   if (nf) t.opener.numberFormat = /word/i.test(nf) ? 'words' : /roman/i.test(nf) ? 'roman' : /none|off/i.test(nf) ? 'none' : 'numerals';
+  t.opener.ownPage = asBool(pick(opener, 'ownPage', 'alonePage', 'standalone')) ?? t.opener.ownPage;
+  t.opener.titleUppercase = asBool(pick(opener, 'titleUppercase', 'uppercaseTitle')) ?? t.opener.titleUppercase;
+  const secRaw = pick(raw, 'sections', 'subheadings', 'sectionHeadings');
+  if (isObj(secRaw)) {
+    t.sections.newPage = asBool(pick(secRaw, 'newPage', 'pageBreakBefore', 'startOnNewPage')) ?? t.sections.newPage;
+    t.sections.uppercase = asBool(pick(secRaw, 'uppercase', 'caps')) ?? t.sections.uppercase;
+    const sa = asStr(pick(secRaw, 'align', 'alignment'));
+    if (sa) t.sections.align = /cent/i.test(sa) ? 'center' : 'left';
+  }
   const orn = pick(raw, 'ornament', 'ornaments', 'fleuron') ?? pick(opener, 'ornament');
   const ornName = asStr(orn) ?? asStr(pick(orn, 'name', 'opener', 'svg', 'glyph'));
   if (ornName) t.opener.ornament = ornName;
@@ -303,6 +348,18 @@ export function normaliseInteriorTheme(raw: unknown, base: InteriorTheme = DEFAU
   t.colours.text = asStr(pick(colours, 'text', 'ink', 'body')) ?? t.colours.text;
   t.colours.accent = asStr(pick(colours, 'accent', 'heading', 'highlight')) ?? t.colours.accent;
   t.colours.muted = asStr(pick(colours, 'muted', 'secondary', 'subtle')) ?? t.colours.muted;
+  t.colours.label = asStr(pick(colours, 'label', 'kicker', 'chapterLabel')) ?? t.colours.muted;
+
+  const fol = pick(raw, 'folios', 'folio', 'pageNumbers');
+  if (typeof fol === 'boolean') t.folios.enabled = fol;
+  else if (typeof fol === 'string') {
+    t.folios.enabled = !/^(none|off|false)\b/i.test(fol.trim());
+    if (/cent/i.test(fol)) t.folios.position = 'center';
+  } else if (isObj(fol)) {
+    t.folios.enabled = asBool(pick(fol, 'enabled', 'on', 'show')) ?? true;
+    const fp = asStr(pick(fol, 'position', 'align', 'place'));
+    if (fp) t.folios.position = /cent/i.test(fp) ? 'center' : 'outside';
+  }
 
   const start = asStr(pick(raw, 'chapterStart', 'openOn', 'chapterStartsOn')) ?? asStr(pick(opener, 'startsOn', 'startOn', 'page'));
   if (start) t.chapterStart = /any|either|next/i.test(start) ? 'any' : 'right';
