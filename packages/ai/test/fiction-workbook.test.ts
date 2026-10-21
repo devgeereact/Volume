@@ -83,8 +83,9 @@ describe('stage selection by template', () => {
     }
   });
 
-  it('non-fiction runs writing.chapter v7 and blueprint.blueprint v6; v5 and v6 stay loadable for pinned books', () => {
-    expect(loader.load('writing.chapter').meta.version).toBe(7);
+  it('non-fiction runs writing.chapter v8 and blueprint.blueprint v6; v5 to v7 stay loadable for pinned books', () => {
+    expect(loader.load('writing.chapter').meta.version).toBe(8);
+    expect(loader.load('writing.chapter', 7).meta.version).toBe(7);
     expect(loader.load('writing.chapter', 6).meta.version).toBe(6);
     expect(loader.load('blueprint.blueprint').meta.version).toBe(6);
     expect(loader.load('writing.chapter', 5).meta.version).toBe(5);

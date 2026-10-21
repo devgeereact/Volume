@@ -1,3 +1,4 @@
+import { fieldDriftAppliesTo } from '../../config/book-structure.js';
 import { findTemplateJunk, findUndatedPrices, findUnsourcedPrices, tidyGlossaryMarkdown } from '@volume/core';
 import { markdownToPlaintext, wordCount } from '../../lib/text.js';
 import { datedPricesVars, factsUsedIn, plannedBodyCount, templateChecks, writtenSections } from '../book-checks.js';
@@ -5,6 +6,7 @@ import {
   advanceIfWritingComplete,
   CHECKS_MISSING_CHECKER,
   CODE_WRITTEN_KINDS,
+  fieldDriftCheck,
   houseStyle,
   loadTemplate,
   OWNER_PLACEHOLDER_SOURCE,
@@ -534,6 +536,9 @@ export const writeSectionHandler: JobHandler = async (jc) => {
   await jc.progress(0.8, 'Checking');
 
   const checks = styleChecks(markdown, jc.services.configDir);
+  // Health terms in a book that is not a health book: one warning with the matches (owner, 21 October 2026).
+  const drift = fieldDriftCheck(markdown, await fieldDriftAppliesTo(jc.services.configDir, book.bookTypeId));
+  if (drift) checks.push(drift);
   const autofix = styleFixCheck(styleFix);
   if (autofix) checks.push(autofix);
   if (summaryFailed) checks.push(summaryMissingCheck(summaryFailed));
