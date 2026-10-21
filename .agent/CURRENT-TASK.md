@@ -11,7 +11,7 @@
 
 ## Next
 
-0. Simpler Editor, AI run messages, Cover studio steps and real cover thumbnails: merged (PR #26) and live on 21 October 2026 as release `20261020T231731Z` (main `0700b69`), rollback `20261020T035644Z`. Owner to test live. 21 October: Fix the whole book (Claims page) and one-click model fallback added; see HANDOFF.
+0. Simpler Editor, AI run messages, Cover studio steps and real cover thumbnails: merged (PR #26) and live on 21 October 2026 as release `20261020T231731Z` (main `0700b69`), rollback `20261020T035644Z`. Owner to test live. 21 October: Fix the whole book and one-click model fallback live as release `20261021T000422Z` (main `98bfcd3`, PR #27), rollback `20261020T231731Z`.
 1. Owner: get the GitHub account flag lifted (account reinstatement request); then push `ci/run-check` and check CI on `main`.
 2. Until then: deploy with `npm run deploy -- --no-ci-check`, which now runs typecheck, lint, format:check, test and e2e on this computer first and stops on any failure.
 3. Owner: hold the phase 5 to 8 gates by trying each book type on the live site.
