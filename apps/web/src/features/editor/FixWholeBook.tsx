@@ -173,9 +173,9 @@ export function FixWholeBook({
         Fix the whole book
       </h2>
       <p className="mt-1 text-small text-ink-secondary">
-        One click fixes house style (em dashes, US spellings, empty list items) in every section, runs any missing summaries and checks, then every open claim
-        that needs your check: softer wording where it is on file, otherwise the AI rewrites the sentence so it claims only what is safe, never adding a source
-        you have not got. Each change is saved as a new version, so you can undo it in Versions.
+        One click tidies the whole book. It fixes dashes, US spellings and empty list items, fills in any missing summaries and checks, then rewrites each claim
+        that needs your check so it says only what is safe. It never adds a source you do not have. Every change is a new version, so you can undo it in
+        Versions.
         {forRecord > 0 &&
           ` The ${forRecord} ${forRecord === 1 ? "claim" : "claims"} listed for the record ${forRecord === 1 ? "stays" : "stay"} as written; ${forRecord === 1 ? "it is" : "they are"} still in the claims report.`}
       </p>
