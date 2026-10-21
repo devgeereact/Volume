@@ -375,7 +375,7 @@ export interface CoverStyle {
   band?: { topPct: number; heightPct: number };
   titleUppercase: boolean;
   authorUppercase: boolean;
-  /** Darkening over a background image so text stays legible. 0 to 1. */
+  /** Kept for older style files; covers over art now use the palette wash (packages/export ART_WASH_OPACITY). */
   imageOverlay: number;
   /** Ornament drawn in the open middle when there is no background image (name or inline SVG; "none" for nothing). */
   ornament: string;

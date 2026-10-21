@@ -46,7 +46,8 @@ export function ArtCover({
         />
       )}
       {showArt && (
-        // A wash of the style's own background over the art keeps the type at the style's contrast.
+        // A wash of the style's own background over the art keeps the type at the style's contrast. The build uses the
+        // same wash and colours (packages/export covers.ts ART_WASH_OPACITY), so the preview is what gets built.
         <span aria-hidden className="absolute inset-0 rounded-cover" style={{ background: design.palette.background, opacity: 0.55 }} />
       )}
       <Cover title={title} subtitle={subtitle} author={author} design={overlay} className="w-full" decorative={decorative} />

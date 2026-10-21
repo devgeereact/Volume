@@ -61,6 +61,13 @@ function coverFonts(style: CoverStyle, lib: FontLibrary, warnings: string[]): Fo
  * Front cover composition. Sizes use container units (cqw/cqh) so the same design fills a 1600 x 2560 px eBook cover
  * and a trim-sized paperback front panel.
  */
+/**
+ * Over concept art the cover keeps its palette: a wash of the palette's background at this opacity, with the title,
+ * subtitle and author in the palette's own colours. The Cover studio preview (apps/web ArtCover) draws the same, so
+ * what the owner picks is what the build makes.
+ */
+export const ART_WASH_OPACITY = 0.55;
+
 function frontHtml(meta: BookMeta, style: CoverStyle, bg: string | undefined): string {
   const title = style.titleUppercase ? meta.title.toUpperCase() : meta.title;
   const author = style.authorUppercase ? meta.author.toUpperCase() : meta.author;
@@ -69,7 +76,7 @@ function frontHtml(meta: BookMeta, style: CoverStyle, bg: string | undefined): s
   const sub = meta.subtitle ? `<div class="sub${style.subtitleTopPct !== undefined ? ' abs' : ''}">${escapeHtml(meta.subtitle)}</div>` : '';
   return `<div class="front ${style.layout} ${style.align === 'left' ? 'left' : 'centre'}${bg ? ' has-bg' : ''}">
 ${bg ? `<img class="bg" src="${bg}" alt="">` : ''}
-${style.layout === 'band' || style.band ? '<div class="band"></div>' : ''}${style.layout === 'frame' ? '<div class="frame"></div>' : ''}
+${!bg && (style.layout === 'band' || style.band) ? '<div class="band"></div>' : ''}${style.layout === 'frame' ? '<div class="frame"></div>' : ''}
 ${motif && low ? `<div class="motif high">${motif}</div>` : ''}
 ${style.subtitleTopPct !== undefined ? sub : ''}
 <div class="stack">
@@ -91,7 +98,7 @@ function frontCss(style: CoverStyle, f: Fonts): string {
   return `
 .front { position: relative; width: 100%; height: 100%; overflow: hidden; container-type: size; background: ${c.background}; color: ${c.title}; }
 .front .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.front.has-bg::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,${style.imageOverlay}); }
+.front.has-bg::after { content: ""; position: absolute; inset: 0; background: ${c.background}; opacity: ${ART_WASH_OPACITY}; }
 .front .band { position: absolute; left: 0; right: 0; top: ${band.topPct}cqw; height: ${band.heightPct}cqw; background: ${c.band}; }
 .front .frame { position: absolute; inset: 4cqw; border: 0.6cqw solid ${c.accent}; }
 .front .stack { position: absolute; z-index: 2; top: ${top}; left: 8cqw; right: 8cqw; bottom: 7cqh; display: flex; flex-direction: column; align-items: center; text-align: center; }
@@ -106,7 +113,6 @@ function frontCss(style: CoverStyle, f: Fonts): string {
 .front.left .motif.high { justify-content: flex-start; padding-left: 8cqw; }
 .front .rule { width: 8cqw; height: 0.4cqw; background: ${c.accent}; margin-bottom: 2.4cqh; }
 .front .author { font-family: '${f.author}'; font-weight: ${style.weights.author}; ${style.authorItalic ? 'font-style: italic;' : ''} font-size: 5.6cqw; letter-spacing: ${style.authorUppercase ? '0.12em' : '0.02em'}; color: ${c.author}; }
-.front.has-bg .title, .front.has-bg .sub, .front.has-bg .author { color: #fff; }
 .front.minimal .rule { display: none; }
 `;
 }
