@@ -1,3 +1,4 @@
+import { claimNeedsCheck } from '@volume/core';
 import type { RequestCtx } from '../auth/context.js';
 import { AppError } from '../http/errors.js';
 import type { PreflightItem, PreflightReport } from '../ports/export.js';
@@ -16,7 +17,8 @@ export async function preflightReport(s: GateServices, ctx: RequestCtx, bookId: 
   });
   // Text that drifts out of the pen name's field (health terms in a book that is not a health book) warns only.
   await withFieldDrift(s.repos, ctx, s.configDir, await s.repos.books.require(ctx, bookId), report);
-  const openClaims = await s.repos.manuscript.listClaims(ctx, { projectId: bookId, status: 'open' });
+  // Only claims that need the owner's check hold a batch book back; claims listed for the record do not (owner, 21 October 2026).
+  const openClaims = (await s.repos.manuscript.listClaims(ctx, { projectId: bookId, status: 'open' })).filter(claimNeedsCheck);
   // The real exporter reports claims itself (claims.open); the mock does not.
   if (openClaims.length > 0 && !report.items.some((i) => i.id === 'claims.open')) {
     report.items.push({

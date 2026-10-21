@@ -76,3 +76,38 @@ describe('claim tiers', () => {
     expect(item?.message).toContain(`${need} open claim(s) need your check; 2 more are listed for the record in the claims report.`);
   });
 });
+
+describe('Volume mode quality gate and claim tiers', () => {
+  it('lets a book through when its only open claims are listed for the record', async () => {
+    const { testApp } = await import('./helpers.js');
+    const { preflightReport } = await import('../src/jobs/quality-gate.js');
+    const app = await testApp();
+    try {
+      const p = await app.call<Record<string, unknown>>('POST', '/api/v1/profiles', { penName: 'Gate Author', bioThirdPerson: 'Gate Author writes.' });
+      const b = await app.call<Record<string, unknown>>('POST', '/api/v1/books', {
+        profileId: p.body['id'],
+        idea: 'Gate',
+        title: 'Gate',
+        template: 'nonfiction',
+      });
+      const bookId = b.body['id'] as string;
+      await app.call('POST', `/api/v1/books/${bookId}/blueprints`, { chapterCount: 1 });
+      await app.services.runner.runUntilIdle();
+      await app.call('POST', `/api/v1/books/${bookId}/blueprint/approve`, {});
+      await app.call('POST', `/api/v1/books/${bookId}/write`, {});
+      await app.services.runner.runUntilIdle();
+      const m = app.services.repos.manuscript;
+      for (const c of await m.listClaims(app.owner, { projectId: bookId, status: 'open' }))
+        await m.resolveClaim(app.owner, c.id, 'verified', { ownerNote: 'test' });
+      const sec = (await m.listSections(app.owner, bookId)).find((s) => s.kind === 'chapter')!;
+      const cur = (await m.currentVersion(app.owner, sec.id))!;
+      await m.addClaims(app.owner, bookId, sec.id, cur.id, [
+        { sentence: 'Many people feel tired at night.', category: 'medical', checkNeeded: 'x', start: null, end: null, risk: 'low', harmIfWrong: false },
+      ]);
+      const report = await preflightReport(app.services, app.owner, bookId);
+      expect(report.items.find((i) => i.id === 'claims.open')?.severity ?? 'pass').not.toBe('block');
+    } finally {
+      await app.close();
+    }
+  });
+});
