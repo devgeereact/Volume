@@ -464,3 +464,4 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - 21 October: PR #29 (release pruning, other session) and PR #30 (failed uploads never hold a keep slot) merged; failed release `20261021T065316Z` deleted from the host by hand. Dry run: next deploy deletes `releases/20261020T231731Z`.
 
 - Owner: cover concepts "building" for over an hour. Likely cause (not confirmed on the host; production DB not read): the ai lane runs 2 jobs FIFO at priority 100, so a cover_concepts job queues behind every write_section of a book being written. Fix: `quick` lane (max 1) for QUICK_KINDS plus priority 10 for them (queue.ts). Test in queue.test.ts. Server Vitest 473 passed, 3 skipped.
+- Deployed main `f3ff6dc` (PR #31) as release `20261021T080237Z`, rollback `20261021T072506Z`; checks incl. e2e PASS; prune deleted `releases/20261020T231731Z`.
