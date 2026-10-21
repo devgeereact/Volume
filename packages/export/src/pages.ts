@@ -39,8 +39,16 @@ export const PAGES_CONVERT_SCRIPT = `on run argv
         if application id "${PAGES_BUNDLE_ID}" is running then exit repeat
         delay 0.25
       end repeat
-      delay 2
     end if
+    -- Pages reports itself running a few seconds before it answers; ask until it does (up to 30 seconds).
+    repeat 60 times
+      try
+        tell application id "${PAGES_BUNDLE_ID}" to count of documents
+        exit repeat
+      on error
+        delay 0.5
+      end try
+    end repeat
     tell application id "${PAGES_BUNDLE_ID}"
       set docsBefore to count of documents
       open inFile
