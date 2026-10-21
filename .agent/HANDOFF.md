@@ -493,3 +493,4 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - NOT TESTED: live AI output with the new prompts (needs LIVE_AI=1 and a budget).
 - Deployed main `845bf4b` (PR #37) as release `20261021T155843Z`, rollback `20261021T150536Z`; deploy checks incl. e2e PASS. Harni's profile (live, owner-asked): bio replaced with the About the Author text from her books (old bio saved in ../reports/volume/2026-10-21-harni-bio-before.txt); two writing samples added (Boundary Handbook, Triage Mindset). Import manuscripts now takes several .md files and can mark them published.
 - Deployed main `112f669` (PR #38) as release `20261021T160601Z`, rollback `20261021T155843Z`; checks incl. e2e PASS.
+- Live (owner-asked): Harni Muharami's 16 past books imported with Import manuscripts and marked published (publish date = import day, 21 October 2026; the owner can set real dates). Word counts match the source books.
