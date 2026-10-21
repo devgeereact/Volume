@@ -5,6 +5,7 @@ User-visible changes, newest first. Dates in British format.
 ## 21 October 2026
 
 #### Fixed
+- Preflight counted softened (and author-experience) claims as still open, so a book whose claims were all settled kept warning about dozens. Only open claims count now, and the claims report lists each claim's real status.
 - Claims you already verified, softened or removed no longer come back as new open claims when the checks run again after an edit. A sentence already open in the section is not filed twice either.
 - The pack no longer blocks on example placeholders the reader is meant to type, such as "Plan a trip from [your town]" inside quotes, or "placeholders such as [your account number]". A bracket placeholder left in plain prose is still caught.
 - "Rather than a guarantee" and "instead of a guarantee" no longer count as a promise; "we guarantee" still does.

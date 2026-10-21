@@ -222,7 +222,8 @@ export interface ClaimItem {
   sentence: string;
   category: string;
   check: string;
-  status: 'open' | 'verified' | 'removed';
+  /** Softened and author_experience are settled too: only 'open' still needs checking. */
+  status: 'open' | 'verified' | 'softened' | 'author_experience' | 'removed';
 }
 
 export interface PreflightInput {
