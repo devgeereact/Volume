@@ -2,6 +2,7 @@
 export * from './model.ts';
 export * from './inline.ts';
 export * from './text.ts';
+export * from './typography.ts';
 export * from './markdown.ts';
 export * from './style.ts';
 export * from './kdp.ts';

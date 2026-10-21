@@ -21,6 +21,7 @@ import {
   type PictureBookDoc,
   type Section,
   type SectionSubtype,
+  curlQuotesDeep,
 } from '@volume/core';
 import { loadBookTemplate, loadCoverStyles, loadHouseStyle, loadInteriorThemes, loadKdpRules } from '@volume/core/node';
 import {
@@ -498,9 +499,11 @@ export class VolumeExportAdapter implements ExportPort {
     if (b) await releaseBrowser();
   }
 
-  private doc(book: ExportBook, includePhoto = true): BookDoc {
+  /** The book model to typeset. `typeset` (all formats but Markdown) sets curly quotes, as printed books are. */
+  private doc(book: ExportBook, includePhoto = true, typeset = true): BookDoc {
     const template = this.template(book);
-    const doc = toBookDoc(book, template);
+    const raw = toBookDoc(book, template);
+    const doc = typeset ? { ...raw, meta: curlQuotesDeep(raw.meta), sections: curlQuotesDeep(raw.sections) } : raw;
     // What the printed contents lists comes from the template's contents rule (fiction: chapters and parts only).
     doc.meta.contentsEntries = contentsEntriesFromTemplate(template);
     const about = doc.sections.find((section) => section.subtype === 'about_the_author');
@@ -537,7 +540,7 @@ export class VolumeExportAdapter implements ExportPort {
 
   buildMd(book: ExportBook, opts: ExportOptions = {}): Promise<ExportFile> {
     throwIfAborted(opts.signal);
-    return Promise.resolve(this.file(book, 'md', 'md', MIME.md, exportMarkdown(this.doc(book, false))));
+    return Promise.resolve(this.file(book, 'md', 'md', MIME.md, exportMarkdown(this.doc(book, false, false))));
   }
 
   async buildDocx(book: ExportBook, opts: ExportOptions = {}): Promise<ExportFile> {
