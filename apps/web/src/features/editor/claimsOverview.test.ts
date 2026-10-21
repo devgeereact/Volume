@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ClaimOverviewItem } from "../../api/types";
-import { filterCount, groupBySection, sectionName, toMsClaim } from "./claimsOverview";
+import { filterCount, groupBySection, sectionName, splitByTier, toMsClaim } from "./claimsOverview";
 
 function claim(id: string, section: ClaimOverviewItem["section"], status = "open"): ClaimOverviewItem {
   return {
@@ -36,6 +36,16 @@ describe("groupBySection", () => {
       ["Chapter 2", ["d"]],
       ["Not in a section", ["e"]],
     ]);
+  });
+});
+
+describe("splitByTier", () => {
+  it("puts claims that need a check apart from the ones listed for the record", () => {
+    const low = { ...claim("b", ch1), location: { risk: "low", harmIfWrong: false } };
+    const flagged = { ...claim("c", ch1), needsCheck: false };
+    const t = splitByTier([claim("a", ch1), low, flagged, { ...claim("d", ch2), location: { risk: "high" } }]);
+    expect(t.check.map((c) => c.id)).toEqual(["a", "d"]);
+    expect(t.record.map((c) => c.id)).toEqual(["b", "c"]);
   });
 });
 

@@ -10,10 +10,12 @@ import { errorText } from "../../api/wire-c";
 import { useToast } from "../../lib/toast";
 import { ModelFallbackBanner, modelProblemOf, type ModelProblem } from "../settings/ModelFallback";
 import { estimateLabel } from "./claimOptions";
+import { claimsToCheck } from "./claimTier";
 import { fixAllClaims, type FixReport } from "./fixAll";
 
-/* The Claims page's "Fix the whole book": house style in every section (free, no AI), then every open claim,
-   the cleanest way each allows (fixAll.ts). Every change is a new version, so it can be undone from Versions. */
+/* The Claims page's "Fix the whole book": house style in every section (free, no AI), then every open claim
+   that needs the owner's check, the cleanest way each allows (fixAll.ts). Claims listed for the record are left as
+   written, so the author's prose is not rewritten for low-risk statements. Every change is a new version, so it can be undone from Versions. */
 
 class BudgetStop extends Error {}
 
@@ -43,7 +45,8 @@ export function FixWholeBook({
   const [modelFix, setModelFix] = useState<ModelProblem | null>(null);
   const stop = useRef(false);
 
-  const open = claims.filter((c) => c.status === "open");
+  const open = claimsToCheck(claims);
+  const forRecord = claims.filter((c) => c.status === "open").length - open.length;
   const needAi = open.filter((c) => c.inCurrentText && !c.suggestedSoftening).length;
   const cost = needAi > 0 && estimate ? estimateLabel({ lowUsd: estimate.lowUsd * needAi, highUsd: estimate.highUsd * needAi }) : undefined;
 
@@ -170,9 +173,11 @@ export function FixWholeBook({
         Fix the whole book
       </h2>
       <p className="mt-1 text-small text-ink-secondary">
-        One click fixes house style (em dashes, US spellings, empty list items) in every section, runs any missing summaries and checks, then every open claim:
-        softer wording where it is on file, otherwise the AI rewrites the sentence so it claims only what is safe, never adding a source you have not got. Each
-        change is saved as a new version, so you can undo it in Versions.
+        One click fixes house style (em dashes, US spellings, empty list items) in every section, runs any missing summaries and checks, then every open claim
+        that needs your check: softer wording where it is on file, otherwise the AI rewrites the sentence so it claims only what is safe, never adding a source
+        you have not got. Each change is saved as a new version, so you can undo it in Versions.
+        {forRecord > 0 &&
+          ` The ${forRecord} ${forRecord === 1 ? "claim" : "claims"} listed for the record ${forRecord === 1 ? "stays" : "stay"} as written; ${forRecord === 1 ? "it is" : "they are"} still in the claims report.`}
       </p>
       {modelFix && (
         <ModelFallbackBanner bookId={bookId} className="mt-3" problem={modelFix} onDismiss={() => setModelFix(null)} onRetry={() => void run("claims")} />
@@ -198,7 +203,7 @@ export function FixWholeBook({
           </Button>
           {open.length > 0 && (
             <Button variant="ghost" icon={Sparkles} estimate={cost} onClick={() => void run("claims")}>
-              Only the {open.length} {open.length === 1 ? "claim" : "claims"}
+              Only the {open.length} {open.length === 1 ? "claim" : "claims"} to check
             </Button>
           )}
         </div>

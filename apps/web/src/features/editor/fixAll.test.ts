@@ -37,6 +37,26 @@ describe("fixAllClaims", () => {
     expect(report.done).toBe(4);
   });
 
+  it("leaves claims listed for the record as written", async () => {
+    const calls: string[] = [];
+    const report = await fixAllClaims(
+      [
+        claim("a", { suggestedSoftening: "S.", category: "medical", location: { risk: "low", harmIfWrong: false } }),
+        claim("b", { suggestedSoftening: "S.", category: "medical", location: { risk: "high", harmIfWrong: true } }),
+        claim("c", { suggestedSoftening: "S.", category: "other_fact", needsCheck: false }),
+        claim("d", { suggestedSoftening: "S.", category: "regulatory", location: { risk: "low", harmIfWrong: false } }),
+      ],
+      {
+        soften: (id) => Promise.resolve(void calls.push(id)),
+        remove: () => Promise.resolve(undefined),
+        suggest: () => Promise.resolve({ jobId: "", result: null }),
+        apply: () => Promise.resolve(undefined),
+      },
+    );
+    expect(calls).toEqual(["b", "d"]);
+    expect(report.done).toBe(2);
+  });
+
   it("stops when cancelled", async () => {
     let n = 0;
     const r = await fixAllClaims(

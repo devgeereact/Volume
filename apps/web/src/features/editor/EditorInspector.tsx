@@ -70,7 +70,8 @@ interface EditorInspectorProps {
 /** Inspector for the Editor: what to do next, then three tabs (To fix, AI edits, Notes). */
 export function EditorInspector(props: EditorInspectorProps) {
   const { tab, onTab, claims, suggestions, suggestionState, section, issues } = props;
-  const sectionClaims = claims.filter((c) => c.status === "open" && c.sectionId === section.id).length;
+  // Claim tiers: claims listed for the record keep their underline but do not ask for a check.
+  const sectionClaims = claims.filter((c) => c.status === "open" && c.sectionId === section.id && c.needsCheck !== false).length;
   const pending = suggestions.filter((s) => (suggestionState[s.id] ?? "pending") === "pending").length;
   const openNotes = props.notes.filter((n) => n.status === "draft" || n.status === "working" || n.status === "ready").length;
   const toFix = sectionClaims + issues.length;
@@ -377,6 +378,7 @@ function ClaimCard({
         <span className={cn("inline-flex items-center gap-1 font-semibold", open ? "text-claim" : "text-ink-secondary")}>
           <Flag size={12} strokeWidth={2} aria-hidden />
           {claim.category}, {where}
+          {claim.needsCheck === false && <span className="ml-1 font-normal text-ink-secondary">For the record</span>}
         </span>
         <span className={cn("font-semibold", open ? "text-claim" : claim.status === "removed" ? "text-ink-secondary" : "text-success")}>
           {statusText[claim.status]}

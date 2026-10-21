@@ -11,11 +11,13 @@ import { useBook } from "../../lib/useBook";
 import { ErrorPanel, LoadingBlock } from "../writing/screenState";
 import { ClaimRewrite } from "./ClaimRewrite";
 import { FixWholeBook } from "./FixWholeBook";
-import { categoryLabel, FILTERS, filterCount, groupBySection, toMsClaim } from "./claimsOverview";
+import { claimNeedsCheck } from "./claimTier";
+import { categoryLabel, FILTERS, filterCount, groupBySection, splitByTier, toMsClaim, type ClaimTierView } from "./claimsOverview";
 
 /* Claims (API mode): every claim of the book in one place, in reading order, older books included. The
    same fixes as the editor's Claims tab: suggested replacements, your own sentence, verify, soften and
-   remove. A claim whose sentence left the text offers only verify, remove and opening its section. */
+   remove. A claim whose sentence left the text offers only verify, remove and opening its section. Claims that
+   need the owner's check show by default; lower-risk ones listed for the record sit behind their own chip. */
 
 const STATUS_TEXT: Record<string, string> = {
   open: "Open",
@@ -44,11 +46,13 @@ export default function ClaimsPage() {
 
 function Claims({ bookId }: { bookId: string }) {
   const [filter, setFilter] = useState<ClaimOverviewFilter>("open");
+  const [tier, setTier] = useState<ClaimTierView>("check");
   const [announce, setAnnounce] = useState("");
   const q = useClaimsOverview(bookId, filter);
   const canWrite = useCanWrite();
   const estimate = useEstimate(bookId, "claim_fix", { enabled: canWrite && (q.data?.counts.open ?? 0) > 0 });
-  const groups = q.data ? groupBySection(q.data.items) : [];
+  const tiers = splitByTier(q.data?.items ?? []);
+  const groups = groupBySection(tiers[tier]);
   const openQ = useClaimsOverview(bookId, "open");
 
   return (
@@ -72,12 +76,37 @@ function Claims({ bookId }: { bookId: string }) {
           </Chip>
         ))}
       </div>
+      <div role="group" aria-label="Which claims" className="mt-2 flex flex-wrap gap-2">
+        <Chip pressed={tier === "check"} count={q.data ? tiers.check.length : undefined} onClick={() => setTier("check")}>
+          Needs your check
+        </Chip>
+        <Chip pressed={tier === "record"} count={q.data ? tiers.record.length : undefined} onClick={() => setTier("record")}>
+          For the record
+        </Chip>
+      </div>
+      {tier === "record" && (
+        <p className="mt-2 max-w-[860px] text-small text-ink-secondary">
+          Lower-risk statements that would do no harm if wrong. They stay in the claims report in the export pack, and preflight does not warn about them. You
+          do not have to act on them.
+        </p>
+      )}
 
       <div className="mt-6 max-w-[860px]">
         {q.isError ? (
           <ErrorPanel title="Could not load the claims" body={errorText(q.error)} onRetry={() => void q.refetch()} />
         ) : q.isPending ? (
           <LoadingBlock label="Loading the claims" rows={6} />
+        ) : groups.length === 0 && tier === "check" && tiers.record.length > 0 ? (
+          <EmptyState
+            drawing="page"
+            title="Nothing needs your check here"
+            body={`${tiers.record.length} lower-risk ${tiers.record.length === 1 ? "claim is" : "claims are"} listed for the record. You do not have to act on ${tiers.record.length === 1 ? "it" : "them"}.`}
+            action={
+              <Button variant="secondary" onClick={() => setTier("record")}>
+                Show the record
+              </Button>
+            }
+          />
         ) : groups.length === 0 ? (
           <EmptyState
             drawing="page"
@@ -165,6 +194,7 @@ function ClaimRow({
   const resolve = useResolveClaim();
   const open = claim.status === "open";
   const ms = toMsClaim(claim, categoryLabel(claim.category));
+  const record = !claimNeedsCheck(claim);
 
   async function act(action: "verify" | "soften" | "remove") {
     setProblem(null);
@@ -191,6 +221,7 @@ function ClaimRow({
         <span className={cn("inline-flex items-center gap-1 font-semibold", open ? "text-claim" : "text-ink-secondary")}>
           <Flag size={12} strokeWidth={2} aria-hidden />
           {ms.category}
+          {record && <span className="ml-1.5 font-normal text-ink-secondary">For the record</span>}
         </span>
         <span className={cn("font-semibold", open ? "text-claim" : claim.status === "removed" ? "text-ink-secondary" : "text-success")}>
           {STATUS_TEXT[claim.status] ?? claim.status}
