@@ -4,6 +4,7 @@ import { Outlet, useLocation, useParams } from "react-router";
 import { useBookEvents, useBookLive } from "../api/events";
 import { BookSteps } from "../components/ui/BookSteps";
 import { Cover } from "../components/ui/Cover";
+import { libraryCover } from "../features/library/draftCover";
 import { Loader } from "../components/ui/Loader";
 import { bookSteps } from "../demo/books";
 import type { Book, BookStepId, PenName } from "../demo/types";
@@ -21,14 +22,16 @@ function stepFromPath(pathname: string, bookId: string): BookStepId | null {
 }
 
 function BookBar({ book, penName, current, runningBookId }: { book: Book; penName: PenName | undefined; current: BookStepId; runningBookId: string | null }) {
+  // Same cover as the Library card: the real one, or a draft from the cover style until the Cover studio makes it.
+  const { design, image } = libraryCover(book);
   return (
     <div className="flex h-(--shell-bookbar) items-center gap-4 border-b border-border bg-canvas px-4 sm:px-6 lg:px-10">
       <div className="hidden shrink-0 items-center gap-2.5 sm:flex">
         <Cover
           title={book.title}
           author={penName?.name ?? ""}
-          design={book.cover}
-          image={book.coverImage?.src}
+          design={design}
+          image={image}
           width={26}
           hideSubtitle
           decorative
@@ -54,7 +57,7 @@ function DemoBookBar(props: { book: Book; penName: PenName | undefined; current:
 function ApiBookBar(props: { book: Book; penName: PenName | undefined; current: BookStepId }) {
   const live = useBookLive(props.book.id);
   const writing = Object.values(live.data.jobs).some(
-    (j) => (j.kind === "write_book" || j.kind === "write_section") && (j.status === "running" || j.status === "queued"),
+    (j) => (j.kind === "write_book" || j.kind === "rebuild_book" || j.kind === "write_section") && (j.status === "running" || j.status === "queued"),
   );
   return <BookBar {...props} runningBookId={writing ? props.book.id : null} />;
 }

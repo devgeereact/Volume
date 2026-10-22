@@ -78,7 +78,8 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
   const writeBook = useWriteBook();
   const writeSection = useWriteSection();
   const control = useJobControl();
-  const parent = jobs.find((j) => j.kind === "write_book") ?? null;
+  // A whole-book rebuild is the parent of its section jobs too, so its progress shows here the same way.
+  const parent = jobs.find((j) => j.kind === "write_book" || j.kind === "rebuild_book") ?? null;
   const parentDetail = useJob(parent && !isTerminalJob(parent.status) ? parent.id : undefined, { pollMs: 5000 });
 
   const [viewing, setViewing] = useState<string | null>(null);

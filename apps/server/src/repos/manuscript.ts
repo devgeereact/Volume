@@ -592,6 +592,7 @@ export class ManuscriptRepo {
       blueprintChanged?: boolean;
       enabled?: boolean;
       position?: number;
+      partId?: string | null;
     },
   ): Promise<void> {
     const patch: Partial<SectionsTable> = { updatedAt: now() };
@@ -601,6 +602,7 @@ export class ManuscriptRepo {
     if (set.blueprintChanged !== undefined) patch.blueprintChanged = flag(set.blueprintChanged);
     if (set.enabled !== undefined) patch.enabled = flag(set.enabled);
     if (set.position !== undefined) patch.position = set.position;
+    if (set.partId !== undefined) patch.partId = set.partId;
     await this.db.updateTable('sections').set(patch).where('id', '=', id).where('workspaceId', '=', ctx.workspaceId).execute();
   }
 
@@ -821,14 +823,15 @@ export class ManuscriptRepo {
     return s.currentVersionId ? this.getVersion(ctx, s.currentVersionId) : null;
   }
 
-  async restoreVersion(ctx: RequestCtx, sectionId: string, versionId: string): Promise<SectionVersion> {
+  /** Saves an old version's text as the new current version. `note` names why (default "Restored version N"). */
+  async restoreVersion(ctx: RequestCtx, sectionId: string, versionId: string, note?: string): Promise<SectionVersion> {
     const v = await this.requireVersion(ctx, sectionId, versionId);
     return this.saveVersion(ctx, sectionId, {
       bodyMd: v.bodyMd,
       content: v.content,
       source: 'restore',
       parentVersionId: v.id,
-      note: `Restored version ${v.version}`,
+      note: note ?? `Restored version ${v.version}`,
     });
   }
 

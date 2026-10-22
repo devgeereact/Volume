@@ -123,7 +123,7 @@ const LANES: { name: string; max: number; kinds: JobKind[] }[] = [
     ],
   },
   { name: 'export', max: 1, kinds: ['export_pack', 'cover_build', 'picture_export'] },
-  { name: 'control', max: 2, kinds: ['write_book', 'batch_run', 'batch_book', 'picture_book', 'noop'] },
+  { name: 'control', max: 2, kinds: ['write_book', 'batch_run', 'batch_book', 'rebuild_book', 'picture_book', 'noop'] },
 ];
 
 /** Config stage key used to pick the model for each AI stage. */

@@ -3,6 +3,7 @@ import type { AppServices } from '../app.js';
 import { accountRoutes } from './account.js';
 import { assetRoutes } from './assets.js';
 import { batchRoutes } from './batches.js';
+import { rebuildRoutes } from './rebuild.js';
 import { bookRoutes } from './books.js';
 import { estimateRoutes } from './estimate.js';
 import { fixRoutes } from './fixes.js';
@@ -33,6 +34,7 @@ export function registerRoutes(app: FastifyInstance, s: AppServices): void {
   memberRoutes(app, s);
   accountRoutes(app, s);
   batchRoutes(app, s);
+  rebuildRoutes(app, s);
   scheduleRoutes(app, s);
   spreadRoutes(app, s);
 }

@@ -1317,6 +1317,39 @@ export interface MarketingListQuery {
   includeArchived?: boolean;
 }
 
+/* ---------- Whole-book rebuild (routes/rebuild.ts) ---------- */
+
+/** One rebuild of the whole book, newest first. undoneAt is set once the owner went back to before it. */
+export interface ApiRebuild {
+  jobId: string;
+  number: number | null;
+  /** The name every version it saved carries ("Rebuild 2 from new title: ..."). */
+  note: string | null;
+  status: JobStatus;
+  fromTitle: string | null;
+  toTitle: string | null;
+  createdAt: number;
+  undoneAt: number | null;
+}
+
+export interface RebuildList {
+  /** The title the approved blueprint was planned for; differs from the book's title after a new choice on Titles. */
+  planTitle: string | null;
+  /** The book has text, so a rebuild has something to redo. */
+  hasText: boolean;
+  rebuilds: ApiRebuild[];
+}
+
+export interface RebuildAccepted extends AcceptedJob {
+  number: number;
+  note: string;
+}
+
+export interface UndoRebuildResponse {
+  restored: number;
+  note: string;
+}
+
 /* ---------- Jobs ---------- */
 
 export type JobKind =
@@ -1325,6 +1358,7 @@ export type JobKind =
   | "blueprint"
   | "blueprint_part"
   | "write_book"
+  | "rebuild_book"
   | "write_section"
   | "weave_notes"
   | "edit_pass"

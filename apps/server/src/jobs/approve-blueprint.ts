@@ -46,7 +46,13 @@ function structureSection(x: StructureSection, bp: Blueprint): NewSectionInput {
 }
 
 /** Creates the book's sections from the approved blueprint, or updates chapter plans when they exist. */
-async function syncSections(s: ApproveServices, ctx: RequestCtx, projectId: string, bp: Blueprint): Promise<{ created: number; updated: number }> {
+async function syncSections(
+  s: ApproveServices,
+  ctx: RequestCtx,
+  projectId: string,
+  bp: Blueprint,
+  rebuild = false,
+): Promise<{ created: number; updated: number }> {
   const existing = await s.repos.manuscript.listSections(ctx, projectId);
   const chapterPlan = (c: Blueprint['chapters'][number]) => ({
     subheadings: c.subheadings,
@@ -101,6 +107,7 @@ async function syncSections(s: ApproveServices, ctx: RequestCtx, projectId: stri
     await s.repos.manuscript.addSections(ctx, projectId, backItems, pos);
     return { created: items.length + bp.parts.length + bp.chapters.length + backItems.length, updated: 0 };
   }
+  if (rebuild) return rebuildSections(s, ctx, projectId, bp, existing, chapterPlan);
   // Sections exist: update chapter plans; flag written chapters whose plan changed.
   let updated = 0;
   const chapters = existing.filter((x) => x.kind === 'chapter');
@@ -133,11 +140,132 @@ async function syncSections(s: ApproveServices, ctx: RequestCtx, projectId: stri
   return { created: 0, updated };
 }
 
+type ExistingSection = Awaited<ReturnType<Repos['manuscript']['listSections']>>[number];
+
+/**
+ * A whole-book rebuild (owner, 22 October 2026): the book's body follows the new blueprint exactly. Parts and chapters
+ * are matched by number and take the new title, plan and part; new ones are added; ones the new plan no longer has are
+ * switched off, never deleted, so their text and versions stay and an undo can switch them back on. The introduction
+ * and conclusion take the new plan. Every section is put back in reading order: front matter, then each part followed
+ * by its chapters, then back matter.
+ */
+async function rebuildSections(
+  s: ApproveServices,
+  ctx: RequestCtx,
+  projectId: string,
+  bp: Blueprint,
+  existing: ExistingSection[],
+  chapterPlan: (c: Blueprint['chapters'][number]) => Rec,
+): Promise<{ created: number; updated: number }> {
+  const m = s.repos.manuscript;
+  let created = 0;
+  let updated = 0;
+  const front = existing.filter((x) => x.area === 'front');
+  const back = existing.filter((x) => x.area === 'back');
+  const parts = existing.filter((x) => x.kind === 'part');
+  const chapters = existing.filter((x) => x.kind === 'chapter');
+  const otherBody = existing.filter((x) => x.area === 'body' && x.kind !== 'part' && x.kind !== 'chapter');
+
+  // Introduction and conclusion follow the new plan; their other plan keys (writer, template) stay.
+  for (const x of [...front, ...back]) {
+    if (x.kind !== 'introduction' && x.kind !== 'conclusion') continue;
+    const mp = matterPlan(rec(x.kind === 'introduction' ? bp.front['introduction'] : bp.back['conclusion']));
+    await m.updateSectionPlan(ctx, x.id, {
+      plan: { ...x.plan, summary: mp.summary },
+      ...(mp.wordTarget !== null ? { wordTarget: mp.wordTarget } : {}),
+      blueprintChanged: x.currentVersionId !== null,
+    });
+    updated += 1;
+  }
+
+  const order: string[] = front.map((x) => x.id);
+  const partIds = new Map<number, string>();
+  const usedParts = new Set<string>();
+  for (const p of bp.parts) {
+    const match = parts.find((x) => x.number === p.number);
+    if (match) {
+      await m.updateSectionPlan(ctx, match.id, { title: p.title, enabled: true });
+      partIds.set(p.number, match.id);
+      usedParts.add(match.id);
+      updated += 1;
+    } else {
+      const [part] = await m.addSections(ctx, projectId, [{ kind: 'part', area: 'body', title: p.title, number: p.number }], 0);
+      if (part) {
+        partIds.set(p.number, part.id);
+        usedParts.add(part.id);
+        created += 1;
+      }
+    }
+  }
+  const usedChapters = new Set<string>();
+  const chapterIds = new Map<number, string>();
+  for (const c of bp.chapters) {
+    const match = chapters.find((x) => x.number === c.number);
+    const partId = c.part ? (partIds.get(c.part) ?? null) : null;
+    if (match) {
+      await m.updateSectionPlan(ctx, match.id, {
+        title: c.title,
+        plan: chapterPlan(c),
+        wordTarget: c.word_target,
+        partId,
+        enabled: true,
+        blueprintChanged: match.currentVersionId !== null,
+      });
+      chapterIds.set(c.number, match.id);
+      usedChapters.add(match.id);
+      updated += 1;
+    } else {
+      const [ch] = await m.addSections(
+        ctx,
+        projectId,
+        [{ kind: 'chapter', area: 'body', title: c.title, number: c.number, wordTarget: c.word_target, plan: chapterPlan(c), partId }],
+        0,
+      );
+      if (ch) {
+        chapterIds.set(c.number, ch.id);
+        usedChapters.add(ch.id);
+        created += 1;
+      }
+    }
+  }
+  // Reading order of the body: each part, then its chapters; chapters with no part where the plan puts them.
+  const placedParts = new Set<number>();
+  for (const c of bp.chapters) {
+    if (c.part && !placedParts.has(c.part)) {
+      placedParts.add(c.part);
+      const pid = partIds.get(c.part);
+      if (pid) order.push(pid);
+    }
+    const cid = chapterIds.get(c.number);
+    if (cid) order.push(cid);
+  }
+  for (const p of bp.parts) {
+    const pid = partIds.get(p.number);
+    if (pid && !order.includes(pid)) order.push(pid);
+  }
+  order.push(...otherBody.map((x) => x.id));
+  // Parts and chapters the new plan no longer has: switched off, kept after the body with their versions.
+  for (const x of [...parts.filter((p) => !usedParts.has(p.id)), ...chapters.filter((c) => !usedChapters.has(c.id))]) {
+    if (x.enabled) {
+      await m.updateSectionPlan(ctx, x.id, { enabled: false });
+      updated += 1;
+    }
+    order.push(x.id);
+  }
+  order.push(...back.map((x) => x.id));
+  let pos = 1000;
+  for (const id of order) {
+    await m.updateSectionPlan(ctx, id, { position: pos });
+    pos += 1000;
+  }
+  return { created, updated };
+}
+
 /**
  * Approves a blueprint version (the latest when none is given): validates it, marks it approved, creates or updates the
  * book's sections and moves the book to writing. Shared by POST /books/:id/blueprint/approve and the batch_book job.
  */
-export async function approveBlueprint(s: ApproveServices, ctx: RequestCtx, id: string, version?: number) {
+export async function approveBlueprint(s: ApproveServices, ctx: RequestCtx, id: string, version?: number, opts: { rebuild?: boolean } = {}) {
   const { books, planning } = s.repos;
   const bp = version ? await planning.blueprintByVersion(ctx, id, version) : await planning.latestBlueprint(ctx, id);
   if (!bp) throw new AppError('invalid_state', 'Build the blueprint first.');
@@ -154,7 +282,7 @@ export async function approveBlueprint(s: ApproveServices, ctx: RequestCtx, id: 
   // spaces are tidied here, the wording stays (live acceptance run, 19 October 2026).
   const title = tidyTitleChars(v.data.title);
   await books.setApprovedBlueprint(ctx, id, approved.id, title || null, tidyTitleChars(v.data.subtitle));
-  const sections = await syncSections(s, ctx, id, v.data);
+  const sections = await syncSections(s, ctx, id, v.data, opts.rebuild === true);
   await books.advanceStage(ctx, id, 'writing');
   await s.bus.publish(ctx.workspaceId, { projectId: id, type: 'book.updated', data: { projectId: id, part: 'blueprint', approved: approved.id } });
   return { blueprint: approved, sections, book: await books.require(ctx, id) };

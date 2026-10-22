@@ -103,6 +103,10 @@ Code first, then a small model for what code cannot judge. See "Checker gate" be
 - **Distinct items (19 October 2026):** `marketing.tiktok-scripts.v6` and `marketing.instagram-captions.v6` ask for exactly `{{count}}` items, each with its own angle, opening and body, and a time range on every TikTok beat. The adapter drops an item whose hook or first line, or whose body, repeats an earlier one (case and punctuation folded) and, when that leaves fewer than asked, asks once more for the missing number with `{{variety.avoid}}` listing the openings so far. The marketing job also saves each post once. Regenerating one item sends the owner's instruction as `{{variety.instruction}}` and the book's other openings of that kind as `{{variety.avoid}}`. A beat with no time is saved as its words alone, never ", : words".
 - **Rules:** no invented reviews, ratings, rankings, awards or sales figures; no review incentives (FACTS 10.6, 10.7); quotes only from the book itself.
 
+### Whole-book rebuild (D-056, 22 October 2026)
+
+`rebuild_book` runs stages 3, 4, 5 and 7 again for the whole book: the blueprint architect for the title (the chosen title is kept exactly), approval with the rebuild sync (body follows the new plan; dropped parts and chapters are switched off, not deleted), then one `write_section` child per AI-written section in reading order and the `listing` child, as `write_book` queues them. The blueprint version and every section version it saves carry the rebuild's name ("Rebuild N from new title: X"). The job's payload keeps each section's version and on/off state from before it, which `POST /books/:id/rebuilds/:jobId/undo` uses to put the book back. Code-built pages (title page, copyright, contents, About the author) are rebuilt from the book at export, so they follow the new title without a rewrite.
+
 ## Context packing
 
 `packages/ai/context` builds each request from labelled blocks, in this order, and trims from the bottom of the priority list until it fits 60% of the model's context length (the rest is left for output).

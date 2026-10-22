@@ -66,6 +66,8 @@ export const writeBookHandler: JobHandler = async (jc) => {
   const book = await repos.books.require(jc.ctx, projectId);
   if (!book.approvedBlueprintId) throw new JobFailed('Approve the blueprint before writing the book.', 'invalid_state');
   const onlyEmpty = jc.payload['onlyEmpty'] !== false;
+  // A whole-book rebuild names every version it writes ("Rebuild 2 from new title: ..."), so the owner can find them.
+  const note = str(jc.payload['note']);
   // Acknowledgements whose placeholder is already saved wait for the owner's names; writing them again changes nothing.
   const noThanks = ((await profileSummary(repos, jc.ctx, book.profileId, book))['acknowledgementNames'] as string[]).length === 0;
   const sections = (await repos.manuscript.listSections(jc.ctx, projectId)).filter(
@@ -73,12 +75,17 @@ export const writeBookHandler: JobHandler = async (jc) => {
       s.enabled &&
       writtenByAi(s) &&
       (!onlyEmpty || s.status !== 'done') &&
-      !(onlyEmpty && noThanks && s.kind === 'acknowledgements' && s.currentVersionId !== null),
+      !((onlyEmpty || note) && noThanks && s.kind === 'acknowledgements' && s.currentVersionId !== null),
   );
   let previous: string | null = null;
   for (const s of sections) {
     // Chapters are written in order: each depends on the one before (summaries and ledger).
-    const child = await jc.enqueueChild({ kind: 'write_section', projectId, payload: { sectionId: s.id }, dependsOnJobId: previous });
+    const child = await jc.enqueueChild({
+      kind: 'write_section',
+      projectId,
+      payload: note ? { sectionId: s.id, note } : { sectionId: s.id },
+      dependsOnJobId: previous,
+    });
     await repos.manuscript.setSectionStatus(jc.ctx, s.id, 'queued');
     previous = child.id;
   }
@@ -527,6 +534,7 @@ export const writeSectionHandler: JobHandler = async (jc) => {
   const version = await repos.manuscript.saveVersion(jc.ctx, sectionId, {
     bodyMd: markdown,
     source: 'ai:writing',
+    note: str(jc.payload['note']),
     promptRunId,
     summary: summary?.summary ?? null,
     status: 'checking',

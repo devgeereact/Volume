@@ -31,6 +31,7 @@ import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
 import { TitleCard } from "./TitleCard";
 import { checkTitle } from "./titlesExtras";
+import { RebuildBook } from "../rebuild/RebuildBook";
 
 /* Titles for a book on the server (API mode). The writer suggests directions and title options; the
    owner can pick a direction and ask for titles for it alone, edit an option, and choose one, which
@@ -389,6 +390,8 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
           )}
           <p className="mt-3 text-small text-ink-tertiary">KDP needs the title and subtitle together under 200 characters. Choosing sets the book's title.</p>
         </InspectorSection>
+        {/* Once the book has text, a new title only reaches the blueprint and chapters through a rebuild. */}
+        {bookTitle && <RebuildBook bookId={bookId} title={bookTitle} onlyWithText className="mt-5" />}
         <InspectorSection title="This set">
           {set ? (
             <div className="grid gap-3">

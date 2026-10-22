@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { Pause } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause } from "lucide-react";
 import { Cover, LiveDot } from "../../components/ui";
 import { libraryColumns, stageLabels } from "../../demo/books";
 import { getPenName } from "../../demo/penNames";
@@ -94,6 +94,80 @@ function BookCard({
 }
 
 /**
+ * One stage's books. Under 1280 px it is a sideways row of fixed-width covers that never grows the page:
+ * it scrolls only sideways (overflow-y hidden, so the mouse wheel still scrolls the page), fades at an edge
+ * with more books past it, and shows previous and next buttons when the books do not all fit. From 1280 px
+ * it is a plain column.
+ */
+function Shelf({ label, children }: { label: string; children: ReactNode }) {
+  const ref = useRef<HTMLUListElement>(null);
+  const [edges, setEdges] = useState({ before: false, after: false });
+  const measure = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const before = el.scrollLeft > 2;
+    const after = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+    setEdges((was) => (was.before === before && was.after === after ? was : { before, after }));
+  }, []);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [measure]);
+  const move = (dir: 1 | -1) => {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  };
+  const fade =
+    edges.before && edges.after ? "sm:mask-x-from-92% sm:mask-x-to-100%" : edges.after ? "sm:mask-r-from-92%" : edges.before ? "sm:mask-l-from-92%" : "";
+  return (
+    <div className="relative">
+      <ul
+        ref={ref}
+        onScroll={measure}
+        className={cn(
+          "grid grid-cols-1 gap-4 sm:-mx-1 sm:flex sm:snap-x sm:gap-4 sm:overflow-x-auto sm:overflow-y-hidden sm:overscroll-x-contain sm:px-1 sm:pt-1 sm:pb-3 xl:mx-0 xl:grid xl:grid-cols-1 xl:gap-y-6 xl:overflow-visible xl:px-0 xl:pt-0 xl:pb-0 xl:mask-none",
+          fade,
+        )}
+      >
+        {children}
+      </ul>
+      {(edges.before || edges.after) && (
+        <div className="pointer-events-none absolute inset-x-0 top-25 hidden justify-between sm:flex xl:hidden">
+          <ShelfButton label={`Earlier books in ${label}`} hidden={!edges.before} onClick={() => move(-1)}>
+            <ChevronLeft size={18} strokeWidth={2} aria-hidden />
+          </ShelfButton>
+          <ShelfButton label={`More books in ${label}`} hidden={!edges.after} onClick={() => move(1)}>
+            <ChevronRight size={18} strokeWidth={2} aria-hidden />
+          </ShelfButton>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ShelfButton({ label, hidden, onClick, children }: { label: string; hidden: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={cn(
+        "pointer-events-auto grid size-10 -translate-y-1/2 place-items-center rounded-full border border-border-strong bg-sheet text-ink shadow-sheet hover:bg-canvas",
+        hidden && "invisible",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
  * Cover view: books along the pipeline in eight columns (Idea to Published), each headed by the stage
  * and its count, so the columns are the stage filter. The column with live work gets a gilt underline.
  * Published keeps its two newest books here and links to the Published shelf for the rest, so no
@@ -141,7 +215,7 @@ export function PipelineView({ books, live, penName = getPenName, statusActions 
             {total === 0 ? (
               <p className="text-small text-ink-tertiary">None here</p>
             ) : (
-              <ul className="grid grid-cols-1 gap-4 sm:-mx-1 sm:flex sm:snap-x sm:gap-4 sm:overflow-x-auto sm:px-1 sm:pb-3 xl:mx-0 xl:grid xl:grid-cols-1 xl:gap-y-6 xl:overflow-visible xl:px-0 xl:pb-0">
+              <Shelf label={stageLabels[stage]}>
                 {visible.map((b, i) => (
                   <BookCard
                     key={b.id}
@@ -152,7 +226,7 @@ export function PipelineView({ books, live, penName = getPenName, statusActions 
                     live={live && live.bookId === b.id ? (live.running ? "running" : "paused") : null}
                   />
                 ))}
-              </ul>
+              </Shelf>
             )}
             {foldable && (
               <button

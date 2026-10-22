@@ -39,6 +39,7 @@ import {
 import type { ApiBookDetail, ApiBlueprintVersion, BlueprintChapterData, BlueprintData, BlueprintPartKey } from "../../api/types";
 import { estimateWords, guardrailsOf, plainError, runMeta, useBookJobsLive, usePromptRunFor, useStageJob, whenMs } from "../../api/wire-b";
 import { GuardrailNote } from "../research/GuardrailNote";
+import { RebuildBook } from "../rebuild/RebuildBook";
 import type { Book } from "../../demo";
 import { cn } from "../../lib/cn";
 import { formatNumber } from "../../lib/format";
@@ -733,6 +734,7 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
             </ol>
           )}
         </InspectorSection>
+        {apiBook.approvedBlueprintId && apiBook.title && <RebuildBook bookId={bookId} title={apiBook.title} className="mt-5" />}
       </Inspector>
 
       {historyError && (
