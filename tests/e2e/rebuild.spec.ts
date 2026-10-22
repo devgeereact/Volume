@@ -107,6 +107,34 @@ test("rebuilds the whole book for a new title with named versions, then goes bac
   expect(versions.items[0]!.parentVersionId).toBe(before);
 });
 
+test("a crowded Library row scrolls sideways with buttons, and the wheel scrolls the page", async ({ page, request }) => {
+  const author = await post(request, "/profiles", { penName: `Shelf author ${Date.now()}`, bioThirdPerson: "This author writes test books." });
+  for (let n = 1; n <= 9; n++) await post(request, "/books", { profileId: author["id"], idea: `Shelf idea ${n}`, title: `Shelf book ${n}` });
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.goto("/library");
+  const more = page.getByRole("button", { name: /^More books in / }).first();
+  await expect(more).toBeVisible();
+  const row = page.locator("section", { has: more }).locator("ul").first();
+  const overflowY = await row.evaluate((el) => getComputedStyle(el).overflowY);
+  expect(overflowY).toBe("hidden");
+  await page.screenshot({ path: test.info().outputPath("crowded-row.png") });
+  await more.click();
+  await expect.poll(() => row.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: /^Earlier books in / }).first()).toBeVisible();
+  // The wheel over the covers moves the page, not the row.
+  const box = await row.boundingBox();
+  if (!box) throw new Error("Row not on screen");
+  const top = await page.evaluate(() => document.scrollingElement?.scrollTop ?? 0);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, 400);
+  await expect
+    .poll(
+      async () =>
+        (await page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)) + (await page.evaluate(() => document.querySelector("main")?.scrollTop ?? 0)),
+    )
+    .toBeGreaterThan(top);
+});
+
 test("Library rows scroll the page, not themselves", async ({ page }) => {
   await page.setViewportSize({ width: 1100, height: 900 });
   await page.goto("/library");
