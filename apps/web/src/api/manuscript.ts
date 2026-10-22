@@ -17,6 +17,9 @@ import type {
   ClaimResolveResponse,
   ClaimStatus,
   ClaimVerifyInput,
+  RebuildAccepted,
+  RebuildList,
+  UndoRebuildResponse,
   EditPassInput,
   EstimatedJob,
   FindQuery,
@@ -68,6 +71,10 @@ export const manuscriptApi = {
 
   /* writing jobs (202) */
   writeBook: (bookId: string, input: { onlyEmpty?: boolean } = {}, o?: Opts) => api.post<AcceptedJob>(`/books/${seg(bookId)}/write`, input, o),
+  /** Whole-book rebuild: new blueprint for the title, then every section (409 conflict while a job works on the book). */
+  rebuildBook: (bookId: string, input: { title?: string } = {}, o?: Opts) => api.post<RebuildAccepted>(`/books/${seg(bookId)}/rebuild`, input, o),
+  rebuilds: (bookId: string, o?: Opts) => api.get<RebuildList>(`/books/${seg(bookId)}/rebuilds`, o),
+  undoRebuild: (bookId: string, jobId: string, o?: Opts) => api.post<UndoRebuildResponse>(`/books/${seg(bookId)}/rebuilds/${seg(jobId)}/undo`, {}, o),
   writeSection: (sectionId: string, input: { instruction?: string } = {}, o?: Opts) => api.post<AcceptedJob>(`/sections/${seg(sectionId)}/write`, input, o),
   editPass: (sectionId: string, input: EditPassInput, o?: Opts) => api.post<AcceptedJob>(`/sections/${seg(sectionId)}/edit-pass`, input, o),
   /** Summary rerun for a saved section whose summary failed (open summary_missing flag). The text is not rewritten. */

@@ -62,6 +62,8 @@ function fill(url: string): string {
       if (name === 'userId') return a.userId;
       if (name === 'versionId') return first('section_versions');
       if (name === 'itemId') return first('batch_items');
+      // A rebuild is a rebuild_book job (no table of its own).
+      if (name === 'jobId') return first('jobs');
       if (name === 'subId') return parts.includes('samples') ? first('profile_samples') : first('profile_memory');
       const table: Record<string, string> = {
         books: 'projects',

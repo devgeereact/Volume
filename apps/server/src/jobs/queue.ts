@@ -37,6 +37,8 @@ export const JOB_KINDS = [
   // Volume mode (P8-2): a batch parent and one child per book.
   'batch_run',
   'batch_book',
+  // Rebuild the whole book from the start (owner, 22 October 2026): new blueprint for the title, then every section.
+  'rebuild_book',
   // Picture books (P7-5, D-044, D-045): a parent, then the story and scene prompts, the character references, one
   // image per spread, and the print export on its own.
   'picture_book',

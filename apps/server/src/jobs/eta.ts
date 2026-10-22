@@ -9,7 +9,7 @@ import type { JobRunner } from './runner.js';
  * there is nothing honest to say, so etaMs is null.
  */
 
-export const WRITING_KINDS: ReadonlySet<string> = new Set(['write_book', 'write_section']);
+export const WRITING_KINDS: ReadonlySet<string> = new Set(['write_book', 'rebuild_book', 'write_section']);
 const DONE = new Set(['succeeded', 'needs_attention']);
 const ACTIVE = new Set(['queued', 'running', 'waiting', 'paused', 'paused_budget']);
 

@@ -94,6 +94,8 @@ function keysForJobKind(bookId: string, kind: string | null): QueryKey[] {
     case "blueprint":
     case "blueprint_part":
       return [b.blueprint(bookId)];
+    case "rebuild_book":
+      return [b.detail(bookId), b.blueprint(bookId), b.rebuilds(bookId), b.sections(bookId), b.claimsAll(bookId), b.preflight(bookId), b.costs(bookId)];
     case "write_book":
     case "write_section":
       return [b.sections(bookId), b.claimsAll(bookId), b.preflight(bookId), b.exports(bookId), b.costs(bookId)];

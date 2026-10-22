@@ -105,6 +105,7 @@ export const queryKeys = {
     blueprintVersions: (bookId: string) => ["book", bookId, "blueprint", "versions"] as const,
     blueprintVersion: (bookId: string, version: number) => ["book", bookId, "blueprint", "versions", version] as const,
     sections: (bookId: string) => ["book", bookId, "sections"] as const,
+    rebuilds: (bookId: string) => ["book", bookId, "rebuilds"] as const,
     notes: (bookId: string, status?: NoteStatus) => ["book", bookId, "notes", status ?? "all"] as const,
     notesAll: (bookId: string) => ["book", bookId, "notes"] as const,
     claims: (bookId: string, f: { status?: ClaimStatus; sectionId?: string } = {}) => ["book", bookId, "claims", f] as const,
@@ -579,6 +580,41 @@ export function useApproveBlueprint() {
   return useMutation({
     mutationFn: (v: { bookId: string; version?: number }) => planningApi.approveBlueprint(v.bookId, v.version === undefined ? {} : { version: v.version }),
     onSuccess: (_r, v) => Promise.all([invalidate(qc, queryKeys.book.blueprint(v.bookId), queryKeys.book.sections(v.bookId)), bookChanged(qc, v.bookId)]),
+  });
+}
+
+/* ---------- Whole-book rebuild ---------- */
+
+export function useRebuilds(bookId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.book.rebuilds(bookId ?? ""),
+    queryFn: ({ signal }) => manuscriptApi.rebuilds(need(bookId, "Book id"), { signal }),
+    enabled: !!bookId,
+  });
+}
+
+/** Starts a rebuild of the whole book, with a new title when one is given. */
+export function useRebuildBook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { bookId: string; title?: string }) => manuscriptApi.rebuildBook(v.bookId, v.title === undefined ? {} : { title: v.title }),
+    onSuccess: (r, v) => {
+      rememberJob(qc, r);
+      return Promise.all([invalidate(qc, queryKeys.book.rebuilds(v.bookId)), bookChanged(qc, v.bookId)]);
+    },
+  });
+}
+
+/** Puts the whole book back as it was before a rebuild (title, blueprint, every section). */
+export function useUndoRebuild() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { bookId: string; jobId: string }) => manuscriptApi.undoRebuild(v.bookId, v.jobId),
+    onSuccess: (_r, v) =>
+      Promise.all([
+        invalidate(qc, queryKeys.book.rebuilds(v.bookId), queryKeys.book.blueprint(v.bookId), queryKeys.book.sections(v.bookId), ["section"]),
+        bookChanged(qc, v.bookId),
+      ]),
   });
 }
 

@@ -306,6 +306,7 @@ export const JOB_LABELS: Record<string, string> = {
   blueprint: "Blueprint",
   blueprint_part: "Blueprint part",
   write_book: "Writing the book",
+  rebuild_book: "Rebuilding the book",
   write_section: "Writing a section",
   weave_notes: "Weaving in notes",
   edit_pass: "Editor pass",

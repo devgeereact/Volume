@@ -118,7 +118,16 @@ export const blueprintHandler: JobHandler = async (jc) => {
   const styled = cleanBlueprintTitles(fixHouseStyleDeep(res.output, style, BLUEPRINT_KEEP).value, (x) => cleanTitleText(x, style));
   // The plan must add up to the book's word target within 10%; otherwise every target is rescaled to fit.
   const fitted = fitWordTargets(styled, wordTarget);
-  const bp = await repos.planning.addBlueprintVersion(jc.ctx, projectId, fitted, { source: 'ai:blueprint', promptRunId: res.promptRunId });
+  // A rebuild for a chosen title keeps that title and subtitle exactly; approval copies them to the book.
+  if (jc.payload['keepTitle'] === true && book.title) {
+    fitted.title = book.title;
+    if (book.subtitle) fitted.subtitle = book.subtitle;
+  }
+  const bp = await repos.planning.addBlueprintVersion(jc.ctx, projectId, fitted, {
+    source: 'ai:blueprint',
+    note: str(jc.payload['note']),
+    promptRunId: res.promptRunId,
+  });
   await repos.books.advanceStage(jc.ctx, projectId, 'blueprint');
   await jc.emit('book.updated', { projectId, part: 'blueprint', blueprintId: bp.id, version: bp.version });
   return { result: { blueprintId: bp.id, version: bp.version } };

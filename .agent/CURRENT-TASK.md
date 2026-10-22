@@ -1,5 +1,9 @@
 # Current task
 
+## In progress, 22 October 2026
+
+- Branch `feat/book-rebuild` (D-056): rebuild the whole book from a new title (new blueprint, every section rewritten in order, named versions, one-step undo), the book bar cover fix and the Library row fix. Local checks PASS. Not merged or deployed; owner merges the PR and runs the deploy. After deploy, try one rebuild on a test book (it spends AI budget).
+
 ## State on 21 October 2026 (evening)
 
 - Live at <https://volume.gakinz.com> on release `20261021T201339Z` (main `d1aceb0`, PRs up to #49). Rollback target `20261021T200148Z` (`npm run deploy -- --rollback`). Git cleaned 21 October: only `main` and `ci/run-check`, local and on GitHub; no worktrees.
