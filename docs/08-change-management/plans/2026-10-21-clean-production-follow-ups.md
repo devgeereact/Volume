@@ -14,11 +14,11 @@
 
 ## Chunk 1: Decisions to ask the owner (no code until answered)
 
-- [ ] Page numbers in the clean-handbook design: keep quiet centred numbers (current) or match the handbook's bare pages.
-- [ ] Volume mode batch gate: count only claims that need a check (as preflight now does), or keep failing on any open claim.
-- [ ] The three test books ("Calm on the Night Shift", "Your First Website with AI", "Handover That Holds"): keep, archive or delete.
-- [ ] Real publish dates for Harni's 17 books (today's date was used on import).
-- [ ] "The Honest Truth About Nurses": chapter 8 repeats about eight paragraphs from the end of chapter 7; the contents list named chapter 8 "The Bonds We Build" while the text says "The Healer's Heart". Which is right?
+- [x] Page numbers in the clean-handbook design: keep quiet centred numbers (current) or match the handbook's bare pages.
+- [x] Volume mode batch gate: count only claims that need a check (as preflight now does), or keep failing on any open claim.
+- [x] The three test books ("Calm on the Night Shift", "Your First Website with AI", "Handover That Holds"): keep, archive or delete.
+- [x] Real publish dates for Harni's 17 books (today's date was used on import).
+- [x] "The Honest Truth About Nurses": chapter 8 repeats about eight paragraphs from the end of chapter 7; the contents list named chapter 8 "The Bonds We Build" while the text says "The Healer's Heart". Which is right?
 
 ## Chunk 2: Volume mode gate counts only needs-check claims (if the owner says yes)
 
@@ -28,11 +28,11 @@
 - Modify: `apps/server/src/jobs/quality-gate.ts:19` (filter `openClaims` with `claimNeedsCheck` from `@volume/core`)
 - Test: `apps/server/test/claims-tier.test.ts`
 
-- [ ] **Step 1: Write the failing test** `quality gate passes a batch book whose only open claims are for the record`: file one open claim with `location.risk: 'low', harmIfWrong: false` and category `medical`, call the gate, expect no `claims.open` block.
-- [ ] **Step 2: Run** `npm run test -w apps/server -- claims-tier`. Expected: FAIL.
-- [ ] **Step 3: Implement** `openClaims.filter(claimNeedsCheck)` in the gate; keep the message `${n} claims still need checking.`
-- [ ] **Step 4: Run** the same command. Expected: PASS. Then `npm run typecheck`, `npm run lint`.
-- [ ] **Step 5: Commit** `fix(gate): Volume mode counts only claims that need a check`, PR, deploy with `npm run deploy -- --no-ci-check`.
+- [x] **Step 1: Write the failing test** `quality gate passes a batch book whose only open claims are for the record`: file one open claim with `location.risk: 'low', harmIfWrong: false` and category `medical`, call the gate, expect no `claims.open` block.
+- [x] **Step 2: Run** `npm run test -w apps/server -- claims-tier`. Expected: FAIL.
+- [x] **Step 3: Implement** `openClaims.filter(claimNeedsCheck)` in the gate; keep the message `${n} claims still need checking.`
+- [x] **Step 4: Run** the same command. Expected: PASS. Then `npm run typecheck`, `npm run lint`.
+- [x] **Step 5: Commit** `fix(gate): Volume mode counts only claims that need a check`, PR, deploy with `npm run deploy -- --no-ci-check`.
 
 ## Chunk 3: Clean-handbook folios (only if the owner wants bare pages)
 
@@ -42,13 +42,13 @@
 - Modify: `config/interior-themes.json:1183-1186` (`"enabled": false`)
 - Test: `packages/export/test/clean-handbook.test.ts` (the folio assertion flips to none)
 
-- [ ] **Step 1:** Change the assertion to expect no page number on a body page. Run `npm run test -w packages/export -- clean-handbook`. Expected: FAIL.
-- [ ] **Step 2:** Set `folios.enabled` to false. Run again. Expected: PASS.
-- [ ] **Step 3: Commit** `feat(theme): clean-handbook pages without numbers`, PR, deploy.
+- [x] **Step 1:** Change the assertion to expect no page number on a body page. Run `npm run test -w packages/export -- clean-handbook`. Expected: FAIL.
+- [x] **Step 2:** Set `folios.enabled` to false. Run again. Expected: PASS.
+- [x] **Step 3: Commit** `feat(theme): clean-handbook pages without numbers`, PR, deploy.
 
 ## Chunk 4: Owner data tasks on the live site
 
-- [ ] Test books: archive or delete as the owner says (Library, book menu). Delete only on the owner's explicit word.
-- [ ] Publish dates: for each of Harni's 17 books, Published shelf, Set date (or `POST /books/:id/publish` with `publishedAt` through the owner's session).
-- [ ] The Honest Truth About Nurses: owner edits chapter 8 in the Editor (remove the repeat, set the title); Versions keeps the old text.
-- [ ] Record each step in `.agent/HANDOFF.md` and `CHANGELOG.md` where user-visible.
+- [x] Test books: archive or delete as the owner says (Library, book menu). Delete only on the owner's explicit word.
+- [x] Publish dates: for each of Harni's 17 books, Published shelf, Set date (or `POST /books/:id/publish` with `publishedAt` through the owner's session).
+- [x] The Honest Truth About Nurses: owner edits chapter 8 in the Editor (remove the repeat, set the title); Versions keeps the old text.
+- [x] Record each step in `.agent/HANDOFF.md` and `CHANGELOG.md` where user-visible.

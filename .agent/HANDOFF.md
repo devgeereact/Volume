@@ -556,3 +556,10 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Files: apps/web/src/features/cover/ApiCover.tsx, editor/EditorInspector.tsx, library/LibraryPage.tsx, library/PipelineView.tsx, `.agent/CURRENT-TASK.md`, `.agent/HANDOFF.md`.
 - Checks: web typecheck, ESLint on the four files, Prettier, web build PASS; web Vitest 186 of 186 PASS. After deploy: dry-run reads live release `20261021T201339Z`, `/` and `/api/health` HTTP 200 PASS. e2e by the deploy script, output not seen here (NOT TESTED by the assistant). Live pages not visually checked (NOT TESTED).
 - Next: the open owner decisions in CURRENT-TASK.md.
+
+## 2026-10-22, Claude Code (Opus 5.5)
+
+- What changed: read-only check on live of the clean-production follow-ups. All five are done: publish dates are 21 September 2026 on Harni's 17 books; "The Honest Truth About Nurses" chapter 8 was fixed by the owner's autosave on 21 October (version 2, 6,513 to 5,915 words; version 1 kept). No repeated paragraph (80+ characters) remains anywhere in that book. Chapter 8's title "The Healer’s Heart" is right; "The Bonds We Build" is chapter 5. Follow-up plan boxes ticked. No live data changed.
+- Files: `.agent/CURRENT-TASK.md`, `.agent/HANDOFF.md`, `docs/08-change-management/plans/2026-10-21-clean-production-follow-ups.md`.
+- Checks: live API reads through the owner's signed-in Chrome (books, sections, versions) PASS. No code changed, so no tests run (NOT APPLICABLE).
+- Next: owner-only items in CURRENT-TASK.md (GitHub flag, OpenRouter `data_collection`, privacy facts, phase 5 to 8 gates). Nothing is left for the assistant without an owner answer.
