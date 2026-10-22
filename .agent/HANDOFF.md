@@ -571,3 +571,10 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Checks: `npm run typecheck` PASS; `npm run lint` PASS; `npm run format:check` PASS; `npm run test` PASS (server 498, web 186, core, ai, export all green); `npm run e2e` PASS, 20 of 20 (new: rebuild and undo clicked through in the browser with the mock AI, a crowded Library row, Library rows). Live AI rebuild NOT TESTED (costs money). Library row with nine books checked in e2e and by eye on its screenshot: edge fade, arrows both sides, wheel scrolls the page (PASS).
 - Next: owner merges the PR and deploys; then one rebuild on a test book on live.
 
+
+## 2026-10-22 (later), Claude Code: git consolidation and deploy of PR #50
+
+- What changed: no code. Checked branches, worktrees and stashes: only `main` and `ci/run-check` existed (`ci/run-check` then deleted locally and on origin at the owner's request), no worktrees, no stashes, tree clean, `main` equals `origin/main`. Took a backup bundle first. Removed regenerable build output (`apps/server/dist`, `build/`, `test-results/`, `graphify-out/`) and ran `git gc --prune=now`. Owner deployed `db8b50b` as release `20261022T105038Z` (was `20261022T103226Z`).
+- Files: `.agent/CURRENT-TASK.md`, `.agent/HANDOFF.md`.
+- Checks: bundle verify PASS; deploy dry-run PASS; local checks inside deploy PASS (e2e 20 of 20); migrations up to date; live `/`, `/library`, `/sign-in`, `/api/health` 200 PASS; home page console 0 errors PASS; rebuild chunk served PASS. One rebuild on a live test book NOT TESTED (spends budget).
+- Next: owner tries one rebuild on a test book; GitHub flag still blocks Actions. Rollback: `npm run deploy -- --rollback`.

@@ -1,8 +1,10 @@
 # Current task
 
-## In progress, 22 October 2026
+## State on 22 October 2026
 
-- Branch `feat/book-rebuild` (D-056): rebuild the whole book from a new title (new blueprint, every section rewritten in order, named versions, one-step undo), the book bar cover fix and the Library row fix. Local checks PASS. Not merged or deployed; owner merges the PR and runs the deploy. After deploy, try one rebuild on a test book (it spends AI budget).
+- Live at <https://volume.gakinz.com> on release `20261022T105038Z` (main `db8b50b`, PR #50 merged). Rollback target `20261022T103226Z` (`npm run deploy -- --rollback`). Deployed by the owner with `npm run deploy -- --no-ci-check`; local checks (typecheck, lint, format, test, e2e 20 of 20) passed first. No new migrations (0001 to 0011 up to date).
+- Whole-book rebuild from a new title (D-056), book bar cover fix and Library row fix are live. Checked live: `/`, `/library`, `/sign-in`, `/api/health` return 200; home page has 0 console errors; the `RebuildBook` chunk is served. Still to do by the owner: try one rebuild on a test book (it spends AI budget).
+- Git consolidated 22 October: only `main` (in sync with origin). `ci/run-check` (one empty commit) was deleted locally and on origin at the owner's request; make a new branch to start a CI run once Actions is back. No worktrees, no stashes. Backup bundle: `~/repo-backups/Volume-2026-10-22-1137/`.
 
 ## State on 21 October 2026 (evening)
 
