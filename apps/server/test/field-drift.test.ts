@@ -107,3 +107,22 @@ describe('"I have checked this" on a preflight warning', () => {
     expect((await t.call('PUT', `${url}/acknowledgements`, { itemId: 'nope.1', on: true })).status).toBe(404);
   });
 });
+
+describe('ticking several warnings at once', () => {
+  it('keeps every tick when two arrive together', async () => {
+    t = await testApp();
+    const tech = await bookWithChapter(t, 'ai-tech-howto');
+    const tree = await t.call<{ body: Obj[] }>('GET', `/api/v1/books/${tech.id}/sections`);
+    const chapters = tree.body.body.filter((x) => x['kind'] === 'chapter').map((x) => x['id'] as string);
+    expect(chapters.length).toBeGreaterThanOrEqual(2);
+    for (const id of chapters) expect((await t.call('POST', `/api/v1/sections/${id}/versions`, { bodyMd: TECH_TEXT })).status).toBe(201);
+    const url = `/api/v1/books/${tech.id}/preflight`;
+    type Item = { id: string; severity: string; acknowledged?: boolean };
+    const warns = (await t.call<{ items: Item[] }>('GET', url)).body.items.filter((i) => i.id.includes('.field-drift.'));
+    expect(warns.length).toBeGreaterThanOrEqual(2);
+    const done = await Promise.all(warns.map((w) => t!.call('PUT', `${url}/acknowledgements`, { itemId: w.id, on: true })));
+    expect(done.map((r) => r.status)).toEqual(warns.map(() => 200));
+    const after = (await t.call<{ items: Item[] }>('GET', url)).body.items.filter((i) => i.id.includes('.field-drift.'));
+    expect(after.every((i) => i.acknowledged === true)).toBe(true);
+  });
+});
