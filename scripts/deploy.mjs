@@ -228,8 +228,11 @@ if (!bundle) fail('no web bundle in build/release/web/index.html.');
 step(`Uploading releases/${utc}`);
 local('rsync', ['-az', `${path.join(root, 'build/release')}/`, `${cfg.host}:${cfg.appDir}/releases/${utc}/`], { env: sshEnv });
 step('Installing dependencies on the host (Node 24)');
+// The host account has a thread cap shared with every other process it runs (an editor session can use most of it).
+// npm starts several Node processes at once, and one of them aborted at start with "uv_thread_create" (exit 134,
+// 23 October 2026), so the install runs Node with a one-thread pool: the same 167 packages, in about 8 seconds.
 remote(
-  `cd ${app}/releases/${utc} && export PATH=${cfg.nodeBin}:$PATH && npm ci --omit=dev --no-audit --no-fund --loglevel=error && test ! -d node_modules/better-sqlite3`,
+  `cd ${app}/releases/${utc} && export PATH=${cfg.nodeBin}:$PATH NODE_OPTIONS=--v8-pool-size=1 UV_THREADPOOL_SIZE=1 && npm ci --omit=dev --no-audit --no-fund --loglevel=error && test ! -d node_modules/better-sqlite3`,
 );
 
 // ---- 4. Settings link ----

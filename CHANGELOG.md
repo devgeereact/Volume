@@ -13,6 +13,7 @@ User-visible changes, newest first. Dates in British format.
 - "I have read these, mark all as checked" for the lower-risk claims on the Claims screen.
 
 #### Fixed
+- Deploys no longer stop at the install step on the host when the account's thread cap is nearly used (Node aborted with `uv_thread_create`). The install now runs Node with a one-thread pool.
 - "I have checked this" on a preflight warning now saves with the book and shows Checked. Before, the tick lived only in the page, so it vanished on refresh and the warning looked unchanged.
 - Research source markers such as [[S1]] no longer print in the PDF, Word, ePub or text files, and the printed text gets tidy spacing and punctuation.
 - Printed books no longer leave blank pages before every chapter. Non-fiction interior themes start a chapter on the next page instead of the next right-hand page.
