@@ -195,6 +195,9 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
   const pdf = (exportsQ.data ?? []).filter((e) => e.kind === "pdf_print" && e.pageCount !== null).sort((a, b) => b.createdAt - a.createdAt)[0];
   const builtPages = typeof cover?.wrapSpec["pages"] === "number" ? cover.wrapSpec["pages"] : null;
   const realPages = builtPages ?? pdf?.pageCount ?? null;
+  // The text can change after the covers are built (claim fixes, edits), which changes the page count and the spine.
+  // The wrap is then the wrong size for the pack, so offer a rebuild instead of leaving the owner stuck.
+  const stalePages = builtPages !== null && pdf?.pageCount != null && pdf.pageCount !== builtPages;
   const trim = parseTrim(book.trim);
   const typed = Number.parseInt(pagesText, 10);
   const pagesValid = pagesText === "" || (Number.isFinite(typed) && typed >= pageLimits.min && typed <= pageLimits.max6x9);
@@ -273,7 +276,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
             onClick: () => void chooseConcept(),
             disabledReason: pick ? (choose.isPending ? "Saving your choice." : undefined) : "Pick a concept first.",
           }
-        : built && !building && !typeChanged
+        : built && !building && !typeChanged && !stalePages
           ? null
           : {
               label: building ? "Building covers" : built ? "Build covers again" : "Build covers",
@@ -680,6 +683,11 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                         <Check size={14} strokeWidth={2} aria-hidden />
                         Built{builtPages !== null ? ` for ${builtPages} ${paper} pages` : ""}. The AI disclosure records AI-generated images.
                       </p>
+                      {stalePages && (
+                        <p className="text-small text-accent-text">
+                          The book is now {pdf?.pageCount} pages, so the paperback wrap needs building again. Use Build covers again below.
+                        </p>
+                      )}
                       {cover.wrapSpec["mock"] === true && <p className="text-small text-accent-text">Built from placeholder art by the test image model.</p>}
                       <div className="flex flex-wrap gap-2">
                         {cover.ebookAssetId && (
