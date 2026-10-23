@@ -893,6 +893,15 @@ export function useResolveClaim() {
   });
 }
 
+/** Clears the claims whose sentence is no longer in the book (after a rewrite). Refreshes the claims and preflight. */
+export function useClearGoneClaims(bookId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => manuscriptApi.clearGoneClaims(bookId),
+    onSuccess: () => invalidate(qc, queryKeys.book.claimsAll(bookId), queryKeys.book.preflight(bookId)),
+  });
+}
+
 /** The book's claims overview; under the claims key, so every claim change refreshes it. */
 export function useClaimsOverview(bookId: string | undefined, status: ClaimOverviewFilter) {
   return useQuery({

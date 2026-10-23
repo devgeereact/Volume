@@ -151,6 +151,27 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
   });
 
   /**
+   * Marks every open claim whose sentence is no longer in its section's current text as removed (the owner's one-click
+   * clean-up after a rewrite). 200 { cleared }. Claims whose sentence is still in the text are not touched.
+   */
+  app.post('/books/:id/claims/clear-gone', async (req) => {
+    writer(req);
+    const p = parse(z.object({ id: Id }), req.params);
+    await s.repos.books.require(req.ctx, p.id);
+    const open = await m.listClaims(req.ctx, { projectId: p.id, status: 'open' });
+    const texts = new Map<string, string>();
+    let cleared = 0;
+    for (const c of open) {
+      if (!c.sectionId) continue;
+      if (!texts.has(c.sectionId)) texts.set(c.sectionId, (await m.currentVersion(req.ctx, c.sectionId))?.bodyMd ?? '');
+      if ((texts.get(c.sectionId) ?? '').includes(c.sentence)) continue;
+      await m.resolveClaim(req.ctx, c.id, 'removed', { ownerNote: 'The sentence is no longer in the text (cleared by the owner).' });
+      cleared += 1;
+    }
+    return { cleared };
+  });
+
+  /**
    * 202 with the claim_fix job and its estimate. The job's result is { claimId, sectionId, baseVersionId, sentence, options }.
    * 409 conflict { jobId } while a claim_fix job for the same claim is unfinished; one lock per claim makes the check
    * and the enqueue one step, so a double click cannot pay twice.

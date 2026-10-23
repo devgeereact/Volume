@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { Check, Flag } from "lucide-react";
 import { Button, Chip, EmptyState, Input, PageHeader, Textarea } from "../../components/ui";
-import { useClaimsOverview, useEstimate, useResolveClaim } from "../../api/hooks";
+import { useClaimsOverview, useClearGoneClaims, useEstimate, useResolveClaim } from "../../api/hooks";
 import type { ClaimOverviewFilter, ClaimOverviewItem } from "../../api/types";
 import { errorText } from "../../api/wire-c";
 import { useCanWrite } from "../../lib/access";
@@ -55,6 +55,8 @@ function Claims({ bookId }: { bookId: string }) {
   const groups = groupBySection(tiers[tier]);
   const openQ = useClaimsOverview(bookId, "open");
   const resolve = useResolveClaim();
+  const clearGone = useClearGoneClaims(bookId);
+  const goneCount = (openQ.data?.items ?? []).filter((c) => !c.inCurrentText).length;
   const [bulk, setBulk] = useState<{ busy: boolean; problem: string | null }>({ busy: false, problem: null });
 
   /** One click for the lower-risk claims: each is marked checked with a note, one after another, and the list refreshes. */
@@ -92,6 +94,33 @@ function Claims({ bookId }: { bookId: string }) {
             void openQ.refetch();
           }}
         />
+      )}
+      {canWrite && goneCount > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md border border-border bg-sheet p-4">
+          <p className="max-w-[640px] text-small text-ink-secondary">
+            {goneCount} open {goneCount === 1 ? "claim is" : "claims are"} about {goneCount === 1 ? "a sentence" : "sentences"} that{" "}
+            {goneCount === 1 ? "is" : "are"} no longer in the book, usually after a rewrite.
+          </p>
+          <Button
+            variant="secondary"
+            loading={clearGone.isPending}
+            loadingLabel="Clearing"
+            onClick={() =>
+              void clearGone.mutateAsync().then((r) => {
+                setAnnounce(`${r.cleared} ${r.cleared === 1 ? "claim" : "claims"} cleared.`);
+                void q.refetch();
+                void openQ.refetch();
+              })
+            }
+          >
+            Clear {goneCount === 1 ? "it" : `these ${goneCount}`}
+          </Button>
+          {clearGone.isError && (
+            <p role="alert" className="w-full text-small text-claim">
+              {errorText(clearGone.error)}
+            </p>
+          )}
+        </div>
       )}
       <div role="group" aria-label="Show claims" className="mt-4 flex flex-wrap gap-2">
         {FILTERS.map((f) => (

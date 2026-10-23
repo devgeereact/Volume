@@ -121,6 +121,8 @@ export const manuscriptApi = {
   /** Every claim of the book in reading order, with counts by status (default open). */
   claimsOverview: (bookId: string, status: ClaimOverviewFilter = "open", o?: Opts) =>
     api.get<ClaimsOverview>(`/books/${seg(bookId)}/claims/overview`, { ...o, query: { status } }),
+  /** Marks every open claim whose sentence is no longer in the book as removed. */
+  clearGoneClaims: (bookId: string, o?: Opts) => api.post<{ cleared: number }>(`/books/${seg(bookId)}/claims/clear-gone`, undefined, o),
   /** Three stronger replacements as a job (202); the result carries the claim, its sentence and up to three options. */
   suggestClaim: (bookId: string, claimId: string, input: { instruction?: string }, o?: Opts) =>
     api.post<EstimatedJob>(`/books/${seg(bookId)}/claims/${seg(claimId)}/suggest`, input, o),
