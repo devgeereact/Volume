@@ -11,7 +11,7 @@ const config = loadConfig(CONFIG_DIR);
 const RULES = 'Must have:\n- Name only tools that appear in the research sources\nAvoid:\n- Hype and income claims';
 
 const WRITERS: [TaskId, number][] = [
-  ['writing.chapter', 8],
+  ['writing.chapter', 9],
   ['writing.introduction', 8],
   ['writing.conclusion', 8],
   ['writing.back-matter', 8],

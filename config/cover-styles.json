@@ -16,6 +16,7 @@
       "description": "Soft display serif over calm horizontal waves. Trustworthy and quiet.",
       "suits": [
         "healthcare-professional",
+        "clinical-reference",
         "health-wellbeing"
       ],
       "typography": {
@@ -89,6 +90,7 @@
       "description": "Huge condensed capitals with one hard rule. Loud, practical, unmissable at thumbnail size.",
       "suits": [
         "healthcare-professional",
+        "clinical-reference",
         "self-help",
         "business-money"
       ],
@@ -163,6 +165,7 @@
       "description": "Heavy grotesk set low, with overlapping circles above. Friendly and modern.",
       "suits": [
         "healthcare-professional",
+        "clinical-reference",
         "travel",
         "self-help"
       ],

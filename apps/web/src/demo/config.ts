@@ -136,6 +136,7 @@ export const TEMPLATE_FILES = [
   "nonfiction.json",
   "picture-book.json",
   "workbook.json",
+  "reference.json",
   "cookbook.json",
   "journal.json",
   "poetry.json",

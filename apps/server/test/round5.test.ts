@@ -258,7 +258,7 @@ describe('4. word targets', () => {
 describe('5. book-type templates', () => {
   it('links every book type to its template file and every structure section to a template section', async () => {
     const types = await loadBookTypes(CONFIG);
-    expect(types).toHaveLength(35);
+    expect(types).toHaveLength(36);
     for (const type of types) {
       const file = join(CONFIG, 'book-templates', String(type['templateFile']));
       expect(existsSync(file), `${String(type['id'])}: ${file}`).toBe(true);

@@ -1,0 +1,556 @@
+{
+  "$comment": "Reference-guide template (D-059): a quick-look handbook with clean Markdown tables, such as a UK nurses' abbreviations guide. Same section model as nonfiction.json. Chapters open with a short orientation, then reference content; tables and short lists are allowed; no exercises and no bridge to the next chapter. source: profile | owner | ai | app.",
+  "id": "reference",
+  "version": 1,
+  "name": "Reference guide",
+  "locale": "en-GB",
+  "defaultVariant": "reference",
+  "variants": {
+    "reference": {
+      "description": "A quick-look handbook: a short orientation, then tables and short lists the reader scans. Calm, direct, neutral voice.",
+      "listsInProse": true,
+      "tablesAllowed": true
+    }
+  },
+  "voice": {
+    "perspective": "neutral reference voice, speaking to \"you\" only for guidance",
+    "aboutTheAuthorPerspective": "third-person",
+    "contractions": true,
+    "houseStyle": "config/house-style.json"
+  },
+  "wordTargets": {
+    "total": {
+      "min": 8000,
+      "max": 40000,
+      "default": 20000
+    },
+    "tolerance": 0.15,
+    "introduction": {
+      "min": 400,
+      "max": 1200,
+      "default": 700
+    },
+    "conclusion": {
+      "min": 300,
+      "max": 1000,
+      "default": 500
+    },
+    "preface": {
+      "min": 400,
+      "max": 1200,
+      "default": 700
+    },
+    "acknowledgements": {
+      "min": 150,
+      "max": 500,
+      "default": 250
+    },
+    "dedication": {
+      "min": 10,
+      "max": 80,
+      "default": 30
+    },
+    "summary": {
+      "min": 200,
+      "max": 500,
+      "default": 300
+    },
+    "note": "Chapter targets come from chapterRules. Tolerance is the phase 3 acceptance figure: each chapter within 15% of its target."
+  },
+  "chapterRules": {
+    "count": {
+      "default": 6,
+      "min": 4,
+      "max": 12
+    },
+    "wordTarget": {
+      "default": 1800,
+      "min": 1000,
+      "max": 3000
+    },
+    "numbering": "arabic",
+    "titleCase": "house-style titleCase",
+    "subheadings": {
+      "min": 2,
+      "max": 5,
+      "titleCase": true,
+      "markdownLevel": 2
+    },
+    "takeaways": {
+      "enabled": true,
+      "count": {
+        "min": 3,
+        "max": 5
+      },
+      "heading": "Quick Check",
+      "format": "list",
+      "placement": "after reference content",
+      "note": "A short list of the points worth remembering. Owner can switch it off for the whole book."
+    },
+    "openingHook": {
+      "styleOptions": [
+        "question",
+        "orientation"
+      ],
+      "default": "question",
+      "consistentAcrossBook": true,
+      "rules": {
+        "question": "Open with a direct question the reader is already asking themselves.",
+        "orientation": "Open with one plain line saying what the chapter covers and how to use it. No scene, no story."
+      }
+    },
+    "bridgeToNext": {
+      "enabled": false
+    },
+    "dialogue": "not used",
+    "listsInProse": true,
+    "tablesAllowed": true,
+    "tables": "Markdown tables for reference entries (for example Abbreviation | Meaning | Use or note), sorted alphabetically inside each chapter."
+  },
+  "sections": [
+    {
+      "id": "half-title",
+      "kind": "front",
+      "title": "Half Title",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "Book title only."
+    },
+    {
+      "id": "title-page",
+      "kind": "front",
+      "title": "Title Page",
+      "required": true,
+      "defaultOn": true,
+      "source": "owner",
+      "fields": [
+        "book.title",
+        "book.subtitle",
+        "profile.penName",
+        "profile.imprint"
+      ],
+      "content": "Title, subtitle, author (pen name) and imprint. No AI text."
+    },
+    {
+      "id": "copyright",
+      "kind": "front",
+      "title": "Copyright",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "template": [
+        "Copyright © {year} {authorName}. All rights reserved.",
+        "No part of this publication may be reproduced, distributed or transmitted in any form or by any means, including photocopying, recording or other electronic or mechanical methods, without the prior written permission of the author, except for brief quotations in reviews and certain other non-commercial uses permitted by copyright law.",
+        "{disclaimer}",
+        "{illustrativeStoriesLine}",
+        "{edition}",
+        "{isbnLine}",
+        "{imprintLine}"
+      ],
+      "fields": {
+        "year": "Filled automatically with the year of the export, unless the owner sets a first-published year.",
+        "authorName": "profile.copyrightName, else profile.penName.",
+        "disclaimer": "profile.disclaimer, else: 'The information in this book is for general educational purposes only and is not a substitute for professional advice. The author and publisher are not responsible for any actions taken based on its content.'",
+        "illustrativeStoriesLine": "Shown when book.settings.illustrativeStories is on (offered by default when profile.isRealPerson is true): 'The stories in this book are illustrative. Names, details and situations have been changed or combined, and any resemblance to real people is coincidental.'",
+        "edition": "Only if the owner entered one, for example 'First edition {year}'.",
+        "isbnLine": "'ISBN: {isbn}' only if the owner entered an ISBN for this format. Never generated. Empty otherwise.",
+        "imprintLine": "'Published by {imprint}' only if the profile has an imprint."
+      },
+      "kdpRuleIds": [
+        "isbn"
+      ]
+    },
+    {
+      "id": "dedication",
+      "kind": "front",
+      "title": "Dedication",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "content": "A short dedication. Names only from profile.dedicationNames; otherwise dedicated to a group (readers, colleagues, family) without naming anyone.",
+      "promptId": "writing.front-matter"
+    },
+    {
+      "id": "epigraph",
+      "kind": "front",
+      "title": "Epigraph",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "A quotation the owner supplies with its attribution. The AI never chooses or writes one."
+    },
+    {
+      "id": "medical-disclaimer",
+      "kind": "front",
+      "title": "Medical Disclaimer",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "The owner's own disclaimer wording (general information, not medical advice, see a qualified professional). Never AI text."
+    },
+    {
+      "id": "professional-disclaimer",
+      "kind": "front",
+      "title": "Professional Disclaimer",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "The owner's own wording on professional use, local policy and employer guidance. Never AI text."
+    },
+    {
+      "id": "disclaimer",
+      "kind": "front",
+      "title": "Disclaimer",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "The owner's own disclaimer wording. Never AI text."
+    },
+    {
+      "id": "scripture-permissions",
+      "kind": "front",
+      "title": "Scripture Permissions",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "Bible translation copyright notices exactly as the publisher of each translation requires, entered by the owner."
+    },
+    {
+      "id": "author-note",
+      "kind": "front",
+      "title": "Author's Note",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "The owner's note on memory, names changed and what is told as it happened. Never AI text."
+    },
+    {
+      "id": "contents",
+      "kind": "front",
+      "title": "Contents",
+      "required": true,
+      "defaultOn": true,
+      "source": "app",
+      "content": "Built from the structure: front matter after contents, parts, chapters with their subheadings indented beneath (as in the owner's drafts), back matter. eBook contents are linked; print shows page numbers."
+    },
+    {
+      "id": "foreword",
+      "kind": "front",
+      "title": "Foreword",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "Only text written by a real, named person the owner adds, with their permission. Never written by the AI."
+    },
+    {
+      "id": "preface",
+      "kind": "front",
+      "title": "Preface",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "content": "Why the author wrote the book and how it came about, first person.",
+      "promptId": "writing.front-matter"
+    },
+    {
+      "id": "acknowledgements",
+      "kind": "front",
+      "title": "Acknowledgements",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "content": "Thanks to groups (family, colleagues, readers, early readers). Names only from profile.acknowledgementNames. No invented mentors, editors or organisations.",
+      "promptId": "writing.front-matter"
+    },
+    {
+      "id": "introduction",
+      "kind": "front",
+      "title": "Introduction",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "promptId": "writing.introduction"
+    },
+    {
+      "id": "how-to-use",
+      "kind": "front",
+      "title": "How to Use This Book",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "content": "150 to 300 words on how the book is laid out, whether to read in order or dip in, and how long the tasks take. Practical how-to books list it.",
+      "promptId": "writing.front-matter"
+    },
+    {
+      "id": "parts",
+      "kind": "part",
+      "title": "Part {roman}: {partTitle}",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "content": "Optional parts grouping chapters, each with a title in title case and an optional one-paragraph opener. Every part points back to the book's promise.",
+      "promptId": "blueprint.blueprint"
+    },
+    {
+      "id": "chapters",
+      "kind": "chapter",
+      "title": "Chapter {n}: {chapterTitle}",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "repeat": true,
+      "promptId": "writing.chapter"
+    },
+    {
+      "id": "conclusion",
+      "kind": "back",
+      "title": "Conclusion",
+      "altTitle": "Epilogue",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "promptId": "writing.conclusion"
+    },
+    {
+      "id": "appendix",
+      "kind": "back",
+      "title": "Appendix",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "content": "Extra material that would break the flow of a chapter. No statistics or claims beyond the chapters'.",
+      "promptId": "writing.back-matter"
+    },
+    {
+      "id": "resources",
+      "kind": "back",
+      "title": "Resources",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "Only organisations, books and links from the research url_citation sources or entered by the owner. The AI may describe them, never add new ones.",
+      "promptId": "writing.back-matter"
+    },
+    {
+      "id": "glossary",
+      "kind": "back",
+      "title": "Glossary",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "content": "Plain-English definitions of terms used in the book. Clinical and legal definitions go to the claims report.",
+      "promptId": "writing.back-matter"
+    },
+    {
+      "id": "glossary-of-nhs-terms",
+      "kind": "back",
+      "title": "Glossary of NHS Terms",
+      "required": false,
+      "defaultOn": false,
+      "source": "ai",
+      "writesAs": "glossary",
+      "content": "Plain-English definitions of NHS terms the book uses. Clinical and legal definitions go to the claims report.",
+      "promptId": "writing.back-matter"
+    },
+    {
+      "id": "practical-information",
+      "kind": "back",
+      "title": "Practical Information",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "Opening times, transport, costs and contacts entered and dated by the owner. Never AI facts."
+    },
+    {
+      "id": "seasonal-calendar",
+      "kind": "back",
+      "title": "Seasonal Calendar",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "A month-by-month calendar the owner supplies or approves."
+    },
+    {
+      "id": "prayer-or-reflection",
+      "kind": "back",
+      "title": "A Closing Prayer or Reflection",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "The owner's own closing prayer or reflection."
+    },
+    {
+      "id": "references",
+      "kind": "back",
+      "title": "References",
+      "required": false,
+      "defaultOn": false,
+      "source": "owner",
+      "content": "Only real sources: research url_citation sources actually cited in the text, and references the owner entered. Never generated."
+    },
+    {
+      "id": "about-the-author",
+      "kind": "back",
+      "title": "About the Author",
+      "required": true,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "profile.bio word for word, third person. Not rewritten by AI."
+    },
+    {
+      "id": "also-by",
+      "kind": "back",
+      "title": "Also by {penName}",
+      "required": false,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "Only books marked Published under this pen name. Left out automatically when the list is empty."
+    },
+    {
+      "id": "review-request",
+      "kind": "back",
+      "title": "A Small Request",
+      "required": false,
+      "defaultOn": true,
+      "source": "ai",
+      "content": "Two or three polite sentences asking readers who found the book useful to leave an honest review where they bought it. No incentive, no request for a positive review.",
+      "kdpRuleIds": [
+        "reviews.kdpRules",
+        "reviews.amazonCommunityRules"
+      ],
+      "promptId": "writing.back-matter"
+    },
+    {
+      "id": "newsletter-socials",
+      "kind": "back",
+      "title": "Stay in Touch",
+      "required": false,
+      "defaultOn": true,
+      "source": "profile",
+      "content": "Links from profile.links only. Left out when the profile has none."
+    },
+    {
+      "id": "summary",
+      "kind": "package",
+      "title": "Book Summary",
+      "required": true,
+      "defaultOn": true,
+      "source": "ai",
+      "content": "200 to 500 word summary kept with the blueprint; not printed in the book.",
+      "promptId": "blueprint.blueprint"
+    }
+  ],
+  "packages": {
+    "publishing": [
+      {
+        "id": "back-cover-blurb",
+        "title": "Back Cover Blurb",
+        "source": "ai",
+        "promptId": "matter.back-cover",
+        "limits": {
+          "words": {
+            "min": 120,
+            "max": 200
+          }
+        }
+      },
+      {
+        "id": "short-bio",
+        "title": "Short Author Bio",
+        "source": "profile",
+        "content": "profile.shortBio verbatim when present; otherwise condensed from profile.bio by matter.back-cover and shown to the owner for approval.",
+        "limits": {
+          "words": {
+            "max": 60
+          }
+        }
+      },
+      {
+        "id": "amazon-description",
+        "title": "Amazon Description",
+        "source": "ai",
+        "promptId": "matter.amazon-description",
+        "kdpRuleIds": [
+          "listing.description.maxChars",
+          "listing.description.allowedFormatting"
+        ]
+      },
+      {
+        "id": "categories",
+        "title": "Categories",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.categories"
+        ],
+        "note": "Suggestions only; the owner picks each one in KDP's chooser."
+      },
+      {
+        "id": "keywords",
+        "title": "Keywords",
+        "source": "ai",
+        "promptId": "matter.keywords-categories",
+        "kdpRuleIds": [
+          "listing.keywords"
+        ]
+      },
+      {
+        "id": "title-check",
+        "title": "Title and Subtitle Check",
+        "source": "app",
+        "kdpRuleIds": [
+          "listing.titleSubtitle.maxChars"
+        ],
+        "content": "Character count of title plus subtitle, British spelling, banned phrases, no promises the book cannot keep."
+      },
+      {
+        "id": "ai-disclosure-note",
+        "title": "KDP AI Disclosure Note",
+        "source": "app",
+        "kdpRuleIds": [
+          "ai.disclosure"
+        ],
+        "content": "States AI-generated for text (always in fully automatic mode) and for images when cover art came from the image model, with the fact id and date."
+      },
+      {
+        "id": "claims-report",
+        "title": "Claims to Verify",
+        "source": "ai",
+        "promptId": "checks.claims",
+        "content": "Every medical, clinical, legal, safety or statistical statement with its chapter, from guardrailPatterns plus checks.claims. Preflight warns while any stay open."
+      }
+    ],
+    "marketing": [
+      {
+        "id": "tiktok-scripts",
+        "title": "TikTok Scripts",
+        "source": "ai",
+        "promptId": "marketing.tiktok-scripts",
+        "default": {
+          "count": 5
+        }
+      },
+      {
+        "id": "instagram-captions",
+        "title": "Instagram Captions",
+        "source": "ai",
+        "promptId": "marketing.instagram-captions",
+        "default": {
+          "count": 5
+        }
+      },
+      {
+        "id": "launch-email",
+        "title": "Launch Email",
+        "source": "ai",
+        "promptId": "marketing.launch-email"
+      }
+    ]
+  },
+  "derivedFrom": [
+    "config/book-templates/nonfiction.json",
+    "config/book-templates/workbook.json (tablesAllowed, listsInProse, shorter chapters)",
+    "D-059 in docs/08-change-management/DECISIONS.md"
+  ]
+}

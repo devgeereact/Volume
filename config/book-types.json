@@ -1544,6 +1544,74 @@
       ]
     },
     {
+      "id": "clinical-reference",
+      "name": "Clinical reference guide",
+      "category": "nonfiction",
+      "field": "health",
+      "description": "Quick-look reference handbooks for UK nurses and other NHS staff, such as an abbreviations guide, written as clean tables with no clinical instructions.",
+      "templateFile": "reference.json",
+      "structure": {
+        "frontMatter": [
+          "title-page",
+          "copyright",
+          "professional-disclaimer",
+          "contents",
+          "introduction"
+        ],
+        "bodyUnit": "chapters",
+        "backMatter": [
+          "conclusion",
+          "glossary-of-nhs-terms",
+          "resources",
+          "about-the-author",
+          "also-by",
+          "review-request"
+        ]
+      },
+      "wordRange": {
+        "min": 12000,
+        "max": 30000,
+        "default": 20000
+      },
+      "chapterRange": {
+        "min": 4,
+        "max": 12,
+        "default": 6
+      },
+      "genreRules": {
+        "expectations": [
+          "Easy to scan on shift: short orientation, then tables",
+          "Only terms in widespread UK NHS, NMC, RCN and Academy of Medical Royal Colleges use",
+          "Ambiguous or 'do not use' items flagged in a Take care note"
+        ],
+        "mustHaves": [
+          "Professional disclaimer: follow your employer's approved abbreviation list and local policy; the NMC Code comes first",
+          "Reference entries in Markdown tables, alphabetical inside each chapter",
+          "Ambiguous or do-not-use abbreviations flagged (for example U for units, QD, trailing zeros, MS versus MSO4 or MgSO4)",
+          "No doses, thresholds or treatment instructions anywhere",
+          "Clinical statements in the claims-to-verify report"
+        ],
+        "avoid": [
+          "Doses, thresholds or treatment instructions",
+          "Local, trust-specific or invented abbreviations",
+          "Invented guidance, policy numbers or statistics",
+          "Identifiable patients, colleagues or trusts",
+          "Long narrative passages"
+        ]
+      },
+      "defaultInteriorTheme": "healthcare-practical",
+      "defaultCoverStyle": "serene-serif",
+      "defaultTrim": "6 x 9 in",
+      "interior": "black-and-white",
+      "lowContent": false,
+      "kdpNotes": [
+        {
+          "text": "Clinical and safety statements go to the claims-to-verify report before export.",
+          "ruleIds": []
+        }
+      ]
+    },
+    {
       "id": "memoir-biography",
       "name": "Memoir and biography",
       "category": "nonfiction",

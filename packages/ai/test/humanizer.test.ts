@@ -42,6 +42,7 @@ const NEW_AFTER_HUMANIZER = new Set([
   'blueprint.blueprint-workbook',
   'writing.chapter-fiction',
   'writing.chapter-workbook',
+  'writing.chapter-reference',
   'writing.extend-section-fiction',
   'blueprint.regenerate-part-fiction',
   'editing.claim-fix',

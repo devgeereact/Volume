@@ -8,7 +8,7 @@ const loader = new PromptLoader(PROMPTS_DIR);
 const config = loadConfig(CONFIG_DIR);
 
 const WRITERS: [TaskId, number][] = [
-  ['writing.chapter', 8],
+  ['writing.chapter', 9],
   ['writing.introduction', 8],
   ['writing.conclusion', 8],
   ['writing.back-matter', 8],

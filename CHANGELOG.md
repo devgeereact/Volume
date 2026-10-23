@@ -4,7 +4,21 @@ User-visible changes, newest first. Dates in British format.
 
 ## 23 October 2026
 
+#### Added
+- Reference guide book path. A new book type, Clinical reference guide, and a reference template write quick-look handbooks (for example a UK nurses' abbreviations guide) with clean tables, a Quick Check list and no exercises. Chapters use a new prompt, `writing.chapter-reference` v1, which never gives doses or treatment instructions.
+
+#### Added
+- Cover editing from the preview. Click the title, subtitle or author name on the cover preview, then align it left, centre or right, move it up or down (or drag it), make it smaller or larger, and switch capital letters on or off for the title. Saved with the cover.
+- The Library shows three lanes (Making, Ready to publish, Published) with a step meter on each book, and the job bar lists failed and running jobs first.
+- "I have read these, mark all as checked" for the lower-risk claims on the Claims screen.
+
 #### Fixed
+- "I have checked this" on a preflight warning now saves with the book and shows Checked. Before, the tick lived only in the page, so it vanished on refresh and the warning looked unchanged.
+- Research source markers such as [[S1]] no longer print in the PDF, Word, ePub or text files, and the printed text gets tidy spacing and punctuation.
+- Printed books no longer leave blank pages before every chapter. Non-fiction interior themes start a chapter on the next page instead of the next right-hand page.
+- Chapter openings differ from one chapter to the next and no longer start on a clock time (writing prompt v9, blueprint prompt v7).
+- The back cover blurb is laid out cleanly with the author name at the bottom.
+- The new-book wizard no longer asks for a spending cap.
 - The cover studio offers Build covers again when the text changes after the covers were built. Before, a fix to the manuscript could shorten the book, leave the paperback wrap the wrong size and block the pack, with no button to rebuild it.
 - Start research now starts the research. Before, the wizard made the book and opened an empty Research page, so a new project looked frozen until you found and pressed Run research. Research now runs by itself on arrival from the wizard, once, and a reload does not start a second run.
 

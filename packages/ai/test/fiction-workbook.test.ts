@@ -64,6 +64,8 @@ describe('stage selection by template', () => {
     expect(taskForTemplate('blueprint.blueprint', 'fiction')).toBe('blueprint.blueprint-fiction');
     expect(taskForTemplate('writing.chapter', 'workbook')).toBe('writing.chapter-workbook');
     expect(taskForTemplate('blueprint.blueprint', 'workbook')).toBe('blueprint.blueprint-workbook');
+    expect(taskForTemplate('writing.chapter', 'reference')).toBe('writing.chapter-reference');
+    expect(taskForTemplate('blueprint.blueprint', 'reference')).toBe('blueprint.blueprint');
     expect(taskForTemplate('writing.extend-section', 'fiction')).toBe('writing.extend-section-fiction');
     expect(taskForTemplate('blueprint.regenerate-part', 'fiction')).toBe('blueprint.regenerate-part-fiction');
     expect(taskForTemplate('writing.extend-section', 'workbook')).toBe('writing.extend-section');
@@ -77,17 +79,31 @@ describe('stage selection by template', () => {
 
   it('every new prompt is in its stage list in config/models.defaults.json and runs on that stage', () => {
     const stages = config.defaults.stages;
-    for (const id of ['blueprint.blueprint-fiction', 'blueprint.blueprint-workbook', 'writing.chapter-fiction', 'writing.chapter-workbook']) {
+    for (const id of [
+      'blueprint.blueprint-fiction',
+      'blueprint.blueprint-workbook',
+      'writing.chapter-fiction',
+      'writing.chapter-workbook',
+      'writing.chapter-reference',
+    ]) {
       const stage = loader.load(id).meta.stage;
       expect(stages[stage]?.prompts, id).toContain(id);
     }
   });
 
-  it('non-fiction runs writing.chapter v8 and blueprint.blueprint v6; v5 to v7 stay loadable for pinned books', () => {
-    expect(loader.load('writing.chapter').meta.version).toBe(8);
+  it('the chapter and blueprint prompts forbid clock-time openings and repeated opening shapes', () => {
+    expect(loader.load('writing.chapter').system).toMatch(/Never open on a clock time/);
+    expect(loader.load('writing.chapter').system).toMatch(/never open two chapters of the book the same way/);
+    expect(loader.load('blueprint.blueprint').system).toMatch(/different opening for every chapter/);
+  });
+
+  it('non-fiction runs writing.chapter v9 and blueprint.blueprint v7; v5 to v8 stay loadable for pinned books', () => {
+    expect(loader.load('writing.chapter').meta.version).toBe(9);
+    expect(loader.load('writing.chapter', 8).meta.version).toBe(8);
     expect(loader.load('writing.chapter', 7).meta.version).toBe(7);
     expect(loader.load('writing.chapter', 6).meta.version).toBe(6);
-    expect(loader.load('blueprint.blueprint').meta.version).toBe(6);
+    expect(loader.load('blueprint.blueprint').meta.version).toBe(7);
+    expect(loader.load('blueprint.blueprint', 6).meta.version).toBe(6);
     expect(loader.load('writing.chapter', 5).meta.version).toBe(5);
     expect(loader.load('blueprint.blueprint', 5).meta.version).toBe(5);
   });

@@ -103,7 +103,7 @@
       "default": "scene",
       "consistentAcrossBook": true,
       "rules": {
-        "scene": "Open inside a moment: a place, a time, a person, a small detail.",
+        "scene": "Open inside a moment: a place, a person, a small detail. Never a clock time or date.",
         "question": "Open with a direct question the reader is already asking themselves.",
         "imagine": "Ask the reader to picture a specific situation.",
         "quote": "Only a quote the owner supplied in the book's quote list, or one present word for word in the research sources with its url. Never a remembered or invented quote. If none is available, fall back to scene and tell the owner.",

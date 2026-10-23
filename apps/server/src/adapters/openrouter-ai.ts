@@ -91,6 +91,7 @@ export const STAGE_TASKS: { readonly [S in AiStage]: readonly string[] } = {
     'writing.chapter',
     'writing.chapter-fiction',
     'writing.chapter-workbook',
+    'writing.chapter-reference',
     'writing.extend-section',
     'writing.extend-section-fiction',
     'writing.introduction',
