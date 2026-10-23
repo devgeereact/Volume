@@ -277,7 +277,13 @@ export function useRunningJobs(enabled: boolean): RunningJob[] {
       error: qc.getQueryData<BookLiveState>(queryKeys.book.live(a.projectId))?.jobs[a.jobId]?.error ?? plainJobError(a.detail, a.errorCode),
     });
   }
-  return out;
+  // The bar shows the first job, so live work goes first: a failure, then running, then queued, then anything paused.
+  // Without this a job paused weeks ago could sit in front of the book being written right now.
+  const rank = (j: RunningJob) => (j.status === "failed" ? 0 : j.status === "running" ? 1 : j.status === "queued" || j.status === "waiting" ? 2 : 3);
+  return out
+    .map((j, i) => ({ j, i }))
+    .sort((a, b) => rank(a.j) - rank(b.j) || a.i - b.i)
+    .map((x) => x.j);
 }
 
 /* Failed jobs the owner has dismissed from the job bar, for this visit. */

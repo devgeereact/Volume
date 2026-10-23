@@ -187,18 +187,22 @@ export class LibraryRepo {
 
     const live = await this.db
       .selectFrom('jobs')
-      .select(['id', 'projectId', 'kind', 'status', 'progress'])
+      .select(['id', 'projectId', 'kind', 'status', 'progress', 'errorCode'])
       .where('workspaceId', '=', ctx.workspaceId)
       .where('projectId', 'in', ids)
       .where('parentId', 'is', null)
       .where('status', 'in', ['queued', 'running', 'waiting', 'paused', 'paused_budget'])
       .orderBy('id', 'desc')
       .execute();
-    for (const j of live)
+    for (const j of live) {
+      // D-057: a pause at a book budget is obsolete (the cap is gone), so it never counts as live work. Only a pause for
+      // out-of-credit provider still needs the owner.
+      if (j.status === 'paused_budget' && j.errorCode !== 'credits_exhausted') continue;
       if (j.projectId) {
         const e = out.get(j.projectId);
         if (e && !e.runningJob) e.runningJob = { id: j.id, kind: j.kind, status: j.status, progress: Number(j.progress) };
       }
+    }
 
     const covers = await this.db
       .selectFrom('covers')

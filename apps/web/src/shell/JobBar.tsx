@@ -103,10 +103,16 @@ export function ApiJobBar({ job, more }: { job: RunningJob; more: number }) {
     : job.stalledMinutes !== null
       ? `no progress for ${job.stalledMinutes} minutes`
       : job.status === "paused_budget"
-        ? "stopped at the book's budget"
+        ? "AI credits have run out, top up and continue"
         : job.done !== null && job.total !== null
           ? `${job.done} of ${job.total} parts`
-          : ((summaryOnly ? null : job.message) ?? (job.status === "queued" || job.status === "waiting" ? "waiting to start" : null));
+          : ((summaryOnly ? null : job.message) ??
+            // A parent job waits while its sections are written, so say how far on it is, not that it has not started.
+            (job.status === "waiting" && job.progress > 0
+              ? `${Math.round(job.progress * 100)}% done`
+              : job.status === "queued" || job.status === "waiting"
+                ? "waiting to start"
+                : null));
 
   return (
     <div

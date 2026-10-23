@@ -114,8 +114,6 @@ function validate(step: number, d: Draft): Errors {
     const unit = type.structure.bodyUnit;
     if (!c || c < type.chapterRange.min || c > type.chapterRange.max) e.chapters = `Use ${type.chapterRange.min} to ${type.chapterRange.max} ${unit}.`;
     if (d.inSeries && !d.seriesName.trim()) e.seriesName = "Name the series, or switch Part of a series off.";
-    const b = parseNum(d.budget);
-    if (!b || b <= 0) e.budget = "Set a budget cap in dollars, for example 15.";
   }
   return e;
 }
@@ -240,7 +238,6 @@ function NewBookWizard() {
   const profile = pen?.profile;
   const type = getBookType(draft.bookTypeId ?? undefined);
   const est = useMemo(() => estimate(draft), [draft]);
-  const budget = parseNum(draft.budget);
   const title = workingTitle(draft.idea) ?? "Working title";
   const picture = isPictureBook(type);
 
@@ -434,7 +431,6 @@ function NewBookWizard() {
               modelFor={modelFor}
               onModelFor={setModelFor}
               est={est}
-              budget={budget}
               title={title}
             />
           )}
@@ -453,7 +449,7 @@ function NewBookWizard() {
                 {draft.notes && <span className="mt-1 block text-small text-ink-secondary">Notes: {draft.notes}</span>}
               </ReviewBlock>
               <ReviewBlock title="Details" onChange={() => go(3)}>
-                <KeyValueList items={reviewItems(draft, type, budget)} />
+                <KeyValueList items={reviewItems(draft, type)} />
               </ReviewBlock>
               <div className="grid gap-1 rounded-md border border-border bg-sheet p-4">
                 {picture ? (
@@ -582,7 +578,6 @@ function NewBookWizard() {
                     { label: "Trim", value: draft.trim },
                   ]
                 : []),
-              { label: "Budget", value: formatUsd(budget || 0) },
             ]}
           />
           {type && (
@@ -602,7 +597,7 @@ function NewBookWizard() {
 
 /* ---------- Review ---------- */
 
-function reviewItems(d: Draft, type: BookType | undefined, budget: number): { label: string; value: ReactNode; mono?: boolean }[] {
+function reviewItems(d: Draft, type: BookType | undefined): { label: string; value: ReactNode; mono?: boolean }[] {
   const items: { label: string; value: ReactNode; mono?: boolean }[] = [
     { label: "Word target", value: formatNumber(parseNum(d.words)) },
     { label: unitLabel(type), value: d.chapters },
@@ -634,7 +629,6 @@ function reviewItems(d: Draft, type: BookType | undefined, budget: number): { la
     { label: "Cover style", value: getCoverStyle(d.coverStyle)?.name ?? d.coverStyle },
     { label: "Research model", value: d.researchModel, mono: true },
     { label: "Writing model", value: d.writingModel, mono: true },
-    { label: "Budget cap", value: formatUsd(budget) },
   );
   return items;
 }
@@ -678,11 +672,10 @@ interface DetailsStepProps {
   modelFor: "research" | "writing";
   onModelFor: (v: "research" | "writing") => void;
   est: { low: number; high: number };
-  budget: number;
   title: string;
 }
 
-function DetailsStep({ draft, type, profile, errors, set, modelFor, onModelFor, est, budget, title }: DetailsStepProps) {
+function DetailsStep({ draft, type, profile, errors, set, modelFor, onModelFor, est, title }: DetailsStepProps) {
   const groups = fieldGroups(type);
   const words = parseNum(draft.words) || 0;
   const count = parseNum(draft.chapters) || 1;
@@ -968,30 +961,17 @@ function DetailsStep({ draft, type, profile, errors, set, modelFor, onModelFor, 
         </p>
       </Section>
 
-      <Section title="Budget">
-        <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
-          <Input
-            id="field-budget"
-            label="Budget cap for this book (US dollars)"
-            inputMode="decimal"
-            value={draft.budget}
-            onChange={(e) => set("budget", e.target.value)}
-            error={errors.budget}
-            hint="Jobs pause when the book reaches its cap. Default from Settings."
-          />
-          <div className="rounded-md border border-border bg-sheet p-4">
-            <p className="text-small text-ink-secondary">Estimated cost for the whole book</p>
-            <p className="num mt-1 font-book text-figure text-ink">
-              {formatUsd(est.low)} <span className="font-ui text-label text-ink-secondary normal-nums">to {formatUsd(est.high)}</span>
-            </p>
-            <p className="mt-1 text-small text-ink-tertiary">Example prices. The app reads live prices from OpenRouter.</p>
-          </div>
+      <Section title="Estimated cost">
+        <div className="rounded-md border border-border bg-sheet p-4 sm:max-w-md">
+          <p className="text-small text-ink-secondary">Estimated cost for the whole book</p>
+          <p className="num mt-1 font-book text-figure text-ink">
+            {formatUsd(est.low)} <span className="font-ui text-label text-ink-secondary normal-nums">to {formatUsd(est.high)}</span>
+          </p>
+          <p className="mt-1 text-small text-ink-tertiary">
+            Example prices. The app reads live prices from OpenRouter and your Anthropic account. Nothing stops a book at a limit: if the credit runs out, the
+            book pauses and tells you to top up.
+          </p>
         </div>
-        {budget > 0 && budget < est.high && (
-          <Banner tone="attention" title="The cap is below the high estimate">
-            The book may pause before it is finished. Raise the cap to {formatUsd(Math.ceil(est.high))} or more, or pick a cheaper writing model.
-          </Banner>
-        )}
       </Section>
     </div>
   );
