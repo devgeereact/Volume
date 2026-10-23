@@ -120,6 +120,8 @@ export interface CoverDesign {
   /** Size multipliers for the subtitle and author lines (1 is the usual size). */
   subtitleScale?: number | undefined;
   authorScale?: number | undefined;
+  /** Title font chosen by the owner in the cover studio (an installed OFL family); replaces the style's title face. */
+  titleFamily?: string | undefined;
   /** Letter spacing for the title, as CSS (for example "0.14em"). */
   titleTracking?: string | undefined;
   /** Font family for the subtitle and author lines (an installed OFL family). Default the interface sans. */

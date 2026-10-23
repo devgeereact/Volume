@@ -3,7 +3,7 @@ import { useCanWrite } from "../../lib/access";
 import { Link } from "react-router";
 import { Check, Download, RotateCw, Upload } from "lucide-react";
 import { Banner, Button, buttonClasses, Loader, PageHeader, ProgressBar, SegmentedControl, Skeleton, StatusChip, Switch } from "../../components/ui";
-import type { Book, CoverDesign, PenName } from "../../demo";
+import { coverFromStyle, coverStyles, getCoverStyle, type Book, type CoverDesign, type PenName } from "../../demo";
 import { assetsApi } from "../../api/assets";
 import { useBlueprint, useBuildCover, useChooseCover, useCover, useCoverConcepts, useExports, usePutCoverBrief } from "../../api/hooks";
 import { isTerminalJob, type ApiBookDetail, type ApiCover, type CoverConcept } from "../../api/types";
@@ -81,6 +81,22 @@ function fromBrief(prev: Obj, b: CoverBrief): Obj {
   };
 }
 
+/** Title fonts the owner can pick: installed OFL families that both the preview and the build have. */
+const TITLE_FONTS = [
+  "DM Serif Display",
+  "Playfair Display",
+  "Fraunces",
+  "Bodoni Moda",
+  "Cormorant Garamond",
+  "Young Serif",
+  "Libre Franklin",
+  "Space Grotesk",
+  "Big Shoulders Display",
+  "Nunito",
+  "Literata",
+  "Lora",
+] as const;
+
 export function ApiCover({ book, apiBook, penName }: { book: Book; apiBook: ApiBookDetail | undefined; penName: PenName | undefined }) {
   const coverQ = useCover(book.id);
   if (coverQ.isPending) return <LoadingBlock label="Loading the cover studio" rows={6} />;
@@ -139,7 +155,18 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
   const [modelFix, setModelFix] = useState<{ problem: ModelProblem; retry: "concepts" | "build" } | null>(null);
 
   // The typographic layer: the book's own cover style (concept A in the demo is always the book's style).
-  const own = useMemo(() => conceptsFor(book)[0]!, [book]);
+  const bookOwn = useMemo(() => conceptsFor(book)[0]!, [book]);
+  // The owner can pick any cover style; it is saved as typography.styleId and the build uses it.
+  const [styleId, setStyleId] = useState<string>(
+    typeof savedType["styleId"] === "string" && getCoverStyle(savedType["styleId"]) ? savedType["styleId"] : bookOwn.style.id,
+  );
+  const own = useMemo(() => {
+    const style = getCoverStyle(styleId);
+    if (!style || style.id === bookOwn.style.id) return bookOwn;
+    return { ...bookOwn, style, base: coverFromStyle(style.id, style.palettes[0]?.id ?? "", bookOwn.base.titleLines), paletteIndex: 0 };
+  }, [bookOwn, styleId]);
+  const savedFonts = savedType["fonts"] as Obj | undefined;
+  const [titleFont, setTitleFont] = useState<string>(typeof savedFonts?.["title"] === "string" ? savedFonts["title"] : "");
   const [paletteIdx, setPaletteIdx] = useState(() => {
     const i = own.style.palettes.findIndex((p) => p.id === savedType["paletteId"]);
     return i >= 0 ? i : own.paletteIndex;
@@ -153,6 +180,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
     const base = palette ? withPalette(own.base, palette) : own.base;
     const styled: CoverDesign = {
       ...base,
+      ...(titleFont ? { titleFamily: titleFont } : {}),
       ...(edits.titleAlign ? { titleAlign: edits.titleAlign } : {}),
       ...(edits.subtitleAlign ? { subtitleAlign: edits.subtitleAlign } : {}),
       ...(edits.authorAlign ? { authorAlign: edits.authorAlign } : {}),
@@ -161,7 +189,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       ...(edits.titleUppercase !== undefined ? { titleUppercase: edits.titleUppercase } : {}),
     };
     return layoutCover(styled, { subtitle, size, position, titleTop: edits.titleTop, subtitleTop: edits.subtitleTop, authorTop: edits.authorTop });
-  }, [own, palette, subtitle, size, position, edits]);
+  }, [own, palette, subtitle, size, position, edits, titleFont]);
   const edit = (part: CoverPart, top: number) => setEdits((e) => setTop(e, part, top));
   const editHandlers = {
     onSelect: setSelected,
@@ -187,6 +215,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
   const typography: Obj = {
     styleId: own.style.id,
     paletteId: palette?.id ?? null,
+    ...(titleFont ? { fonts: { title: titleFont } } : {}),
     showSubtitle,
     ...(position !== "style" ? { titlePosition: position } : {}),
     titleTopPct: Math.round(design.titleTop * 100) / 100,
@@ -566,10 +595,53 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
             ) : (
               <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
                 <div className="grid content-start gap-4">
-                  <p className="text-small text-ink-secondary">
-                    The type follows the book's cover style, <b className="font-semibold text-ink">{own.style.name}</b>. The build uses exactly what you set
-                    here.
-                  </p>
+                  <p className="text-small text-ink-secondary">The build uses exactly what you set here.</p>
+                  <div className="grid gap-1.5">
+                    <label htmlFor="cover-design" className="text-label text-ink">
+                      Design
+                    </label>
+                    <select
+                      id="cover-design"
+                      value={own.style.id}
+                      disabled={!canWrite}
+                      onChange={(e) => {
+                        setStyleId(e.target.value);
+                        setPaletteIdx(0);
+                        setEdits({});
+                        setPosition("style");
+                        setSize(100);
+                        setTitleFont("");
+                      }}
+                      className="h-11 w-full rounded-sm border border-border-strong bg-sheet px-3 text-body text-ink"
+                    >
+                      {coverStyles.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-small text-ink-secondary">{own.style.description}</p>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <label htmlFor="cover-title-font" className="text-label text-ink">
+                      Title font
+                    </label>
+                    <select
+                      id="cover-title-font"
+                      value={titleFont}
+                      disabled={!canWrite}
+                      onChange={(e) => setTitleFont(e.target.value)}
+                      className="h-11 w-full rounded-sm border border-border-strong bg-sheet px-3 text-body text-ink"
+                      style={titleFont ? { fontFamily: `'${titleFont}'` } : undefined}
+                    >
+                      <option value="">Design's own font</option>
+                      {TITLE_FONTS.map((f) => (
+                        <option key={f} value={f} style={{ fontFamily: `'${f}'` }}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
                     <label htmlFor="title-size" className="flex justify-between text-label text-ink">
                       Title size <span className="num text-ink-secondary">{size}%</span>
@@ -577,8 +649,8 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                     <input
                       id="title-size"
                       type="range"
-                      min={70}
-                      max={130}
+                      min={60}
+                      max={180}
                       step={5}
                       value={size}
                       onChange={(e) => setSize(Number(e.target.value))}

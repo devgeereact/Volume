@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { books } from "../../demo";
-import { conceptsFor } from "./concepts";
+import { conceptsFor, layoutCover } from "./concepts";
+import { ArtCover } from "./ArtCover";
 import { WrapPreview } from "./WrapPreview";
 
 const book = books[0]!;
@@ -29,5 +30,20 @@ describe("WrapPreview", () => {
     expect(html).toContain("First paragraph.");
     expect(html).toContain("Second paragraph.");
     expect(html.match(/<p /g)?.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("larger titles and art scrim", () => {
+  it("wraps a larger title onto more lines instead of stopping at its longest line", () => {
+    const small = layoutCover(design, { size: 100 });
+    const big = layoutCover(design, { size: 180 });
+    expect(big.titleLines.join(" ")).toBe(small.titleLines.join(" "));
+    expect(big.titleLines.length).toBeGreaterThanOrEqual(small.titleLines.length);
+  });
+
+  it("draws art under a clear-in-the-middle scrim, not a flat wash", () => {
+    const html = renderToStaticMarkup(<ArtCover src="/a.webp" title="T" author="A" design={design} />);
+    expect(html).toContain("linear-gradient");
+    expect(html).not.toContain("opacity:0.55");
   });
 });

@@ -183,9 +183,24 @@ export function layoutCover(
   const avail = centred ? 82 : 81;
   const longest = Math.max(1, ...d.titleLines.map((l) => l.length));
   let titleSize = (d.titleSize * size) / 100;
-  // 0.9: the letter widths are averages, and wide letters (B, k, o) would otherwise wrap a line.
-  titleSize = Math.min(titleSize, (avail * 0.9) / (longest * perChar));
-  const blockH = titleSize * (lineHeight[d.typeface] ?? 1) * d.titleLines.length;
+  let titleLines = d.titleLines;
+  if (size > 100) {
+    // A larger title wraps onto more lines instead of stopping at the width of its longest line, as the build does.
+    const words = d.titleLines.join(" ").split(/\s+/).filter(Boolean);
+    const longestWord = Math.max(1, ...words.map((w) => w.length));
+    titleSize = Math.min(titleSize, (avail * 0.9) / (longestWord * perChar));
+    const cap = Math.max(longestWord, Math.floor((avail * 0.9) / (titleSize * perChar)));
+    titleLines = [];
+    for (const w of words) {
+      const last = titleLines[titleLines.length - 1];
+      if (last !== undefined && last.length + 1 + w.length <= cap) titleLines[titleLines.length - 1] = `${last} ${w}`;
+      else titleLines.push(w);
+    }
+  } else {
+    // 0.9: the letter widths are averages, and wide letters (B, k, o) would otherwise wrap a line.
+    titleSize = Math.min(titleSize, (avail * 0.9) / (longest * perChar));
+  }
+  const blockH = titleSize * (lineHeight[d.typeface] ?? 1) * titleLines.length;
 
   const authorTop = defaultAuthorTop(d);
   const subWidth = centred ? 100 - 2 * d.subtitleRightInset : 90 - d.subtitleRightInset;
@@ -237,7 +252,16 @@ export function layoutCover(
     }
   }
 
-  return { ...d, titleSize, titleTop, subtitleTop, motif, motifBox: box, ...(authorTopSet !== undefined ? { authorTop: clampTop(authorTopSet) } : {}) };
+  return {
+    ...d,
+    titleLines,
+    titleSize,
+    titleTop,
+    subtitleTop,
+    motif,
+    motifBox: box,
+    ...(authorTopSet !== undefined ? { authorTop: clampTop(authorTopSet) } : {}),
+  };
 }
 
 /** Hit areas for the three lines, in cover-width units (width 100, height 150), for clicking and dragging in the preview. */

@@ -320,6 +320,7 @@ export function Cover({ title, subtitle, author, design, width, hideSubtitle, li
         <p
           style={{
             ...faces[design.typeface],
+            ...(design.titleFamily ? { fontFamily: `'${design.titleFamily}', ${ui}` } : {}),
             ...sidesFor(titleAlign),
             top: cq(design.titleTop),
             fontSize: cq(design.titleSize),

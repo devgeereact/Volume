@@ -25,8 +25,8 @@ describe("cover edit rules", () => {
     expect(stepScale(0.6, -1)).toBe(0.6);
     expect(clampScale(3)).toBe(1.6);
     expect(stepTitleSize(100, 1)).toBe(105);
-    expect(stepTitleSize(130, 1)).toBe(130);
-    expect(stepTitleSize(70, -1)).toBe(70);
+    expect(stepTitleSize(180, 1)).toBe(180);
+    expect(stepTitleSize(60, -1)).toBe(60);
   });
 
   it("turns a drag into a position, clamped to 0 to 150", () => {
@@ -123,7 +123,7 @@ describe("cover toolbar", () => {
   });
 
   it("disables the size buttons at the limits", () => {
-    expect(html("title", undefined, 130)).toMatch(/aria-label="Make the title larger"[^>]*disabled=""|disabled=""[^>]*aria-label="Make the title larger"/);
+    expect(html("title", undefined, 180)).toMatch(/aria-label="Make the title larger"[^>]*disabled=""|disabled=""[^>]*aria-label="Make the title larger"/);
     expect(html("subtitle", { ...layoutCover(base, { subtitle: SUBTITLE }), subtitleScale: 0.6 })).toMatch(
       /disabled=""[^>]*aria-label="Make the subtitle smaller"|aria-label="Make the subtitle smaller"[^>]*disabled=""/,
     );

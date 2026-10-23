@@ -4,6 +4,13 @@ User-visible changes, newest first. Dates in British format.
 
 ## 24 October 2026
 
+#### Added
+- Cover studio: a Design picker (all 17 cover styles, each with its own palettes) and a Title font picker, so books by the same author no longer have to look alike. Both are saved and used by the build.
+
+#### Changed
+- Covers over art keep the art vivid: a clear-in-the-middle scrim behind the title and the author replaces the flat 55 percent wash. Preview and build draw the same gradient.
+- Title size now ranges from 60 to 180 percent and a larger title wraps onto more lines (preview and build) instead of stopping at the width of its longest line.
+
 #### Fixed
 - Cover previews now agree. The paperback wrap preview draws the front over the chosen art (it showed a flat colour and motif), lays the back out as the build does (blurb sized by length, paragraphs apart, author name under a rule at the foot), and the studio says when the title, style, type settings or art changed after the covers were built.
 - The footer job bar no longer shows a plain "Job" stuck at 10% while Fix the whole book works. Claim fixes are named ("Fixing a claim"), report real steps (asking the editor, checking the options) and every other job kind has a name.

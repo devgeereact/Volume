@@ -69,6 +69,14 @@ function coverFonts(style: CoverStyle, lib: FontLibrary, warnings: string[]): Fo
  */
 export const ART_WASH_OPACITY = 0.55;
 
+/**
+ * The scrim over concept art: the palette's background, solid enough behind the title (top) and the author (foot) to
+ * keep them legible, and clear through the middle so the art keeps its colour. The Cover studio preview (apps/web
+ * ArtCover artScrim) draws the same gradient.
+ */
+export const artScrim = (bg: string): string =>
+  `linear-gradient(to bottom, color-mix(in srgb, ${bg} 90%, transparent) 0%, color-mix(in srgb, ${bg} 62%, transparent) 24%, color-mix(in srgb, ${bg} 0%, transparent) 48%, color-mix(in srgb, ${bg} 0%, transparent) 66%, color-mix(in srgb, ${bg} 82%, transparent) 100%)`;
+
 const alignWord = (a: CoverAlign): 'left' | 'centre' | 'right' => (a === 'center' ? 'centre' : a);
 /** A class for an element's own alignment, only when the owner set one (so older covers draw exactly as before). */
 const ownAlign = (a: CoverAlign | undefined): string => (a ? ` a-${alignWord(a)}` : '');
@@ -111,7 +119,7 @@ function frontCss(style: CoverStyle, f: Fonts): string {
   return `
 .front { position: relative; width: 100%; height: 100%; overflow: hidden; container-type: size; background: ${c.background}; color: ${c.title}; }
 .front .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.front.has-bg::after { content: ""; position: absolute; inset: 0; background: ${c.background}; opacity: ${ART_WASH_OPACITY}; }
+.front.has-bg::after { content: ""; position: absolute; inset: 0; background: ${artScrim(c.background)}; }
 .front .band { position: absolute; left: 0; right: 0; top: ${band.topPct}cqw; height: ${band.heightPct}cqw; background: ${c.band}; }
 .front .frame { position: absolute; inset: 4cqw; border: 0.6cqw solid ${c.accent}; }
 .front .stack { position: absolute; z-index: 2; top: ${top}; left: 8cqw; right: 8cqw; bottom: 7cqh; display: flex; flex-direction: column; align-items: center; text-align: center; }
@@ -155,7 +163,7 @@ document.fonts.ready.then(function () {
   document.querySelectorAll('[data-fit]').forEach(function (el) {
     var box = el.parentElement;
     var size = parseFloat(getComputedStyle(el).fontSize);
-    var maxH = box.clientHeight * 0.45;
+    var maxH = box.clientHeight * 0.6;
     var guard = 0;
     while ((el.scrollWidth > box.clientWidth + 1 || el.offsetHeight > maxH) && size > 8 && guard < 200) {
       size = size * 0.97; el.style.fontSize = size + 'px'; guard++;
@@ -479,7 +487,7 @@ export function applyCoverTypography(style: CoverStyle, typography: CoverTypogra
   if (size === 'small' || size === 'medium' || size === 'large') out.titleScale = style.titleScale * { small: 0.8, medium: 1, large: 1.2 }[size];
   else if (typeof size === 'number' && Number.isFinite(size)) {
     const scale = size > 1 ? size / 100 : size;
-    if (scale >= 0.05 && scale <= 0.3) out.titleScale = scale;
+    if (scale >= 0.05 && scale <= 0.4) out.titleScale = scale;
   }
   for (const source of [t['colours'], t['palette']]) {
     if (!isObj(source)) continue;

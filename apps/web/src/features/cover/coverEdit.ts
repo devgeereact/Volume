@@ -23,8 +23,8 @@ export const TOP_MAX = 150;
 export const SCALE_MIN = 0.6;
 export const SCALE_MAX = 1.6;
 export const SCALE_STEP = 0.1;
-export const TITLE_SIZE_MIN = 70;
-export const TITLE_SIZE_MAX = 130;
+export const TITLE_SIZE_MIN = 60;
+export const TITLE_SIZE_MAX = 180;
 export const TITLE_SIZE_STEP = 5;
 /** One press of Move up or Move down, in cover-width units. */
 export const NUDGE = 1;
