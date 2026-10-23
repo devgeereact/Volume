@@ -1,5 +1,9 @@
 # Current task
 
+## State on 24 October 2026 (end)
+
+- Live release `20261023T150002Z` (PRs #58 and #59). Both Harni nursing books have built upload packs, 0 preflight blocks. Owner confirmed Steady On Your Feet is the second book and has reviewed the remaining claims. Open with the owner: tick or resolve those claims in the app, the 34 for-the-record claims on AI For Everyday People, imprints and social links.
+
 ## State on 24 October 2026 (late)
 
 - Main is `0eb6694` (PRs #55 to #58 merged). Whether PR #58 is deployed is not confirmed: check the host release name. Owner decisions open: confirm the second book (Steady On Your Feet or Life Lessons as a Nurse), imprints and social links, the 34 for-the-record claims on AI For Everyday People.
