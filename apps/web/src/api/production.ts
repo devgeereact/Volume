@@ -30,6 +30,9 @@ export const productionApi = {
 
   /* exports */
   preflight: (bookId: string, o?: Opts) => api.get<ApiPreflightReport>(`/books/${seg(bookId)}/preflight`, o),
+  /** Saves (or clears) the owner's "I have checked this" tick for one warning. Answers the new report. */
+  acknowledgePreflight: (bookId: string, input: { itemId: string; on: boolean }, o?: Opts) =>
+    api.put<ApiPreflightReport>(`/books/${seg(bookId)}/preflight/acknowledgements`, input, o),
   startExports: (bookId: string, input: ExportsInput = {}, o?: Opts) => api.post<AcceptedJob>(`/books/${seg(bookId)}/exports`, input, o),
   exports: (bookId: string, o?: Opts) => api.get<ListResponse<ApiExportRecord>>(`/books/${seg(bookId)}/exports`, o),
   /** URL for an <a download> link. The server streams the file by id. */

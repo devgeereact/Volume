@@ -117,6 +117,8 @@ export interface PreflightItem {
   severity: PreflightSeverity;
   message: string;
   fix?: PreflightFix;
+  /** The owner ticked "I have checked this" for this exact warning (stored on the book). */
+  acknowledged?: boolean;
 }
 
 /**
