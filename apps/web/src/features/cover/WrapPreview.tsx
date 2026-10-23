@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Cover } from "../../components/ui";
+import { ArtCover } from "./ArtCover";
 import type { CoverDesign } from "../../demo";
 import { barcodeArea, coverBleedIn, inches, safeInsetIn, spineTextMinPages, wrapSize, type Paper } from "../export/kdpRules";
 
@@ -46,6 +46,8 @@ interface WrapPreviewProps {
   subtitle: string;
   author: string;
   design: CoverDesign;
+  /** The chosen concept's art, so the front is drawn as the build draws it (art under a wash of the palette). */
+  src: string | null;
   showSubtitle: boolean;
   blurb: string;
   trim: { w: number; h: number };
@@ -58,7 +60,7 @@ interface WrapPreviewProps {
  * spine folds in blue pencil, the safe area dashed and the barcode keep-out box. Sizes come from the
  * KDP rules file. The labels sit in the legend, never on the cover.
  */
-export function WrapPreview({ title, subtitle, author, design, showSubtitle, blurb, trim, pages, paper }: WrapPreviewProps) {
+export function WrapPreview({ title, subtitle, author, design, src, showSubtitle, blurb, trim, pages, paper }: WrapPreviewProps) {
   const size = wrapSize(trim, pages, paper);
   const W = size.width;
   const H = size.height;
@@ -78,6 +80,14 @@ export function WrapPreview({ title, subtitle, author, design, showSubtitle, blu
   const spineText = pages >= spineTextMinPages;
   const pal = design.palette;
   const face = design.accentFamily ? `'${design.accentFamily}', var(--font-book)` : "var(--font-book)";
+  const backPad = 0.5;
+  const ptToCqw = (pt: number) => `${((pt / 72 / W) * 100).toFixed(3)}cqw`;
+  const blurbParas = blurb
+    .split(/\n\s*\n/)
+    .map((s) => s.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  const blurbWords = blurb.split(/\s+/).filter(Boolean).length;
+  const blurbPt = blurbWords <= 130 ? 11 : blurbWords <= 190 ? 10.5 : blurbWords <= 240 ? 9.75 : 9;
   const bc = { x: spineX - safeInsetIn - 0.25 - barcodeArea.widthIn, y: b + trim.h - safeInsetIn - 0.25 - barcodeArea.heightIn };
 
   return (
@@ -88,10 +98,24 @@ export function WrapPreview({ title, subtitle, author, design, showSubtitle, blu
         className="relative w-full overflow-hidden rounded-xs shadow-cover"
         style={{ aspectRatio: `${W} / ${H}`, background: pal.background, containerType: "inline-size" }}
       >
-        {/* Back cover: blurb, short bio line */}
-        <div style={{ ...box(backX + 0.55, b + 0.9, trim.w - 1.1, trim.h - 3) }} aria-hidden>
-          <p style={{ fontFamily: face, color: pal.subtitle, fontSize: "1.45cqw", lineHeight: 1.5 }}>{blurb}</p>
-          <p className="mt-[2cqw] font-semibold uppercase" style={{ fontFamily: face, color: pal.author, fontSize: "0.95cqw", letterSpacing: "0.14em" }}>
+        {/* Back cover, laid out as the build lays it out (packages/export covers.ts): 0.5 in padding, the blurb sized by
+            its length, paragraphs 9 pt apart, the author name under a rule at the foot. */}
+        <div aria-hidden style={{ ...box(backX + backPad, b + backPad + 0.2, trim.w - 2 * backPad, trim.h - 3) }}>
+          {blurbParas.map((para, i) => (
+            <p key={i} style={{ fontFamily: face, color: pal.subtitle, fontSize: ptToCqw(blurbPt), lineHeight: 1.5, margin: `0 0 ${ptToCqw(9)}` }}>
+              {para}
+            </p>
+          ))}
+        </div>
+        <div
+          aria-hidden
+          style={{
+            ...box(backX + backPad, b + trim.h - backPad - 0.45, trim.w - 2 * backPad - barcodeArea.widthIn - 0.35, 0.45),
+            borderTop: `${ptToCqw(0.8)} solid ${pal.motifAlt}`,
+            paddingTop: ptToCqw(8),
+          }}
+        >
+          <p className="font-semibold uppercase" style={{ fontFamily: face, color: pal.author, fontSize: ptToCqw(10), letterSpacing: "0.14em", margin: 0 }}>
             {author}
           </p>
         </div>
@@ -123,7 +147,8 @@ export function WrapPreview({ title, subtitle, author, design, showSubtitle, blu
 
         {/* Front cover: the chosen concept at trim size */}
         <div aria-hidden style={box(frontX, b, trim.w, trim.h)}>
-          <Cover
+          <ArtCover
+            src={src}
             title={title}
             subtitle={showSubtitle ? subtitle : undefined}
             author={author}

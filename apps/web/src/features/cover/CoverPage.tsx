@@ -413,6 +413,7 @@ function Studio({ book, author, fresh }: { book: Book; author: string; fresh: bo
                         subtitle={book.subtitle}
                         author={author}
                         design={design}
+                        src={null}
                         showSubtitle={showSubtitle}
                         blurb={blurbFor(book)}
                         trim={trim}
