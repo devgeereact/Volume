@@ -70,6 +70,9 @@ const SYMBOL: Record<string, string> = {
   '⅓': '1/3',
   '⅔': '2/3',
   '№': 'No.',
+  // The micro sign (U+00B5) is missing from Atkinson Hyperlegible Next, so "µg" printed as a Type 3 system font
+  // (23 October 2026). The Greek mu looks the same and comes from Lora's maths subset.
+  µ: 'μ',
 };
 
 const WORD_RE = new RegExp(`[ \\t]*[${Object.keys(WORD).join('')}][\\uFE0E\\uFE0F]?[ \\t]*`, 'gu');
