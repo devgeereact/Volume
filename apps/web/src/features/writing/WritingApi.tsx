@@ -37,6 +37,7 @@ import {
   type TextBlock,
   type WriteRowStatus,
 } from "../../api/wire-b";
+import { BudgetPausedBanner } from "../books/BudgetPausedBanner";
 import type { Book } from "../../demo";
 import { cn } from "../../lib/cn";
 import { formatNumber, formatUsd } from "../../lib/format";
@@ -118,7 +119,9 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
 
   const children = parentDetail.data?.children ?? [];
   const childRunning = children.some((c) => c.status === "running") || rows.some((r) => r.status === "writing" || r.status === "checking");
-  const childPaused = children.some((c) => c.status === "paused" || c.status === "paused_budget") || rows.some((r) => r.status === "paused");
+  // A parent that stopped before it made any section jobs (a rebuild at the budget) is paused too.
+  const parentPaused = parent !== null && (parent.status === "paused" || parent.status === "paused_budget");
+  const childPaused = parentPaused || children.some((c) => c.status === "paused" || c.status === "paused_budget") || rows.some((r) => r.status === "paused");
   const parentActive = parent !== null && !isTerminalJob(parent.status);
   // When a section fails the server cancels the sections after it and ends the job as failed
   // (errorCode child_failed) with a plain summary, so the job never waits for ever.
@@ -253,7 +256,9 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
   const error = writeBook.error ?? writeSection.error ?? control.error;
   const writerModel = current?.job?.model ?? parent?.model ?? null;
   const flagged = rows.filter((r) => r.flags.length > 0);
-  const budget = live.data.budgetPaused;
+  // The live event is lost on a reload, so a job saved as paused_budget shows the same banner.
+  const budgetJob = parent?.status === "paused_budget" ? parent : (children.find((c) => c.status === "paused_budget") ?? null);
+  const budget = live.data.budgetPaused ?? (budgetJob ? { jobId: budgetJob.id, message: budgetJob.error ?? "" } : null);
 
   if (tree.isPending) return <WritingSkeleton />;
 
@@ -366,9 +371,7 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
           </Banner>
         )}
         {budget && (
-          <Banner tone="attention" title="Writing paused at the budget">
-            {budget.message} Raise the book's budget, then resume.
-          </Banner>
+          <BudgetPausedBanner bookId={bookId} jobId={budget.jobId} message={budget.message} budgetUsd={apiBook.budgetUsd} spentUsd={apiBook.costToDateUsd} />
         )}
         {tree.isError && (
           <Banner
