@@ -6,6 +6,7 @@ User-visible changes, newest first. Dates in British format.
 
 #### Fixed
 - Cover previews now agree. The paperback wrap preview draws the front over the chosen art (it showed a flat colour and motif), lays the back out as the build does (blurb sized by length, paragraphs apart, author name under a rule at the foot), and the studio says when the title, style, type settings or art changed after the covers were built.
+- The footer job bar no longer shows a plain "Job" stuck at 10% while Fix the whole book works. Claim fixes are named ("Fixing a claim"), report real steps (asking the editor, checking the options) and every other job kind has a name.
 - The micro sign in "µg" no longer blocks the upload pack. The body font Atkinson Hyperlegible Next lacks it, so the PDF carried a Type 3 system font and preflight refused the pack; it now prints as the Greek mu from the maths fallback.
 
 #### Changed
