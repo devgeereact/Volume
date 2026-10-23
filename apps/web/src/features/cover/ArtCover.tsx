@@ -9,6 +9,10 @@ import { cn } from "../../lib/cn";
  * style's drawing gives way to the art, and a wash of its background keeps the type legible. While
  * the image loads, or if it fails, the plain typographic cover shows instead.
  */
+/** Keep in step with artScrim in packages/export/src/covers.ts. */
+export const artScrim = (bg: string): string =>
+  `linear-gradient(to bottom, color-mix(in srgb, ${bg} 90%, transparent) 0%, color-mix(in srgb, ${bg} 62%, transparent) 24%, color-mix(in srgb, ${bg} 0%, transparent) 48%, color-mix(in srgb, ${bg} 0%, transparent) 66%, color-mix(in srgb, ${bg} 82%, transparent) 100%)`;
+
 export function ArtCover({
   src,
   title,
@@ -46,9 +50,10 @@ export function ArtCover({
         />
       )}
       {showArt && (
-        // A wash of the style's own background over the art keeps the type at the style's contrast. The build uses the
-        // same wash and colours (packages/export covers.ts ART_WASH_OPACITY), so the preview is what gets built.
-        <span aria-hidden className="absolute inset-0 rounded-cover" style={{ background: design.palette.background, opacity: 0.55 }} />
+        // A scrim of the style's own background, solid behind the title at the top and the author at the foot and clear
+        // through the middle, keeps the type at the style's contrast and leaves the art vivid. The build draws the same
+        // gradient (packages/export covers.ts artScrim), so the preview is what gets built.
+        <span aria-hidden className="absolute inset-0 rounded-cover" style={{ background: artScrim(design.palette.background) }} />
       )}
       <Cover title={title} subtitle={subtitle} author={author} design={overlay} className="w-full" decorative={decorative} />
     </div>

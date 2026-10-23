@@ -82,19 +82,22 @@ describe('eBook cover with the owner palette', () => {
     expect(Math.abs(blue - 0x55)).toBeLessThan(12);
   });
 
-  it('over concept art, washes it with the palette background like the Cover studio preview (not black)', async () => {
-    // Plain white art: the corner should be 55% palette teal over white, not darkened grey.
+  it('over concept art, keeps the middle vivid and puts the palette scrim behind the title and the author', async () => {
+    // Plain white art: the top and foot are palette teal over white, the middle is the art itself.
     const art = await sharp({ create: { width: 400, height: 600, channels: 3, background: '#FFFFFF' } })
       .png()
       .toBuffer();
     const style = applyCoverTypography(DEFAULT_COVER_STYLE, { palette: { background: '#1F4B55' } });
     const r = await exportEbookCover(loadMiniBook().meta, style, { browser, rules: loadKdpRules(), background: art });
-    const { data } = await sharp(r.jpeg).extract({ left: 4, top: 1200, width: 1, height: 1 }).raw().toBuffer({ resolveWithObject: true });
-    const mix = (c: number) => Math.round(c * 0.55 + 255 * 0.45);
-    const [red = 0, green = 0, blue = 0] = data;
-    expect(Math.abs(red - mix(0x1f))).toBeLessThan(14);
-    expect(Math.abs(green - mix(0x4b))).toBeLessThan(14);
-    expect(Math.abs(blue - mix(0x55))).toBeLessThan(14);
+    const px = async (top: number) => {
+      const { data } = await sharp(r.jpeg).extract({ left: 4, top, width: 1, height: 1 }).raw().toBuffer({ resolveWithObject: true });
+      return [data[0] ?? 0, data[1] ?? 0, data[2] ?? 0];
+    };
+    const near = (got: number[], want: number[]) => got.forEach((c, i) => expect(Math.abs(c - (want[i] ?? 0))).toBeLessThan(16));
+    const mix = (alpha: number) => [0x1f, 0x4b, 0x55].map((c) => Math.round(c * alpha + 255 * (1 - alpha)));
+    near(await px(4), mix(0.9));
+    near(await px(1450), [255, 255, 255]);
+    near(await px(2556), mix(0.82));
   });
 
   it('puts a right-aligned author at its exact position', async () => {
