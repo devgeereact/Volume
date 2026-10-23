@@ -82,22 +82,23 @@ describe('eBook cover with the owner palette', () => {
     expect(Math.abs(blue - 0x55)).toBeLessThan(12);
   });
 
-  it('over concept art, keeps the middle vivid and puts the palette scrim behind the title and the author', async () => {
-    // Plain white art: the top and foot are palette teal over white, the middle is the art itself.
+  it('over concept art, leaves the art untouched and picks the palette colour that reads on it', async () => {
+    // Plain white art: no overlay at the corners, and the title flips to the palette's dark colour.
     const art = await sharp({ create: { width: 400, height: 600, channels: 3, background: '#FFFFFF' } })
       .png()
       .toBuffer();
     const style = applyCoverTypography(DEFAULT_COVER_STYLE, { palette: { background: '#1F4B55' } });
     const r = await exportEbookCover(loadMiniBook().meta, style, { browser, rules: loadKdpRules(), background: art });
-    const px = async (top: number) => {
-      const { data } = await sharp(r.jpeg).extract({ left: 4, top, width: 1, height: 1 }).raw().toBuffer({ resolveWithObject: true });
+    const px = async (left: number, top: number) => {
+      const { data } = await sharp(r.jpeg).extract({ left, top, width: 1, height: 1 }).raw().toBuffer({ resolveWithObject: true });
       return [data[0] ?? 0, data[1] ?? 0, data[2] ?? 0];
     };
-    const near = (got: number[], want: number[]) => got.forEach((c, i) => expect(Math.abs(c - (want[i] ?? 0))).toBeLessThan(16));
-    const mix = (alpha: number) => [0x1f, 0x4b, 0x55].map((c) => Math.round(c * alpha + 255 * (1 - alpha)));
-    near(await px(4), mix(0.9));
-    near(await px(1450), [255, 255, 255]);
-    near(await px(2556), mix(0.82));
+    for (const top of [4, 1700, 2556]) for (const c of await px(4, top)) expect(c).toBeGreaterThan(246);
+    // Some ink in the title band is the dark teal, not the light cream.
+    let dark = 0;
+    const { data } = await sharp(r.jpeg).extract({ left: 100, top: 250, width: 1400, height: 500 }).raw().toBuffer({ resolveWithObject: true });
+    for (let k = 0; k < data.length; k += 3) if ((data[k] ?? 255) < 90 && (data[k + 1] ?? 255) < 120) dark++;
+    expect(dark).toBeGreaterThan(500);
   });
 
   it('puts a right-aligned author at its exact position', async () => {
@@ -112,5 +113,84 @@ describe('eBook cover with the owner palette', () => {
     };
     expect(await ink(0, 500)).toBe(0);
     expect(await ink(900, 700)).toBeGreaterThan(100);
+  });
+});
+
+describe('subtitle at a fixed height', () => {
+  let browser2: Browser;
+  beforeAll(async () => {
+    browser2 = await acquireBrowser();
+  });
+  afterAll(async () => {
+    await releaseBrowser();
+  });
+
+  it('moves down to clear a title that wraps onto many lines, and stays put when there is room', async () => {
+    const meta = {
+      ...loadMiniBook().meta,
+      title: 'Calm on the Night Shift With Many Extra Words In It',
+      subtitle: 'A practical guide for NHS nurses working nights',
+    };
+    const crowded = applyCoverTypography(DEFAULT_COVER_STYLE, { subtitleTopPct: 30 });
+    const a = await exportEbookCover(meta, crowded, { browser: browser2, rules: loadKdpRules() });
+    expect(a.subtitlePushed).toBe(true);
+    const roomy = applyCoverTypography(DEFAULT_COVER_STYLE, { subtitleTopPct: 110, titleTopPct: 10 });
+    const b = await exportEbookCover({ ...meta, title: 'Short' }, roomy, { browser: browser2, rules: loadKdpRules() });
+    expect(b.subtitlePushed).toBe(false);
+  });
+});
+
+describe('cover preview page', () => {
+  let browser3: Browser;
+  beforeAll(async () => {
+    browser3 = await acquireBrowser();
+  });
+  afterAll(async () => {
+    await releaseBrowser();
+  });
+
+  it('is the build page, and reports where the title, subtitle and author sit', async () => {
+    const meta = { ...loadMiniBook().meta, title: 'Steady On Your Feet', subtitle: 'Build confidence in your first year' };
+    const style = applyCoverTypography(DEFAULT_COVER_STYLE, { titleAlign: 'right', titleSize: 0.2 });
+    const o = { browser: browser3, rules: loadKdpRules() };
+    const preview = await exportEbookCover(meta, style, { ...o, htmlOnly: true });
+    expect(preview.html).toBeTruthy();
+    expect(preview.html).toContain('volume-cover-boxes');
+    // The build's own page is the preview's page without the measuring script.
+    const built = await exportEbookCover(meta, style, o);
+    expect(built.jpeg.length).toBeGreaterThan(1000);
+
+    const ctx = await browser3.newContext({ viewport: { width: 1600, height: 2560 } });
+    try {
+      const page = await ctx.newPage();
+      await page.addInitScript(() => {
+        (window as unknown as { __msg: unknown }).__msg = null;
+        window.addEventListener('message', (e) => {
+          (window as unknown as { __msg: unknown }).__msg = e.data;
+        });
+      });
+      // A real navigation, so the listener added above survives (setContent rewrites the document and drops it).
+      await page.route('http://cover.test/', (r) => r.fulfill({ body: preview.html ?? '', contentType: 'text/html' }));
+      await page.goto('http://cover.test/', { waitUntil: 'load' });
+      await page.waitForFunction('window.__msg !== null');
+      const m = await page.evaluate<{
+        type: string;
+        width: number;
+        title: { top: number; height: number; align: string };
+        subtitle: { top: number };
+        author: { top: number };
+        titleSize: number;
+      }>('window.__msg');
+      expect(m.type).toBe('volume-cover-boxes');
+      expect(m.width).toBe(1600);
+      expect(m.title.align).toBe('right');
+      expect(m.subtitle.top).toBeGreaterThan(m.title.top + m.title.height - 1);
+      expect(m.author.top).toBeGreaterThan(m.subtitle.top);
+      // 0.2 asked for: the fitted size can only be smaller, and is a share of the cover width.
+      expect(m.titleSize).toBeGreaterThan(5);
+      expect(m.titleSize).toBeLessThanOrEqual(20.01);
+    } finally {
+      await ctx.close();
+    }
   });
 });

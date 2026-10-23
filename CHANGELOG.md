@@ -5,13 +5,16 @@ User-visible changes, newest first. Dates in British format.
 ## 24 October 2026
 
 #### Added
+- The Cover studio preview is now the build's own page, not a redrawing: what you see (eBook, thumbnail, paperback wrap and the cover cards) is exactly what Build makes, including fonts, colours, title size and positions. The editing handles and the title size numbers are read from that page.
+- Each of the four cover concepts comes with its own design and palette, and the cover brief (v4) and image prompt (v3) ask for four different art directions with vivid colour and sharp, authentic art. See docs/book-production/COVER-SYSTEM.md.
 - Cover studio: a Design picker (all 17 cover styles, each with its own palettes) and a Title font picker, so books by the same author no longer have to look alike. Both are saved and used by the build.
 
 #### Changed
-- Covers over art keep the art vivid: a clear-in-the-middle scrim behind the title and the author replaces the flat 55 percent wash. Preview and build draw the same gradient.
+- Covers over art keep the art untouched. There is no gradient overlay: the title, subtitle and author use whichever of the palette's colours reads best on the art behind them, with a light scrim only when no palette colour reads. Preview and build choose the same way, and the eBook JPEG is saved at quality 95.
 - Title size now ranges from 60 to 180 percent and a larger title wraps onto more lines (preview and build) instead of stopping at the width of its longest line.
 
 #### Fixed
+- On built covers the subtitle no longer runs into a title that wraps onto three or more lines: it moves just below the title.
 - Cover previews now agree. The paperback wrap preview draws the front over the chosen art (it showed a flat colour and motif), lays the back out as the build does (blurb sized by length, paragraphs apart, author name under a rule at the foot), and the studio says when the title, style, type settings or art changed after the covers were built.
 - The footer job bar no longer shows a plain "Job" stuck at 10% while Fix the whole book works. Claim fixes are named ("Fixing a claim"), report real steps (asking the editor, checking the options) and every other job kind has a name.
 - The micro sign in "µg" no longer blocks the upload pack. The body font Atkinson Hyperlegible Next lacks it, so the PDF carried a Type 3 system font and preflight refused the pack; it now prints as the Greek mu from the maths fallback.

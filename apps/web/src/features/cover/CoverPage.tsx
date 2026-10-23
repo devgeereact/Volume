@@ -41,7 +41,6 @@ import {
   type Paper,
 } from "../export/kdpRules";
 import {
-  blurbFor,
   briefFor,
   conceptsFor,
   genreOptions,
@@ -408,18 +407,7 @@ function Studio({ book, author, fresh }: { book: Book; author: string; fresh: bo
                             : "Try a page count here. The build uses the interior PDF's real count."
                           : `Use ${pageLimits.min} to ${pageLimits.max6x9} pages for ${book.trim}.`}
                       </p>
-                      <WrapPreview
-                        title={book.title}
-                        subtitle={book.subtitle}
-                        author={author}
-                        design={design}
-                        src={null}
-                        showSubtitle={showSubtitle}
-                        blurb={blurbFor(book)}
-                        trim={trim}
-                        pages={pagesForMaths}
-                        paper={paper}
-                      />
+                      <WrapPreview page={undefined} trim={trim} pages={pagesForMaths} paper={paper} />
                       <div className="rounded-md bg-canvas p-4 text-small text-ink-secondary">
                         <p className="num text-ink">
                           Spine = {pagesForMaths} pages x {spinePerPage[paper]} in ({paper}) = <b className="font-semibold">{inches(wrap.spine)}</b>

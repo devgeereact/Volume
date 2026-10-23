@@ -9,7 +9,7 @@
    finished result arrives through useBookEvents (events.ts), which invalidates the area. */
 
 import { useCallback } from "react";
-import { useMutation, useQuery, useQueryClient, type QueryClient, type QueryKey } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient, type QueryKey } from "@tanstack/react-query";
 import { booksApi } from "./books";
 import { jobsApi } from "./jobs";
 import { manuscriptApi } from "./manuscript";
@@ -968,6 +968,33 @@ export function useChooseCover() {
     mutationFn: (v: { bookId: string; assetId: string; typography?: Record<string, unknown> }) =>
       productionApi.chooseCover(v.bookId, v.typography === undefined ? { assetId: v.assetId } : { assetId: v.assetId, typography: v.typography }),
     onSuccess: (r, v) => qc.setQueryData(queryKeys.book.cover(v.bookId), r),
+  });
+}
+
+/**
+ * The page a cover build would render for these settings, so the studio can show exactly it. Keeps the last page on
+ * screen while the next one loads, and asks again only when the settings change.
+ */
+export function useCoverPreview(
+  bookId: string | undefined,
+  kind: "ebook" | "wrap",
+  typography: Record<string, unknown>,
+  pages: number | undefined,
+  assetId: string | undefined,
+  enabled: boolean,
+) {
+  const key = JSON.stringify([kind, typography, pages ?? null, assetId ?? null]);
+  return useQuery({
+    queryKey: [...queryKeys.book.cover(bookId ?? ""), "preview", key] as QueryKey,
+    queryFn: ({ signal }) =>
+      productionApi.coverPreview(
+        bookId ?? "",
+        { kind, typography, ...(pages === undefined ? {} : { pages }), ...(assetId === undefined ? {} : { assetId }) },
+        { signal },
+      ),
+    enabled: enabled && !!bookId,
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
   });
 }
 

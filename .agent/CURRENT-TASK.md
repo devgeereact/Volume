@@ -1,5 +1,9 @@
 # Current task
 
+## State on 25 October 2026
+
+- PR #65 (cover preview is the build, untouched art with adaptive ink, four distinct concepts, new cover prompts) is open and not deployed. After deploy: check the Cover studio live (eBook, thumbnail, wrap, cards, pickers), rebuild covers and packs. Still with the owner: claims (37, 63, 34), imprints and social links.
+
 ## State on 24 October 2026 (end)
 
 - Live release `20261023T150002Z` (PRs #58 and #59). Both Harni nursing books have built upload packs, 0 preflight blocks. Owner confirmed Steady On Your Feet is the second book and has reviewed the remaining claims. Open with the owner: tick or resolve those claims in the app, the 34 for-the-record claims on AI For Everyday People, imprints and social links.

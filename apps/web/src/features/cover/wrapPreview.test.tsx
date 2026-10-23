@@ -20,16 +20,18 @@ const props = {
 };
 
 describe("WrapPreview", () => {
-  it("draws the front over the chosen art, as the build does", () => {
-    const html = renderToStaticMarkup(<WrapPreview {...props} src="/art.webp" />);
-    expect(html).toContain('src="/art.webp"');
+  it("shows the build's own page in a frame, with the print guides over it", () => {
+    const html = renderToStaticMarkup(
+      <WrapPreview page={{ html: "<p>the build's page</p>", widthPx: 1200, heightPx: 900 }} trim={props.trim} pages={props.pages} paper={props.paper} />,
+    );
+    expect(html).toContain("Trim line");
+    expect(html).toContain("Barcode keep-out");
+    expect(html).toContain("Spine 0.");
   });
 
-  it("sets each blurb paragraph on its own and puts the author name under a rule at the foot", () => {
-    const html = renderToStaticMarkup(<WrapPreview {...props} src={null} />);
-    expect(html).toContain("First paragraph.");
-    expect(html).toContain("Second paragraph.");
-    expect(html.match(/<p /g)?.length).toBeGreaterThanOrEqual(3);
+  it("holds its place while the page loads", () => {
+    const html = renderToStaticMarkup(<WrapPreview page={undefined} trim={props.trim} pages={props.pages} paper={props.paper} />);
+    expect(html).toContain("animate-pulse");
   });
 });
 
@@ -41,9 +43,9 @@ describe("larger titles and art scrim", () => {
     expect(big.titleLines.length).toBeGreaterThanOrEqual(small.titleLines.length);
   });
 
-  it("draws art under a clear-in-the-middle scrim, not a flat wash", () => {
+  it("draws the art untouched: no overlay until the art has been measured", () => {
     const html = renderToStaticMarkup(<ArtCover src="/a.webp" title="T" author="A" design={design} />);
-    expect(html).toContain("linear-gradient");
+    expect(html).not.toContain("linear-gradient");
     expect(html).not.toContain("opacity:0.55");
   });
 });

@@ -120,6 +120,8 @@ export interface CoverDesign {
   /** Size multipliers for the subtitle and author lines (1 is the usual size). */
   subtitleScale?: number | undefined;
   authorScale?: number | undefined;
+  /** CSS text-shadow for the title, subtitle and author, set over art when the ink needs a little lift. */
+  textShadow?: string | undefined;
   /** Title font chosen by the owner in the cover studio (an installed OFL family); replaces the style's title face. */
   titleFamily?: string | undefined;
   /** Letter spacing for the title, as CSS (for example "0.14em"). */

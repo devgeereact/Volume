@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCanWrite } from "../../lib/access";
 import { Link } from "react-router";
 import { Check, Download, RotateCw, Upload } from "lucide-react";
 import { Banner, Button, buttonClasses, Loader, PageHeader, ProgressBar, SegmentedControl, Skeleton, StatusChip, Switch } from "../../components/ui";
 import { coverFromStyle, coverStyles, getCoverStyle, type Book, type CoverDesign, type PenName } from "../../demo";
 import { assetsApi } from "../../api/assets";
-import { useBlueprint, useBuildCover, useChooseCover, useCover, useCoverConcepts, useExports, usePutCoverBrief } from "../../api/hooks";
+import { useBlueprint, useBuildCover, useChooseCover, useCover, useCoverConcepts, useCoverPreview, useExports, usePutCoverBrief } from "../../api/hooks";
 import { isTerminalJob, type ApiBookDetail, type ApiCover, type CoverConcept } from "../../api/types";
 import { BudgetPausedBanner } from "../books/BudgetPausedBanner";
 import { errorText, jobStatusText, useJobWatch } from "../../api/wire-c";
@@ -25,7 +25,6 @@ import {
   wrapSize,
   type Paper,
 } from "../export/kdpRules";
-import { ArtCover } from "./ArtCover";
 import { conceptsFor, layoutCover, withPalette, type CoverBrief, type TitlePosition } from "./concepts";
 import {
   clearTops,
@@ -39,7 +38,8 @@ import {
   type CoverEdits,
   type CoverPart,
 } from "./coverEdit";
-import { CoverEditor, CoverToolbar } from "./CoverEditor";
+import { CoverEditor, CoverToolbar, type LiveCover } from "./CoverEditor";
+import { CoverFrame, type CoverMeasure } from "./CoverFrame";
 import { BriefCard, CoverInspector } from "./CoverPage";
 import { OwnCoverPanel } from "./OwnCoverPanel";
 import { WrapPreview } from "./WrapPreview";
@@ -97,7 +97,7 @@ const TITLE_FONTS = [
   "Lora",
 ] as const;
 
-export function ApiCover({ book, apiBook, penName }: { book: Book; apiBook: ApiBookDetail | undefined; penName: PenName | undefined }) {
+export function ApiCover({ book, apiBook }: { book: Book; apiBook: ApiBookDetail | undefined; penName?: PenName | undefined }) {
   const coverQ = useCover(book.id);
   if (coverQ.isPending) return <LoadingBlock label="Loading the cover studio" rows={6} />;
   if (coverQ.isError)
@@ -107,10 +107,10 @@ export function ApiCover({ book, apiBook, penName }: { book: Book; apiBook: ApiB
         <ErrorPanel className="mt-5 max-w-180" title="Could not load the cover studio" body={errorText(coverQ.error)} onRetry={() => void coverQ.refetch()} />
       </>
     );
-  return <Studio book={book} apiBook={apiBook} author={penName?.name ?? ""} cover={coverQ.data ?? null} />;
+  return <Studio book={book} apiBook={apiBook} cover={coverQ.data ?? null} />;
 }
 
-function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBookDetail | undefined; author: string; cover: ApiCover | null }) {
+function Studio({ book, apiBook, cover }: { book: Book; apiBook: ApiBookDetail | undefined; cover: ApiCover | null }) {
   const canWrite = useCanWrite();
   const bookId = book.id;
   const putBrief = usePutCoverBrief();
@@ -211,15 +211,18 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
           })),
     onUppercase: (on: boolean) => setEdits((e) => ({ ...e, titleUppercase: on })),
   };
-  /** What Choose stores and the build applies: the same numbers the preview is drawn with. */
+  /**
+   * What Choose stores and the build applies: only what the owner decided (design, colours, font, size, position, edits).
+   * Nothing is worked out here, so the build and the preview (both made by the server from these settings) agree.
+   */
   const typography: Obj = {
     styleId: own.style.id,
     paletteId: palette?.id ?? null,
     ...(titleFont ? { fonts: { title: titleFont } } : {}),
     showSubtitle,
     ...(position !== "style" ? { titlePosition: position } : {}),
-    titleTopPct: Math.round(design.titleTop * 100) / 100,
-    titleSize: Math.round(design.titleSize * 100) / 100,
+    // The title's size as a share of the cover width: the design's own size times the percentage chosen.
+    ...(size !== 100 ? { titleSize: Math.round(own.base.titleSize * size) / 100 } : {}),
     sizePct: size,
     ...editsToTypography(edits),
   };
@@ -228,6 +231,29 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
   const typeChanged = JSON.stringify(typeKeys.map((k) => typography[k])) !== JSON.stringify(typeKeys.map((k) => savedType[k]));
 
   const concepts: CoverConcept[] = cover?.concepts ?? [];
+  // Each concept comes with its own look (a different cover design and palette from the others), so the choices differ in
+  // type, colour and layout as well as in art. The concept the owner already chose keeps the settings they saved.
+  const looks = useMemo(
+    () => conceptsFor(book).map((c) => ({ styleId: c.style.id, paletteId: c.style.palettes[c.paletteIndex]?.id ?? c.style.palettes[0]?.id ?? "" })),
+    [book],
+  );
+  const conceptTypography = (c: CoverConcept, i: number): Obj => {
+    if (c.assetId === cover?.chosenAssetId && cover.typography && Object.keys(cover.typography).length > 0) return cover.typography;
+    const look = looks[i % looks.length]!;
+    return { styleId: look.styleId, paletteId: look.paletteId, showSubtitle: true };
+  };
+  function pickConcept(c: CoverConcept, i: number) {
+    setPicked(c.assetId);
+    if (c.assetId === cover?.chosenAssetId) return;
+    const look = looks[i % looks.length]!;
+    const style = getCoverStyle(look.styleId);
+    setStyleId(look.styleId);
+    setPaletteIdx(Math.max(0, style?.palettes.findIndex((p) => p.id === look.paletteId) ?? 0));
+    setEdits({});
+    setPosition("style");
+    setSize(100);
+    setTitleFont("");
+  }
   const chosen = concepts.find((c) => c.assetId === cover?.chosenAssetId) ?? null;
   const pick = concepts.find((c) => c.assetId === picked) ?? null;
   const built = cover?.status === "final" && !!cover.ebookAssetId;
@@ -399,8 +425,24 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
               ? "Covers built. They go into the upload pack on Export."
               : `${chosen.name} is in use. Check the wrap, then build the covers.`;
 
-  const src = (c: CoverConcept | null) => (c ? assetsApi.downloadUrl(c.assetId, true) : null);
   const front = chosen ?? pick;
+
+  // The preview is the build's own page: the server renders it from these same settings (see CoverFrame).
+  const settled = useDebounced(typography, 350);
+  const previewOn = !!front;
+  const ebookPage = useCoverPreview(bookId, "ebook", settled, undefined, front?.assetId, previewOn);
+  const wrapPage = useCoverPreview(bookId, "wrap", settled, pagesValid ? pages : undefined, front?.assetId, previewOn && preview === "wrap");
+  const [measure, setMeasure] = useState<CoverMeasure | null>(null);
+  const live: LiveCover | undefined = measure
+    ? {
+        boxes: {
+          title: measure.title ? { top: measure.title.top, height: measure.title.height } : null,
+          subtitle: measure.subtitle ? { top: measure.subtitle.top, height: measure.subtitle.height } : null,
+          author: measure.author ? { top: measure.author.top, height: measure.author.height } : null,
+        },
+        unitsH: measure.unitsH,
+      }
+    : undefined;
 
   return (
     <>
@@ -544,11 +586,11 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
               </div>
             ) : (
               <div role="radiogroup" aria-label="Concepts" className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-                {concepts.map((c) => {
+                {concepts.map((c, i) => {
                   const checked = picked === c.assetId;
                   return (
                     <label key={c.assetId} className="group grid cursor-pointer content-start gap-2">
-                      <input type="radio" name="concept" className="peer sr-only" checked={checked} onChange={() => setPicked(c.assetId)} />
+                      <input type="radio" name="concept" className="peer sr-only" checked={checked} onChange={() => pickConcept(c, i)} />
                       <span
                         className={cn(
                           "block rounded-sm p-1.5 ring-offset-2 ring-offset-sheet transition-colors duration-(--vol-dur-fast)",
@@ -556,14 +598,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                           checked ? "bg-select-wash ring-2 ring-select" : "hover:bg-sunken",
                         )}
                       >
-                        <ArtCover
-                          src={src(c)}
-                          title={book.title}
-                          subtitle={book.subtitle}
-                          author={author}
-                          design={layoutCover(own.base, { subtitle: book.subtitle })}
-                          decorative
-                        />
+                        <ConceptThumb bookId={bookId} assetId={c.assetId} typography={conceptTypography(c, i)} title={`${c.name}, as the build draws it`} />
                       </span>
                       <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                         <span className={cn("text-label", checked ? "font-semibold text-select" : "text-ink")}>{c.name}</span>
@@ -717,12 +752,39 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                   {preview === "ebook" && (
                     <figure className="grid justify-items-start gap-3">
                       <div className="flex flex-wrap items-start gap-5">
-                        <CoverEditor design={design} subtitle={subtitle} width={300} selected={selected} disabled={!canWrite} {...editHandlers}>
-                          <ArtCover src={src(front)} title={book.title} subtitle={subtitle} author={author} design={design} width="100%" />
+                        <CoverEditor design={design} subtitle={subtitle} width={300} selected={selected} disabled={!canWrite} live={live} {...editHandlers}>
+                          {ebookPage.data ? (
+                            <CoverFrame
+                              html={ebookPage.data.html}
+                              widthPx={ebookPage.data.widthPx}
+                              heightPx={ebookPage.data.heightPx}
+                              width={300}
+                              title={`${book.title}, eBook cover as the build draws it`}
+                              onMeasure={setMeasure}
+                            />
+                          ) : (
+                            <div className="animate-pulse rounded-cover bg-sunken" style={{ width: 300, aspectRatio: "1600 / 2560" }} />
+                          )}
                         </CoverEditor>
                         <div className="grid min-w-60 max-w-80 flex-1 content-start gap-3">
                           {selected && canWrite ? (
-                            <CoverToolbar part={selected} design={design} subtitle={subtitle} titleSizePct={size} {...editHandlers} />
+                            <CoverToolbar
+                              part={selected}
+                              design={design}
+                              subtitle={subtitle}
+                              titleSizePct={size}
+                              live={
+                                measure?.[selected]
+                                  ? {
+                                      top: measure[selected].top,
+                                      align: measure[selected].align,
+                                      uppercase: edits.titleUppercase ?? own.base.titleUppercase,
+                                      titleSize: measure.titleSize,
+                                    }
+                                  : undefined
+                              }
+                              {...editHandlers}
+                            />
                           ) : (
                             <p className="text-small text-ink-secondary">
                               {canWrite
@@ -758,7 +820,17 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                   )}
                   {preview === "thumb" && (
                     <figure className="grid justify-items-start gap-3">
-                      <ArtCover src={src(front)} title={book.title} subtitle={subtitle} author={author} design={design} width={160} />
+                      {ebookPage.data ? (
+                        <CoverFrame
+                          html={ebookPage.data.html}
+                          widthPx={ebookPage.data.widthPx}
+                          heightPx={ebookPage.data.heightPx}
+                          width={160}
+                          title={`${book.title}, thumbnail`}
+                        />
+                      ) : (
+                        <div className="animate-pulse rounded-cover bg-sunken" style={{ width: 160, aspectRatio: "1600 / 2560" }} />
+                      )}
                       <figcaption className="text-small text-ink-secondary">At 160 px wide, as on a search results page.</figcaption>
                     </figure>
                   )}
@@ -789,18 +861,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                             ? `The interior PDF has ${realPages} pages. Try other counts here; the build always uses the real one.`
                             : "No interior PDF yet, so this preview uses 120 pages. Build covers makes the interior first and uses its real count."}
                       </p>
-                      <WrapPreview
-                        title={book.title}
-                        subtitle={book.subtitle}
-                        author={author}
-                        design={design}
-                        src={src(front)}
-                        showSubtitle={showSubtitle}
-                        blurb={blurb}
-                        trim={trim}
-                        pages={pages}
-                        paper={paper}
-                      />
+                      <WrapPreview page={wrapPage.data} trim={trim} pages={pages} paper={paper} />
                       {!blurb && <p className="text-small text-ink-secondary">No back blurb yet. It comes from the blueprint's listing.</p>}
                       <div className="rounded-md bg-canvas p-4 text-small text-ink-secondary">
                         <p className="num text-ink">
@@ -969,5 +1030,27 @@ function CoverSteps({
         </a>
       </div>
     </section>
+  );
+}
+
+/** A value that follows `value` only after it has stopped changing for `ms`. */
+function useDebounced<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value);
+  const key = JSON.stringify(value);
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, ms]);
+  return v;
+}
+
+/** One concept card: the build's own page for this concept's art and look, at card size. */
+function ConceptThumb({ bookId, assetId, typography, title }: { bookId: string; assetId: string; typography: Record<string, unknown>; title: string }) {
+  const page = useCoverPreview(bookId, "ebook", typography, undefined, assetId, true);
+  return page.data ? (
+    <CoverFrame html={page.data.html} widthPx={page.data.widthPx} heightPx={page.data.heightPx} title={title} />
+  ) : (
+    <Skeleton variant="cover" className="w-full" />
   );
 }

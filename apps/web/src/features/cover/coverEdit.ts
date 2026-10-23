@@ -43,8 +43,8 @@ export const stepScale = (scale: number, direction: -1 | 1): number => clampScal
 export const stepTitleSize = (pct: number, direction: -1 | 1): number => Math.min(TITLE_SIZE_MAX, Math.max(TITLE_SIZE_MIN, pct + direction * TITLE_SIZE_STEP));
 
 /** Where a line ends up when dragged `dyPx` down from `startTop`, on a preview `heightPx` tall. */
-export const dragTop = (startTop: number, dyPx: number, heightPx: number): number =>
-  heightPx > 0 ? clampTop(startTop + (dyPx / heightPx) * TOP_MAX) : clampTop(startTop);
+export const dragTop = (startTop: number, dyPx: number, heightPx: number, units: number = TOP_MAX): number =>
+  heightPx > 0 ? clampTop(startTop + (dyPx / heightPx) * units) : clampTop(startTop);
 
 const PART_ALIGN = { title: "titleAlign", subtitle: "subtitleAlign", author: "authorAlign" } as const;
 const PART_TOP = { title: "titleTop", subtitle: "subtitleTop", author: "authorTop" } as const;

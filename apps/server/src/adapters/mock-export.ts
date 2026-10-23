@@ -10,6 +10,7 @@ import type {
   PreflightItem,
   PreflightReport,
   WrapCoverInput,
+  CoverPreviewHtml,
 } from '../ports/export.js';
 
 /**
@@ -110,6 +111,11 @@ export class MockExportAdapter implements ExportPort {
     return Promise.resolve(
       file(`${slug(input.book.title)}-ebook-cover.mock.${input.artwork ? 'png' : 'txt'}`, input.artwork?.mime ?? 'text/plain', data, null, 'ebook_cover'),
     );
+  }
+
+  coverPreviewHtml(input: WrapCoverInput, kind: 'ebook' | 'wrap'): Promise<CoverPreviewHtml> {
+    const [widthPx, heightPx] = kind === 'ebook' ? [1600, 2560] : [1200, 900];
+    return Promise.resolve({ html: `<!doctype html><html><body>MOCK ${kind} cover for ${input.book.title}</body></html>`, widthPx, heightPx, warnings: [] });
   }
 
   buildWrapCover(input: WrapCoverInput): Promise<ExportFile> {

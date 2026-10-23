@@ -84,6 +84,47 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     return { cover: await p.upsertCover(req.ctx, id, patch) };
   });
 
+  /**
+   * The page a cover build would render for these settings, as HTML, without building or saving anything and without
+   * an AI call. The Cover studio shows exactly this page, so what it previews is what the build makes (same code,
+   * same fonts, same art, same ink). Typography defaults to the saved settings.
+   */
+  app.post('/books/:id/cover/preview', async (req) => {
+    const id = idOf(req);
+    const body = parse(
+      z
+        .object({
+          kind: z.enum(['ebook', 'wrap']),
+          typography: CoverTypographySchema.optional(),
+          pages: z.number().int().min(24).max(1000).optional(),
+          /** A concept to preview before it is chosen; defaults to the chosen one. */
+          assetId: z.string().min(1).max(64).optional(),
+        })
+        .strict(),
+      req.body,
+    );
+    const cover = await p.getCover(req.ctx, id);
+    const assetId = body.assetId ?? cover?.chosenAssetId;
+    if (!cover || !assetId) throw new AppError('invalid_state', 'Choose a cover concept first.');
+    if (!cover.concepts.some((c) => c.assetId === assetId)) throw new AppError('validation_failed', 'That concept does not belong to this book.');
+    const book = await buildExportBook(s.repos, req.ctx, id, s.configDir, s.blobs);
+    const art = await s.blobs.read(req.ctx, assetId);
+    const exports = await p.listExports(req.ctx, id);
+    const printed = exports.find((e) => e.kind === 'pdf_print' && e.status === 'done' && e.manuscriptHash === book.manuscriptHash)?.pageCount ?? null;
+    const built = typeof cover.wrapSpec['pages'] === 'number' ? cover.wrapSpec['pages'] : null;
+    return s.exporter.coverPreviewHtml(
+      {
+        book,
+        artwork: { mime: art.meta.mime, data: art.data },
+        typography: body.typography ?? cover.typography,
+        coverStyleId: book.coverStyleId,
+        pageCount: body.pages ?? printed ?? built ?? 120,
+        backBlurb: book.listing?.backBlurb ?? '',
+      },
+      body.kind,
+    );
+  });
+
   app.post('/books/:id/cover/build', async (req, reply) => {
     writer(req);
     const id = idOf(req);
