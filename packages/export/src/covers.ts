@@ -78,10 +78,15 @@ const alignWord = (a: CoverAlign): 'left' | 'centre' | 'right' => (a === 'center
 const ownAlign = (a: CoverAlign | undefined): string => (a ? ` a-${alignWord(a)}` : '');
 
 /** What the palette's colours do over this art: measured the same way the studio preview measures it (a 32 by 48 stretch). */
-async function artInkFor(bg: Buffer, c: CoverStyle['colours']): Promise<ArtInk> {
-  const { data } = await sharp(bg).removeAlpha().resize(32, 48, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
-  const z = zoneLuminance(data, 32, 48);
-  return chooseArtInk({ background: c.background, title: c.title, subtitle: c.subtitle, author: c.author }, z.top, z.bottom);
+async function artInkFor(bg: Buffer, c: CoverStyle['colours']): Promise<ArtInk | undefined> {
+  try {
+    const { data } = await sharp(bg).removeAlpha().resize(32, 48, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
+    const z = zoneLuminance(data, 32, 48);
+    return chooseArtInk({ background: c.background, title: c.title, subtitle: c.subtitle, author: c.author }, z.top, z.bottom);
+  } catch {
+    // Art the sampler cannot read (the build still places it): keep the palette's own colours.
+    return undefined;
+  }
 }
 
 /** The style with its title, subtitle and author colours replaced by the ink chosen for the art behind them. */
