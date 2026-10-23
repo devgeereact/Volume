@@ -5,6 +5,7 @@ User-visible changes, newest first. Dates in British format.
 ## 23 October 2026
 
 #### Fixed
+- The cover studio offers Build covers again when the text changes after the covers were built. Before, a fix to the manuscript could shorten the book, leave the paperback wrap the wrong size and block the pack, with no button to rebuild it.
 - Start research now starts the research. Before, the wizard made the book and opened an empty Research page, so a new project looked frozen until you found and pressed Run research. Research now runs by itself on arrival from the wizard, once, and a reload does not start a second run.
 
 ## 22 October 2026
