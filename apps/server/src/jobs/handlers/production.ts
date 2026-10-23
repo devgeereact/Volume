@@ -156,6 +156,8 @@ export const coverBuildHandler: JobHandler = async (jc) => {
       ...(keepWrap ? {} : { trim: book.trim, paper: book.paper, pages: pageCount, ...(picture ? { ink: PICTURE_INK } : {}) }),
       ...(keepEbook ? { ownEbook: true } : {}),
       ...(keepWrap ? { ownWrap: true } : {}),
+      // What these covers were built from, so the studio can say when the title, style or art has changed since.
+      builtWith: { typography: cover.typography, coverStyleId: book.coverStyleId, title: book.title, subtitle: book.subtitle, chosen: cover.chosenAssetId },
       mock,
     },
     status: 'final',

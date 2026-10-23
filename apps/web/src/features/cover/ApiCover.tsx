@@ -247,6 +247,12 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
   // The text can change after the covers are built (claim fixes, edits), which changes the page count and the spine.
   // The wrap is then the wrong size for the pack, so offer a rebuild instead of leaving the owner stuck.
   const stalePages = builtPages !== null && pdf?.pageCount != null && pdf.pageCount !== builtPages;
+  // The title, subtitle, style, type settings or art can also change after the build; the build records what it used.
+  const builtWith = cover?.wrapSpec["builtWith"] as Record<string, unknown> | undefined;
+  const styleStale =
+    builtWith !== undefined &&
+    JSON.stringify([builtWith["typography"], builtWith["coverStyleId"], builtWith["title"], builtWith["subtitle"], builtWith["chosen"]]) !==
+      JSON.stringify([cover?.typography, apiBook?.coverStyleId, book.title, book.subtitle, cover?.chosenAssetId]);
   const trim = parseTrim(book.trim);
   const typed = Number.parseInt(pagesText, 10);
   const pagesValid = pagesText === "" || (Number.isFinite(typed) && typed >= pageLimits.min && typed <= pageLimits.max6x9);
@@ -337,7 +343,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
             onClick: () => void chooseConcept(),
             disabledReason: pick ? (choose.isPending ? "Saving your choice." : undefined) : "Pick a concept first.",
           }
-        : built && !building && !typeChanged && !stalePages
+        : built && !building && !typeChanged && !stalePages && !styleStale
           ? null
           : {
               label: building ? "Building covers" : built ? "Build covers again" : "Build covers",
@@ -716,6 +722,7 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                         subtitle={book.subtitle}
                         author={author}
                         design={design}
+                        src={src(front)}
                         showSubtitle={showSubtitle}
                         blurb={blurb}
                         trim={trim}
@@ -780,6 +787,12 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                         <Check size={14} strokeWidth={2} aria-hidden />
                         Built{builtPages !== null ? ` for ${builtPages} ${paper} pages` : ""}. The AI disclosure records AI-generated images.
                       </p>
+                      {styleStale && !stalePages && (
+                        <p className="text-small text-accent-text">
+                          The title, style, type settings or art changed after these covers were built, so the files below are out of date. Use Build covers
+                          again below.
+                        </p>
+                      )}
                       {stalePages && (
                         <p className="text-small text-accent-text">
                           The book is now {pdf?.pageCount} pages, so the paperback wrap needs building again. Use Build covers again below.
