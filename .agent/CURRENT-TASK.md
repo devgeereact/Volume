@@ -1,5 +1,9 @@
 # Current task
 
+## State on 24 October 2026 (early)
+
+- Live on main `615f800` (PR #55). Two Harni books in progress: "Steady On Your Feet" (writing, new prompts) and the abbreviations guide (titles). Owner: run one deploy at a time; confirm the second book title; decide on the 34 for-the-record claims on AI For Everyday People. Details in HANDOFF.md (24 October entry).
+
 ## State on 23 October 2026 (night)
 
 - Live on release `20261023T080607Z` (main `bacd365`, PRs #51 to #53). Rollback target `20261023T065808Z`. "AI For Everyday People" is finished with its upload pack and marketing. "How To Hand Over": rebuild text done, Chapter 1 flag cleared, 64 clinical claims left for qualified human review, no pack. Owner to confirm: imprints SoulRefresh and Everyday Essentials, theme substitutions, social links. The new Build covers again button (PR #53) has no live or automated test of its own path.
