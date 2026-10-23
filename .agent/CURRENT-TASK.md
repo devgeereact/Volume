@@ -1,6 +1,14 @@
 # Current task
 
-## State on 23 October 2026 (uncommitted, not deployed)
+## State on 23 October 2026 (night)
+
+- Live on release `20261023T080607Z` (main `bacd365`, PRs #51 to #53). Rollback target `20261023T065808Z`. "AI For Everyday People" is finished with its upload pack and marketing. "How To Hand Over": rebuild text done, Chapter 1 flag cleared, 64 clinical claims left for qualified human review, no pack. Owner to confirm: imprints SoulRefresh and Everyday Essentials, theme substitutions, social links. The new Build covers again button (PR #53) has no live or automated test of its own path.
+
+## State on 23 October 2026 (evening)
+
+- Live on release `20261023T065808Z` (main `67651e5`, PRs #51 and #52). Rollback target `20261023T053832Z`. Anthropic key live; no book or monthly cap; out of credit pauses with a top-up notice. Start research now runs research by itself. Five profiles set up from the owner's briefs. "AI For Everyday People" is mid-writing; "How To Hand Over" rebuild text is done (claims to verify open).
+
+## State on 23 October 2026 (earlier, now deployed)
 
 - Local work on `main`, not committed: Writing page shows a paused rebuild properly (the freeze the owner saw on "How To Hand Over"), no book or monthly spending cap (D-057), Anthropic key first with OpenRouter fallback (D-058). Typecheck, lint, format, all unit tests and e2e 20 of 20 pass. Needs the owner's OK to commit and deploy, and `ANTHROPIC_API_KEY` in `.env` (local and host).
 
