@@ -1003,7 +1003,7 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
             ]}
           />
           <p className="text-small text-ink-tertiary">
-            Writing starts from the Writing step. Checks run after every section, and the job pauses if the book reaches its budget.
+            Writing starts from the Writing step. Checks run after every section, and the job pauses only if the AI provider runs out of credits.
           </p>
         </div>
       </Modal>

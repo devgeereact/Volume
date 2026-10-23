@@ -22,6 +22,7 @@ import {
 } from './guardrails.ts';
 import { assertSeed, modelTakesReferences, modelTakesSeed, toImageReference, type ImagePurpose, type ImageReferenceInput } from './images.ts';
 import { MockProvider, mockModelInfo, type MockProviderOptions } from './provider/mock.ts';
+import { AnthropicClient, AnthropicFirstProvider, type AnthropicFirstOptions } from './provider/anthropic.ts';
 import { OpenRouterClient, providerSlug } from './provider/openrouter.ts';
 import type { RetryOptions } from './provider/retry.ts';
 import { PromptLoader } from './prompts.ts';
@@ -41,6 +42,7 @@ import {
   type MockScenario,
   type ModelInfo,
   type ModelPricing,
+  type ResultProvider,
   type Source,
   type Usage,
   type WebSearchOptions,
@@ -86,6 +88,9 @@ export interface CreateAiServiceOptions {
    * off, no lookup is sent: redirect links are kept and marked unresolved.
    */
   resolveSourceRedirects?: boolean | undefined;
+  /** ANTHROPIC_API_KEY. When set, Claude models try Anthropic first and fall back to OpenRouter when its balance is empty (D-058). */
+  anthropicApiKey?: string | undefined;
+  anthropic?: AnthropicFirstOptions | undefined;
   /** A ready-made provider (tests). Overrides apiKey and mock. */
   provider?: AiProvider | undefined;
 }
@@ -128,7 +133,7 @@ export interface CallRecord {
   latencyMs: number;
   generationId: string | null;
   finishReason: string | null;
-  provider: 'openrouter' | 'mock';
+  provider: ResultProvider;
 }
 
 export interface CostEstimate {
@@ -157,7 +162,7 @@ export interface StageResult<T> {
   sentModel: string;
   /** The model the settings chose (differs from sentModel only when a fallback was used). */
   requestedModel: string;
-  provider: 'openrouter' | 'mock';
+  provider: ResultProvider;
   stage: string;
   promptId: string;
   promptVersion: number;
@@ -212,7 +217,7 @@ export interface GenerateImageResult {
   fallbackUsed: boolean;
   fallbackFrom: string | undefined;
   latencyMs: number;
-  provider: 'openrouter' | 'mock';
+  provider: ResultProvider;
   /** The aspect ratio asked for. */
   aspectRatio: string | undefined;
   /** Reference images sent with the request (0 when none were given or the model takes no image input). */
@@ -295,7 +300,7 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
       ...mockOpts,
     });
   } else {
-    provider = new OpenRouterClient({
+    const openrouter = new OpenRouterClient({
       apiKey: options.apiKey,
       baseUrl: options.baseUrl ?? config.defaults.endpoints?.baseUrl,
       appUrl: options.appUrl ?? config.defaults.headers?.['HTTP-Referer'],
@@ -306,6 +311,19 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
       fetch: options.fetch,
       pricingLookup: (slug) => registry.pricing(slug),
     });
+    provider = options.anthropicApiKey
+      ? new AnthropicFirstProvider(
+          openrouter,
+          new AnthropicClient({
+            apiKey: options.anthropicApiKey,
+            timeoutMs: options.timeoutMs,
+            idleTimeoutMs: options.idleTimeoutMs,
+            retry: options.retry,
+            fetch: options.fetch,
+          }),
+          options.anthropic,
+        )
+      : openrouter;
   }
 
   let modelsCache: ModelInfo[] = [];
@@ -960,7 +978,7 @@ function researchEvidenceWarnings(output: unknown, sources: Source[]): Guardrail
 }
 
 /** A ChatResult that records a cut-off call's spend (its text is dropped on purpose). */
-function truncatedCall(e: OutputTruncatedError, req: ChatRequest, provider: 'openrouter' | 'mock'): ChatResult {
+function truncatedCall(e: OutputTruncatedError, req: ChatRequest, provider: ResultProvider): ChatResult {
   return {
     text: '',
     model: req.model,

@@ -13,6 +13,11 @@ export function neededUsd(message: string | null): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/** True when the job stopped because the AI provider has no credits left, not because of a budget. */
+export function isCreditsMessage(message: string | null): boolean {
+  return /out of credits/i.test(message ?? "");
+}
+
 export function BudgetPausedBanner({
   bookId,
   jobId,
@@ -49,6 +54,35 @@ export function BudgetPausedBanner({
     } catch (e) {
       setError(errorText(e));
     }
+  }
+
+  async function continueAfterTopUp() {
+    try {
+      await control.mutateAsync({ jobId, action: "resume" });
+      setError(null);
+      onResumed?.();
+    } catch (e) {
+      setError(errorText(e));
+    }
+  }
+
+  if (isCreditsMessage(message)) {
+    return (
+      <Banner tone="attention" title="AI credits have run out" className={className}>
+        <p>OpenRouter has no credits left, so this step stopped. Nothing was charged for it and finished work is kept. Top up, then continue.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <a href="https://openrouter.ai/settings/credits" target="_blank" rel="noreferrer" className="font-semibold text-select underline underline-offset-2">
+            Top up on OpenRouter
+          </a>
+          {canManage && (
+            <Button onClick={() => void continueAfterTopUp()} loading={control.isPending} loadingLabel="Continuing">
+              Continue
+            </Button>
+          )}
+        </div>
+        {error && <p className="mt-2 text-claim">{error}</p>}
+      </Banner>
+    );
   }
 
   return (

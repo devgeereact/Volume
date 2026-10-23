@@ -140,6 +140,8 @@ export function systemRoutes(app: FastifyInstance, s: AppServices): void {
       // Presence only. The key value never leaves the server process.
       openRouterKey: { present: s.config.openRouterKeyPresent },
       aiProvider: s.ai.provider,
+      // Presence and whether Anthropic last reported an empty balance. The key value never leaves the process.
+      anthropic: s.ai.anthropicStatus?.() ?? { configured: false, outOfFundsAt: null },
       exporter: s.exporter.name,
       database: { client: s.dbClient },
       budgets: await budgets(req),

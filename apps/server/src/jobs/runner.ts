@@ -417,7 +417,11 @@ export class JobRunner {
       return;
     }
     if (err instanceof BudgetPaused) {
-      await queue.finish(job.id, job.lockToken, { status: 'paused_budget', error: err.message, errorCode: 'budget_exceeded' });
+      await queue.finish(job.id, job.lockToken, {
+        status: 'paused_budget',
+        error: err.message,
+        errorCode: err.details.scope === 'credits' ? 'credits_exhausted' : 'budget_exceeded',
+      });
       await bus.publish(ctx.workspaceId, {
         projectId: job.projectId,
         jobId: job.id,
@@ -489,31 +493,9 @@ export class JobRunner {
   }
 
   private async checkBudget(ctx: RequestCtx, projectId: string | null, est: { highUsd: number }, pending = { book: 0, month: 0 }): Promise<void> {
-    const { repos } = this.services;
     if (ctx.workspaceId !== this.services.instanceWorkspaceId) await this.checkGuestCap(ctx, est, pending.month);
-    if (projectId) {
-      const book = await repos.books.get(ctx, projectId);
-      if (book && book.costToDateUsd + pending.book + est.highUsd > book.budgetUsd) {
-        throw new BudgetPaused(`This book needs about $${est.highUsd.toFixed(2)} more than its budget allows. Raise the budget or stop here.`, {
-          scope: 'book',
-          limitUsd: book.budgetUsd,
-          spentUsd: book.costToDateUsd,
-          estimateUsd: est.highUsd,
-        });
-      }
-    }
-    const cap = await repos.settings.get(ctx, 'budget.monthly_cap_usd');
-    if (typeof cap === 'number') {
-      const spent = await repos.production.monthSpendUsd(ctx);
-      if (spent + pending.month + est.highUsd > cap) {
-        throw new BudgetPaused('This month’s AI spending cap is reached. Raise the cap in Settings to continue.', {
-          scope: 'month',
-          limitUsd: cap,
-          spentUsd: spent,
-          estimateUsd: est.highUsd,
-        });
-      }
-    }
+    // D-057: no per-book or monthly cap. Spend is still recorded; a provider out of credits pauses the job instead.
+    void projectId;
   }
 
   /**

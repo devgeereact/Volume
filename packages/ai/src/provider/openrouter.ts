@@ -566,7 +566,7 @@ export class OpenRouterClient implements AiProvider {
 }
 
 /** A cut-off answer is never returned as text: it would be parsed, repaired or saved as if it were whole. */
-function checkTruncated(req: ChatRequest, finishReason: string | null, nativeFinishReason: string | null, text: string, usage: Usage): void {
+export function checkTruncated(req: ChatRequest, finishReason: string | null, nativeFinishReason: string | null, text: string, usage: Usage): void {
   if (!isTruncated(finishReason, nativeFinishReason)) return;
   const reasoning = usage.reasoningTokens;
   const limit = req.maxTokens ?? null;

@@ -11,6 +11,8 @@ import { useBreakpoint } from "../lib/useMediaQuery";
 import { useFocusTrap } from "../lib/useFocusTrap";
 import { bookStepPath } from "../screens";
 import { CommandPalette } from "./CommandPalette";
+import { useSettings } from "../api/hooks";
+import { Banner } from "../components/ui";
 import { useWorkspaceEvents } from "../api/events";
 import { toWiredBook, useApiBooks, useRunningJobs, useWireMode, stepForJob } from "../api/wire-a";
 import { ApiJobBar, JobBar } from "./JobBar";
@@ -35,6 +37,8 @@ export function AppShell() {
   const inBook = Boolean(bookId && bookId !== "new");
   // The book layout opens its own book stream; outside a book the workspace stream keeps lists and jobs fresh.
   useWorkspaceEvents({ enabled: api && !inBook });
+  const settings = useSettings({ enabled: api });
+  const anthropicEmpty = settings.data?.anthropic?.configured === true && settings.data.anthropic.outOfFundsAt !== null;
   const apiBooks = useApiBooks(api);
   const demoBook = getBook(bookId);
   const apiRow = api && inBook && !demoBook ? apiBooks.data?.find((b) => b.id === bookId) : undefined;
@@ -92,6 +96,20 @@ export function AppShell() {
       <div className="flex min-w-0 flex-col">
         <TopBar phone={phone} onOpenMenu={() => setDrawerOpen(true)} menuButtonRef={menuButtonRef} />
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
+          {anthropicEmpty && (
+            <Banner tone="attention" title="Anthropic credit has run out" className="mx-6 mt-4">
+              Volume is using OpenRouter for Claude models until you top up at{" "}
+              <a
+                href="https://console.anthropic.com/settings/billing"
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-select underline underline-offset-2"
+              >
+                console.anthropic.com
+              </a>
+              . Nothing is stopped.
+            </Banner>
+          )}
           <Outlet />
         </main>
         {showApiJobBar && serverJob ? <ApiJobBar job={serverJob} more={serverJobs.length - 1} /> : showJobBar && <JobBar />}

@@ -73,6 +73,7 @@ const REDACT = [
   '*.password',
   '*.apiKey',
   '*.OPENROUTER_API_KEY',
+  '*.ANTHROPIC_API_KEY',
 ];
 
 /**

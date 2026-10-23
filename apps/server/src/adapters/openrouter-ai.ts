@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { bookTypeRulesText } from '../config/book-structure.js';
 import { ConfigError } from '../config/env.js';
-import { JobFailed } from '../jobs/errors.js';
+import { BudgetPaused, JobFailed } from '../jobs/errors.js';
 import { dedupeKey, sha256Hex } from '../lib/util.js';
 import {
   AI_OUTPUT_SCHEMAS,
@@ -28,12 +28,15 @@ import {
 } from '../ports/ai.js';
 import { MockAiAdapter } from './mock-ai.js';
 import {
+  AnthropicFirstProvider,
+  BudgetError,
   createAiService,
   isTaskId,
   StageOutputs,
   taskForTemplate,
   type AiProvider,
   type AiService,
+  type AnthropicStatus,
   type CostEstimate,
   type CreateAiServiceOptions,
   type GenerateImageOptions as VolumeAiImageOptions,
@@ -823,6 +826,8 @@ export function mapVolumeAiError(e: unknown, ctx: { stage: string; model?: strin
     case 'auth':
       return new JobFailed('OpenRouter did not accept the API key. Check OPENROUTER_API_KEY in .env and restart Volume.', 'ai_auth');
     case 'budget':
+      if (a instanceof BudgetError && a.reason === 'credits')
+        return new BudgetPaused(CREDITS_MESSAGE, { scope: 'credits', limitUsd: 0, spentUsd: 0, estimateUsd: 0 });
       return new JobFailed(`OpenRouter stopped the ${ctx.stage} call: ${a.message}`, 'ai_credits');
     case 'refusal':
       return new JobFailed(`The model declined the ${ctx.stage} request: ${a.message}`, 'ai_refusal');
@@ -832,6 +837,10 @@ export function mapVolumeAiError(e: unknown, ctx: { stage: string; model?: strin
       return new JobFailed(`The ${ctx.stage} step could not be sent: ${a.message}`, 'ai_request_invalid');
   }
 }
+
+/** Shown when the provider has no credits left. The web app spots "out of credits" to offer Continue instead of a budget box. */
+export const CREDITS_MESSAGE =
+  'OpenRouter has run out of credits. Top up at https://openrouter.ai/settings/credits, then continue. Nothing was charged for this step and finished work is kept.';
 
 // ---------- the adapter ----------
 
@@ -913,6 +922,12 @@ export class OpenRouterAiAdapter implements AiPort {
   ) {
     this.provider = service.provider.name === 'openrouter' ? 'openrouter' : 'mock';
     this.modelListRetryMs = opts.modelListRetryMs ?? 5 * 60 * 1000;
+  }
+
+  /** Whether an Anthropic key is in use and whether it last reported an empty balance (D-058). */
+  anthropicStatus(): AnthropicStatus {
+    const p = this.service.provider;
+    return p instanceof AnthropicFirstProvider ? p.status() : { configured: false, outOfFundsAt: null };
   }
 
   // ----- runStage -----
@@ -2109,6 +2124,8 @@ export function resourcesMarkdown(items: Rec[], sources: Rec[]): string | null {
 
 export interface CreateOpenRouterAiOptions {
   apiKey?: string | undefined;
+  /** ANTHROPIC_API_KEY. Claude models try it first and fall back to OpenRouter when its balance is empty (D-058). */
+  anthropicApiKey?: string | undefined;
   promptsDir: string;
   configDir: string;
   /** RESOLVE_SOURCE_REDIRECTS from the server's config. Undefined (unset or blank) keeps the package default (off). */
@@ -2121,6 +2138,7 @@ export interface CreateOpenRouterAiOptions {
 export function createOpenRouterAi(opts: CreateOpenRouterAiOptions): Promise<OpenRouterAiAdapter> {
   const serviceOpts: CreateAiServiceOptions = { promptsDir: opts.promptsDir, configDir: opts.configDir };
   if (opts.apiKey) serviceOpts.apiKey = opts.apiKey;
+  if (opts.anthropicApiKey) serviceOpts.anthropicApiKey = opts.anthropicApiKey;
   // Passed explicitly so the server's config (not a stray process variable) decides; undefined keeps the default.
   serviceOpts.resolveSourceRedirects = opts.resolveSourceRedirects ?? false;
   if (opts.provider !== undefined) serviceOpts.provider = opts.provider;
@@ -2132,6 +2150,8 @@ export interface SelectAiAdapterOptions {
   choice: 'mock' | 'openrouter' | 'auto';
   /** OPENROUTER_API_KEY. Never logged. */
   apiKey: string | undefined;
+  /** ANTHROPIC_API_KEY (optional). Never logged. */
+  anthropicApiKey?: string | undefined;
   promptsDir: string;
   configDir: string;
   /** RESOLVE_SOURCE_REDIRECTS from the server's config (undefined when unset or blank). */
@@ -2173,6 +2193,8 @@ export async function selectAiAdapter(o: SelectAiAdapterOptions): Promise<Select
     return { ai: mockFrom(o), provider: 'mock' };
   }
   const create: CreateOpenRouterAiOptions = { apiKey, promptsDir: o.promptsDir, configDir: o.configDir, resolveSourceRedirects: o.resolveSourceRedirects };
+  const anthropicKey = o.anthropicApiKey?.trim();
+  if (anthropicKey) create.anthropicApiKey = anthropicKey;
   if (o.provider !== undefined) create.provider = o.provider;
   const adapter = await createOpenRouterAi(create);
   if (o.choice === 'openrouter') {

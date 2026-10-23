@@ -175,13 +175,13 @@ describe('picture-book pipeline (mock AI, mock exporter)', () => {
     expect(after.spreads.filter((s, i) => i !== 4).map((s) => s.imageAssetId)).toEqual(v.spreads.filter((s, i) => i !== 4).map((s) => s.imageAssetId));
   });
 
-  it('refuses a new picture that would pass the budget', async () => {
+  it('accepts a new picture whatever the book budget says (D-057)', async () => {
     const book = await t.call<{ costToDateUsd: number }>('GET', `/api/v1/books/${bookId}`);
     await t.call('PATCH', `/api/v1/books/${bookId}`, { budgetUsd: book.body.costToDateUsd + 0.01 });
     const v = await view(t, bookId);
-    const r = await t.call<{ error: { code: string } }>('POST', `/api/v1/spreads/${str(v.spreads[0]?.sectionId)}/image`, {});
-    expect(r.status).toBe(402);
-    expect(r.body.error.code).toBe('budget_exceeded');
+    const r = await t.call('POST', `/api/v1/spreads/${str(v.spreads[0]?.sectionId)}/image`, {});
+    expect(r.status).toBe(202);
+    await t.services.runner.runUntilIdle();
     await t.call('PATCH', `/api/v1/books/${bookId}`, { budgetUsd: 50 });
   });
 

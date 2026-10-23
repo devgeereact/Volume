@@ -75,42 +75,31 @@ describe('picture budget with a listed price above $0.20', () => {
   });
   afterAll(async () => t.close());
 
-  it('pauses a picture-book run before the first picture when the priced reservation passes the budget', async () => {
+  it('runs a picture book past a small book budget, as no book cap applies (D-057)', async () => {
     const id = await pictureBook(t);
-    // Room for the text stages and the old $0.20 reservation, not for a $0.24 picture.
     expect((await t.call('PATCH', `/api/v1/books/${id}`, { budgetUsd: 0.22 })).status).toBe(200);
     const start = await t.call<{ jobId: string }>('POST', `/api/v1/books/${id}/picture-book`, {});
     expect(start.status).toBe(202);
     await t.services.runner.runUntilIdle();
     const jobs = await t.handle.db.selectFrom('jobs').select(['status', 'errorCode']).where('projectId', '=', id).execute();
-    expect(jobs.some((j) => j.status === 'paused_budget' && j.errorCode === 'budget_exceeded')).toBe(true);
-    const images = await t.handle.db.selectFrom('promptRuns').select('id').where('projectId', '=', id).where('stage', '=', 'cover_image').execute();
-    expect(images).toHaveLength(0);
+    expect(jobs.some((j) => j.status === 'paused_budget')).toBe(false);
   });
 
-  it('POST /spreads/:id/image refuses with 402 at the priced reservation and accepts with room for it', async () => {
+  it('POST /spreads/:id/image accepts a new picture whatever the book budget says', async () => {
     const id = await pictureBook(t);
-    await t.call('PATCH', `/api/v1/books/${id}`, { budgetUsd: 50 });
     expect((await t.call('POST', `/api/v1/books/${id}/picture-book`, {})).status).toBe(202);
     await t.services.runner.runUntilIdle();
     const v = await t.call<PictureBookView>('GET', `/api/v1/books/${id}/spreads`);
     const sectionId = str(v.body.spreads[0]?.sectionId);
     const book = await t.call<{ costToDateUsd: number }>('GET', `/api/v1/books/${id}`);
-
     await t.call('PATCH', `/api/v1/books/${id}`, { budgetUsd: book.body.costToDateUsd + 0.22 });
-    const r = await t.call<{ error: { code: string; details: { estimateUsd: number } } }>('POST', `/api/v1/spreads/${sectionId}/image`, {});
-    expect(r.status).toBe(402);
-    expect(r.body.error.code).toBe('budget_exceeded');
-    expect(r.body.error.details.estimateUsd).toBeGreaterThanOrEqual(DEAR_IMAGE_USD);
-
-    await t.call('PATCH', `/api/v1/books/${id}`, { budgetUsd: book.body.costToDateUsd + 0.3 });
     expect((await t.call('POST', `/api/v1/spreads/${sectionId}/image`, {})).status).toBe(202);
     await t.services.runner.runUntilIdle();
   });
 });
 
 describe('cover concepts use the same priced reservation', () => {
-  it('pause before a cover image the budget cannot cover at the listed price', async () => {
+  it('makes cover images past a small book budget, as no book cap applies (D-057)', async () => {
     const t = await testApp({ ai: new DearImages() });
     try {
       const p = await t.call<Obj>('POST', '/api/v1/profiles', { penName: 'Nell Ashby', bioThirdPerson: 'Nell Ashby writes calm books.' });
@@ -120,9 +109,7 @@ describe('cover concepts use the same priced reservation', () => {
       expect((await t.call('POST', `/api/v1/books/${id}/cover/concepts`, {})).status).toBe(202);
       await t.services.runner.runUntilIdle();
       const jobs = await t.handle.db.selectFrom('jobs').select(['kind', 'status']).where('projectId', '=', id).execute();
-      expect(jobs.find((j) => j.kind === 'cover_concepts')?.status).toBe('paused_budget');
-      const images = await t.handle.db.selectFrom('promptRuns').select('id').where('projectId', '=', id).where('stage', '=', 'cover_image').execute();
-      expect(images).toHaveLength(0);
+      expect(jobs.find((j) => j.kind === 'cover_concepts')?.status).not.toBe('paused_budget');
     } finally {
       await t.close();
     }

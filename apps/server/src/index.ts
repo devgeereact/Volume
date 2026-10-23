@@ -35,6 +35,7 @@ async function main(): Promise<void> {
   const { ai, provider } = await selectAiAdapter({
     choice: config.aiProvider,
     apiKey: process.env['OPENROUTER_API_KEY'],
+    anthropicApiKey: process.env['ANTHROPIC_API_KEY'],
     promptsDir: join(config.root, 'prompts'),
     configDir: config.configDir,
     resolveSourceRedirects: config.resolveSourceRedirects,
