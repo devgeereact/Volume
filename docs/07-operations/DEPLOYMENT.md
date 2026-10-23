@@ -68,7 +68,7 @@ The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `m
 Apart from that pruning it never deletes a release, and it never reads or copies the settings file (the link is a symlink). The steps it runs, for doing them by hand:
 
 1. Rsync `build/release/` to `~/apps/volume/releases/<utc>/`.
-2. On the host, inside that folder, with Node 24 (`export PATH=/opt/alt/alt-nodejs24/root/usr/bin:$PATH`; there is no `~/nodevenv/apps/volume/current`): `npm ci --omit=dev --no-audit --no-fund`.
+2. On the host, inside that folder, with Node 24 (`export PATH=/opt/alt/alt-nodejs24/root/usr/bin:$PATH`; there is no `~/nodevenv/apps/volume/current`): `npm ci --omit=dev --no-audit --no-fund`. If it aborts with `uv_thread_create` (exit 134), the account has hit its thread cap, often because an editor session is running on the host (23 October 2026): add `export NODE_OPTIONS=--v8-pool-size=1 UV_THREADPOOL_SIZE=1` first. `npm run deploy` sets both itself.
 3. Link shared config into the release: a symlink named after the settings file pointing at `../../shared/` (the app also finds it through `VOLUME_ENV_FILE`).
 4. Back up the database (cPanel Backup or `mariadb-dump --defaults-file=<private temp file> --single-transaction --no-tablespaces`, run with `set -o pipefail` so a failed dump stops the step; the migration user has no `LOCK TABLES` grant), then migrate as the migration user: `node server/migrate.mjs status` (exit 2 means pending), then `node server/migrate.mjs`. The app refuses to start while migrations are pending.
 5. Flip the link: `ln -sfn releases/<utc> ~/apps/volume/current`, then stop the running `lsnode` process (see Passenger settings above). Confirm the page loads the new `/assets/index-*.js` from `build/release/web/index.html`.
