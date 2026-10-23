@@ -15,6 +15,12 @@ export const PART_NAME: Record<CoverPart, string> = { title: "title", subtitle: 
 export const alignOfPart = (d: CoverDesign, part: CoverPart): PartAlign =>
   (part === "title" ? d.titleAlign : part === "subtitle" ? d.subtitleAlign : d.authorAlign) ?? d.align ?? "left";
 
+/** Where the lines really are, measured from the page the build renders (see CoverFrame), and the page's height. */
+export interface LiveCover {
+  boxes: Record<CoverPart, { top: number; height: number } | null>;
+  unitsH: number;
+}
+
 export interface CoverEditHandlers {
   onSelect: (part: CoverPart | null) => void;
   onAlign: (part: CoverPart, align: PartAlign) => void;
@@ -33,8 +39,10 @@ export function CoverEditor({
   selected,
   disabled,
   children,
+  live,
   ...handlers
 }: CoverEditHandlers & {
+  live?: LiveCover | undefined;
   design: CoverDesign;
   subtitle: string | undefined;
   width: number;
@@ -42,7 +50,8 @@ export function CoverEditor({
   disabled?: boolean;
   children: ReactNode;
 }) {
-  const boxes = partBoxes(design, subtitle);
+  const boxes = live?.boxes ?? partBoxes(design, subtitle);
+  const units = live?.unitsH ?? TOP_MAX;
   const area = useRef<HTMLDivElement>(null);
   const drag = useRef<{ y: number; top: number } | null>(null);
 
@@ -60,7 +69,7 @@ export function CoverEditor({
     const move = (e: PointerEvent<HTMLButtonElement>) => {
       const start = drag.current;
       const h = area.current?.getBoundingClientRect().height ?? 0;
-      if (start && Math.abs(e.clientY - start.y) > 2) handlers.onTop(part, dragTop(start.top, e.clientY - start.y, h));
+      if (start && Math.abs(e.clientY - start.y) > 2) handlers.onTop(part, dragTop(start.top, e.clientY - start.y, h, units));
     };
     const end = (e: PointerEvent<HTMLButtonElement>) => {
       drag.current = null;
@@ -87,7 +96,7 @@ export function CoverEditor({
         onPointerUp={end}
         onPointerCancel={end}
         onKeyDown={key}
-        style={{ top: `${(box.top / TOP_MAX) * 100}%`, height: `${(height / TOP_MAX) * 100}%`, touchAction: "none" }}
+        style={{ top: `${(box.top / units) * 100}%`, height: `${(height / units) * 100}%`, touchAction: "none" }}
         className={cn(
           "absolute inset-x-[4%] cursor-grab rounded-xs bg-transparent active:cursor-grabbing",
           "outline-offset-2 hover:outline-1 hover:outline-dashed hover:outline-select focus-visible:outline-2 focus-visible:outline-select",
@@ -125,10 +134,19 @@ export function CoverToolbar({
   onSmaller,
   onLarger,
   onUppercase,
-}: Omit<CoverEditHandlers, "onSelect"> & { part: CoverPart; design: CoverDesign; subtitle: string | undefined; titleSizePct: number }) {
+  live,
+}: Omit<CoverEditHandlers, "onSelect"> & {
+  part: CoverPart;
+  design: CoverDesign;
+  subtitle: string | undefined;
+  titleSizePct: number;
+  /** Read from the page the build renders: the line's real position and alignment, the title's real size and case. */
+  live?: { top: number; align: PartAlign; uppercase: boolean; titleSize: number } | undefined;
+}) {
   const name = PART_NAME[part];
-  const top = partBoxes(design, subtitle)[part]?.top ?? 0;
-  const align = alignOfPart(design, part);
+  const top = live?.top ?? partBoxes(design, subtitle)[part]?.top ?? 0;
+  const align = live?.align ?? alignOfPart(design, part);
+  const uppercase = live?.uppercase ?? design.titleUppercase;
   const scale = part === "subtitle" ? (design.subtitleScale ?? 1) : (design.authorScale ?? 1);
   const atSmallest = part === "title" ? titleSizePct <= TITLE_SIZE_MIN : scale <= SCALE_MIN + 0.001;
   const atLargest = part === "title" ? titleSizePct >= TITLE_SIZE_MAX : scale >= SCALE_MAX - 0.001;
@@ -190,12 +208,17 @@ export function CoverToolbar({
           <span>Larger</span>
         </button>
         {part === "title" && (
-          <button type="button" aria-pressed={design.titleUppercase} className={tool} onClick={() => onUppercase(!design.titleUppercase)}>
+          <button type="button" aria-pressed={uppercase} className={tool} onClick={() => onUppercase(!uppercase)}>
             <CaseUpper size={16} aria-hidden />
             <span>Capital letters</span>
           </button>
         )}
       </div>
+      {part === "title" && live && live.titleSize > 0 && (
+        <p className="num text-small text-ink" data-testid="title-size-readout">
+          Title size {titleSizePct}% of the design's, which is {live.titleSize.toFixed(1)} on the page (cover width is 100).
+        </p>
+      )}
       <p className="text-small text-ink-secondary">You can also drag it up or down on the cover, or use the arrow keys when it is focused.</p>
     </div>
   );

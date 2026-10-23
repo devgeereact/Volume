@@ -5,6 +5,7 @@ import type {
   ApiExportRecord,
   ApiMarketingItem,
   ApiPreflightReport,
+  CoverPreviewHtml,
   CoverResponse,
   ExportsInput,
   ListResponse,
@@ -23,6 +24,9 @@ export const productionApi = {
     api.post<AcceptedJob>(`/books/${seg(bookId)}/cover/concepts`, input, o),
   chooseCover: (bookId: string, input: { assetId: string; typography?: Record<string, unknown> }, o?: Opts) =>
     api.post<CoverResponse>(`/books/${seg(bookId)}/cover/choose`, input, o),
+  /** The page a cover build renders for these settings (saves nothing): the studio shows exactly this. */
+  coverPreview: (bookId: string, input: { kind: "ebook" | "wrap"; typography?: Record<string, unknown>; pages?: number; assetId?: string }, o?: Opts) =>
+    api.post<CoverPreviewHtml>(`/books/${seg(bookId)}/cover/preview`, input, o),
   buildCover: (bookId: string, o?: Opts) => api.post<AcceptedJob>(`/books/${seg(bookId)}/cover/build`, undefined, o),
   /** Puts the owner's uploaded covers in place (asset ids), or takes them out again with null. */
   ownCover: (bookId: string, input: { ebookAssetId?: string | null; wrapAssetId?: string | null }, o?: Opts) =>

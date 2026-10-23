@@ -59,6 +59,7 @@ import type {
   PreflightItem,
   PreflightReport,
   WrapCoverInput,
+  CoverPreviewHtml,
 } from '../ports/export.js';
 
 /**
@@ -623,6 +624,32 @@ export class VolumeExportAdapter implements ExportPort {
     const r = await exportPaperbackWrap(this.coverMeta(input), this.styleForCover(input.book, input.coverStyleId, input.typography), o);
     const f = this.file(input.book, 'wrap_pdf', 'pdf', MIME.pdf, r.pdf, 1);
     return { ...f, filename: f.filename.replace(/\.pdf$/, `-${input.pageCount}p.pdf`) };
+  }
+
+  async coverPreviewHtml(input: WrapCoverInput, kind: 'ebook' | 'wrap'): Promise<CoverPreviewHtml> {
+    const { rules, fonts } = this.config();
+    const style = this.styleForCover(input.book, input.coverStyleId, input.typography);
+    const meta = this.coverMeta(input);
+    if (kind === 'ebook') {
+      const o: Parameters<typeof exportEbookCover>[2] = { rules, fonts, htmlOnly: true };
+      if (input.artwork) o.background = buf(input.artwork.data);
+      const r = await exportEbookCover(meta, style, o);
+      return { html: r.html ?? '', widthPx: r.widthPx, heightPx: r.heightPx, warnings: r.warnings };
+    }
+    const o: Parameters<typeof exportPaperbackWrap>[2] = {
+      rules,
+      pages: input.pageCount,
+      paper: paperOf(input.book),
+      trim: input.book.trim,
+      fonts,
+      htmlOnly: true,
+    };
+    if (input.backBlurb) o.blurb = input.backBlurb;
+    if (input.ink) o.ink = input.ink;
+    if (input.book.author.shortBio) o.shortBio = input.book.author.shortBio;
+    if (input.artwork) o.background = buf(input.artwork.data);
+    const r = await exportPaperbackWrap(meta, style, o);
+    return { html: r.html ?? '', widthPx: Math.ceil(r.size.widthIn * 96), heightPx: Math.ceil(r.size.heightIn * 96), warnings: r.warnings };
   }
 
   // ----- picture books (D-044) -----

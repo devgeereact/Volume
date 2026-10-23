@@ -139,3 +139,58 @@ describe('subtitle at a fixed height', () => {
     expect(b.subtitlePushed).toBe(false);
   });
 });
+
+describe('cover preview page', () => {
+  let browser3: Browser;
+  beforeAll(async () => {
+    browser3 = await acquireBrowser();
+  });
+  afterAll(async () => {
+    await releaseBrowser();
+  });
+
+  it('is the build page, and reports where the title, subtitle and author sit', async () => {
+    const meta = { ...loadMiniBook().meta, title: 'Steady On Your Feet', subtitle: 'Build confidence in your first year' };
+    const style = applyCoverTypography(DEFAULT_COVER_STYLE, { titleAlign: 'right', titleSize: 0.2 });
+    const o = { browser: browser3, rules: loadKdpRules() };
+    const preview = await exportEbookCover(meta, style, { ...o, htmlOnly: true });
+    expect(preview.html).toBeTruthy();
+    expect(preview.html).toContain('volume-cover-boxes');
+    // The build's own page is the preview's page without the measuring script.
+    const built = await exportEbookCover(meta, style, o);
+    expect(built.jpeg.length).toBeGreaterThan(1000);
+
+    const ctx = await browser3.newContext({ viewport: { width: 1600, height: 2560 } });
+    try {
+      const page = await ctx.newPage();
+      await page.addInitScript(() => {
+        (window as unknown as { __msg: unknown }).__msg = null;
+        window.addEventListener('message', (e) => {
+          (window as unknown as { __msg: unknown }).__msg = e.data;
+        });
+      });
+      // A real navigation, so the listener added above survives (setContent rewrites the document and drops it).
+      await page.route('http://cover.test/', (r) => r.fulfill({ body: preview.html ?? '', contentType: 'text/html' }));
+      await page.goto('http://cover.test/', { waitUntil: 'load' });
+      await page.waitForFunction('window.__msg !== null');
+      const m = await page.evaluate<{
+        type: string;
+        width: number;
+        title: { top: number; height: number; align: string };
+        subtitle: { top: number };
+        author: { top: number };
+        titleSize: number;
+      }>('window.__msg');
+      expect(m.type).toBe('volume-cover-boxes');
+      expect(m.width).toBe(1600);
+      expect(m.title.align).toBe('right');
+      expect(m.subtitle.top).toBeGreaterThan(m.title.top + m.title.height - 1);
+      expect(m.author.top).toBeGreaterThan(m.subtitle.top);
+      // 0.2 asked for: the fitted size can only be smaller, and is a share of the cover width.
+      expect(m.titleSize).toBeGreaterThan(5);
+      expect(m.titleSize).toBeLessThanOrEqual(20.01);
+    } finally {
+      await ctx.close();
+    }
+  });
+});

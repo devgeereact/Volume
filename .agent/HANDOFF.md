@@ -638,3 +638,9 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 
 - Owner confirmed in chat: "Steady On Your Feet" is the second book meant; the remaining claims (37 on Steady On Your Feet, 63 on Read Fast, Write Safe) have been reviewed by the owner; the owner is deciding the 34 for-the-record claims on AI For Everyday People and the imprints and social links. The claims were not resolved in the app on the owner's behalf: the owner can use "I have read these, mark all as checked" or resolve them one by one on the Claims screen.
 - Live release `20261023T150002Z` read from the host with `npm run deploy -- --dry-run` (read-only). It includes PRs #58 and #59.
+
+## 2026-10-25, Claude Code: cover preview is the build
+
+- What changed (PR #65): the studio previews with the build's own page (`POST /books/:id/cover/preview`, `CoverFrame`), not a web redrawing. Covers over art keep the art untouched; ink comes from `packages/core/src/cover-ink.ts`; subtitle clears a wrapped title; JPEG q95. Each concept card has its own design and palette; Design and Title font pickers; title size 60 to 180 with wrap. Cover prompts: `cover.cover-brief` v4, `cover.cover-image` v3. Rule set: `docs/book-production/COVER-SYSTEM.md`.
+- Checks: typecheck, lint, format, docs link check PASS; core 175, export 188, web 205, server 507, ai 257 tests PASS. NOT TESTED: the studio in a browser against the live site (needs the deploy); a live concept run with the new prompts (costs money).
+- Next: owner merges and deploys PR #65; then check the studio live, rebuild the covers and packs.

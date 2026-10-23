@@ -200,7 +200,42 @@ document.fonts.ready.then(function () {
 });
 </script>`;
 
+/**
+ * Added to a preview page only (never to a build): once the page has fitted its title it tells the studio where each
+ * line sits (top and height in cover-width percent, alignment, the title's fitted size), so the editing handles in the
+ * studio sit on the real lines of the real page.
+ */
+const PREVIEW_SCRIPT = `<script>
+(function () {
+  var t = setInterval(function () {
+    if (window.__coverReady !== true) return;
+    clearInterval(t);
+    var front = document.querySelector('.front');
+    if (!front) return;
+    var fr = front.getBoundingClientRect();
+    function part(sel) {
+      var el = front.querySelector(sel);
+      if (!el) return null;
+      var r = el.getBoundingClientRect();
+      return { top: ((r.top - fr.top) / fr.width) * 100, height: (r.height / fr.width) * 100, align: getComputedStyle(el).textAlign };
+    }
+    var title = front.querySelector('.title');
+    parent.postMessage({
+      type: 'volume-cover-boxes',
+      width: fr.width,
+      height: fr.height,
+      title: part('.title'),
+      subtitle: part('.sub'),
+      author: part('.author'),
+      titleSize: title ? (parseFloat(title.getAttribute('data-fitted-px') || '0') / fr.width) * 100 : 0
+    }, '*');
+  }, 30);
+})();
+</script>`;
+
 export interface EbookCoverOptions {
+  /** Return the cover's HTML (what the build renders) without rendering it: the Cover studio previews with it. */
+  htmlOnly?: boolean;
   /** Concept or background image (PNG or JPEG). */
   background?: Buffer;
   browser?: Browser;
@@ -212,6 +247,8 @@ export interface EbookCoverOptions {
 }
 
 export interface EbookCoverResult {
+  /** The page the build renders; set only with htmlOnly (then jpeg is empty). */
+  html?: string;
   jpeg: Buffer;
   widthPx: number;
   heightPx: number;
@@ -234,6 +271,16 @@ export async function exportEbookCover(source: BookMeta, style: CoverStyle = DEF
   const html = withSymbolFallback(`<!doctype html><html lang="${escapeHtml(meta.language)}"><head><meta charset="utf-8"><style>${f.css}
 html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
 ${frontCss(front, f, ink)}</style></head><body>${frontHtml(meta, front, opts.background ? dataUrl(opts.background) : undefined)}${FIT_SCRIPT}</body></html>`);
+  if (opts.htmlOnly)
+    return {
+      html: html.replace('</body>', `${PREVIEW_SCRIPT}</body>`),
+      jpeg: Buffer.alloc(0),
+      widthPx: W,
+      heightPx: H,
+      titlePxAt160: 0,
+      subtitlePushed: false,
+      warnings,
+    };
   const { png, fitted, subtitlePushed } = await withBrowser(opts.browser, async (browser) => {
     const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
     try {
@@ -260,6 +307,8 @@ ${frontCss(front, f, ink)}</style></head><body>${frontHtml(meta, front, opts.bac
 }
 
 export interface WrapOptions {
+  /** Return the wrap's HTML (what the build renders) without rendering it: the Cover studio previews with it. */
+  htmlOnly?: boolean;
   rules: KdpRules;
   /** Interior page count, read from the real interior PDF. */
   pages: number;
@@ -283,6 +332,8 @@ export interface WrapOptions {
 }
 
 export interface WrapResult {
+  /** The page the build renders; set only with htmlOnly (then pdf is empty). */
+  html?: string;
   pdf: Buffer;
   size: WrapSize;
   widthPt: number;
@@ -395,6 +446,17 @@ ${frontCss(front, f, ink)}
 
   const W = size.widthIn * 72;
   const H = size.heightIn * 72;
+  if (opts.htmlOnly)
+    return {
+      html: html.replace('</body>', `${PREVIEW_SCRIPT}</body>`),
+      pdf: Buffer.alloc(0),
+      size,
+      widthPt: W,
+      heightPt: H,
+      spineText,
+      rasterised: false,
+      warnings,
+    };
   const minDpi = coverMinDpi(opts.rules);
   const rasterised = opts.raster === 'always' || (opts.raster !== 'never' && f.variable);
   if (rasterised && opts.raster !== 'always')

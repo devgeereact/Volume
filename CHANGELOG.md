@@ -5,6 +5,8 @@ User-visible changes, newest first. Dates in British format.
 ## 24 October 2026
 
 #### Added
+- The Cover studio preview is now the build's own page, not a redrawing: what you see (eBook, thumbnail, paperback wrap and the cover cards) is exactly what Build makes, including fonts, colours, title size and positions. The editing handles and the title size numbers are read from that page.
+- Each of the four cover concepts comes with its own design and palette, and the cover brief (v4) and image prompt (v3) ask for four different art directions with vivid colour and sharp, authentic art. See docs/book-production/COVER-SYSTEM.md.
 - Cover studio: a Design picker (all 17 cover styles, each with its own palettes) and a Title font picker, so books by the same author no longer have to look alike. Both are saved and used by the build.
 
 #### Changed

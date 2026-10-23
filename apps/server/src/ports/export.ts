@@ -181,6 +181,14 @@ export interface PictureBookBuild {
   warnings: string[];
 }
 
+/** A cover page as HTML at its natural pixel size (the eBook is 1600 x 2560; the wrap is its inches at 96 px). */
+export interface CoverPreviewHtml {
+  html: string;
+  widthPx: number;
+  heightPx: number;
+  warnings: string[];
+}
+
 export interface ExportPort {
   readonly name: 'mock' | 'volume-export';
   buildDocx(book: ExportBook, opts?: ExportOptions): Promise<ExportFile>;
@@ -190,6 +198,11 @@ export interface ExportPort {
   buildMd(book: ExportBook, opts?: ExportOptions): Promise<ExportFile>;
   buildEbookCover(input: CoverInput, opts?: ExportOptions): Promise<ExportFile>;
   buildWrapCover(input: WrapCoverInput, opts?: ExportOptions): Promise<ExportFile>;
+  /**
+   * The page a cover build renders, as HTML, without rendering it. The Cover studio shows exactly this, so the preview
+   * is the build: same fonts, same layout, same art, same ink.
+   */
+  coverPreviewHtml(input: WrapCoverInput, kind: 'ebook' | 'wrap'): Promise<CoverPreviewHtml>;
   preflight(book: ExportBook, opts?: ExportOptions): Promise<PreflightReport>;
   /**
    * The final preflight on the built files (interior PDF page count, fonts, margins, covers). The export job

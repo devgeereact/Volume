@@ -395,4 +395,24 @@ describe('the export job with the real exporter', () => {
     expect(names).toContain('reports/preflight.txt');
     expect(names.some((n) => /^cover\/.*ebook-cover\.jpg$/i.test(n))).toBe(true);
   }, 60_000);
+  it('previews a cover as the same HTML the build renders', async () => {
+    const bookId = await writtenBook('Calm Mornings Preview', true);
+    await buildCovers(t, bookId);
+    const ebook = await t.call<{ html: string; widthPx: number; heightPx: number }>('POST', `/api/v1/books/${bookId}/cover/preview`, { kind: 'ebook' });
+    expect(ebook.status).toBe(200);
+    expect(ebook.body.widthPx).toBe(1600);
+    expect(ebook.body.heightPx).toBe(2560);
+    expect(ebook.body.html).toContain('Calm Mornings Preview');
+    expect(ebook.body.html).toContain('data-fit');
+    // The owner's settings change the page, without being saved.
+    const bigger = await t.call<{ html: string }>('POST', `/api/v1/books/${bookId}/cover/preview`, {
+      kind: 'ebook',
+      typography: { styleId: 'bold-condensed', paletteId: 'blueprint' },
+    });
+    expect(bigger.body.html).not.toBe(ebook.body.html);
+    expect(bigger.body.html).toContain('Big Shoulders Display');
+    const wrap = await t.call<{ html: string; widthPx: number }>('POST', `/api/v1/books/${bookId}/cover/preview`, { kind: 'wrap', pages: 120 });
+    expect(wrap.body.html).toContain('frontpanel');
+    expect(wrap.body.widthPx).toBeGreaterThan(1100);
+  }, 60_000);
 });

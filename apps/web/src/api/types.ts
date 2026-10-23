@@ -499,6 +499,14 @@ export type BookPatch = Partial<Omit<BookInput, "profileId">> & {
 };
 
 /** POST /books/:id/estimate. */
+/** A cover page as HTML at its natural pixel size: what POST /books/:id/cover/preview answers. */
+export interface CoverPreviewHtml {
+  html: string;
+  widthPx: number;
+  heightPx: number;
+  warnings: string[];
+}
+
 export type EstimateStage = "research" | "titles" | "blueprint" | "blueprint_part" | "writing" | "checks" | "claim_fix";
 
 export interface EstimateInput {
