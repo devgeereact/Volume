@@ -245,9 +245,10 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
     failNow();
   });
 
-  await test.step("Research: run it and read the dossier", async () => {
+  await test.step("Research: it starts by itself from the wizard, then read the dossier", async () => {
     await expect(h1("Research")).toBeVisible();
-    await stepButton("Run research").click();
+    // No "Run research" click: the wizard's Start research runs the first run, and the ?run=new mark leaves the URL.
+    await expect(page).not.toHaveURL(/run=new/);
     await expect(main.getByRole("heading", { name: "Audience", level: 2 })).toBeVisible({ timeout: JOB_WAIT });
     await expect(main.getByRole("heading", { name: "Reader pains" })).toBeVisible();
     await expect(main.getByText("Done", { exact: true }).first()).toBeVisible();

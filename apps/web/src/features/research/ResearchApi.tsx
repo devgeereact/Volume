@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useSearchParams } from "react-router";
 import { useCanWrite } from "../../lib/access";
 import { Check, CircleAlert, ExternalLink, Globe, RotateCcw, X } from "lucide-react";
 import {
@@ -120,6 +121,22 @@ export function ResearchApi({ book, apiBook }: { book: Book; apiBook: ApiBookDet
     setCancelError(null);
     start.mutate(audienceHint ? { bookId, audienceHint } : { bookId });
   }
+
+  // Arriving from the wizard's "Start research" (?run=new) starts the first run once. Without this the book was
+  // made but nothing ran, and the page sat empty. The parameter is dropped so a reload never starts a second run.
+  const [params, setParams] = useSearchParams();
+  const autoStarted = useRef(false);
+  const fromWizard = params.get("run") === "new";
+  useEffect(() => {
+    if (!fromWizard || autoStarted.current || !canWrite || research.isPending || research.isError) return;
+    autoStarted.current = true;
+    const next = new URLSearchParams(params);
+    next.delete("run");
+    setParams(next, { replace: true });
+    if (runs.length === 0 && !jobs.some((j) => j.kind === "research" && !isTerminalJob(j.status))) start.mutate({ bookId });
+    // The guard ref makes this run once; params, runs and jobs are read at that moment only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromWizard, canWrite, research.isPending, research.isError]);
 
   const titlesPath = bookStepPath(book.id, "titles");
   // The one gilt button lives in the step footer (D-016).
