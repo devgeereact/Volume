@@ -54,6 +54,30 @@ function Claims({ bookId }: { bookId: string }) {
   const tiers = splitByTier(q.data?.items ?? []);
   const groups = groupBySection(tiers[tier]);
   const openQ = useClaimsOverview(bookId, "open");
+  const resolve = useResolveClaim();
+  const [bulk, setBulk] = useState<{ busy: boolean; problem: string | null }>({ busy: false, problem: null });
+
+  /** One click for the lower-risk claims: each is marked checked with a note, one after another, and the list refreshes. */
+  async function acceptRecord() {
+    const list = tiers.record.filter((c) => c.status === "open");
+    setBulk({ busy: true, problem: null });
+    try {
+      for (const c of list) {
+        await resolve.mutateAsync({
+          bookId,
+          claimId: c.id,
+          action: "verify",
+          input: { note: "Read through and accepted as low risk (listed for the record)." },
+        });
+      }
+      setAnnounce(`${list.length} lower-risk ${list.length === 1 ? "claim" : "claims"} marked as checked.`);
+      void q.refetch();
+      void openQ.refetch();
+      setBulk({ busy: false, problem: null });
+    } catch (e) {
+      setBulk({ busy: false, problem: errorText(e) });
+    }
+  }
 
   return (
     <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
@@ -89,6 +113,19 @@ function Claims({ bookId }: { bookId: string }) {
           Lower-risk statements that would do no harm if wrong. They stay in the claims report in the export pack, and preflight does not warn about them. You
           do not have to act on them.
         </p>
+      )}
+      {tier === "record" && canWrite && tiers.record.some((c) => c.status === "open") && (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button variant="secondary" icon={Check} loading={bulk.busy} loadingLabel="Marking" onClick={() => void acceptRecord()}>
+            I have read these, mark all as checked
+          </Button>
+          <p className="text-small text-ink-secondary">Clears them from the open list. Each keeps a note that you accepted it as low risk.</p>
+          {bulk.problem && (
+            <p role="alert" className="w-full text-small text-claim">
+              {bulk.problem}
+            </p>
+          )}
+        </div>
       )}
 
       <div className="mt-6 max-w-[860px]">

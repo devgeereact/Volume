@@ -16,6 +16,7 @@ import {
   wrapSizeIn,
   type BookMeta,
   type ColourInk,
+  type CoverAlign,
   type CoverStyle,
   type KdpRules,
   type Paper,
@@ -68,29 +69,41 @@ function coverFonts(style: CoverStyle, lib: FontLibrary, warnings: string[]): Fo
  */
 export const ART_WASH_OPACITY = 0.55;
 
+const alignWord = (a: CoverAlign): 'left' | 'centre' | 'right' => (a === 'center' ? 'centre' : a);
+/** A class for an element's own alignment, only when the owner set one (so older covers draw exactly as before). */
+const ownAlign = (a: CoverAlign | undefined): string => (a ? ` a-${alignWord(a)}` : '');
+
 function frontHtml(meta: BookMeta, style: CoverStyle, bg: string | undefined): string {
   const title = style.titleUppercase ? meta.title.toUpperCase() : meta.title;
   const author = style.authorUppercase ? meta.author.toUpperCase() : meta.author;
   const low = (style.titleTopPct ?? 0) > 50;
   const motif = bg ? '' : ornamentSvg(style.ornament, style.colours.accent, 240);
-  const sub = meta.subtitle ? `<div class="sub${style.subtitleTopPct !== undefined ? ' abs' : ''}">${escapeHtml(meta.subtitle)}</div>` : '';
-  return `<div class="front ${style.layout} ${style.align === 'left' ? 'left' : 'centre'}${bg ? ' has-bg' : ''}">
+  const subAbs = style.subtitleTopPct !== undefined;
+  const sub = meta.subtitle ? `<div class="sub${subAbs ? ' abs' : ''}${ownAlign(style.subtitleAlign)}">${escapeHtml(meta.subtitle)}</div>` : '';
+  const authorAlign = ownAlign(style.authorAlign);
+  const authorEl = `<div class="author">${escapeHtml(author)}</div>`;
+  // With an exact author position the rule and name sit in their own box; otherwise they end the stack as before.
+  const authorAbs = style.authorTopPct !== undefined;
+  return `<div class="front ${style.layout} ${alignWord(style.align)}${bg ? ' has-bg' : ''}">
 ${bg ? `<img class="bg" src="${bg}" alt="">` : ''}
 ${!bg && (style.layout === 'band' || style.band) ? '<div class="band"></div>' : ''}${style.layout === 'frame' ? '<div class="frame"></div>' : ''}
 ${motif && low ? `<div class="motif high">${motif}</div>` : ''}
-${style.subtitleTopPct !== undefined ? sub : ''}
+${subAbs ? sub : ''}
 <div class="stack">
-  <div class="title" data-fit="1">${escapeHtml(title)}</div>
-  ${style.subtitleTopPct === undefined ? sub : ''}
+  <div class="title${ownAlign(style.titleAlign)}" data-fit="1">${escapeHtml(title)}</div>
+  ${subAbs ? '' : sub}
   <div class="spacer"></div>
   ${motif && !low ? `<div class="motif">${motif}</div><div class="spacer"></div>` : ''}
-  <div class="rule"></div>
-  <div class="author">${escapeHtml(author)}</div>
+  ${authorAbs ? '' : `<div class="rule${authorAlign}"></div>${authorEl.replace('class="author"', `class="author${authorAlign}"`)}`}
 </div>
+${authorAbs ? `<div class="authorbox${authorAlign}"><div class="rule${authorAlign}"></div>${authorEl.replace('class="author"', `class="author${authorAlign}"`)}</div>` : ''}
 </div>`;
 }
 
 function frontCss(style: CoverStyle, f: Fonts): string {
+  const subSize = (4.4 * (style.subtitleScale ?? 1)).toFixed(2);
+  const authorSize = (5.6 * (style.authorScale ?? 1)).toFixed(2);
+  const authorTop = style.authorTopPct;
   const c = style.colours;
   const scale = (style.titleScale * 100).toFixed(2);
   const top = style.titleTopPct !== undefined ? `${style.titleTopPct}cqw` : '9cqh';
@@ -104,7 +117,7 @@ function frontCss(style: CoverStyle, f: Fonts): string {
 .front .stack { position: absolute; z-index: 2; top: ${top}; left: 8cqw; right: 8cqw; bottom: 7cqh; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .front.left .stack { align-items: flex-start; text-align: left; }
 .front .title { font-family: '${f.title}'; font-weight: ${style.weights.title}; ${style.titleItalic ? 'font-style: italic;' : ''} font-size: ${scale}cqw; line-height: 1.0; letter-spacing: -0.02em; color: ${c.title}; overflow-wrap: normal; word-break: keep-all; hyphens: manual; }
-.front .sub { font-family: '${f.subtitle}'; font-weight: ${style.weights.subtitle}; font-size: 4.4cqw; line-height: 1.2; margin-top: 3.2cqh; color: ${c.subtitle}; max-width: 82cqw; }
+.front .sub { font-family: '${f.subtitle}'; font-weight: ${style.weights.subtitle}; font-size: ${subSize}cqw; line-height: 1.2; margin-top: 3.2cqh; color: ${c.subtitle}; max-width: 82cqw; }
 .front .sub.abs { position: absolute; z-index: 2; top: ${style.subtitleTopPct ?? 0}cqw; left: 8cqw; right: 12cqw; margin: 0; }
 .front.centre .sub.abs { text-align: center; left: 10cqw; right: 10cqw; max-width: none; }
 .front .spacer { flex: 1; }
@@ -112,7 +125,26 @@ function frontCss(style: CoverStyle, f: Fonts): string {
 .front .motif.high { position: absolute; z-index: 1; top: 16cqw; left: 0; right: 0; display: flex; justify-content: center; }
 .front.left .motif.high { justify-content: flex-start; padding-left: 8cqw; }
 .front .rule { width: 8cqw; height: 0.4cqw; background: ${c.accent}; margin-bottom: 2.4cqh; }
-.front .author { font-family: '${f.author}'; font-weight: ${style.weights.author}; ${style.authorItalic ? 'font-style: italic;' : ''} font-size: 5.6cqw; letter-spacing: ${style.authorUppercase ? '0.12em' : '0.02em'}; color: ${c.author}; }
+.front .author { font-family: '${f.author}'; font-weight: ${style.weights.author}; ${style.authorItalic ? 'font-style: italic;' : ''} font-size: ${authorSize}cqw; letter-spacing: ${style.authorUppercase ? '0.12em' : '0.02em'}; color: ${c.author}; }
+.front.right .stack { align-items: flex-end; text-align: right; }
+.front.right .sub.abs { text-align: right; left: 12cqw; right: 8cqw; max-width: none; }
+.front.right .motif.high { justify-content: flex-end; padding-right: 8cqw; }
+/* Per-element alignment, written only when the owner set one. */
+.front .title.a-left, .front .sub.a-left, .front .author.a-left, .front .rule.a-left { align-self: flex-start; text-align: left; }
+.front .title.a-centre, .front .sub.a-centre, .front .author.a-centre, .front .rule.a-centre { align-self: center; text-align: center; }
+.front .title.a-right, .front .sub.a-right, .front .author.a-right, .front .rule.a-right { align-self: flex-end; text-align: right; }
+.front .sub.abs.a-left { left: 8cqw; right: 12cqw; max-width: none; }
+.front .sub.abs.a-centre { left: 10cqw; right: 10cqw; max-width: none; }
+.front .sub.abs.a-right { left: 12cqw; right: 8cqw; max-width: none; }
+.front .authorbox { position: absolute; z-index: 2; top: ${authorTop ?? 0}cqw; left: 8cqw; right: 8cqw; display: flex; flex-direction: column; align-items: ${style.align === 'left' ? 'flex-start' : style.align === 'right' ? 'flex-end' : 'center'}; text-align: ${style.align === 'center' ? 'center' : style.align}; }
+.front .authorbox.a-left { align-items: flex-start; text-align: left; }
+.front .authorbox.a-centre { align-items: center; text-align: center; }
+.front .authorbox.a-right { align-items: flex-end; text-align: right; }
+.front .authorbox .author { line-height: 1; }
+.front .authorbox .rule { position: absolute; bottom: 100%; margin: 0 0 1.6cqw; }
+.front .authorbox .rule.a-left { left: 0; align-self: auto; }
+.front .authorbox .rule.a-right { right: 0; align-self: auto; }
+.front .authorbox .rule.a-centre { left: 50%; transform: translateX(-50%); align-self: auto; }
 .front.minimal .rule { display: none; }
 `;
 }
@@ -253,13 +285,46 @@ export async function exportPaperbackWrap(source: BookMeta, style: CoverStyle = 
       if (imageDpi < min) warnings.push(`Cover image is about ${Math.floor(imageDpi)} DPI across the front; KDP asks for ${min} DPI or more.`);
     }
   }
-  const paras = (t: string | undefined) =>
-    t
-      ? t
-          .split(/\n\s*\n/)
-          .map((p) => `<p>${escapeHtml(normalisePrintText(p.trim()))}</p>`)
-          .join('')
-      : '';
+  // The back-cover blurb: paragraphs, and "- item" lines as a real list so the bullets align under the lead-in line.
+  const blurbHtml = (t: string | undefined) => {
+    if (!t) return '';
+    const bullet = /^\s*[-*\u2022]\s+/;
+    return t
+      .split(/\n\s*\n/)
+      .map((block) => {
+        const lines = block
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean);
+        const out: string[] = [];
+        let items: string[] = [];
+        const flush = () => {
+          if (items.length) out.push(`<ul>${items.map((i) => `<li>${escapeHtml(normalisePrintText(i))}</li>`).join('')}</ul>`);
+          items = [];
+        };
+        const text: string[] = [];
+        for (const l of lines) {
+          if (bullet.test(l)) {
+            if (text.length) {
+              out.push(`<p>${escapeHtml(normalisePrintText(text.join(' ')))}</p>`);
+              text.length = 0;
+            }
+            items.push(l.replace(bullet, ''));
+          } else {
+            flush();
+            text.push(l);
+          }
+        }
+        flush();
+        if (text.length) out.push(`<p>${escapeHtml(normalisePrintText(text.join(' ')))}</p>`);
+        return out.join('');
+      })
+      .join('');
+  };
+  // A longer blurb is set a little smaller so the block never runs into the author name at the foot.
+  const blurbWords = (opts.blurb ?? '').split(/\s+/).filter(Boolean).length;
+  const blurbPt = blurbWords <= 130 ? 11 : blurbWords <= 190 ? 10.5 : blurbWords <= 240 ? 9.75 : 9;
+  const authorWidthIn = Math.max(2, trim.widthIn - 2 * backPad - bc.widthIn - 0.35);
   const spineFont = Math.min(16, Math.max(5, (size.spineIn - 2 * clearance) * 72 * 0.62));
   const c = style.colours;
   const html = withSymbolFallback(`<!doctype html><html lang="${escapeHtml(meta.language)}"><head><meta charset="utf-8"><style>${f.css}
@@ -268,9 +333,13 @@ html, body { margin: 0; width: ${size.widthIn}in; height: ${size.heightIn}in; fo
 * { box-sizing: border-box; }
 .wrap { position: relative; width: ${size.widthIn}in; height: ${size.heightIn}in; background: ${c.background}; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .back { position: absolute; left: 0; top: 0; width: ${b + trim.widthIn}in; height: ${size.heightIn}in; background: ${c.background}; }
-.back .text { position: absolute; left: ${b + backPad}in; right: ${backPad}in; top: ${b + backPad + 0.2}in; font-family: '${f.subtitle}'; font-size: 10.5pt; line-height: 1.45; color: ${c.subtitle}; }
-.back .text p { margin: 0 0 8pt; }
-.back .bio { margin-top: 18pt; padding-top: 10pt; border-top: 0.8pt solid ${c.accent}; font-size: 9pt; }
+.back .text { position: absolute; left: ${b + backPad}in; right: ${backPad}in; top: ${b + backPad + 0.2}in; font-family: '${f.subtitle}'; font-size: ${blurbPt}pt; line-height: 1.5; color: ${c.subtitle}; text-align: left; hyphens: manual; }
+.back .text p { margin: 0 0 9pt; }
+.back .text ul { margin: 0 0 9pt; padding: 0 0 0 1.1em; }
+.back .text li { margin: 0 0 3pt; padding-left: 0.2em; }
+.back .author { position: absolute; left: ${b + backPad}in; bottom: ${b + backPad}in; width: ${authorWidthIn.toFixed(3)}in; padding-top: 8pt; border-top: 0.8pt solid ${c.accent}; font-family: '${f.subtitle}'; color: ${c.subtitle}; text-align: left; }
+.back .author .name { font-family: '${f.author}'; font-weight: ${style.weights.author}; font-size: 10pt; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 4pt; color: ${c.author}; }
+.back .author .bio { font-size: 8.5pt; line-height: 1.4; margin: 0; }
 .back .barcode { position: absolute; width: ${bc.widthIn}in; height: ${bc.heightIn}in; left: ${b + trim.widthIn - barcodeInset - bc.widthIn}in; top: ${b + trim.heightIn - barcodeInset - bc.heightIn}in; background: ${opts.showBarcodeBox === false ? 'transparent' : '#ffffff'}; }
 .spine { position: absolute; left: ${b + trim.widthIn}in; top: 0; width: ${size.spineIn}in; height: ${size.heightIn}in; background: ${c.band}; display: flex; align-items: center; justify-content: center; }
 .spine .st { writing-mode: vertical-rl; white-space: nowrap; font-family: '${f.title}'; font-weight: ${style.weights.title}; font-size: ${spineFont.toFixed(2)}pt; color: ${c.background}; letter-spacing: 0.04em; max-height: ${trim.heightIn - 2 * inset - 0.5}in; overflow: hidden; }
@@ -278,7 +347,7 @@ html, body { margin: 0; width: ${size.widthIn}in; height: ${size.heightIn}in; fo
 .frontpanel { position: absolute; left: ${b + trim.widthIn + size.spineIn}in; top: 0; width: ${trim.widthIn + b}in; height: ${size.heightIn}in; }
 ${frontCss(style, f)}
 </style></head><body><div class="wrap">
-<div class="back"><div class="text">${paras(opts.blurb)}${opts.shortBio ? `<div class="bio">${paras(opts.shortBio)}</div>` : ''}</div><div class="barcode"></div></div>
+<div class="back"><div class="text">${blurbHtml(opts.blurb)}</div><div class="author"><p class="name">${escapeHtml(meta.author)}</p>${opts.shortBio ? `<p class="bio">${escapeHtml(normalisePrintText(opts.shortBio.replace(/\s+/g, ' ').trim()))}</p>` : ''}</div><div class="barcode"></div></div>
 <div class="spine">${spineText ? `<div class="st">${escapeHtml(meta.title)}<span class="au">&#8195;${escapeHtml(meta.author)}</span></div>` : ''}</div>
 <div class="frontpanel">${frontHtml(meta, style, opts.background ? dataUrl(opts.background) : undefined)}</div>
 </div>${FIT_SCRIPT}</body></html>`);
@@ -353,7 +422,16 @@ export interface CoverTypography {
   /** Exact title top in cover-width percent (wins over titlePosition). */
   titleTopPct?: number;
   subtitleTopPct?: number;
-  align?: 'left' | 'center' | 'centre';
+  /** The whole front's alignment. Title, subtitle and author each follow it unless they have their own. */
+  align?: 'left' | 'center' | 'centre' | 'right';
+  titleAlign?: 'left' | 'center' | 'centre' | 'right';
+  subtitleAlign?: 'left' | 'center' | 'centre' | 'right';
+  authorAlign?: 'left' | 'center' | 'centre' | 'right';
+  /** Exact author line top in cover-width percent (0 to 150). Without it the author sits at the foot of the cover. */
+  authorTopPct?: number;
+  /** Subtitle and author size as a multiplier of the usual size (0.6 to 1.6). */
+  subtitleSize?: number;
+  authorSize?: number;
   /** small, medium or large (x0.8, x1, x1.2 of the style's size), or a size: a fraction of the cover width (0.05 to 0.3) or a percent (5 to 30). */
   titleSize?: 'small' | 'medium' | 'large' | number;
   /** Colours by role. `palette` and `colours` are the same thing. Hex only. */
@@ -369,6 +447,8 @@ const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const num = (v: unknown, min: number, max: number): number | undefined => (typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max ? v : undefined);
 
+const alignOf = (v: unknown): CoverAlign | undefined => (v === 'left' || v === 'right' ? v : v === 'center' || v === 'centre' ? 'center' : undefined);
+
 /** The cover style with the owner's typography applied (title position, palette, sizes, fonts, case). Pure. */
 export function applyCoverTypography(style: CoverStyle, typography: CoverTypography | Record<string, unknown> | null | undefined): CoverStyle {
   const t = isObj(typography) ? typography : {};
@@ -379,8 +459,22 @@ export function applyCoverTypography(style: CoverStyle, typography: CoverTypogra
   if (top !== undefined) out.titleTopPct = top;
   const subTop = num(t['subtitleTopPct'], 0, 150);
   if (subTop !== undefined) out.subtitleTopPct = subTop;
-  if (t['align'] === 'left') out.align = 'left';
-  else if (t['align'] === 'center' || t['align'] === 'centre') out.align = 'center';
+  const align = alignOf(t['align']);
+  if (align) out.align = align;
+  for (const [key, field] of [
+    ['titleAlign', 'titleAlign'],
+    ['subtitleAlign', 'subtitleAlign'],
+    ['authorAlign', 'authorAlign'],
+  ] as const) {
+    const a = alignOf(t[key]);
+    if (a) out[field] = a;
+  }
+  const authorTop = num(t['authorTopPct'], 0, 150);
+  if (authorTop !== undefined) out.authorTopPct = authorTop;
+  const subScale = num(t['subtitleSize'], 0.6, 1.6);
+  if (subScale !== undefined) out.subtitleScale = subScale;
+  const authorScale = num(t['authorSize'], 0.6, 1.6);
+  if (authorScale !== undefined) out.authorScale = authorScale;
   const size = t['titleSize'];
   if (size === 'small' || size === 'medium' || size === 'large') out.titleScale = style.titleScale * { small: 0.8, medium: 1, large: 1.2 }[size];
   else if (typeof size === 'number' && Number.isFinite(size)) {

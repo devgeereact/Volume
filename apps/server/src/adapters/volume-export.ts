@@ -145,9 +145,43 @@ function subtypeFor(kind: string): SectionSubtype {
   return SUBTYPES.has(kind) ? (kind as SectionSubtype) : 'other';
 }
 
+/**
+ * Research source markers ([[S1]], [[S2]][[S3]]) tie a sentence to a source while the book is written and checked.
+ * They never print: readers get the clean sentence, with no stray space left before the punctuation.
+ */
+export function stripSourceMarkers(md: string): string {
+  return md.replace(/[ \t]*(?:\[\[\s*S\d+\s*\]\][ \t]*)+/g, (m, offset: number, whole: string) => {
+    const next = whole[offset + m.length];
+    return next === undefined || next === '\n' || /[.,;:!?)\]"'\u2019\u201d]/.test(next) ? '' : ' ';
+  });
+}
+
+/**
+ * Light punctuation tidy for the printed text: one space between words, none before , ; : ! ? or a full stop, no
+ * trailing spaces. Table rows and code fences are left as written. Quotes are curled later by the print typography.
+ */
+export function tidyProse(md: string): string {
+  let fenced = false;
+  return md
+    .split('\n')
+    .map((line) => {
+      if (/^\s*```/.test(line)) fenced = !fenced;
+      if (fenced || /^\s*(```|\|)/.test(line)) return line;
+      const indent = /^[ \t]*/.exec(line)?.[0] ?? '';
+      const text = line
+        .slice(indent.length)
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/([\p{L}\p{N}"\u201d\u2019)\]]) +([,;:!?])(?=\s|$)/gu, '$1$2')
+        .replace(/([\p{L}\p{N}"\u201d\u2019)\]]) +\.(?=\s|$)/gu, '$1.')
+        .trimEnd();
+      return text ? indent + text : '';
+    })
+    .join('\n');
+}
+
 /** Drops a leading `# heading` (the exporter sets the heading) and turns any other H1 into a subheading. */
 function bodyLines(md: string): string[] {
-  const lines = md.replace(/\r\n?/g, '\n').split('\n');
+  const lines = tidyProse(stripSourceMarkers(md)).replace(/\r\n?/g, '\n').split('\n');
   let i = 0;
   while (i < lines.length && (lines[i] ?? '').trim() === '') i += 1;
   if ((lines[i] ?? '').startsWith('# ')) lines.splice(0, i + 1);

@@ -26,7 +26,8 @@ const areaOrder: PreflightItem["area"][] = ["Manuscript", "Listing", "Interior",
 export function Preflight({ rows, ticked, onTick, running, onRun, renderFix }: PreflightProps) {
   const counts = {
     pass: rows.filter((r) => r.result === "pass").length,
-    warn: rows.filter((r) => r.result === "warn").length,
+    warn: rows.filter((r) => r.result === "warn" && !ticked[r.id]).length,
+    checked: rows.filter((r) => r.result === "warn" && ticked[r.id]).length,
     block: rows.filter((r) => r.result === "block").length,
   };
   return (
@@ -36,7 +37,9 @@ export function Preflight({ rows, ticked, onTick, running, onRun, renderFix }: P
           Preflight
         </h2>
         <p className="num text-small text-ink-secondary" role="status">
-          {running ? "Checking" : `${counts.pass} passed, ${counts.warn} ${counts.warn === 1 ? "warning" : "warnings"}, ${counts.block} failed`}
+          {running
+            ? "Checking"
+            : `${counts.pass} passed, ${counts.warn} ${counts.warn === 1 ? "warning" : "warnings"}${counts.checked > 0 ? `, ${counts.checked} checked by you` : ""}, ${counts.block} failed`}
         </p>
         <Button size="sm" variant="ghost" icon={RotateCw} className="ml-auto" loading={running} loadingLabel="Checking" onClick={onRun}>
           Run again
@@ -57,7 +60,7 @@ export function Preflight({ rows, ticked, onTick, running, onRun, renderFix }: P
                     r.result === "block" && !r.checking && "bg-claim-wash",
                   )}
                 >
-                  <ResultChip row={r} />
+                  <ResultChip row={r} checked={Boolean(ticked[r.id])} />
                   <div className="min-w-0">
                     <p className="text-[14px] leading-5 font-semibold text-ink">{r.label}</p>
                     <p className="text-small text-ink-secondary">{r.detail}</p>
@@ -67,7 +70,14 @@ export function Preflight({ rows, ticked, onTick, running, onRun, renderFix }: P
                       </p>
                     )}
                     {r.result === "warn" && !r.checking && (
-                      <Checkbox className="mt-1" label="I have checked this" checked={Boolean(ticked[r.id])} onChange={(v) => onTick(r.id, v)} />
+                      <div className="mt-1">
+                        <Checkbox label="I have checked this" checked={Boolean(ticked[r.id])} onChange={(v) => onTick(r.id, v)} />
+                        <p className="text-caption text-ink-tertiary">
+                          {ticked[r.id]
+                            ? "Saved. You checked this and are happy to go ahead. Untick it to flag it again."
+                            : "Tick once you have read this and are happy to go ahead. Your tick is saved with the book."}
+                        </p>
+                      </div>
                     )}
                   </div>
                   {r.result !== "pass" && !r.checking && renderFix?.(r) ? (
@@ -92,7 +102,7 @@ export function Preflight({ rows, ticked, onTick, running, onRun, renderFix }: P
   );
 }
 
-function ResultChip({ row }: { row: PreflightRow }) {
+function ResultChip({ row, checked }: { row: PreflightRow; checked: boolean }) {
   const base = "inline-flex h-6 items-center gap-1 self-start justify-self-start rounded-pill px-2 text-caption font-semibold";
   if (row.checking)
     return (
@@ -106,6 +116,13 @@ function ResultChip({ row }: { row: PreflightRow }) {
       <span className={cn(base, "bg-success-wash text-success")}>
         <Check size={14} strokeWidth={2} aria-hidden />
         Pass
+      </span>
+    );
+  if (row.result === "warn" && checked)
+    return (
+      <span className={cn(base, "bg-success-wash text-success")}>
+        <Check size={14} strokeWidth={2} aria-hidden />
+        Checked
       </span>
     );
   if (row.result === "warn")

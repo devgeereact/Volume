@@ -46,6 +46,8 @@ export const CoverBriefSchema = z.object({
 const Hex = z.string().regex(/^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/);
 const Colours = z.record(z.string().max(32), Hex).refine((o) => Object.keys(o).length <= 12, { message: 'Too many colours.' });
 
+const Align = z.enum(['left', 'center', 'centre', 'right']);
+
 /** POST /books/:id/cover/choose { assetId, typography? }: the keys applyCoverTypography (packages/export) reads. */
 export const CoverTypographySchema = z
   .object({
@@ -57,7 +59,13 @@ export const CoverTypographySchema = z
     subtitleTopPct: z.number().finite().min(0).max(150).optional(),
     titleSize: z.union([z.enum(['small', 'medium', 'large']), z.number().finite().min(0).max(1000)]).optional(),
     sizePct: z.number().finite().min(1).max(1000).optional(),
-    align: z.enum(['left', 'center', 'centre']).optional(),
+    align: Align.optional(),
+    titleAlign: Align.optional(),
+    subtitleAlign: Align.optional(),
+    authorAlign: Align.optional(),
+    authorTopPct: z.number().finite().min(0).max(150).optional(),
+    subtitleSize: z.number().finite().min(0.6).max(1.6).optional(),
+    authorSize: z.number().finite().min(0.6).max(1.6).optional(),
     colours: Colours.optional(),
     palette: Colours.optional(),
     fonts: z

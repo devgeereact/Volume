@@ -124,6 +124,14 @@ export const TASKS = {
     output: O.MarkdownOutput,
     guardrails: 'full',
   }),
+  'writing.chapter-reference': def({
+    promptId: 'writing.chapter-reference',
+    group: 'writing',
+    kind: 'markdown',
+    input: I.ChapterWriteInput,
+    output: O.MarkdownOutput,
+    guardrails: 'full',
+  }),
   'writing.extend-section-fiction': def({
     promptId: 'writing.extend-section-fiction',
     group: 'writing',
@@ -351,6 +359,9 @@ export const TEMPLATE_TASKS: Readonly<Record<string, Readonly<Partial<Record<Tas
   workbook: {
     'blueprint.blueprint': 'blueprint.blueprint-workbook',
     'writing.chapter': 'writing.chapter-workbook',
+  },
+  reference: {
+    'writing.chapter': 'writing.chapter-reference',
   },
 };
 

@@ -26,6 +26,7 @@ import {
   type ApiJobDetail,
   type ApiArchiveItem,
   type ApiListPrices,
+  type ApiPreflightReport,
   type BlueprintCreateInput,
   type BlueprintPartKey,
   type BlueprintPatchInput,
@@ -991,6 +992,25 @@ export function usePreflight(bookId: string | undefined) {
     queryKey: queryKeys.book.preflight(bookId ?? ""),
     queryFn: ({ signal }) => productionApi.preflight(need(bookId, "Book id"), { signal }),
     enabled: !!bookId,
+  });
+}
+
+/** Saves the "I have checked this" tick on a preflight warning. The tick shows at once and rolls back if the save fails. */
+export function useAcknowledgePreflight(bookId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { itemId: string; on: boolean }) => productionApi.acknowledgePreflight(bookId, v),
+    onMutate: async (v) => {
+      const key = queryKeys.book.preflight(bookId);
+      await qc.cancelQueries({ queryKey: key });
+      const before = qc.getQueryData<ApiPreflightReport>(key);
+      if (before) qc.setQueryData(key, { ...before, items: before.items.map((i) => (i.id === v.itemId ? { ...i, acknowledged: v.on } : i)) });
+      return { before };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.before) qc.setQueryData(queryKeys.book.preflight(bookId), ctx.before);
+    },
+    onSuccess: (r) => qc.setQueryData(queryKeys.book.preflight(bookId), r),
   });
 }
 

@@ -49,7 +49,7 @@ export function fieldGroups(t: BookType): FieldGroup[] {
   if (t.templateFile === "workbook.json") out.push("exercises");
   if (t.templateFile === "journal.json") out.push("pages");
   if (t.templateFile === "poetry.json") out.push("poems");
-  if (t.templateFile === "nonfiction.json") out.push("takeaways");
+  if (t.templateFile === "nonfiction.json" || t.templateFile === "reference.json") out.push("takeaways");
   return out;
 }
 
@@ -68,7 +68,8 @@ export function isPictureBook(t: BookType | undefined): boolean {
 
 /** When automatic writing reaches each template (docs/01-product/PRODUCT-SPEC.md phases). Null means it works now. */
 export function writingArrives(t: BookType): string | null {
-  if (t.templateFile === "nonfiction.json" || t.templateFile === "fiction.json" || t.templateFile === "workbook.json") return null;
+  if (t.templateFile === "nonfiction.json" || t.templateFile === "fiction.json" || t.templateFile === "workbook.json" || t.templateFile === "reference.json")
+    return null;
   // Picture books (phase 7): the Writing step writes the story and paints every spread.
   if (t.templateFile === "picture-book.json") return null;
   return "a later phase";
@@ -195,7 +196,7 @@ export function applyType(d: Draft, t: BookType, p: AuthorProfile | undefined): 
     paper: t.interior === "colour" ? "white" : "cream",
     interiorTheme: own?.defaultInteriorTheme ?? t.defaultInteriorTheme,
     coverStyle: own?.defaultCoverStyle ?? t.defaultCoverStyle,
-    takeaways: t.templateFile === "nonfiction.json",
+    takeaways: t.templateFile === "nonfiction.json" || t.templateFile === "reference.json",
     ...splitPov(fiction && voice && p?.bookTypes.some((id) => getBookType(id)?.category === "fiction") ? voice.pov : fiction ? "Close third person" : ""),
     heat: voice?.heatLevel ?? (romanceTypes.has(t.id) ? "sweet" : "none"),
     inSeries: false,

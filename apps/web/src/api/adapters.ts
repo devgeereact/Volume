@@ -197,7 +197,7 @@ export function toStageId(book: Pick<ApiBook, "stage" | "status">): StageId {
   }
 }
 
-const TEMPLATE_IDS: readonly TemplateId[] = ["nonfiction", "fiction", "workbook", "picture-book", "cookbook", "journal", "poetry"];
+const TEMPLATE_IDS: readonly TemplateId[] = ["nonfiction", "fiction", "workbook", "reference", "picture-book", "cookbook", "journal", "poetry"];
 
 function toTemplateId(t: string): TemplateId {
   return TEMPLATE_IDS.find((x) => x === t) ?? "nonfiction";

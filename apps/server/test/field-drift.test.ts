@@ -79,3 +79,31 @@ describe('field drift in preflight', () => {
     expect(careReport.body.items.some((i) => i.id.includes('.field-drift.'))).toBe(false);
   });
 });
+
+describe('"I have checked this" on a preflight warning', () => {
+  it('saves the tick on the book, keeps it across reads, and drops it when the wording changes or it is unticked', async () => {
+    t = await testApp();
+    const tech = await bookWithChapter(t, 'ai-tech-howto');
+    expect((await t.call('POST', `/api/v1/sections/${tech.chapterId}/versions`, { bodyMd: TECH_TEXT })).status).toBe(201);
+    const url = `/api/v1/books/${tech.id}/preflight`;
+    type Item = { id: string; severity: string; acknowledged?: boolean };
+    const drift = async (): Promise<Item | undefined> => (await t!.call<{ items: Item[] }>('GET', url)).body.items.find((i) => i.id.includes('.field-drift.'));
+    const warning = await drift();
+    expect(warning?.acknowledged).toBeUndefined();
+
+    const ticked = await t.call<{ items: Item[] }>('PUT', `${url}/acknowledgements`, { itemId: warning?.id, on: true });
+    expect(ticked.status).toBe(200);
+    expect(ticked.body.items.find((i) => i.id === warning?.id)?.acknowledged).toBe(true);
+    expect((await drift())?.acknowledged).toBe(true);
+
+    // New wording is a new warning: the old tick no longer applies.
+    expect((await t.call('POST', `/api/v1/sections/${tech.chapterId}/versions`, { bodyMd: `${TECH_TEXT} The GP will also send a letter.` })).status).toBe(201);
+    expect((await drift())?.acknowledged).toBeUndefined();
+
+    const again = await t.call<{ items: Item[] }>('PUT', `${url}/acknowledgements`, { itemId: warning?.id, on: true });
+    expect(again.body.items.find((i) => i.id === warning?.id)?.acknowledged).toBe(true);
+    const off = await t.call<{ items: Item[] }>('PUT', `${url}/acknowledgements`, { itemId: warning?.id, on: false });
+    expect(off.body.items.find((i) => i.id === warning?.id)?.acknowledged).toBeUndefined();
+    expect((await t.call('PUT', `${url}/acknowledgements`, { itemId: 'nope.1', on: true })).status).toBe(404);
+  });
+});

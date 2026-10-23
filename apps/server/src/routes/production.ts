@@ -5,7 +5,7 @@ import type { RequestCtx } from '../auth/context.js';
 import { AppError, parse } from '../http/errors.js';
 import { bookWritingComplete, buildExportBook } from '../jobs/book-data.js';
 import { KeyedLock } from '../lib/keyed-lock.js';
-import { assertQualityGate, preflightReport } from '../jobs/quality-gate.js';
+import { assertQualityGate, preflightAcks, preflightReport } from '../jobs/quality-gate.js';
 import { EXPORT_KINDS } from '../ports/export.js';
 import { MARKETING_KINDS, MarketingPatchSchema } from '../repos/production.js';
 import { CoverBriefSchema, CoverTypographySchema } from './body-schemas.js';
@@ -140,6 +140,22 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
   // ---------- exports ----------
 
   app.get('/books/:id/preflight', async (req) => preflightReport(s, req.ctx, idOf(req)));
+
+  /** Ticks (on) or unticks (off) "I have checked this" for one warning. Only a warning in the current report can be ticked. */
+  app.put('/books/:id/preflight/acknowledgements', async (req) => {
+    writer(req);
+    const id = idOf(req);
+    const body = parse(z.object({ itemId: z.string().min(1).max(200), on: z.boolean() }).strict(), req.body);
+    const book = await s.repos.books.require(req.ctx, id);
+    const acks = preflightAcks(book);
+    if (body.on) {
+      const item = (await preflightReport(s, req.ctx, id)).items.find((i) => i.id === body.itemId && i.severity === 'warn');
+      if (!item) throw new AppError('not_found', 'That warning is no longer in the preflight. Run the checks again.');
+      acks[body.itemId] = item.message;
+    } else delete acks[body.itemId];
+    await s.repos.books.update(req.ctx, id, { settings: { ...book.settings, preflightAcks: acks } });
+    return preflightReport(s, req.ctx, id);
+  });
 
   app.post('/books/:id/exports', async (req, reply) => {
     writer(req);

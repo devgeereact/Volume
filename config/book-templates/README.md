@@ -7,6 +7,7 @@ Each file sets the default structure, word targets and rules for one kind of boo
 | `nonfiction.json` | Non-fiction, first person, narrative (default) or practical variant | 1 to 5 |
 | `fiction.json` | Novels and novellas: scene breaks, no subheadings, no takeaways, story bible | 6 |
 | `workbook.json` | Non-fiction with exercises, fill-in pages and notes pages | 6 |
+| `reference.json` | Reference guides: short orientation, then tables (Abbreviation, Meaning, Use or note), Quick Check, no exercises or bridge | 8 |
 | `picture-book.json` | Bedtime picture books: spreads, a new word, gentle conflict, nothing scary | 7 |
 | `cookbook.json` | Recipes grouped into chapters: headnote, serves, timings, metric ingredients, numbered method | 6 |
 | `journal.json` | Guided journals, planners and children's activity books: pages built from page kinds (low-content) | 6 |

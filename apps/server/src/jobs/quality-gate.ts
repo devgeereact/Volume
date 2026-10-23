@@ -30,7 +30,17 @@ export async function preflightReport(s: GateServices, ctx: RequestCtx, bookId: 
     });
     report.warnings += 1;
   }
+  // A warning the owner ticked stays listed but counts as checked, for as long as its wording is unchanged.
+  const acks = preflightAcks(await s.repos.books.require(ctx, bookId));
+  for (const i of report.items) if (i.severity === 'warn' && acks[i.id] === i.message) i.acknowledged = true;
   return { ...report, manuscriptHash: book.manuscriptHash };
+}
+
+/** Warnings the owner has ticked as checked: item id to the message they saw. Stored in the book settings. */
+export function preflightAcks(book: { settings: Record<string, unknown> }): Record<string, string> {
+  const raw = book.settings['preflightAcks'];
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
+  return Object.fromEntries(Object.entries(raw).filter((e): e is [string, string] => typeof e[1] === 'string'));
 }
 
 /** Result of the Volume mode quality gate for one book (P8-2). */

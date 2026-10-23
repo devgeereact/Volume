@@ -6,22 +6,22 @@ import { columnFor } from "./bookStatus";
 import { PipelineView } from "./PipelineView";
 
 describe("Library cover view", () => {
-  it("folds a long stage to three books with a Show all button, so the page does not grow with every book", () => {
+  it("folds a long lane to six books with a Show all button, so the page does not grow with every book", () => {
     const editing = books.find((b) => columnFor(b) === "editing");
     if (!editing) throw new Error("The demo needs a book in editing.");
-    const many = Array.from({ length: 5 }, (_, i) => ({ ...editing, id: `${editing.id}-${i}`, title: `Book ${i}` }));
+    const many = Array.from({ length: 8 }, (_, i) => ({ ...editing, id: `${editing.id}-${i}`, title: `Book ${i}` }));
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <PipelineView books={many} live={null} />
       </MemoryRouter>,
     );
-    expect(html).toContain("Show all 5");
+    expect(html).toContain("Show all 8");
     expect(html.match(/hidden sm:block xl:hidden/g)).toHaveLength(2);
     // The row between phone and wide screens scrolls sideways instead of wrapping.
     expect(html).toContain("sm:overflow-x-auto");
   });
 
-  it("shows no Show all button when a stage has three books or fewer", () => {
+  it("shows no Show all button when a lane has six books or fewer", () => {
     const editing = books.filter((b) => columnFor(b) === "editing").slice(0, 3);
     const html = renderToStaticMarkup(
       <MemoryRouter>
@@ -30,5 +30,20 @@ describe("Library cover view", () => {
     );
     expect(html).not.toContain("Show all");
     expect(html).not.toContain("hidden sm:block xl:hidden");
+  });
+
+  it("groups books into In progress, Ready to publish and Published, and shows how far along each unfinished book is", () => {
+    const editing = books.find((b) => columnFor(b) === "editing");
+    if (!editing) throw new Error("The demo needs a book in editing.");
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <PipelineView books={[editing]} live={null} />
+      </MemoryRouter>,
+    );
+    expect(html).toContain("In progress");
+    expect(html).toContain("Ready to publish");
+    expect(html).toContain("Published");
+    expect(html).toContain("Step 5 of 8, Editing");
+    expect(html).toContain("No book is waiting to be published.");
   });
 });

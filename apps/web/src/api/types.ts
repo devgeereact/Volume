@@ -1229,6 +1229,8 @@ export interface ApiPreflightItem {
   severity: ApiPreflightSeverity;
   message: string;
   fix?: PreflightFix;
+  /** The owner ticked "I have checked this"; saved on the book. */
+  acknowledged?: boolean;
 }
 
 /** How to fix a preflight item: a screen to open (with an anchor), or an action to run here. */

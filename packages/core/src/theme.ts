@@ -414,11 +414,17 @@ export function numberToWords(n: number): string {
 
 export type CoverLayout = 'stacked' | 'band' | 'frame' | 'split' | 'minimal';
 
+export type CoverAlign = 'left' | 'center' | 'right';
+
 export interface CoverStyle {
   id: string;
   name: string;
   layout: CoverLayout;
-  align: 'left' | 'center';
+  align: CoverAlign;
+  /** Per-element alignment set in the cover studio. Each falls back to `align` when missing. */
+  titleAlign?: CoverAlign;
+  subtitleAlign?: CoverAlign;
+  authorAlign?: CoverAlign;
   fonts: { title: string; subtitle: string; author: string };
   weights: { title: number; subtitle: number; author: number };
   titleItalic: boolean;
@@ -429,6 +435,11 @@ export interface CoverStyle {
   /** Optional positions in cover-width percent from the top (cover-styles.json units). */
   titleTopPct?: number;
   subtitleTopPct?: number;
+  /** Author line top in cover-width percent; when missing the author sits at the foot of the cover. */
+  authorTopPct?: number;
+  /** Size multipliers for the subtitle and author lines (0.6 to 1.6; missing means 1). */
+  subtitleScale?: number;
+  authorScale?: number;
   band?: { topPct: number; heightPct: number };
   titleUppercase: boolean;
   authorUppercase: boolean;
@@ -481,7 +492,7 @@ export function normaliseCoverStyle(raw: unknown, base: CoverStyle = DEFAULT_COV
   }
   if (asBool(pick(layoutRaw, 'frame')) === true) c.layout = 'frame';
   const align = asStr(pick(layoutRaw, 'align', 'alignment')) ?? asStr(pick(raw, 'align'));
-  if (align) c.align = /left/i.test(align) ? 'left' : 'center';
+  if (align) c.align = /left/i.test(align) ? 'left' : /right/i.test(align) ? 'right' : 'center';
   const titleTop = asNum(pick(layoutRaw, 'titleTop'));
   if (titleTop !== undefined) c.titleTopPct = titleTop;
   const subTop = asNum(pick(layoutRaw, 'subtitleTop'));

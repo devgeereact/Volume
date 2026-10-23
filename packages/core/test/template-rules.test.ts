@@ -100,3 +100,17 @@ describe('checkBookTemplateRules', () => {
     expect(checkBookTemplateRules(book, nonfiction)).toEqual([]);
   });
 });
+
+describe('reference template', () => {
+  it('allows tables and takeaways in a chapter and flags nothing', () => {
+    const reference = templateRulesFromTemplate(loadBookTemplate('reference'));
+    const tpl = loadBookTemplate('reference') as { chapterRules: { tablesAllowed: boolean; listsInProse: boolean; takeaways: { heading: string } } };
+    expect(tpl.chapterRules.tablesAllowed).toBe(true);
+    expect(tpl.chapterRules.listsInProse).toBe(true);
+    expect(tpl.chapterRules.takeaways.heading).toBe('Quick Check');
+    const book = parseManuscript(
+      '# Chapter 1: One\n\n## Terms\n\n| Abbreviation | Meaning | Use or note |\n| --- | --- | --- |\n| BP | Blood pressure | Record with the unit. |\n',
+    );
+    expect(checkBookTemplateRules(book, reference)).toEqual([]);
+  });
+});

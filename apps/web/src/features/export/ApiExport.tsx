@@ -20,7 +20,7 @@ import {
 import type { Book, PreflightItem } from "../../demo";
 import { assetsApi } from "../../api/assets";
 import { sizeLabel, toPreflightItem } from "../../api/adapters";
-import { useCover, useExports, usePreflight, useStartExports } from "../../api/hooks";
+import { useAcknowledgePreflight, useCover, useExports, usePreflight, useStartExports } from "../../api/hooks";
 import { productionApi } from "../../api/production";
 import type { ApiBookDetail, ApiExportRecord, ApiPreflightItem } from "../../api/types";
 import { errorText, jobStatusText, useJobWatch } from "../../api/wire-c";
@@ -79,7 +79,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   const coverQ = useCover(bookId);
   const start = useStartExports();
   const [pricing, setPricing] = useState(false);
-  const [ticked, setTicked] = useState<Record<string, boolean>>({});
+  const acknowledge = useAcknowledgePreflight(bookId);
   const [confirm, setConfirm] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -126,6 +126,8 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   const coverBlocks = items.filter((i) => i.result === "block" && i.id.startsWith("cover."));
   const blocks = items.filter((i) => i.result === "block" && !i.id.startsWith("cover."));
   const warns = items.filter((i) => i.result === "warn");
+  // Ticks are saved on the book (the server answers each item with acknowledged), not held in this page.
+  const ticked = Object.fromEntries((preflightQ.data?.items ?? []).map((i) => [i.id, i.acknowledged === true]));
   const unticked = warns.filter((w) => !ticked[w.id]);
 
   const latest = useMemo(() => {
@@ -299,7 +301,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
             <Preflight
               rows={rows}
               ticked={ticked}
-              onTick={(id, on) => setTicked((t) => ({ ...t, [id]: on }))}
+              onTick={(id, on) => acknowledge.mutate({ itemId: id, on })}
               running={preflightQ.isFetching}
               onRun={() => void preflightQ.refetch()}
               renderFix={(r) => {

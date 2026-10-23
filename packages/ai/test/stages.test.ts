@@ -26,8 +26,8 @@ function run(s: AiService, task: TaskId, input: unknown = FULL_INPUT, opts = {})
 }
 
 describe('stage runners with the mock provider', () => {
-  it('covers all 38 tasks', () => {
-    expect(TASK_IDS).toHaveLength(38);
+  it('covers all 39 tasks', () => {
+    expect(TASK_IDS).toHaveLength(39);
   });
 
   for (const task of TASK_IDS) {
@@ -164,7 +164,7 @@ describe('stage runners with the mock provider', () => {
       previousSummaries: Array.from({ length: 6 }, (_, i) => ({ number: i + 1, title: `C${i + 1}`, summary: bigSummary })),
     };
     const slug = '~anthropic/claude-sonnet-latest';
-    const s1 = service({ models: [mockModelInfo(slug, { contextLength: 9500 })] });
+    const s1 = service({ models: [mockModelInfo(slug, { contextLength: 10500 })] });
     await s1.listModels();
     const r = await run(s1, 'writing.chapter', input);
     expect(r.notes.join(' ')).toContain('older chapter summaries shortened');

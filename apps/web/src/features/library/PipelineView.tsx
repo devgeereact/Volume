@@ -6,10 +6,11 @@ import { libraryColumns, stageLabels } from "../../demo/books";
 import { getPenName } from "../../demo/penNames";
 import type { Book, PenName } from "../../demo/types";
 import { cn } from "../../lib/cn";
-import { columnFor, splitLeadingFigure } from "./bookStatus";
+import { columnFor, columnIndex, splitLeadingFigure } from "./bookStatus";
 import { libraryCover } from "./draftCover";
 import { BookStatusActions } from "../published/BookStatusActions";
 import { canMarkPublished } from "../published/publishDate";
+import { useLibraryMotion } from "./libraryMotion";
 
 interface PipelineViewProps {
   books: Book[];
@@ -21,10 +22,57 @@ interface PipelineViewProps {
   statusActions?: boolean | undefined;
 }
 
-/** Published books shown in the column before the link to the Published shelf. */
-const PUBLISHED_SHOWN = 2;
-/** Books a stage shows on phones and in the wide columns until the owner asks for the rest (owner, 21 October 2026). */
-const STAGE_SHOWN = 3;
+/** Published books shown in the lane before the link to the Published shelf. */
+const PUBLISHED_SHOWN = 6;
+/** Books a lane shows on phones and in the wide grid until the owner asks for the rest (owner, 21 October 2026). */
+const LANE_SHOWN = 6;
+
+/**
+ * The board's three lanes (owner, 23 October 2026: with most books finished, eight stage columns piled everything at the
+ * Export and Published end). A lane groups stages by what the owner has to do: keep making it, publish it, or nothing.
+ */
+const LANES = [
+  {
+    id: "making",
+    title: "In progress",
+    hint: "Still being researched, planned, written or finished.",
+    empty: "Nothing is being made right now.",
+    stages: ["idea", "research", "blueprint", "writing", "editing", "cover"],
+  },
+  {
+    id: "ready",
+    title: "Ready to publish",
+    hint: "Written and covered. Build the pack, then mark it published.",
+    empty: "No book is waiting to be published.",
+    stages: ["export"],
+  },
+  { id: "published", title: "Published", hint: "Live on the shelf.", empty: "Nothing published yet.", stages: ["published"] },
+] as const;
+
+/** Eight small bars, one per stage; every stage up to the book's own is filled. */
+function StageMeter({ book, live }: { book: Book; live: boolean }) {
+  const at = columnIndex(book);
+  const label = `Step ${at + 1} of ${libraryColumns.length}, ${stageLabels[columnFor(book)]}`;
+  return (
+    <span className="mt-2 block" role="img" aria-label={label}>
+      <span aria-hidden className="flex gap-0.5">
+        {libraryColumns.map((stage, i) => (
+          <span key={stage} className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-sunken">
+            {i <= at && (
+              <span
+                data-step-fill
+                className={cn("block h-full origin-left rounded-full", i === at && live ? "bg-accent" : i === at ? "bg-accent-text" : "bg-ink-secondary")}
+              />
+            )}
+          </span>
+        ))}
+      </span>
+      <span aria-hidden className="mt-1 block text-[12px] leading-4 text-ink-tertiary">
+        Step <b className="num font-semibold text-ink-secondary">{at + 1}</b> of {libraryColumns.length}: {stageLabels[columnFor(book)]}
+      </span>
+    </span>
+  );
+}
 
 function BookCard({
   book,
@@ -32,19 +80,22 @@ function BookCard({
   penName,
   statusActions,
   folded = false,
+  meter = false,
 }: {
   book: Book;
   live: "running" | "paused" | null;
   penName: (id: string) => PenName | undefined;
   statusActions: boolean;
-  /** Past the first few of a folded stage: hidden on phones and in the wide columns, kept in the scrolling row. */
+  /** Past the first few of a folded lane: hidden on phones and in the wide grid, kept in the scrolling row. */
   folded?: boolean;
+  /** Show the eight-step meter under the status (books still being made or waiting to publish). */
+  meter?: boolean;
 }) {
   const pen = penName(book.penNameId);
   const status = splitLeadingFigure(book.statusLine);
   const { design, draft, image } = libraryCover(book);
   return (
-    <li className={cn("sm:w-33 sm:shrink-0 sm:snap-start xl:w-auto", folded && "hidden sm:block xl:hidden")}>
+    <li data-lib-card className={cn("sm:w-33 sm:shrink-0 sm:snap-start xl:w-auto", folded && "hidden sm:block xl:hidden")}>
       <Link
         to={`/books/${book.id}`}
         className="group grid grid-cols-[64px_minmax(0,1fr)] items-start gap-x-3.5 rounded-sm outline-offset-4 sm:block"
@@ -84,6 +135,7 @@ function BookCard({
           {(draft || book.coverImage?.final === false) && (
             <span className="mt-0.5 block text-[12.5px] leading-4 text-ink-tertiary">{draft ? "Draft cover" : "Cover concept, not built yet"}</span>
           )}
+          {meter && <StageMeter book={book} live={live === "running"} />}
         </span>
       </Link>
       {statusActions && (
@@ -131,7 +183,7 @@ function Shelf({ label, children }: { label: string; children: ReactNode }) {
         ref={ref}
         onScroll={measure}
         className={cn(
-          "grid grid-cols-1 gap-4 sm:-mx-1 sm:flex sm:snap-x sm:gap-4 sm:overflow-x-auto sm:overflow-y-hidden sm:overscroll-x-contain sm:px-1 sm:pt-1 sm:pb-3 xl:mx-0 xl:grid xl:grid-cols-1 xl:gap-y-6 xl:overflow-visible xl:px-0 xl:pt-0 xl:pb-0 xl:mask-none",
+          "grid grid-cols-1 gap-4 sm:-mx-1 sm:flex sm:snap-x sm:gap-4 sm:overflow-x-auto sm:overflow-y-hidden sm:overscroll-x-contain sm:px-1 sm:pt-1 sm:pb-3 xl:mx-0 xl:grid xl:grid-cols-6 xl:gap-x-5 xl:gap-y-8 xl:overflow-visible xl:px-0 xl:pt-0 xl:pb-0 xl:mask-none",
           fade,
         )}
       >
@@ -168,61 +220,68 @@ function ShelfButton({ label, hidden, onClick, children }: { label: string; hidd
 }
 
 /**
- * Cover view: books along the pipeline in eight columns (Idea to Published), each headed by the stage
- * and its count, so the columns are the stage filter. The column with live work gets a gilt underline.
- * Published keeps its two newest books here and links to the Published shelf for the rest, so no
- * column runs far below the others. Under 1280 px each stage is one row of covers that scrolls sideways, so the page
- * does not grow with every new book; on phones and in the wide columns a stage shows its first three books and a
- * Show all button.
+ * Cover view: three lanes, In progress, Ready to publish and Published, each headed by its count and what it means.
+ * A book in progress shows an eight-step meter so the owner sees at a glance how far along it is and which step is
+ * next; the furthest-along books come first. The lane with live work gets a gilt underline. Published keeps its newest
+ * books here and links to the Published shelf for the rest. Under 1280 px each lane is one row of covers that scrolls
+ * sideways, so the page does not grow with every new book; on phones and in the wide grid a lane shows its first six
+ * books and a Show all button.
  */
 export function PipelineView({ books, live, penName = getPenName, statusActions = false }: PipelineViewProps) {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
-  const toggle = (stage: string) =>
+  const toggle = (lane: string) =>
     setOpen((was) => {
       const next = new Set(was);
-      if (next.has(stage)) next.delete(stage);
-      else next.add(stage);
+      if (next.has(lane)) next.delete(lane);
+      else next.add(lane);
       return next;
     });
+  const root = useRef<HTMLDivElement>(null);
+  useLibraryMotion(root, books.map((b) => b.id).join(","));
   return (
-    <div className="grid grid-cols-1 gap-8 xl:grid-cols-8 xl:gap-4">
-      {libraryColumns.map((stage) => {
-        let inColumn = books.filter((b) => columnFor(b) === stage);
-        const total = inColumn.length;
-        if (stage === "published")
-          inColumn = [...inColumn].sort((a, b) => (b.published?.publishedOn ?? b.updatedAt).localeCompare(a.published?.publishedOn ?? a.updatedAt));
-        const hidden = stage === "published" ? Math.max(0, total - PUBLISHED_SHOWN) : 0;
-        const visible = hidden > 0 ? inColumn.slice(0, PUBLISHED_SHOWN) : inColumn;
-        const hasLive = Boolean(live?.running && inColumn.some((b) => b.id === live.bookId));
-        const headingId = `pipe-${stage}`;
-        const foldable = stage !== "published" && total > STAGE_SHOWN;
-        const unfolded = open.has(stage);
+    <div ref={root} className="grid grid-cols-1 gap-10">
+      {LANES.map((lane) => {
+        const stages: readonly string[] = lane.stages;
+        let inLane = books.filter((b) => stages.includes(columnFor(b)));
+        const total = inLane.length;
+        if (lane.id === "published")
+          inLane = [...inLane].sort((a, b) => (b.published?.publishedOn ?? b.updatedAt).localeCompare(a.published?.publishedOn ?? a.updatedAt));
+        else inLane = [...inLane].sort((a, b) => columnIndex(b) - columnIndex(a) || b.updatedAt.localeCompare(a.updatedAt));
+        const hidden = lane.id === "published" ? Math.max(0, total - PUBLISHED_SHOWN) : 0;
+        const visible = hidden > 0 ? inLane.slice(0, PUBLISHED_SHOWN) : inLane;
+        const hasLive = Boolean(live?.running && inLane.some((b) => b.id === live.bookId));
+        const headingId = `lane-${lane.id}`;
+        const foldable = lane.id !== "published" && total > LANE_SHOWN;
+        const unfolded = open.has(lane.id);
         return (
-          <section key={stage} aria-labelledby={headingId} className={cn(total === 0 && "hidden xl:block")}>
-            <h2
-              id={headingId}
+          <section key={lane.id} aria-labelledby={headingId}>
+            <div
               className={cn(
-                "mb-3.5 flex items-center justify-between border-b text-[13.5px] leading-none font-semibold",
-                hasLive ? "border-b-2 border-accent pb-2.25 text-ink" : "border-border-strong pb-2.5 text-ink-secondary",
+                "mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b",
+                hasLive ? "border-b-2 border-accent pb-2.25" : "border-border-strong pb-2.5",
               )}
             >
-              {stageLabels[stage]}
-              <em className="num font-medium text-ink-tertiary not-italic">
-                {total}
-                <span className="sr-only"> {total === 1 ? "book" : "books"}</span>
-              </em>
-            </h2>
+              <h2 id={headingId} className="flex items-baseline gap-2.5 text-[15px] leading-none font-semibold text-ink">
+                {lane.title}
+                <em className="num rounded-full bg-sunken px-2 py-0.5 text-[12.5px] font-medium text-ink-secondary not-italic">
+                  {total}
+                  <span className="sr-only"> {total === 1 ? "book" : "books"}</span>
+                </em>
+              </h2>
+              <p className="text-small text-ink-tertiary">{lane.hint}</p>
+            </div>
             {total === 0 ? (
-              <p className="text-small text-ink-tertiary">None here</p>
+              <p className="text-small text-ink-tertiary">{lane.empty}</p>
             ) : (
-              <Shelf label={stageLabels[stage]}>
+              <Shelf label={lane.title}>
                 {visible.map((b, i) => (
                   <BookCard
                     key={b.id}
                     book={b}
                     penName={penName}
                     statusActions={statusActions}
-                    folded={foldable && !unfolded && i >= STAGE_SHOWN}
+                    meter={lane.id !== "published"}
+                    folded={foldable && !unfolded && i >= LANE_SHOWN}
                     live={live && live.bookId === b.id ? (live.running ? "running" : "paused") : null}
                   />
                 ))}
@@ -232,7 +291,7 @@ export function PipelineView({ books, live, penName = getPenName, statusActions 
               <button
                 type="button"
                 aria-expanded={unfolded}
-                onClick={() => toggle(stage)}
+                onClick={() => toggle(lane.id)}
                 className="hit-44 relative mt-4 inline-block rounded-xs text-small font-semibold text-select underline underline-offset-2 sm:hidden xl:inline-block"
               >
                 {unfolded ? "Show fewer" : `Show all ${total}`}
