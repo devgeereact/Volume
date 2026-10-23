@@ -10,6 +10,7 @@ User-visible changes, newest first. Dates in British format.
 - Cover studio: a Design picker (all 17 cover styles, each with its own palettes) and a Title font picker, so books by the same author no longer have to look alike. Both are saved and used by the build.
 
 #### Changed
+- The app asks the server less often: the shelf refresh runs every 60 seconds when no job is running (20 seconds when one is), and the Cover studio loads its main preview before the concept cards, so the server renders one page at a time.
 - Covers over art keep the art untouched. There is no gradient overlay: the title, subtitle and author use whichever of the palette's colours reads best on the art behind them, with a light scrim only when no palette colour reads. Preview and build choose the same way, and the eBook JPEG is saved at quality 95.
 - Title size now ranges from 60 to 180 percent and a larger title wraps onto more lines (preview and build) instead of stopping at the width of its longest line.
 
