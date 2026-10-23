@@ -100,7 +100,19 @@ export function CoverFrame({
           sandbox="allow-scripts"
           tabIndex={-1}
           aria-hidden
-          style={{ width: widthPx, height: heightPx, border: 0, transform: `scale(${scale})`, transformOrigin: "0 0", pointerEvents: "none", display: "block" }}
+          // Out of flow: a scaled iframe still takes its full layout size, which would stretch a fill-width frame to the
+          // page's natural width and lock the scale at 1.
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: widthPx,
+            height: heightPx,
+            border: 0,
+            transform: `scale(${scale})`,
+            transformOrigin: "0 0",
+            pointerEvents: "none",
+          }}
         />
       )}
       {children && <div className="absolute inset-0">{children}</div>}

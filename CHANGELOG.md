@@ -14,6 +14,7 @@ User-visible changes, newest first. Dates in British format.
 - Title size now ranges from 60 to 180 percent and a larger title wraps onto more lines (preview and build) instead of stopping at the width of its longest line.
 
 #### Fixed
+- Cover studio: the cover cards and the paperback wrap preview drew at the page's full size (1600 px wide) and pushed the page sideways. The preview now always scales to the space it has.
 - On built covers the subtitle no longer runs into a title that wraps onto three or more lines: it moves just below the title.
 - Cover previews now agree. The paperback wrap preview draws the front over the chosen art (it showed a flat colour and motif), lays the back out as the build does (blurb sized by length, paragraphs apart, author name under a rule at the foot), and the studio says when the title, style, type settings or art changed after the covers were built.
 - The footer job bar no longer shows a plain "Job" stuck at 10% while Fix the whole book works. Claim fixes are named ("Fixing a claim"), report real steps (asking the editor, checking the options) and every other job kind has a name.
