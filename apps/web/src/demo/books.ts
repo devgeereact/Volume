@@ -455,6 +455,12 @@ export function stepState(book: Book, step: BookStepId, runningBookId: string | 
     return book.writingComplete ? "in-progress" : "not-started";
   }
   const stepIdx = stageOrder.indexOf(stepStage[step]);
+  // The stage only moves forward (a cover concept can move it to Cover while chapters are still being written), so
+  // Writing and Editor are not done until the writing really is.
+  if (book.stage !== "published" && !book.writingComplete && stepIdx < bookIdx && (step === "writing" || step === "editor")) {
+    if (step === "editor") return "not-started";
+    return runningBookId === book.id ? "running" : "in-progress";
+  }
   if (book.stage === "published" || stepIdx < bookIdx) return "done";
   if (stepIdx === bookIdx) return runningBookId === book.id && step === "writing" ? "running" : "in-progress";
   return "not-started";
