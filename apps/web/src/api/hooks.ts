@@ -1007,7 +1007,9 @@ export function usePreflight(bookId: string | undefined) {
 /** Saves the "I have checked this" tick on a preflight warning. The tick shows at once and rolls back if the save fails. */
 export function useAcknowledgePreflight(bookId: string) {
   const qc = useQueryClient();
+  const mutationKey = ["preflight-ack", bookId] as const;
   return useMutation({
+    mutationKey,
     mutationFn: (v: { itemId: string; on: boolean }) => productionApi.acknowledgePreflight(bookId, v),
     onMutate: async (v) => {
       const key = queryKeys.book.preflight(bookId);
@@ -1019,7 +1021,11 @@ export function useAcknowledgePreflight(bookId: string) {
     onError: (_e, _v, ctx) => {
       if (ctx?.before) qc.setQueryData(queryKeys.book.preflight(bookId), ctx.before);
     },
-    onSuccess: (r) => qc.setQueryData(queryKeys.book.preflight(bookId), r),
+    // Answers can arrive out of order when several boxes are ticked quickly, so the page takes the server's report only
+    // once the last tick has settled, and shows the ticks it already knows about until then.
+    onSettled: () => {
+      if (qc.isMutating({ mutationKey }) <= 1) void qc.invalidateQueries({ queryKey: queryKeys.book.preflight(bookId) });
+    },
   });
 }
 
