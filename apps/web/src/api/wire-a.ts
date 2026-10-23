@@ -320,6 +320,16 @@ export const JOB_LABELS: Record<string, string> = {
   cover_build: "Building the cover",
   marketing: "Marketing",
   export_pack: "Export pack",
+  listing: "Listing and back-cover blurb",
+  rewrite_selection: "Rewriting a passage",
+  claim_fix: "Fixing a claim",
+  batch_run: "Batch run",
+  batch_book: "Batch book",
+  picture_book: "Picture book",
+  picture_story: "Picture book story",
+  picture_characters: "Picture book characters",
+  spread_image: "Picture book illustration",
+  picture_export: "Picture book export",
 };
 
 /** The book step that shows a job of this kind. */

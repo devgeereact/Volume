@@ -21,7 +21,7 @@ export const claimFixHandler: JobHandler = async (jc) => {
   const at = locateSentence(current.bodyMd, claim.sentence, claimHint(claim, current.id));
   if (at === null) throw new JobFailed('The sentence is not in the current text any more. Open the section to check it.', 'conflict');
   const variables = await claimFixVariables(repos, jc.ctx, claim, current.bodyMd, at, str(jc.payload['instruction']));
-  await jc.progress(0.1, 'Finding fixes');
+  await jc.progress(0.3, 'Asking the editor for fixes');
   const res = await jc.runAi('claim_fix', { promptId: 'editing.claim-fix', variables, projectId: claim.projectId });
   const sources = variables['sources'] as { title: string | null; excerpt: string | null }[];
   const { kept, dropped } = vetOptions(
@@ -31,6 +31,7 @@ export const claimFixHandler: JobHandler = async (jc) => {
     houseStyle(jc.services.configDir),
     variables['claim'] as { previousSentence: string | null; nextSentence: string | null },
   );
+  await jc.progress(0.85, 'Checking the options against the facts');
   if (kept.length === 0) throw new JobFailed('The model gave no fix that keeps to the facts. Try again or reword the instruction.', 'invalid_output');
   return {
     result: {
