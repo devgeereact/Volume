@@ -2,6 +2,17 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 24 October 2026
+
+#### Fixed
+- The micro sign in "µg" no longer blocks the upload pack. The body font Atkinson Hyperlegible Next lacks it, so the PDF carried a Type 3 system font and preflight refused the pack; it now prints as the Greek mu from the maths fallback.
+
+#### Changed
+- Deploy installs host packages with a one-thread pool, so a busy host account no longer aborts `npm ci`.
+- Quick ticks on preflight warnings no longer overwrite each other.
+- Claims for sentences that a rewrite removed are retired automatically, with a "Clear these N" button for older ones.
+- Chapters, introductions and conclusions no longer open on a clock time, and openings vary from chapter to chapter.
+
 ## 23 October 2026
 
 #### Added

@@ -40,6 +40,10 @@ describe('normalisePrintText', () => {
     expect(normalisePrintText('Done ✅ and ☀ sunny ❤ ⭐')).toBe('Done [x] and sunny');
   });
 
+  it('turns the micro sign into the Greek mu that the maths fallback covers', () => {
+    expect(normalisePrintText('Use mcg, not µg, for 50 µg doses.')).toBe('Use mcg, not μg, for 50 μg doses.');
+  });
+
   it('leaves smart quotes, the pound sign and ordinary text alone', () => {
     const s = '‘Single’ and “double” quotes cost £5… that’s fine.';
     expect(normalisePrintText(s)).toBe(s);
@@ -86,7 +90,10 @@ describe('print PDF with arrows, ticks, smart quotes and maths', () => {
     if (!ch) throw new Error('no chapter');
     ch.blocks.push(
       { type: 'heading2', text: 'Idea → plan → launch' },
-      { type: 'paragraph', text: '‘Start small,’ she said. “Spend ≤ £10 a month, ≥ 2 hours a week, ≈ 5% of income.” Costs ↑, stress ↓ ⇒ progress.' },
+      {
+        type: 'paragraph',
+        text: 'Write micrograms or mcg, not µg. ‘Start small,’ she said. “Spend ≤ £10 a month, ≥ 2 hours a week, ≈ 5% of income.” Costs ↑, stress ↓ ⇒ progress.',
+      },
       { type: 'list', ordered: false, items: ['✓ Budget set', '✔ Account open', '✗ No receipts yet', '☐ Ask a friend', '★★★ rating', 'Launch 🚀'] },
     );
     return book;
