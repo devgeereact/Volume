@@ -193,4 +193,47 @@ describe('cover preview page', () => {
       await ctx.close();
     }
   });
+
+  // Over real art, after owner edits: what the studio shows is what the build writes, pixel for pixel (JPEG noise aside).
+  it.each([
+    ['the style as it is', {}],
+    ['a bigger title in another font and palette', { titleSize: 0.28, titlePosition: 'bottom', fonts: { title: 'Lora' } }],
+    ['a centred title at an exact position', { titleAlign: 'center', titleTopPct: 30, titleSize: 0.16 }],
+  ])('draws the same picture as the build: %s', async (_name, typography) => {
+    const art = await sharp({ create: { width: 800, height: 1280, channels: 3, background: '#1d4f5e' } })
+      .composite([
+        {
+          input: await sharp(
+            Buffer.from(
+              `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1280"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8d9a8"/><stop offset="0.6" stop-color="#2a6f7f"/><stop offset="1" stop-color="#0d2a36"/></linearGradient></defs><rect width="800" height="1280" fill="url(#g)"/><circle cx="560" cy="880" r="150" fill="#f08a6a"/></svg>`,
+            ),
+          )
+            .png()
+            .toBuffer(),
+        },
+      ])
+      .jpeg({ quality: 90 })
+      .toBuffer();
+    const meta = { ...loadMiniBook().meta, title: 'Steady On Your Feet', subtitle: 'Build confidence, set boundaries and complete preceptorship' };
+    const style = applyCoverTypography(DEFAULT_COVER_STYLE, typography);
+    const o = { browser: browser3, rules: loadKdpRules(), background: art };
+    const preview = await exportEbookCover(meta, style, { ...o, htmlOnly: true });
+    const built = await exportEbookCover(meta, style, o);
+
+    const ctx = await browser3.newContext({ viewport: { width: 1600, height: 2560 }, deviceScaleFactor: 1 });
+    try {
+      const page = await ctx.newPage();
+      await page.route('http://cover.test/', (r) => r.fulfill({ body: preview.html ?? '', contentType: 'text/html' }));
+      await page.goto('http://cover.test/', { waitUntil: 'load' });
+      await page.waitForFunction('window.__coverReady === true');
+      const shot = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1600, height: 2560 } });
+      const raw = async (b: Buffer): Promise<Buffer> => sharp(b).removeAlpha().resize(400, 640).raw().toBuffer();
+      const [a, b] = await Promise.all([raw(shot), raw(built.jpeg)]);
+      let sum = 0;
+      for (let i = 0; i < a.length; i++) sum += Math.abs((a[i] ?? 0) - (b[i] ?? 0));
+      expect(sum / a.length).toBeLessThan(2);
+    } finally {
+      await ctx.close();
+    }
+  });
 });
