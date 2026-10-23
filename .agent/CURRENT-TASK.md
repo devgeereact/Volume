@@ -3,7 +3,7 @@
 ## State on 24 October 2026 (late)
 
 - Main is `0eb6694` (PRs #55 to #58 merged). Whether PR #58 is deployed is not confirmed: check the host release name. Owner decisions open: confirm the second book (Steady On Your Feet or Life Lessons as a Nurse), imprints and social links, the 34 for-the-record claims on AI For Everyday People.
-- Both Harni nursing books written with covers and claims researched against official sources. Steady On Your Feet (103 pages): pack built. Read Fast, Write Safe (67 pages): upload pack failed preflight `Fonts embedded, no Type 3` because the micro sign in "µg" is missing from Atkinson Hyperlegible Next (found by reading the interior PDF's Type 3 ToUnicode map). Fixed in branch `fix/micro-sign-print-font` (print-glyphs maps µ to the Greek mu); needs merge, deploy, then rebuild the pack. Claims still for a qualified person: 37 and 63, plus 72 and 58 for the record.
+- Both Harni nursing books written with covers and claims researched against official sources. Steady On Your Feet (103 pages): pack built. Read Fast, Write Safe (67 pages): FIXED and live (PR #59, pack built, 0 blocks). It had failed preflight `Fonts embedded, no Type 3` because the micro sign in "µg" is missing from Atkinson Hyperlegible Next (found by reading the interior PDF's Type 3 ToUnicode map). Fixed in branch `fix/micro-sign-print-font` (print-glyphs maps µ to the Greek mu); needs merge, deploy, then rebuild the pack. Claims still for a qualified person: 37 and 63, plus 72 and 58 for the record.
 - Full detail: `../reports/volume/WORK-REPORT-2026-10-24.md`.
 
 ## State on 24 October 2026 (early)
