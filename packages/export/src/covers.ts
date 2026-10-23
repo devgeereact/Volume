@@ -170,6 +170,19 @@ document.fonts.ready.then(function () {
     }
     el.setAttribute('data-fitted-px', String(size));
   });
+  // A subtitle at a fixed height from the style would run into a title that wraps onto more lines: move it just below.
+  document.querySelectorAll('.front .sub.abs').forEach(function (sub) {
+    var front = sub.closest('.front');
+    var title = front && front.querySelector('.title');
+    if (!front || !title) return;
+    var f = front.getBoundingClientRect();
+    var gap = f.width * 0.03;
+    var want = title.getBoundingClientRect().bottom - f.top + gap;
+    if (sub.getBoundingClientRect().top - f.top < want) {
+      sub.style.top = want + 'px';
+      sub.setAttribute('data-pushed', '1');
+    }
+  });
   window.__coverReady = true;
 });
 </script>`;
@@ -191,6 +204,8 @@ export interface EbookCoverResult {
   heightPx: number;
   /** Title cap height proxy: the fitted title font size scaled to a 160 px wide thumbnail. */
   titlePxAt160: number;
+  /** True when the subtitle had to be moved down to clear a title that wrapped onto more lines. */
+  subtitlePushed: boolean;
   warnings: string[];
 }
 
@@ -204,7 +219,7 @@ export async function exportEbookCover(source: BookMeta, style: CoverStyle = DEF
   const html = withSymbolFallback(`<!doctype html><html lang="${escapeHtml(meta.language)}"><head><meta charset="utf-8"><style>${f.css}
 html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
 ${frontCss(style, f)}</style></head><body>${frontHtml(meta, style, opts.background ? dataUrl(opts.background) : undefined)}${FIT_SCRIPT}</body></html>`);
-  const { png, fitted } = await withBrowser(opts.browser, async (browser) => {
+  const { png, fitted, subtitlePushed } = await withBrowser(opts.browser, async (browser) => {
     const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
     try {
       const page = await ctx.newPage();
@@ -212,7 +227,8 @@ ${frontCss(style, f)}</style></head><body>${frontHtml(meta, style, opts.backgrou
       await page.waitForFunction('window.__coverReady === true');
       const fitted = Number(await page.evaluate(`document.querySelector('[data-fit]').getAttribute('data-fitted-px')`));
       const png = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: W, height: H } });
-      return { png, fitted };
+      const subtitlePushed = (await page.evaluate(`document.querySelector('.sub.abs[data-pushed]') !== null`)) === true;
+      return { png, fitted, subtitlePushed };
     } finally {
       await ctx.close();
     }
@@ -225,7 +241,7 @@ ${frontCss(style, f)}</style></head><body>${frontHtml(meta, style, opts.backgrou
     .toBuffer();
   const titlePxAt160 = (fitted * 160) / W;
   if (titlePxAt160 < 10) warnings.push(`Title is about ${titlePxAt160.toFixed(1)} px tall at 160 px wide; it may not be legible as a thumbnail.`);
-  return { jpeg, widthPx: W, heightPx: H, titlePxAt160, warnings };
+  return { jpeg, widthPx: W, heightPx: H, titlePxAt160, subtitlePushed, warnings };
 }
 
 export interface WrapOptions {

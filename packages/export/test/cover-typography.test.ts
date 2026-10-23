@@ -114,3 +114,27 @@ describe('eBook cover with the owner palette', () => {
     expect(await ink(900, 700)).toBeGreaterThan(100);
   });
 });
+
+describe('subtitle at a fixed height', () => {
+  let browser2: Browser;
+  beforeAll(async () => {
+    browser2 = await acquireBrowser();
+  });
+  afterAll(async () => {
+    await releaseBrowser();
+  });
+
+  it('moves down to clear a title that wraps onto many lines, and stays put when there is room', async () => {
+    const meta = {
+      ...loadMiniBook().meta,
+      title: 'Calm on the Night Shift With Many Extra Words In It',
+      subtitle: 'A practical guide for NHS nurses working nights',
+    };
+    const crowded = applyCoverTypography(DEFAULT_COVER_STYLE, { subtitleTopPct: 30 });
+    const a = await exportEbookCover(meta, crowded, { browser: browser2, rules: loadKdpRules() });
+    expect(a.subtitlePushed).toBe(true);
+    const roomy = applyCoverTypography(DEFAULT_COVER_STYLE, { subtitleTopPct: 110, titleTopPct: 10 });
+    const b = await exportEbookCover({ ...meta, title: 'Short' }, roomy, { browser: browser2, rules: loadKdpRules() });
+    expect(b.subtitlePushed).toBe(false);
+  });
+});
