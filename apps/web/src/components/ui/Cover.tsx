@@ -284,10 +284,24 @@ export function Cover({ title, subtitle, author, design, width, hideSubtitle, li
     );
   } else if (design) {
     const align = design.align ?? "left";
-    const centred = align === "center";
+    const titleAlign = design.titleAlign ?? align;
+    const subAlign = design.subtitleAlign ?? align;
+    const authorAlign = design.authorAlign ?? align;
     const accent = design.accentFamily ? `'${design.accentFamily}', ${ui}` : ui;
     const authorStyle = design.authorStyle ?? "caps";
-    const sides: CSSProperties = centred ? { left: cq(9), right: cq(9), textAlign: "center" } : { left: cq(10), right: cq(9) };
+    const sidesFor = (a: "left" | "center" | "right"): CSSProperties =>
+      a === "center"
+        ? { left: cq(9), right: cq(9), textAlign: "center" }
+        : a === "right"
+          ? { left: cq(9), right: cq(10), textAlign: "right" }
+          : { left: cq(10), right: cq(9) };
+    const subSides: CSSProperties =
+      subAlign === "center"
+        ? { left: cq(design.subtitleRightInset), right: cq(design.subtitleRightInset), textAlign: "center" }
+        : subAlign === "right"
+          ? { left: cq(design.subtitleRightInset), right: cq(10), textAlign: "right" }
+          : { left: cq(10), right: cq(design.subtitleRightInset) };
+    const authorSize = (authorStyle === "caps" ? 4.4 : 5.6) * (design.authorScale ?? 1);
     cover = (
       <div className={cn("vol-cover", !lift && className)} style={{ ...style, background: design.palette.background }} {...a11y}>
         {design.band && (
@@ -306,7 +320,7 @@ export function Cover({ title, subtitle, author, design, width, hideSubtitle, li
         <p
           style={{
             ...faces[design.typeface],
-            ...sides,
+            ...sidesFor(titleAlign),
             top: cq(design.titleTop),
             fontSize: cq(design.titleSize),
             color: design.palette.title,
@@ -323,12 +337,10 @@ export function Cover({ title, subtitle, author, design, width, hideSubtitle, li
         {subtitle && design.subtitleTop !== null && !hideSubtitle && (
           <p
             style={{
-              ...(centred
-                ? { left: cq(design.subtitleRightInset), right: cq(design.subtitleRightInset), textAlign: "center" }
-                : { left: cq(10), right: cq(design.subtitleRightInset) }),
+              ...subSides,
               top: cq(design.subtitleTop),
               fontFamily: accent,
-              fontSize: cq(5.2),
+              fontSize: cq(5.2 * (design.subtitleScale ?? 1)),
               lineHeight: 1.3,
               fontWeight: 500,
               color: design.palette.subtitle,
@@ -339,10 +351,10 @@ export function Cover({ title, subtitle, author, design, width, hideSubtitle, li
         )}
         <p
           style={{
-            ...sides,
-            bottom: cq(design.frame ? 11 : 9),
+            ...sidesFor(authorAlign),
+            ...(design.authorTop !== undefined ? { top: cq(design.authorTop) } : { bottom: cq(design.frame ? 11 : 9) }),
             fontFamily: authorStyle === "caps" ? ui : accent,
-            fontSize: cq(authorStyle === "caps" ? 4.4 : 5.6),
+            fontSize: cq(authorSize),
             lineHeight: 1,
             fontWeight: authorStyle === "caps" ? 600 : 500,
             fontStyle: authorStyle === "italic" ? "italic" : "normal",

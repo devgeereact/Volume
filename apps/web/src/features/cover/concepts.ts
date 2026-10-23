@@ -153,6 +153,18 @@ interface LayoutOptions {
   /** Title size as a percentage of the style's size. */
   size?: number;
   position?: TitlePosition;
+  /** Exact tops the owner set by dragging or nudging in the preview (cover-width units). */
+  titleTop?: number | undefined;
+  subtitleTop?: number | undefined;
+  authorTop?: number | undefined;
+}
+
+const clampTop = (n: number) => Math.min(150, Math.max(0, n));
+
+/** Where the author line starts when nothing moved it: the top of its single line near the foot of the cover. */
+export function defaultAuthorTop(d: Pick<CoverDesign, "frame" | "authorStyle" | "authorScale">): number {
+  const size = (d.authorStyle === "caps" || d.authorStyle === undefined ? 4.4 : 5.6) * (d.authorScale ?? 1);
+  return COVER_H - (d.frame ? 11 : 9) - size - 2;
 }
 
 /**
@@ -160,7 +172,10 @@ interface LayoutOptions {
  * the title and the author line, and the drawing moves to the largest free space (or is left out) when
  * type would cross it. Units are the Cover component's: width 100, height 150.
  */
-export function layoutCover(d: CoverDesign, { subtitle, size = 100, position = "style" }: LayoutOptions = {}): CoverDesign {
+export function layoutCover(
+  d: CoverDesign,
+  { subtitle, size = 100, position = "style", titleTop: titleTopSet, subtitleTop: subtitleTopSet, authorTop: authorTopSet }: LayoutOptions = {},
+): CoverDesign {
   const centred = d.align === "center";
   const upper = d.titleUppercase ? 1.12 : 1;
   const tracking = d.titleTracking?.endsWith("em") ? Number.parseFloat(d.titleTracking) || 0 : 0;
@@ -172,29 +187,32 @@ export function layoutCover(d: CoverDesign, { subtitle, size = 100, position = "
   titleSize = Math.min(titleSize, (avail * 0.9) / (longest * perChar));
   const blockH = titleSize * (lineHeight[d.typeface] ?? 1) * d.titleLines.length;
 
-  const authorTop = COVER_H - (d.frame ? 11 : 9) - (d.authorStyle === "caps" || d.authorStyle === undefined ? 4.4 : 5.6) - 2;
+  const authorTop = defaultAuthorTop(d);
   const subWidth = centred ? 100 - 2 * d.subtitleRightInset : 90 - d.subtitleRightInset;
   const subShown = Boolean(subtitle) && d.subtitleTop !== null;
-  const subH = subShown ? Math.ceil(((subtitle ?? "").length * SUB_SIZE * 0.5) / Math.max(20, subWidth)) * SUB_SIZE * 1.3 : 0;
+  const subScale = d.subtitleScale ?? 1;
+  const subH = subShown ? Math.ceil(((subtitle ?? "").length * SUB_SIZE * subScale * 0.5) / Math.max(20, subWidth)) * SUB_SIZE * subScale * 1.3 : 0;
 
   let titleTop = d.titleTop;
   if (position === "top") titleTop = Math.min(d.titleTop, 12);
   else if (position === "middle") titleTop = (COVER_H - blockH) / 2 - (subShown ? subH / 2 + 2 : 0);
   else if (position === "bottom") titleTop = authorTop - 6 - blockH - (subShown ? subH + 4 : 0);
   titleTop = Math.max(6, titleTop);
+  if (titleTopSet !== undefined) titleTop = clampTop(titleTopSet);
   const titleBottom = titleTop + blockH;
 
   let subtitleTop = d.subtitleTop;
   if (subShown && subtitleTop !== null) {
     const clashes = subtitleTop < titleBottom + 3 && subtitleTop + subH > titleTop - 2;
-    if (position !== "style" || clashes) subtitleTop = titleBottom + 4;
+    if (position !== "style" || titleTopSet !== undefined || clashes) subtitleTop = titleBottom + 4;
     if (subtitleTop + subH > authorTop - 2) subtitleTop = Math.max(titleBottom + 2, authorTop - 2 - subH);
   }
+  if (subShown && subtitleTopSet !== undefined) subtitleTop = clampTop(subtitleTopSet);
 
   // Free bands on the cover, between the type.
   const taken: [number, number][] = [[titleTop - 3, titleBottom + 3]];
   if (subShown && subtitleTop !== null) taken.push([subtitleTop - 3, subtitleTop + subH + 3]);
-  taken.push([authorTop - 2, COVER_H]);
+  taken.push(authorTopSet !== undefined ? [authorTopSet - 2, authorTopSet + 8] : [authorTop - 2, COVER_H]);
   taken.sort((a, b) => a[0] - b[0]);
   let motif = d.motif;
   let box = d.motifBox;
@@ -219,7 +237,24 @@ export function layoutCover(d: CoverDesign, { subtitle, size = 100, position = "
     }
   }
 
-  return { ...d, titleSize, titleTop, subtitleTop, motif, motifBox: box };
+  return { ...d, titleSize, titleTop, subtitleTop, motif, motifBox: box, ...(authorTopSet !== undefined ? { authorTop: clampTop(authorTopSet) } : {}) };
+}
+
+/** Hit areas for the three lines, in cover-width units (width 100, height 150), for clicking and dragging in the preview. */
+export function partBoxes(d: CoverDesign, subtitle: string | undefined): Record<"title" | "subtitle" | "author", { top: number; height: number } | null> {
+  const lines = Math.max(1, d.titleLines.length);
+  const titleH = d.titleSize * (lineHeight[d.typeface] ?? 1) * lines;
+  const subScale = d.subtitleScale ?? 1;
+  const width = d.align === "center" ? 100 - 2 * d.subtitleRightInset : 90 - d.subtitleRightInset;
+  const subH =
+    subtitle && d.subtitleTop !== null ? Math.ceil((subtitle.length * SUB_SIZE * subScale * 0.5) / Math.max(20, width)) * SUB_SIZE * subScale * 1.3 : 0;
+  const authorH = (d.authorStyle === "caps" || d.authorStyle === undefined ? 4.4 : 5.6) * (d.authorScale ?? 1);
+  const authorTop = d.authorTop ?? defaultAuthorTop(d);
+  return {
+    title: { top: d.titleTop, height: titleH },
+    subtitle: subH > 0 && d.subtitleTop !== null ? { top: d.subtitleTop, height: subH } : null,
+    author: { top: authorTop, height: authorH },
+  };
 }
 
 /** Back cover blurb for the wrap preview (book content, written for the demo). */

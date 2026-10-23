@@ -3,7 +3,7 @@ import { useCanWrite } from "../../lib/access";
 import { Link } from "react-router";
 import { Check, Download, RotateCw, Upload } from "lucide-react";
 import { Banner, Button, buttonClasses, Loader, PageHeader, ProgressBar, SegmentedControl, Skeleton, StatusChip, Switch } from "../../components/ui";
-import type { Book, PenName } from "../../demo";
+import type { Book, CoverDesign, PenName } from "../../demo";
 import { assetsApi } from "../../api/assets";
 import { useBlueprint, useBuildCover, useChooseCover, useCover, useCoverConcepts, useExports, usePutCoverBrief } from "../../api/hooks";
 import { isTerminalJob, type ApiBookDetail, type ApiCover, type CoverConcept } from "../../api/types";
@@ -27,6 +27,19 @@ import {
 } from "../export/kdpRules";
 import { ArtCover } from "./ArtCover";
 import { conceptsFor, layoutCover, withPalette, type CoverBrief, type TitlePosition } from "./concepts";
+import {
+  clearTops,
+  editsFromSaved,
+  editsToTypography,
+  EDIT_KEYS,
+  setAlign,
+  setTop,
+  stepScale,
+  stepTitleSize,
+  type CoverEdits,
+  type CoverPart,
+} from "./coverEdit";
+import { CoverEditor, CoverToolbar } from "./CoverEditor";
 import { BriefCard, CoverInspector } from "./CoverPage";
 import { OwnCoverPanel } from "./OwnCoverPanel";
 import { WrapPreview } from "./WrapPreview";
@@ -133,10 +146,43 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
   });
   const subtitle = showSubtitle ? book.subtitle : undefined;
   const palette = own.style.palettes[paletteIdx];
-  const design = useMemo(
-    () => layoutCover(palette ? withPalette(own.base, palette) : own.base, { subtitle, size, position }),
-    [own, palette, subtitle, size, position],
-  );
+  // Edits made on the preview (alignment, exact positions, sizes, capitals), restored from the saved typography.
+  const [edits, setEdits] = useState<CoverEdits>(() => editsFromSaved(savedType, layoutCover(own.base, { subtitle, size, position }).titleTop));
+  const [selected, setSelected] = useState<CoverPart | null>(null);
+  const design = useMemo(() => {
+    const base = palette ? withPalette(own.base, palette) : own.base;
+    const styled: CoverDesign = {
+      ...base,
+      ...(edits.titleAlign ? { titleAlign: edits.titleAlign } : {}),
+      ...(edits.subtitleAlign ? { subtitleAlign: edits.subtitleAlign } : {}),
+      ...(edits.authorAlign ? { authorAlign: edits.authorAlign } : {}),
+      ...(edits.subtitleSize !== undefined ? { subtitleScale: edits.subtitleSize } : {}),
+      ...(edits.authorSize !== undefined ? { authorScale: edits.authorSize } : {}),
+      ...(edits.titleUppercase !== undefined ? { titleUppercase: edits.titleUppercase } : {}),
+    };
+    return layoutCover(styled, { subtitle, size, position, titleTop: edits.titleTop, subtitleTop: edits.subtitleTop, authorTop: edits.authorTop });
+  }, [own, palette, subtitle, size, position, edits]);
+  const edit = (part: CoverPart, top: number) => setEdits((e) => setTop(e, part, top));
+  const editHandlers = {
+    onSelect: setSelected,
+    onAlign: (part: CoverPart, a: "left" | "center" | "right") => setEdits((e) => setAlign(e, part, a)),
+    onTop: edit,
+    onSmaller: (part: CoverPart) =>
+      part === "title"
+        ? setSize((s) => stepTitleSize(s, -1))
+        : setEdits((e) => ({
+            ...e,
+            [part === "subtitle" ? "subtitleSize" : "authorSize"]: stepScale((part === "subtitle" ? e.subtitleSize : e.authorSize) ?? 1, -1),
+          })),
+    onLarger: (part: CoverPart) =>
+      part === "title"
+        ? setSize((s) => stepTitleSize(s, 1))
+        : setEdits((e) => ({
+            ...e,
+            [part === "subtitle" ? "subtitleSize" : "authorSize"]: stepScale((part === "subtitle" ? e.subtitleSize : e.authorSize) ?? 1, 1),
+          })),
+    onUppercase: (on: boolean) => setEdits((e) => ({ ...e, titleUppercase: on })),
+  };
   /** What Choose stores and the build applies: the same numbers the preview is drawn with. */
   const typography: Obj = {
     styleId: own.style.id,
@@ -146,8 +192,11 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
     titleTopPct: Math.round(design.titleTop * 100) / 100,
     titleSize: Math.round(design.titleSize * 100) / 100,
     sizePct: size,
+    ...editsToTypography(edits),
   };
-  const typeChanged = JSON.stringify(typography) !== JSON.stringify(Object.fromEntries(Object.keys(typography).map((k) => [k, savedType[k]])));
+  // Compare every key we send, plus the edit keys, so taking an edit away also counts as a change.
+  const typeKeys = [...new Set([...Object.keys(typography), ...EDIT_KEYS])];
+  const typeChanged = JSON.stringify(typeKeys.map((k) => typography[k])) !== JSON.stringify(typeKeys.map((k) => savedType[k]));
 
   const concepts: CoverConcept[] = cover?.concepts ?? [];
   const chosen = concepts.find((c) => c.assetId === cover?.chosenAssetId) ?? null;
@@ -243,6 +292,18 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
       await choose.mutateAsync({ bookId, assetId: pick.assetId, typography });
       setProblem(null);
       setAnnounce(`${pick.name} is in use.`);
+    } catch (e) {
+      setProblem(errorText(e));
+    }
+  }
+
+  /** Save the type edits for the concept already in use (the same call Choose makes). The built covers are then out of date. */
+  async function saveType() {
+    if (!chosen) return;
+    try {
+      await choose.mutateAsync({ bookId, assetId: chosen.assetId, typography });
+      setProblem(null);
+      setAnnounce("Cover changes saved.");
     } catch (e) {
       setProblem(errorText(e));
     }
@@ -525,7 +586,10 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                     <SegmentedControl
                       label="Title position"
                       value={position}
-                      onChange={setPosition}
+                      onChange={(p) => {
+                        setPosition(p);
+                        setEdits(clearTops);
+                      }}
                       options={[
                         { value: "style", label: "Style" },
                         { value: "top", label: "Top" },
@@ -574,7 +638,40 @@ function Studio({ book, apiBook, author, cover }: { book: Book; apiBook: ApiBook
                   />
                   {preview === "ebook" && (
                     <figure className="grid justify-items-start gap-3">
-                      <ArtCover src={src(front)} title={book.title} subtitle={subtitle} author={author} design={design} width={260} />
+                      <div className="flex flex-wrap items-start gap-5">
+                        <CoverEditor design={design} subtitle={subtitle} width={300} selected={selected} disabled={!canWrite} {...editHandlers}>
+                          <ArtCover src={src(front)} title={book.title} subtitle={subtitle} author={author} design={design} width="100%" />
+                        </CoverEditor>
+                        <div className="grid min-w-60 max-w-80 flex-1 content-start gap-3">
+                          {selected && canWrite ? (
+                            <CoverToolbar part={selected} design={design} subtitle={subtitle} titleSizePct={size} {...editHandlers} />
+                          ) : (
+                            <p className="text-small text-ink-secondary">
+                              {canWrite
+                                ? "Click the title, subtitle or author name on the cover to change it. Drag it to move it."
+                                : "You can look at the cover but not change it."}
+                            </p>
+                          )}
+                          {typeChanged && (
+                            <div role="status" className="grid gap-2 rounded-md bg-sunken p-2.5">
+                              <p className="text-label text-accent-text">Unsaved changes</p>
+                              {chosen ? (
+                                <Button
+                                  size="sm"
+                                  loading={choose.isPending}
+                                  loadingLabel="Saving"
+                                  onClick={() => void saveType()}
+                                  disabledReason={canWrite ? undefined : "You can look at the cover but not change it."}
+                                >
+                                  Save changes
+                                </Button>
+                              ) : (
+                                <p className="text-small text-ink-secondary">They are saved when you press Use this concept.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <figcaption className="num text-small text-ink-secondary">
                         {ebookCoverPx.width} x {ebookCoverPx.height} px, JPEG, RGB. Height to width {(ebookCoverPx.height / ebookCoverPx.width).toFixed(2)}; KDP
                         needs {ebookMinRatio} or more.

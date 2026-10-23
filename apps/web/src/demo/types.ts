@@ -13,7 +13,7 @@ export type BookStepId = "research" | "titles" | "blueprint" | "writing" | "edit
 export type StepState = "not-started" | "in-progress" | "running" | "attention" | "done";
 
 /** Structure templates in config/book-templates/ (file name without .json). */
-export type TemplateId = "nonfiction" | "fiction" | "workbook" | "picture-book" | "cookbook" | "journal" | "poetry";
+export type TemplateId = "nonfiction" | "fiction" | "workbook" | "reference" | "picture-book" | "cookbook" | "journal" | "poetry";
 
 /** ISO 8601 timestamp with offset, for example "2026-10-04T14:31:00+01:00". */
 export type IsoDateTime = string;
@@ -110,7 +110,16 @@ export interface CoverDesign {
   /** Style id the design was built from. */
   styleId?: string | undefined;
   /** Title and subtitle alignment. Default left. */
-  align?: "left" | "center" | undefined;
+  align?: "left" | "center" | "right" | undefined;
+  /** Own alignment for one line, set by the owner in the cover studio. Each falls back to `align`. */
+  titleAlign?: "left" | "center" | "right" | undefined;
+  subtitleAlign?: "left" | "center" | "right" | undefined;
+  authorAlign?: "left" | "center" | "right" | undefined;
+  /** Author line top in cover-width units. Without it the author sits at the foot of the cover. */
+  authorTop?: number | undefined;
+  /** Size multipliers for the subtitle and author lines (1 is the usual size). */
+  subtitleScale?: number | undefined;
+  authorScale?: number | undefined;
   /** Letter spacing for the title, as CSS (for example "0.14em"). */
   titleTracking?: string | undefined;
   /** Font family for the subtitle and author lines (an installed OFL family). Default the interface sans. */
