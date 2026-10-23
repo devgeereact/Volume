@@ -9,8 +9,8 @@ const config = loadConfig(CONFIG_DIR);
 
 const WRITERS: [TaskId, number][] = [
   ['writing.chapter', 9],
-  ['writing.introduction', 8],
-  ['writing.conclusion', 8],
+  ['writing.introduction', 9],
+  ['writing.conclusion', 9],
   ['writing.back-matter', 8],
   ['writing.front-matter', 7],
   ['writing.extend-section', 6],

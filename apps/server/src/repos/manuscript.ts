@@ -1215,6 +1215,22 @@ export class ManuscriptRepo {
     return (await q.orderBy('id').execute()).map(toClaim);
   }
 
+  /**
+   * Retires open claims whose sentence is no longer in the text they were filed against (the section was rewritten), so
+   * old claims do not pile up beside the new ones. Each is marked removed with a note. `keepVersionId` is the version
+   * the text belongs to: its own claims are never retired. Returns how many were retired.
+   */
+  async retireGoneClaims(ctx: RequestCtx, sectionId: string, bodyMd: string, keepVersionId: string): Promise<number> {
+    const open = await this.listClaims(ctx, { sectionId, status: 'open' });
+    let n = 0;
+    for (const c of open) {
+      if (c.versionId === keepVersionId || bodyMd.includes(c.sentence)) continue;
+      await this.resolveClaim(ctx, c.id, 'removed', { ownerNote: 'The sentence is no longer in the text (the section was rewritten).' });
+      n += 1;
+    }
+    return n;
+  }
+
   async requireClaim(ctx: RequestCtx, id: string): Promise<Claim> {
     const r = await this.db.selectFrom('claims').selectAll().where('id', '=', id).where('workspaceId', '=', ctx.workspaceId).executeTakeFirst();
     if (!r) throw notFound('Claim');

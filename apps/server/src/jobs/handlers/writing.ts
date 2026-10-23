@@ -238,6 +238,9 @@ async function modelChecks(
     })),
   );
   for (const c of claims) await jc.emit('claim.added', { claimId: c.id, sectionId, category: c.category });
+  // A rewritten section keeps no claims for sentences it no longer contains.
+  const text = await repos.manuscript.getVersion(jc.ctx, versionId);
+  if (text) await repos.manuscript.retireGoneClaims(jc.ctx, sectionId, text.bodyMd, versionId);
   return { checks, claims: claims.length, failed: null };
 }
 

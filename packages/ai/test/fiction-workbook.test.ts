@@ -95,6 +95,8 @@ describe('stage selection by template', () => {
     expect(loader.load('writing.chapter').system).toMatch(/Never open on a clock time/);
     expect(loader.load('writing.chapter').system).toMatch(/never open two chapters of the book the same way/);
     expect(loader.load('blueprint.blueprint').system).toMatch(/different opening for every chapter/);
+    expect(loader.load('writing.introduction').system).toMatch(/Never open on a clock time/);
+    expect(loader.load('writing.conclusion').system).toMatch(/Never open on a clock time/);
   });
 
   it('non-fiction runs writing.chapter v9 and blueprint.blueprint v7; v5 to v8 stay loadable for pinned books', () => {

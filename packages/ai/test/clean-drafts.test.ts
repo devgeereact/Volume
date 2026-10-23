@@ -12,8 +12,8 @@ const RULES = 'Must have:\n- Name only tools that appear in the research sources
 
 const WRITERS: [TaskId, number][] = [
   ['writing.chapter', 9],
-  ['writing.introduction', 8],
-  ['writing.conclusion', 8],
+  ['writing.introduction', 9],
+  ['writing.conclusion', 9],
   ['writing.back-matter', 8],
   ['writing.extend-section', 6],
 ];
