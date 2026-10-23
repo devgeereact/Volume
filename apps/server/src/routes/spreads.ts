@@ -19,7 +19,6 @@ import {
 } from '../jobs/picture-book.js';
 import { advanceIfWritingComplete } from '../jobs/book-data.js';
 import { TERMINAL } from '../jobs/queue.js';
-import { imageReservationUsd } from '../jobs/runner.js';
 import type { Section } from '../repos/manuscript.js';
 import { accepted, EmptyBody, idOf, writer } from './common.js';
 
@@ -133,21 +132,6 @@ export function spreadRoutes(app: FastifyInstance, s: AppServices): void {
     const section = await requireSpread(s, req);
     if (typeof section.plan['imagePrompt'] !== 'string')
       throw new AppError('invalid_state', 'This spread has no scene prompt yet. Make the picture book first.');
-    // D-025: refuse before queueing when one more picture would pass the book's budget (the job checks again).
-    // The same per-picture reservation the job makes: the priced estimate, never below the $0.20 floor.
-    const book = await s.repos.books.require(req.ctx, section.projectId);
-    const reserve = await imageReservationUsd(s.ai, await s.runner.resolveModel(req.ctx, section.projectId, 'cover_image'));
-    if (book.costToDateUsd + reserve > book.budgetUsd)
-      throw new AppError(
-        'budget_exceeded',
-        `One more picture needs about $${reserve.toFixed(2)} more than this book's budget allows. Raise the budget first.`,
-        {
-          scope: 'book',
-          limitUsd: book.budgetUsd,
-          spentUsd: book.costToDateUsd,
-          estimateUsd: reserve,
-        },
-      );
     const running = (await s.queue.list(req.ctx, { projectId: section.projectId, limit: 500 })).find(
       (j) => j.kind === 'spread_image' && j.payload['sectionId'] === section.id && !TERMINAL.has(j.status),
     );

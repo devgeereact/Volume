@@ -460,6 +460,8 @@ export interface AiImageEstimate extends AiCostEstimate {
 
 export interface AiPort {
   readonly provider: 'mock' | 'openrouter';
+  /** Anthropic key in use, and when it last said the balance was empty. Optional for test doubles. */
+  anthropicStatus?(): { configured: boolean; outOfFundsAt: number | null };
   /**
    * Runs one stage. A stage that makes several calls and fails part way attaches what it already
    * spent to the thrown error (attachPartialUsage); the runner records it with partialUsageOf.

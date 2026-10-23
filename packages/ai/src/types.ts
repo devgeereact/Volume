@@ -26,6 +26,9 @@ export interface Source {
   unresolved?: boolean | undefined;
 }
 
+/** Who served a call: OpenRouter, the owner's own Anthropic key, or the mock. */
+export type ResultProvider = 'openrouter' | 'anthropic' | 'mock';
+
 export type CostSource = 'openrouter' | 'computed' | 'mock' | 'unknown';
 
 export interface Usage {
@@ -117,7 +120,7 @@ export interface ChatResult {
   sources: Source[];
   generationId: string | null;
   latencyMs: number;
-  provider: 'openrouter' | 'mock';
+  provider: ResultProvider;
 }
 
 /**
@@ -154,7 +157,7 @@ export interface ImageResult {
   model: string;
   usage: Usage;
   latencyMs: number;
-  provider: 'openrouter' | 'mock';
+  provider: ResultProvider;
 }
 
 export interface ModelPricing {

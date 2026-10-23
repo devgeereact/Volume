@@ -5,9 +5,15 @@ User-visible changes, newest first. Dates in British format.
 ## 22 October 2026
 
 #### Added
+- Anthropic first. Add `ANTHROPIC_API_KEY` and Claude models use it before OpenRouter. When its balance is empty, Volume carries on with OpenRouter and shows a notice to top up. Not tried against the live Anthropic API yet.
+- Out of credits is now a pause, not a cap. If OpenRouter has no credit left, the job stops with "AI credits have run out", a link to top up and a Continue button. Finished work is kept.
 - Rebuild the whole book. On Blueprint (and on Titles once the book has text) one button builds a new blueprint for the title, then writes every section again, from the front matter to the end of the book, and the listing. Every new version is named after the rebuild, for example "Rebuild 2 from new title: Calm on the Night Shift", and "Go back to before this rebuild" puts the title, the blueprint and every section back as they were. Chapters the new plan drops are switched off, not deleted.
 
+#### Changed
+- No more book or monthly spending cap. Spend is still tracked and shown, but a book is never stopped at a budget.
+
 #### Fixed
+- A paused rebuild no longer looks like it is still writing. The Writing step shows the pause and the budget or credit notice, even after a reload.
 - The book bar at the top of each step shows the book's cover again. Books with no cover yet show their draft cover, as in the Library.
 - Library rows of covers no longer catch the mouse wheel. Scrolling over them scrolls the page; a row with more books than fit fades at the edge and has buttons to see the rest.
 

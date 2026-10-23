@@ -213,7 +213,7 @@ export function ApiBudgetsPanel() {
   const header = (actions?: ReactNode) => (
     <PanelHeader
       title="Budgets"
-      body="Caps on AI spend. When a book reaches its budget, writing pauses and says how much more it needs. Nothing is charged past a cap."
+      body="Spend guides, not limits. Volume no longer stops a book at a budget. It pauses only when the AI provider runs out of credits, and then tells you to top up."
       actions={actions}
     />
   );

@@ -585,7 +585,7 @@ function BlueprintScreen({ book }: { book: Book }) {
             ]}
           />
           <p className="text-small text-ink-tertiary">
-            Example prices. Checks run after every chapter, and the job pauses if the book reaches its budget. {groupLabels.publishing} and{" "}
+            Example prices. Checks run after every chapter, and the job pauses only if the AI provider runs out of credits. {groupLabels.publishing} and{" "}
             {groupLabels.marketing.toLowerCase()} are written at the end.
           </p>
         </div>

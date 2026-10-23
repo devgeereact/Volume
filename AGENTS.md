@@ -51,7 +51,7 @@ If two files disagree, stop and ask which is right, then fix both.
 - Public pages (`apps/web/src/site/`, D-053): GSAP 3.15.0 (SplitText, ScrambleText), `@gsap/react` 2.1.2, Lenis 1.3.27, and React Bits SplitText, ShinyText and DecryptedText adapted (MIT). A lazy chunk loaded only by the public pages; reduced motion is respected.
 - `apps/server`: Fastify, zod, Kysely (SQLite locally, MariaDB/MySQL on the cPanel host) with migrations, in-process job queue, SSE, Clerk session checks (`@clerk/backend`), and in the release layout the built web app. Binds to 127.0.0.1 only; Passenger and Cloudflare sit in front on the host (D-038, D-039).
 - `packages/core` (book model, parser, rules, checkers, KDP maths), `packages/ai` (OpenRouter client, registry, prompt loader), `packages/export` (PDF via Paged.js in Playwright, DOCX, EPUB, TXT, MD, covers, preflight, pack), `packages/ui` (design tokens and components).
-- AI: OpenRouter only, one key `OPENROUTER_API_KEY`, server side only. Model per stage from `config/models.defaults.json`, changeable by the owner in Settings.
+- AI: OpenRouter, key `OPENROUTER_API_KEY`, server side only. Optional `ANTHROPIC_API_KEY` (D-058): Claude models try Anthropic first and fall back to OpenRouter when its balance is empty. No book or monthly spending cap (D-057): a provider out of credit pauses the job with a top-up notice. Model per stage from `config/models.defaults.json`, changeable by the owner in Settings.
 - Tests: Vitest, Playwright, golden files. Lint: ESLint and Prettier (D-023): `npm run lint` (ESLint flat config in `eslint.config.js`), `npm run format` and `npm run format:check` (`.prettierrc.json`, `.prettierignore`).
 
 ## Commands

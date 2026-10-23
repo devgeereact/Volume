@@ -18,7 +18,7 @@ export class BudgetPaused extends Error {
   override name = 'BudgetPaused';
   constructor(
     message: string,
-    readonly details: { scope: 'book' | 'month'; limitUsd: number; spentUsd: number; estimateUsd: number },
+    readonly details: { scope: 'book' | 'month' | 'credits'; limitUsd: number; spentUsd: number; estimateUsd: number },
   ) {
     super(message);
   }

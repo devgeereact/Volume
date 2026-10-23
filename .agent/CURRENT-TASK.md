@@ -1,5 +1,9 @@
 # Current task
 
+## State on 23 October 2026 (uncommitted, not deployed)
+
+- Local work on `main`, not committed: Writing page shows a paused rebuild properly (the freeze the owner saw on "How To Hand Over"), no book or monthly spending cap (D-057), Anthropic key first with OpenRouter fallback (D-058). Typecheck, lint, format, all unit tests and e2e 20 of 20 pass. Needs the owner's OK to commit and deploy, and `ANTHROPIC_API_KEY` in `.env` (local and host).
+
 ## State on 22 October 2026
 
 - Live at <https://volume.gakinz.com> on release `20261022T105038Z` (main `db8b50b`, PR #50 merged). Rollback target `20261022T103226Z` (`npm run deploy -- --rollback`). Deployed by the owner with `npm run deploy -- --no-ci-check`; local checks (typecheck, lint, format, test, e2e 20 of 20) passed first. No new migrations (0001 to 0011 up to date).

@@ -85,6 +85,8 @@ export interface Budgets {
 export interface SettingsResponse {
   /** Presence only. The key value never leaves the server. */
   openRouterKey: { present: boolean };
+  /** Anthropic key in use (D-058), and when it last said its balance was empty (null while it is fine). */
+  anthropic?: { configured: boolean; outOfFundsAt: number | null };
   aiProvider: string;
   exporter: string;
   database: { client: string };

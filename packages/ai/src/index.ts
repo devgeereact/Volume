@@ -13,6 +13,7 @@ export type {
   StageResult,
 } from './service.ts';
 
+export { AnthropicClient, AnthropicFirstProvider, anthropicModelFor, isFundsError, type AnthropicStatus } from './provider/anthropic.ts';
 export { OpenRouterClient, OPENROUTER_BASE_URL, errorFromStatus, sourcesFromAnnotations } from './provider/openrouter.ts';
 export type { OpenRouterClientOptions } from './provider/openrouter.ts';
 export { MockProvider, mockModelInfo } from './provider/mock.ts';
