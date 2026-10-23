@@ -2,6 +2,11 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 23 October 2026
+
+#### Fixed
+- Start research now starts the research. Before, the wizard made the book and opened an empty Research page, so a new project looked frozen until you found and pressed Run research. Research now runs by itself on arrival from the wizard, once, and a reload does not start a second run.
+
 ## 22 October 2026
 
 #### Added
