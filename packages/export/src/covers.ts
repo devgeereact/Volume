@@ -22,6 +22,10 @@ import {
   type Paper,
   type TrimKey,
   type WrapSize,
+  chooseArtInk,
+  inkScrimCss,
+  zoneLuminance,
+  type ArtInk,
 } from '@volume/core';
 import { withBrowser } from './browser.ts';
 import { fontFaceCss, isVariableOnly, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
@@ -69,17 +73,20 @@ function coverFonts(style: CoverStyle, lib: FontLibrary, warnings: string[]): Fo
  */
 export const ART_WASH_OPACITY = 0.55;
 
-/**
- * The scrim over concept art: the palette's background, solid enough behind the title (top) and the author (foot) to
- * keep them legible, and clear through the middle so the art keeps its colour. The Cover studio preview (apps/web
- * ArtCover artScrim) draws the same gradient.
- */
-export const artScrim = (bg: string): string =>
-  `linear-gradient(to bottom, color-mix(in srgb, ${bg} 90%, transparent) 0%, color-mix(in srgb, ${bg} 62%, transparent) 24%, color-mix(in srgb, ${bg} 0%, transparent) 48%, color-mix(in srgb, ${bg} 0%, transparent) 66%, color-mix(in srgb, ${bg} 82%, transparent) 100%)`;
-
 const alignWord = (a: CoverAlign): 'left' | 'centre' | 'right' => (a === 'center' ? 'centre' : a);
 /** A class for an element's own alignment, only when the owner set one (so older covers draw exactly as before). */
 const ownAlign = (a: CoverAlign | undefined): string => (a ? ` a-${alignWord(a)}` : '');
+
+/** What the palette's colours do over this art: measured the same way the studio preview measures it (a 32 by 48 stretch). */
+async function artInkFor(bg: Buffer, c: CoverStyle['colours']): Promise<ArtInk> {
+  const { data } = await sharp(bg).removeAlpha().resize(32, 48, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
+  const z = zoneLuminance(data, 32, 48);
+  return chooseArtInk({ background: c.background, title: c.title, subtitle: c.subtitle, author: c.author }, z.top, z.bottom);
+}
+
+/** The style with its title, subtitle and author colours replaced by the ink chosen for the art behind them. */
+const withInk = (style: CoverStyle, ink: ArtInk | undefined): CoverStyle =>
+  ink ? { ...style, colours: { ...style.colours, title: ink.title, subtitle: ink.subtitle, author: ink.author } } : style;
 
 function frontHtml(meta: BookMeta, style: CoverStyle, bg: string | undefined): string {
   const title = style.titleUppercase ? meta.title.toUpperCase() : meta.title;
@@ -108,7 +115,7 @@ ${authorAbs ? `<div class="authorbox${authorAlign}"><div class="rule${authorAlig
 </div>`;
 }
 
-function frontCss(style: CoverStyle, f: Fonts): string {
+function frontCss(style: CoverStyle, f: Fonts, ink?: ArtInk): string {
   const subSize = (4.4 * (style.subtitleScale ?? 1)).toFixed(2);
   const authorSize = (5.6 * (style.authorScale ?? 1)).toFixed(2);
   const authorTop = style.authorTopPct;
@@ -119,7 +126,8 @@ function frontCss(style: CoverStyle, f: Fonts): string {
   return `
 .front { position: relative; width: 100%; height: 100%; overflow: hidden; container-type: size; background: ${c.background}; color: ${c.title}; }
 .front .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.front.has-bg::after { content: ""; position: absolute; inset: 0; background: ${artScrim(c.background)}; }
+${ink && inkScrimCss(ink) ? `.front.has-bg::after { content: ""; position: absolute; inset: 0; background: ${inkScrimCss(ink)}; }` : ''}
+${ink?.shadow ? `.front.has-bg .title, .front.has-bg .sub, .front.has-bg .author { text-shadow: ${ink.shadow}; }` : ''}
 .front .band { position: absolute; left: 0; right: 0; top: ${band.topPct}cqw; height: ${band.heightPct}cqw; background: ${c.band}; }
 .front .frame { position: absolute; inset: 4cqw; border: 0.6cqw solid ${c.accent}; }
 .front .stack { position: absolute; z-index: 2; top: ${top}; left: 8cqw; right: 8cqw; bottom: 7cqh; display: flex; flex-direction: column; align-items: center; text-align: center; }
@@ -194,7 +202,7 @@ export interface EbookCoverOptions {
   fonts?: FontLibrary;
   /** Rules file for the cover size (FACTS 10.5). Without it, 1600 x 2560. */
   rules?: KdpRules;
-  /** JPEG quality, default 90. */
+  /** JPEG quality, default 95 (4:4:4 chroma, so type edges stay sharp). */
   quality?: number;
 }
 
@@ -216,9 +224,11 @@ export async function exportEbookCover(source: BookMeta, style: CoverStyle = DEF
   const H = spec.heightPx;
   const warnings: string[] = [];
   const f = coverFonts(style, opts.fonts ?? loadFontLibrary(), warnings);
+  const ink = opts.background ? await artInkFor(opts.background, style.colours) : undefined;
+  const front = withInk(style, ink);
   const html = withSymbolFallback(`<!doctype html><html lang="${escapeHtml(meta.language)}"><head><meta charset="utf-8"><style>${f.css}
 html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
-${frontCss(style, f)}</style></head><body>${frontHtml(meta, style, opts.background ? dataUrl(opts.background) : undefined)}${FIT_SCRIPT}</body></html>`);
+${frontCss(front, f, ink)}</style></head><body>${frontHtml(meta, front, opts.background ? dataUrl(opts.background) : undefined)}${FIT_SCRIPT}</body></html>`);
   const { png, fitted, subtitlePushed } = await withBrowser(opts.browser, async (browser) => {
     const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
     try {
@@ -237,7 +247,7 @@ ${frontCss(style, f)}</style></head><body>${frontHtml(meta, style, opts.backgrou
     .removeAlpha()
     .toColourspace('srgb')
     .withIccProfile('srgb')
-    .jpeg({ quality: opts.quality ?? 90, chromaSubsampling: '4:4:4' })
+    .jpeg({ quality: opts.quality ?? 95, chromaSubsampling: '4:4:4' })
     .toBuffer();
   const titlePxAt160 = (fitted * 160) / W;
   if (titlePxAt160 < 10) warnings.push(`Title is about ${titlePxAt160.toFixed(1)} px tall at 160 px wide; it may not be legible as a thumbnail.`);
@@ -351,6 +361,8 @@ export async function exportPaperbackWrap(source: BookMeta, style: CoverStyle = 
   const authorWidthIn = Math.max(2, trim.widthIn - 2 * backPad - bc.widthIn - 0.35);
   const spineFont = Math.min(16, Math.max(5, (size.spineIn - 2 * clearance) * 72 * 0.62));
   const c = style.colours;
+  const ink = opts.background ? await artInkFor(opts.background, style.colours) : undefined;
+  const front = withInk(style, ink);
   const html = withSymbolFallback(`<!doctype html><html lang="${escapeHtml(meta.language)}"><head><meta charset="utf-8"><style>${f.css}
 @page { size: ${size.widthIn}in ${size.heightIn}in; margin: 0; }
 html, body { margin: 0; width: ${size.widthIn}in; height: ${size.heightIn}in; font-synthesis: none; }
@@ -369,11 +381,11 @@ html, body { margin: 0; width: ${size.widthIn}in; height: ${size.heightIn}in; fo
 .spine .st { writing-mode: vertical-rl; white-space: nowrap; font-family: '${f.title}'; font-weight: ${style.weights.title}; font-size: ${spineFont.toFixed(2)}pt; color: ${c.background}; letter-spacing: 0.04em; max-height: ${trim.heightIn - 2 * inset - 0.5}in; overflow: hidden; }
 .spine .st .au { font-family: '${f.author}'; font-weight: ${style.weights.author}; margin-top: 0.3in; opacity: 0.9; }
 .frontpanel { position: absolute; left: ${b + trim.widthIn + size.spineIn}in; top: 0; width: ${trim.widthIn + b}in; height: ${size.heightIn}in; }
-${frontCss(style, f)}
+${frontCss(front, f, ink)}
 </style></head><body><div class="wrap">
 <div class="back"><div class="text">${blurbHtml(opts.blurb)}</div><div class="author"><p class="name">${escapeHtml(meta.author)}</p>${opts.shortBio ? `<p class="bio">${escapeHtml(normalisePrintText(opts.shortBio.replace(/\s+/g, ' ').trim()))}</p>` : ''}</div><div class="barcode"></div></div>
 <div class="spine">${spineText ? `<div class="st">${escapeHtml(meta.title)}<span class="au">&#8195;${escapeHtml(meta.author)}</span></div>` : ''}</div>
-<div class="frontpanel">${frontHtml(meta, style, opts.background ? dataUrl(opts.background) : undefined)}</div>
+<div class="frontpanel">${frontHtml(meta, front, opts.background ? dataUrl(opts.background) : undefined)}</div>
 </div>${FIT_SCRIPT}</body></html>`);
 
   const W = size.widthIn * 72;

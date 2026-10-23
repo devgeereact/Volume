@@ -325,6 +325,7 @@ export function Cover({ title, subtitle, author, design, width, hideSubtitle, li
             top: cq(design.titleTop),
             fontSize: cq(design.titleSize),
             color: design.palette.title,
+            ...(design.textShadow ? { textShadow: design.textShadow } : {}),
             textTransform: design.titleUppercase ? "uppercase" : "none",
             ...(design.titleTracking ? { letterSpacing: design.titleTracking } : {}),
           }}
@@ -345,6 +346,7 @@ export function Cover({ title, subtitle, author, design, width, hideSubtitle, li
               lineHeight: 1.3,
               fontWeight: 500,
               color: design.palette.subtitle,
+              ...(design.textShadow ? { textShadow: design.textShadow } : {}),
             }}
           >
             {subtitle}
@@ -362,6 +364,7 @@ export function Cover({ title, subtitle, author, design, width, hideSubtitle, li
             letterSpacing: authorStyle === "caps" ? "0.16em" : "0.01em",
             textTransform: authorStyle === "caps" ? "uppercase" : "none",
             color: design.palette.author,
+            ...(design.textShadow ? { textShadow: design.textShadow } : {}),
           }}
         >
           {author}

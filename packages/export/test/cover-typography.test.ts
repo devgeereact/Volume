@@ -82,22 +82,23 @@ describe('eBook cover with the owner palette', () => {
     expect(Math.abs(blue - 0x55)).toBeLessThan(12);
   });
 
-  it('over concept art, keeps the middle vivid and puts the palette scrim behind the title and the author', async () => {
-    // Plain white art: the top and foot are palette teal over white, the middle is the art itself.
+  it('over concept art, leaves the art untouched and picks the palette colour that reads on it', async () => {
+    // Plain white art: no overlay at the corners, and the title flips to the palette's dark colour.
     const art = await sharp({ create: { width: 400, height: 600, channels: 3, background: '#FFFFFF' } })
       .png()
       .toBuffer();
     const style = applyCoverTypography(DEFAULT_COVER_STYLE, { palette: { background: '#1F4B55' } });
     const r = await exportEbookCover(loadMiniBook().meta, style, { browser, rules: loadKdpRules(), background: art });
-    const px = async (top: number) => {
-      const { data } = await sharp(r.jpeg).extract({ left: 4, top, width: 1, height: 1 }).raw().toBuffer({ resolveWithObject: true });
+    const px = async (left: number, top: number) => {
+      const { data } = await sharp(r.jpeg).extract({ left, top, width: 1, height: 1 }).raw().toBuffer({ resolveWithObject: true });
       return [data[0] ?? 0, data[1] ?? 0, data[2] ?? 0];
     };
-    const near = (got: number[], want: number[]) => got.forEach((c, i) => expect(Math.abs(c - (want[i] ?? 0))).toBeLessThan(16));
-    const mix = (alpha: number) => [0x1f, 0x4b, 0x55].map((c) => Math.round(c * alpha + 255 * (1 - alpha)));
-    near(await px(4), mix(0.9));
-    near(await px(1450), [255, 255, 255]);
-    near(await px(2556), mix(0.82));
+    for (const top of [4, 1700, 2556]) for (const c of await px(4, top)) expect(c).toBeGreaterThan(246);
+    // Some ink in the title band is the dark teal, not the light cream.
+    let dark = 0;
+    const { data } = await sharp(r.jpeg).extract({ left: 100, top: 250, width: 1400, height: 500 }).raw().toBuffer({ resolveWithObject: true });
+    for (let k = 0; k < data.length; k += 3) if ((data[k] ?? 255) < 90 && (data[k + 1] ?? 255) < 120) dark++;
+    expect(dark).toBeGreaterThan(500);
   });
 
   it('puts a right-aligned author at its exact position', async () => {

@@ -41,9 +41,9 @@ describe("larger titles and art scrim", () => {
     expect(big.titleLines.length).toBeGreaterThanOrEqual(small.titleLines.length);
   });
 
-  it("draws art under a clear-in-the-middle scrim, not a flat wash", () => {
+  it("draws the art untouched: no overlay until the art has been measured", () => {
     const html = renderToStaticMarkup(<ArtCover src="/a.webp" title="T" author="A" design={design} />);
-    expect(html).toContain("linear-gradient");
+    expect(html).not.toContain("linear-gradient");
     expect(html).not.toContain("opacity:0.55");
   });
 });

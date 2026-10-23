@@ -8,6 +8,7 @@ export * from './style.ts';
 export * from './kdp.ts';
 export * from './listing.ts';
 export * from './theme.ts';
+export * from './cover-ink.ts';
 export * from './repetition.ts';
 export * from './checks.ts';
 export * from './template-rules.ts';
