@@ -158,6 +158,32 @@ describe('1. profile facts and acknowledgements', () => {
   });
 });
 
+describe('1a. the run options reach the provider', () => {
+  it("forwards a stage run's own request time limit (a long blueprint needs more than the 10 minute default)", async () => {
+    const seen: ChatRequest[] = [];
+    const mock = new VolumeAi.MockProvider({ chunkDelayMs: 0, models: [VolumeAi.mockModelInfo('test/model')] });
+    const provider: AiProvider = {
+      name: 'openrouter',
+      chat: (req: ChatRequest): Promise<ChatResult> => {
+        seen.push(req);
+        return mock.chat(req);
+      },
+      generateImage: (req) => mock.generateImage(req),
+      listModels: () => mock.listModels(),
+      keyStatus: () => mock.keyStatus(),
+    };
+    const ai = await createOpenRouterAi({ promptsDir: PROMPTS, configDir: CONFIG, provider });
+    const profile = { penName: 'Gideon Akinlotan', isRealPerson: true, bio: BIO, credentials: [], illustrativeLine: true };
+    const section = { kind: 'introduction', title: 'Introduction', word_target: 600, summary: 'Why small steps work.' };
+    await ai.runStage(
+      'writing',
+      { promptId: 'writing.introduction', variables: { title: 'Start Small', profile, section } },
+      { model: 'test/model', timeoutMs: 1_500_000 },
+    );
+    expect(seen.at(-1)?.timeoutMs).toBe(1_500_000);
+  });
+});
+
 describe('2. checks get context', () => {
   it('passes the section plan, earlier summaries and the ledger to checks and later writing calls', async () => {
     const ai = new RecordingAi();

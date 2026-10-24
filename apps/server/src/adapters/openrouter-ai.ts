@@ -1005,6 +1005,7 @@ export class OpenRouterAiAdapter implements AiPort {
     }
     if (opts.signal) runOpts.signal = opts.signal;
     if (opts.model) runOpts.model = opts.model;
+    if (opts.timeoutMs !== undefined) runOpts.timeoutMs = opts.timeoutMs;
     if (o.stream && opts.onDelta) runOpts.onDelta = opts.onDelta;
     if (version !== undefined) runOpts.promptVersion = version;
     if (opts.scenario && this.provider === 'mock' && isMockScenario(opts.scenario)) runOpts.scenario = opts.scenario;
