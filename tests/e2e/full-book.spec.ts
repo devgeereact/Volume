@@ -2,9 +2,9 @@
  * Full-book end-to-end test (Playwright, Chromium, API mode, mock AI).
  *
  * Drives the real web app against a real Volume server and walks one book from the New book wizard to
- * the Marketing step through the UI: wizard, Research, Titles, Blueprint, Writing (one section fails on
+ * the Export step through the UI: wizard, Research, Titles, Blueprint, Writing (one section fails on
  * purpose, then Retry and Write the rest), Editor (an edit, then an author note woven in), Cover,
- * Export (the pack is downloaded and its zip entries are checked) and Marketing. The server API is used
+ * Marketing and Export (the pack is downloaded and its zip entries are checked). The server API is used
  * only to assert what was saved and to wait on jobs, never to skip a UI step.
  *
  * Run it from the repo root:   npm run e2e
@@ -464,7 +464,21 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
     expect(cover?.chosenAssetId).toBeTruthy();
     expect(cover?.ebookAssetId).toBeTruthy();
     expect(cover?.wrapAssetId).toBeTruthy();
-    await footer.getByRole("link", { name: /^Next: Export/ }).click();
+    await footer.getByRole("link", { name: /^Next: Marketing/ }).click();
+    await page.waitForURL(/\/marketing$/);
+    failNow();
+  });
+
+  await test.step("Marketing: generate and wait for items", async () => {
+    await expect(main.getByRole("heading", { name: "Marketing" }).first()).toBeVisible();
+    await stepButton("Generate scripts").click();
+    await expect(main.getByRole("article").first()).toBeVisible({ timeout: JOB_WAIT });
+    const items = (await getJson<Items<MarketingItem>>(request, `/books/${bookId}/marketing`)).items;
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.every((i) => i.body.trim().length > 0)).toBe(true);
+    expect(items.map((i) => i.kind).join(","), "item kinds").toMatch(/tiktok/i);
+    // The footer says "Skip to Export" until the posts are in, then "Next: Export".
+    await footer.getByRole("link", { name: /^(Next: |Skip to )Export/ }).click();
     await page.waitForURL(/\/export$/);
     failNow();
   });
@@ -504,9 +518,16 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
 
     const entries = readZip(readFileSync(zipPath));
     const names = entries.map((e) => e.name);
-    // The pack is built before the marketing here, so it holds no marketing files (never a "Not written yet" placeholder).
+    // Marketing is made before Export, so the pack carries it: a start-here guide and one named file per post.
     expect(names.length, `zip entries: ${names.join(", ")}`).toBeGreaterThanOrEqual(18);
-    expect(names.filter((n) => /^marketing\/.+\.txt$/.test(n))).toEqual([]);
+    expect(names, "the marketing start-here guide").toContain("marketing/00-START-HERE.txt");
+    expect(
+      names.some((n) => /^marketing\/tiktok\/tiktok-01-.+\.txt$/.test(n)),
+      `a named TikTok file in ${names.join(", ")}`,
+    ).toBe(true);
+    expect(names.some((n) => /Not written yet/i.test(n))).toBe(false);
+    // The pack matches the book, so the page says Exported.
+    await expect(main.getByText(/Nothing in it has changed since/)).toBeVisible();
     console.log(`Pack: ${names.length} entries: ${names.join(", ")}`);
     const find = (re: RegExp) => entries.find((e) => re.test(e.name));
     const pdf = find(/^manuscript\/.*interior.*\.pdf$/i);
@@ -542,19 +563,6 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
     }
     // The manuscript text carries the edit made in the Editor.
     expect(md?.read().toString("utf8")).toContain("This sentence was added by the end-to-end test.");
-    await footer.getByRole("link", { name: /^Skip to Marketing/ }).click();
-    await page.waitForURL(/\/marketing$/);
-    failNow();
-  });
-
-  await test.step("Marketing: generate and wait for items", async () => {
-    await expect(main.getByRole("heading", { name: "Marketing" }).first()).toBeVisible();
-    await stepButton("Generate scripts").click();
-    await expect(main.getByRole("article").first()).toBeVisible({ timeout: JOB_WAIT });
-    const items = (await getJson<Items<MarketingItem>>(request, `/books/${bookId}/marketing`)).items;
-    expect(items.length).toBeGreaterThan(0);
-    expect(items.every((i) => i.body.trim().length > 0)).toBe(true);
-    expect(items.map((i) => i.kind).join(","), "item kinds").toMatch(/tiktok/i);
     failNow();
   });
 });
