@@ -46,7 +46,13 @@ export interface UploadPackInput {
   claims?: ClaimItem[];
   ai: AiDisclosure;
   metadata?: PackMetadata;
-  marketing?: { tiktokScripts?: string; instagramCaptions?: string; launchEmail?: string };
+  marketing?: {
+    tiktokScripts?: string;
+    instagramCaptions?: string;
+    launchEmail?: string;
+    /** One entry per post, for the per-post files in marketing/tiktok, marketing/instagram and marketing/email. */
+    items?: MarketingFileItem[];
+  };
   /** Back-cover blurb as plain text (D-049): the matter-stage blurb, else the blueprint blurb. Written to listing/back-cover-blurb.txt when non-empty. */
   backCoverBlurb?: string;
   /** Short author bio as plain text (D-049). Written to listing/short-bio.txt when non-empty. */
@@ -136,6 +142,124 @@ with print options and ISBN); (3) rights and pricing. You need a unique ISBN for
 Check reports/preflight.txt before you upload.
 ${pagesLine ? `${pagesLine}\n` : ''}${pictureBook ? PICTURE_BOOK_NOTE : ''}`;
 
+/** One marketing post as the owner has it in the Marketing step. */
+export interface MarketingFileItem {
+  kind: 'tiktok_script' | 'instagram_caption' | 'launch_email';
+  title: string | null;
+  hook: string | null;
+  body: string;
+  cta: string | null;
+  hashtags: string[];
+  /** TikTok: the script's length in seconds. */
+  durationS?: number | null;
+  /** Launch email: every subject line offered (the title is the first). */
+  subjectLines?: string[];
+  /** Instagram: what the picture should show. */
+  imageIdea?: string | null;
+}
+
+const MARKETING_KINDS: Record<MarketingFileItem['kind'], { folder: string; prefix: string; noun: string; heading: string; all: string }> = {
+  tiktok_script: { folder: 'tiktok', prefix: 'tiktok', noun: 'TikTok script', heading: 'TikTok scripts', all: 'all-tiktok-scripts.txt' },
+  instagram_caption: { folder: 'instagram', prefix: 'instagram', noun: 'Instagram caption', heading: 'Instagram captions', all: 'all-instagram-captions.txt' },
+  launch_email: { folder: 'email', prefix: 'launch-email', noun: 'launch email', heading: 'Launch emails', all: 'all-launch-emails.txt' },
+};
+
+const hashtagLine = (tags: string[]): string => tags.map((h) => (h.startsWith('#') ? h : `#${h}`)).join(' ');
+const oneLine = (s: string, max: number): string => {
+  const t = s.replace(/\s+/g, ' ').trim();
+  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+};
+
+/** The words that name a post's file: its title, else its hook, else the start of its text. */
+const postName = (i: MarketingFileItem): string => oneLine(i.title?.trim() || i.hook?.trim() || i.body, 60);
+
+/** A file-name slug of at most `max` characters, cut between words. */
+function shortSlug(text: string, max: number): string {
+  const full = slugify(text);
+  if (full.length <= max) return full || 'post';
+  const cut = full.slice(0, max);
+  const at = cut.lastIndexOf('-');
+  return (at > 12 ? cut.slice(0, at) : cut).replace(/-+$/, '') || 'post';
+}
+
+/** One post as a file: what it is, where it goes and each part labelled. */
+function postText(i: MarketingFileItem, n: number, of: number, book: string): string {
+  const kind = MARKETING_KINDS[i.kind];
+  const parts: (string | null)[] = [
+    `${kind.noun.charAt(0).toUpperCase()}${kind.noun.slice(1)} ${n} of ${of}`,
+    `Book: ${book}`,
+    '',
+    i.kind === 'launch_email' ? `Subject: ${i.title?.trim() || postName(i)}` : i.title?.trim() ? `Title: ${i.title.trim()}` : null,
+    i.kind === 'launch_email' && (i.subjectLines ?? []).filter((x) => x.trim() && x.trim() !== i.title?.trim()).length
+      ? `Other subject lines to try:\n${(i.subjectLines ?? [])
+          .filter((x) => x.trim() && x.trim() !== i.title?.trim())
+          .map((x) => `- ${x.trim()}`)
+          .join('\n')}`
+      : null,
+    i.kind === 'tiktok_script' && i.durationS ? `Length: about ${i.durationS} seconds` : null,
+    i.kind === 'instagram_caption' && i.imageIdea?.trim() ? `What the picture should show:\n${i.imageIdea.trim()}` : null,
+    i.hook?.trim() ? `${i.kind === 'tiktok_script' ? 'Hook (say or show this in the first three seconds)' : 'Opening line'}:\n${i.hook.trim()}` : null,
+    `${i.kind === 'tiktok_script' ? 'Script' : i.kind === 'launch_email' ? 'Email' : 'Caption'}:\n${i.body.trim()}`,
+    i.cta?.trim() ? `Call to action:\n${i.cta.trim()}` : null,
+    i.hashtags.length ? `Hashtags:\n${hashtagLine(i.hashtags)}` : null,
+  ];
+  return `${parts
+    .filter((p): p is string => p !== null)
+    .join('\n\n')
+    .replace(/\n\n\n+/g, '\n\n')}\n`;
+}
+
+/**
+ * The marketing/ folder: a start-here index, then one clearly named file per post in a folder per platform, and one
+ * file per platform with every post together. Names carry the platform, the number and what the post is about.
+ */
+export function marketingFiles(items: MarketingFileItem[], book: string, author: string, date: string): { path: string; text: string }[] {
+  const files: { path: string; text: string }[] = [];
+  const listing: string[] = [];
+  const counts: string[] = [];
+  for (const [kindId, kind] of Object.entries(MARKETING_KINDS) as [MarketingFileItem['kind'], (typeof MARKETING_KINDS)[MarketingFileItem['kind']]][]) {
+    const mine = items.filter((i) => i.kind === kindId);
+    if (!mine.length) continue;
+    counts.push(
+      `${kind.folder}/`.padEnd(12) + `${mine.length} ${mine.length === 1 ? kind.noun : `${kind.noun}s`}, one file each, and ${kind.all} with them all together`,
+    );
+    listing.push('', `${kind.heading} (${mine.length})`);
+    const all: string[] = [];
+    mine.forEach((i, idx) => {
+      const n = idx + 1;
+      const name = `${kind.prefix}-${String(n).padStart(2, '0')}-${shortSlug(postName(i), 44)}.txt`;
+      const text = postText(i, n, mine.length, book);
+      files.push({ path: `marketing/${kind.folder}/${name}`, text });
+      all.push(text);
+      listing.push(`  ${kind.folder}/${name}\n      ${oneLine(i.hook?.trim() || i.title?.trim() || i.body, 90)}`);
+    });
+    files.push({
+      path: `marketing/${kind.folder}/${kind.all}`,
+      text: `${kind.heading} for ${book}\n${'='.repeat(40)}\n\n${all.join(`\n${'-'.repeat(40)}\n\n`)}`,
+    });
+  }
+  const index = [
+    `Marketing pack for ${book}, by ${author}`,
+    `Built ${date}`,
+    '',
+    'What is in this folder',
+    ...counts.map((c) => `  ${c}`),
+    '',
+    'How to use it',
+    '  Each file is one post. Open it, copy the text, check the hashtags, then post it.',
+    '  The numbers in the file names are the order Volume wrote them in. Post them in any order.',
+    '  The posts describe only what the written book teaches. Check reports/claims-to-verify.csv before you promote',
+    '  any health, legal or other factual statement.',
+    '  If you change the marketing text, or anything else in the book, build the pack again: the Export page then',
+    '  shows "Changed since export" until you do.',
+    '',
+    'Every file',
+    ...listing,
+    '',
+  ].join('\n');
+  return [{ path: 'marketing/00-START-HERE.txt', text: index }, ...files];
+}
+
 /** "a", "a and b", "a, b and c" (first letter capitalised). */
 function listLabels(labels: string[]): string {
   if (!labels.length) return '';
@@ -151,11 +275,18 @@ export async function buildUploadPack(input: UploadPackInput): Promise<{ fileNam
   const z = new JSZip();
   const f = input.files;
   const mk = input.marketing ?? {};
-  const marketing = [
-    { path: 'marketing/tiktok-scripts.txt', label: 'TikTok scripts', text: mk.tiktokScripts },
-    { path: 'marketing/instagram-captions.txt', label: 'Instagram captions', text: mk.instagramCaptions },
-    { path: 'marketing/launch-email.txt', label: 'the launch email', text: mk.launchEmail },
-  ].filter((m): m is { path: string; label: string; text: string } => typeof m.text === 'string' && m.text.trim() !== '');
+  // Per-post files when the posts are known; otherwise (an older caller) one combined file per platform.
+  const postFiles = mk.items?.length ? marketingFiles(mk.items, input.book.meta.title, input.book.meta.author, date) : [];
+  const marketing = postFiles.length
+    ? []
+    : [
+        { path: 'marketing/tiktok-scripts.txt', label: 'TikTok scripts', text: mk.tiktokScripts },
+        { path: 'marketing/instagram-captions.txt', label: 'Instagram captions', text: mk.instagramCaptions },
+        { path: 'marketing/launch-email.txt', label: 'the launch email', text: mk.launchEmail },
+      ].filter((m): m is { path: string; label: string; text: string } => typeof m.text === 'string' && m.text.trim() !== '');
+  const marketingLabel = postFiles.length
+    ? 'a start-here index, then one file per post in tiktok/, instagram/ and email/, with every post of a platform together in one file'
+    : listLabels(marketing.map((m) => m.label));
   const listingText = [
     { path: 'listing/back-cover-blurb.txt', label: 'the back-cover blurb', text: input.backCoverBlurb },
     { path: 'listing/short-bio.txt', label: 'the short bio', text: input.shortBio },
@@ -164,7 +295,7 @@ export async function buildUploadPack(input: UploadPackInput): Promise<{ fileNam
     'README.txt',
     README(
       slug,
-      listLabels(marketing.map((m) => m.label)),
+      marketingLabel,
       input.pictureBook === true,
       listingText.map((m) => m.label),
       // The Pages copy is for retouching, not for KDP; the hint only makes sense when there is a DOCX to open.
@@ -195,6 +326,7 @@ export async function buildUploadPack(input: UploadPackInput): Promise<{ fileNam
   );
   // Marketing files only when the text exists: a pack built before marketing has no marketing/ folder.
   for (const m of marketing) z.file(m.path, m.text.endsWith('\n') ? m.text : `${m.text}\n`);
+  for (const m of postFiles) z.file(m.path, m.text);
   const zip = await z.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 6 } });
   return { fileName: `${slug}-kdp-pack-${date}.zip`, zip };
 }

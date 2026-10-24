@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import type { RequestCtx } from '../auth/context.js';
 import { AppError, parse } from '../http/errors.js';
-import { bookWritingComplete, buildExportBook } from '../jobs/book-data.js';
+import { bookWritingComplete, buildExportBook, packHashOf } from '../jobs/book-data.js';
 import { KeyedLock } from '../lib/keyed-lock.js';
 import { assertQualityGate, preflightAcks, preflightReport } from '../jobs/quality-gate.js';
 import { EXPORT_KINDS } from '../ports/export.js';
@@ -226,8 +226,16 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     // was built makes it stale, like a manuscript change does for every file.
     const marketing = await p.listMarketing(req.ctx, id, { includeArchived: true });
     const marketingChangedAt = marketing.reduce((n, m) => Math.max(n, m.updatedAt), 0);
+    const now = packHashOf(book, await p.getCover(req.ctx, id));
     return {
       items: items.map((e) => {
+        // A pack built since the fingerprint was added stores one for everything it carries (titles, listing, covers,
+        // marketing, claims and the manuscript): any difference is a change since the export. Older packs only know
+        // the manuscript and the marketing time.
+        if (e.kind === 'pack' && e.manuscriptHash?.startsWith('p1:')) {
+          const changed = e.status === 'done' && e.manuscriptHash !== now;
+          return { ...e, stale: changed, staleReason: changed ? 'changed' : null };
+        }
         const manuscript = e.manuscriptHash !== null && e.manuscriptHash !== book.manuscriptHash;
         const marketingStale = e.kind === 'pack' && e.status === 'done' && marketingChangedAt > e.createdAt;
         return { ...e, stale: manuscript || marketingStale, staleReason: manuscript ? 'manuscript' : marketingStale ? 'marketing' : null };

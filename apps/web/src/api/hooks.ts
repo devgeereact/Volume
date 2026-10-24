@@ -1056,12 +1056,13 @@ export function useAcknowledgePreflight(bookId: string) {
   });
 }
 
-export function useExports(bookId: string | undefined) {
+export function useExports(bookId: string | undefined, options: { staleTimeMs?: number } = {}) {
   return useQuery({
     queryKey: queryKeys.book.exports(bookId ?? ""),
     queryFn: ({ signal }) => productionApi.exports(need(bookId, "Book id"), { signal }),
     enabled: !!bookId,
     select: (r) => r.items,
+    ...(options.staleTimeMs === undefined ? {} : { staleTime: options.staleTimeMs }),
   });
 }
 

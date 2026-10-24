@@ -327,10 +327,22 @@ describe('book flow with the mock AI', () => {
     expect(dl.statusCode).toBe(200);
     expect(dl.body).toContain('MOCK EXPORT');
     expect(dl.body).toContain('Test Author writes plain books.'); // About the author is the bio verbatim
+    const packStale = async (): Promise<{ stale: boolean; reason: string | null }> => {
+      const r = await t.call<{ items: { kind: string; status: string; stale: boolean; staleReason: string | null; createdAt: number }[] }>(
+        'GET',
+        `/api/v1/books/${bookId}/exports`,
+      );
+      const pack = r.body.items.filter((e) => e.kind === 'pack' && e.status === 'done').sort((a, b) => b.createdAt - a.createdAt)[0]!;
+      return { stale: pack.stale, reason: pack.staleReason };
+    };
+    // Exported: nothing has changed since the pack was built.
+    expect(await packStale()).toEqual({ stale: false, reason: null });
 
     // Marketing
     await t.call('POST', `/api/v1/books/${bookId}/marketing`, {});
     await t.services.runner.runUntilIdle();
+    // New marketing is a change since the export.
+    expect(await packStale()).toEqual({ stale: true, reason: 'changed' });
     const mk = await t.call<{ items: { id: string; kind: string }[] }>('GET', `/api/v1/books/${bookId}/marketing`);
     // Five TikTok scripts and five Instagram posts from the nonfiction template (D-049), one launch email.
     const kinds = mk.body.items.map((i) => i.kind);
@@ -340,6 +352,16 @@ describe('book flow with the mock AI', () => {
     expect((await t.call<Obj>('PATCH', `/api/v1/marketing/${mk.body.items[0]!.id}`, { status: 'used' })).body['status']).toBe('used');
     await t.call('POST', `/api/v1/marketing/${mk.body.items[0]!.id}/archive`, {});
     expect((await t.call<{ items: unknown[] }>('GET', `/api/v1/books/${bookId}/marketing`)).body.items).toHaveLength(10);
+
+    // Build the pack again with the marketing in it: exported until anything changes, then changed, then exported again when put back.
+    await t.call('POST', `/api/v1/books/${bookId}/exports`, {});
+    await t.services.runner.runUntilIdle();
+    expect(await packStale()).toEqual({ stale: false, reason: null });
+    const before = (await t.call<{ subtitle: string | null }>('GET', `/api/v1/books/${bookId}`)).body.subtitle;
+    await t.call('PATCH', `/api/v1/books/${bookId}`, { subtitle: 'A changed subtitle' });
+    expect(await packStale()).toEqual({ stale: true, reason: 'changed' });
+    await t.call('PATCH', `/api/v1/books/${bookId}`, { subtitle: before });
+    expect(await packStale()).toEqual({ stale: false, reason: null });
 
     // Jobs list and cost
     const jobs = await t.call<{ items: unknown[] }>('GET', `/api/v1/books/${bookId}/jobs`);

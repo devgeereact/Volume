@@ -374,7 +374,7 @@ describe('8. a pack built before marketing goes stale when marketing arrives', (
     await t.call('POST', `/api/v1/books/${id}/marketing`, {});
     await t.services.runner.runUntilIdle();
     const after = await t.call<{ items: { kind: string; status: string; stale: boolean; staleReason: string | null }[] }>('GET', `/api/v1/books/${id}/exports`);
-    expect(after.body.items.find((e) => e.kind === 'pack' && e.status === 'done')).toMatchObject({ stale: true, staleReason: 'marketing' });
+    expect(after.body.items.find((e) => e.kind === 'pack' && e.status === 'done')).toMatchObject({ stale: true, staleReason: 'changed' });
     expect(after.body.items.find((e) => e.kind === 'md')).toMatchObject({ stale: false });
   });
 });

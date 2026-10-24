@@ -5,6 +5,8 @@ User-visible changes, newest first. Dates in British format.
 ## 24 October 2026
 
 #### Added
+- Export is now the last step, after Marketing, so the marketing posts go into the upload pack. The pack's marketing folder has a start-here guide, then one clearly named file per TikTok script, Instagram caption and launch email (with length, other subject lines and the picture idea), and one file per platform with every post together.
+- A pack stays marked Exported while nothing in it has changed. The step bar and the Export page now show Exported, or Changed since export as soon as the book, its covers, listing, claims or marketing change. Putting a change back marks it Exported again.
 - The Cover studio preview is now the build's own page, not a redrawing: what you see (eBook, thumbnail, paperback wrap and the cover cards) is exactly what Build makes, including fonts, colours, title size and positions. The editing handles and the title size numbers are read from that page.
 - Each of the four cover concepts comes with its own design and palette, and the cover brief (v4) and image prompt (v3) ask for four different art directions with vivid colour and sharp, authentic art. See docs/book-production/COVER-SYSTEM.md.
 - Cover studio: a Design picker (all 17 cover styles, each with its own palettes) and a Title font picker, so books by the same author no longer have to look alike. Both are saved and used by the build.
@@ -15,6 +17,7 @@ User-visible changes, newest first. Dates in British format.
 - Title size now ranges from 60 to 180 percent and a larger title wraps onto more lines (preview and build) instead of stopping at the width of its longest line.
 
 #### Fixed
+- The tab strips (Marketing, New book and others) no longer show a stray vertical scrollbar over the labels.
 - Cover studio: Move up, Move down and dragging the title did nothing to the preview or the build, because the title's position was never sent with the other settings. It is now.
 - Cover studio: a title set low (Bottom) was shrunk to fit the room below it, so the size you picked and the size you got differed. The size now stays the same wherever the title sits, and a low or large title is lifted clear of the subtitle and author instead of running into them, in all 17 designs.
 - Cover studio: after covers are built there was no way to build them again unless you changed something, so an old build stayed out of date. A Build again button now sits beside the downloads.

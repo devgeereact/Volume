@@ -1,5 +1,9 @@
 # Current task
 
+## State on 25 October 2026 (export last)
+
+- Branch `perf/cover-preview-cache-and-polling` also holds D-060: Export is the last step, the pack carries named marketing files, and a pack is Exported until something in it changes. Tested locally on a mock book; not deployed. Owner opens one PR, merges and deploys; then check the live Export page.
+
 ## State on 25 October 2026 (local build checked)
 
 - PRs #65 and #66 are merged and deployed. Branch `perf/cover-preview-cache-and-polling` (not yet a PR, not deployed) now holds: slower shelf polling when idle, concept previews load after the main one, the title's position is sent so Move up and drag work, the title keeps its size at any position and is lifted clear of the author in every design, a Build again button, and honest budget copy. Tested on a local book built with the mock AI (no OpenRouter calls): create, titles, blueprint, write, concepts, edit, build, rebuild.

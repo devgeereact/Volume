@@ -306,6 +306,80 @@ describe('VolumeExportAdapter files', () => {
     const names = zipEntries(pack.data).filter((n) => n.startsWith('marketing/') && n.endsWith('.txt'));
     expect(names).toEqual(['marketing/tiktok-scripts.txt']);
   });
+
+  it('names every marketing post clearly, with a start-here index and the posts of a platform together', async () => {
+    const post = (
+      o: {
+        kind: 'tiktok_script' | 'instagram_caption' | 'launch_email';
+        title: string | null;
+        hook: string | null;
+        body: string;
+        cta: string | null;
+      } & Partial<{ hashtags: string[]; durationS: number | null; subjectLines: string[]; imageIdea: string | null }>,
+    ) => ({
+      hashtags: [],
+      durationS: null,
+      subjectLines: [],
+      imageIdea: null,
+      ...o,
+    });
+    const items = [
+      post({
+        kind: 'tiktok_script',
+        title: 'Three calm herbs',
+        hook: 'Small window, big flavour.',
+        body: 'Show the sill. Name three herbs.',
+        cta: 'Follow for more.',
+        hashtags: ['herbs', '#windowsill'],
+        durationS: 30,
+      }),
+      post({ kind: 'tiktok_script', title: null, hook: 'Stop killing basil.', body: 'Water in the morning.', cta: null }),
+      post({
+        kind: 'instagram_caption',
+        title: 'The sill',
+        hook: null,
+        body: 'A calm corner for herbs.',
+        cta: 'Link in bio.',
+        hashtags: ['herbs'],
+        imageIdea: 'A sunny windowsill with three pots.',
+      }),
+      post({
+        kind: 'launch_email',
+        title: 'Your herbs start here',
+        hook: null,
+        body: 'The book is out today.',
+        cta: 'Get your copy.',
+        subjectLines: ['Your herbs start here', 'Three herbs, one window'],
+      }),
+    ];
+    const pack = await exporter.buildPack({ ...book, marketing: { items } }, [files['pdf']!, files['md']!]);
+    const names = zipEntries(pack.data).filter((n) => n.startsWith('marketing/'));
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'marketing/00-START-HERE.txt',
+        'marketing/tiktok/tiktok-01-three-calm-herbs.txt',
+        'marketing/tiktok/tiktok-02-stop-killing-basil.txt',
+        'marketing/tiktok/all-tiktok-scripts.txt',
+        'marketing/instagram/instagram-01-the-sill.txt',
+        'marketing/instagram/all-instagram-captions.txt',
+        'marketing/email/launch-email-01-your-herbs-start-here.txt',
+        'marketing/email/all-launch-emails.txt',
+      ]),
+    );
+    const entries = readZip(Buffer.from(pack.data));
+    const read = (n: string): string => Buffer.from(entries.find((e) => e.name === n)!.data).toString('utf8');
+    const index = read('marketing/00-START-HERE.txt');
+    expect(index).toContain('2 TikTok scripts');
+    expect(index).toContain('tiktok/tiktok-01-three-calm-herbs.txt');
+    const first = read('marketing/tiktok/tiktok-01-three-calm-herbs.txt');
+    expect(first).toContain('TikTok script 1 of 2');
+    expect(first).toContain('Hook (say or show this in the first three seconds):\nSmall window, big flavour.');
+    expect(first).toContain('#herbs #windowsill');
+    expect(first).toContain('Length: about 30 seconds');
+    expect(read('marketing/instagram/instagram-01-the-sill.txt')).toContain('What the picture should show:\nA sunny windowsill with three pots.');
+    expect(read('marketing/email/launch-email-01-your-herbs-start-here.txt')).toContain('Other subject lines to try:\n- Three herbs, one window');
+    expect(read('marketing/email/launch-email-01-your-herbs-start-here.txt')).toContain('Subject: Your herbs start here');
+  });
 });
 
 describe('the export job with the real exporter', () => {

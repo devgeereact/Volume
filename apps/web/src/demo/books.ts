@@ -33,12 +33,12 @@ export const bookSteps: { id: BookStepId; label: string }[] = [
   { id: "writing", label: "Writing" },
   { id: "editor", label: "Editor" },
   { id: "cover", label: "Cover" },
-  { id: "export", label: "Export" },
   { id: "marketing", label: "Marketing" },
+  { id: "export", label: "Export" },
 ];
 
 /** Demo books carry no section versions, so writing counts as complete once a book is past the Writing stage. */
-type DemoBook = Omit<Book, "writingComplete" | "marketingCounts">;
+type DemoBook = Omit<Book, "writingComplete" | "marketingCounts" | "marketingMade" | "exported">;
 
 const DEMO_MARKETING_COUNTS = { tiktok: 5, instagram: 5 } as const;
 
@@ -451,8 +451,14 @@ export function stepState(book: Book, step: BookStepId, runningBookId: string | 
   if (book.attentionSteps.includes(step)) return "attention";
   const bookIdx = stageOrder.indexOf(book.stage);
   if (step === "marketing") {
-    if (book.stage === "published") return "done";
+    if (book.stage === "published" || book.marketingMade) return "done";
     return book.writingComplete ? "in-progress" : "not-started";
+  }
+  if (step === "export") {
+    // Export is the last step. It is done while the pack on file still matches the book, and in progress again as soon as
+    // anything in it changes (the server compares a fingerprint of everything the pack carries).
+    if (book.stage === "published" || book.exported) return "done";
+    return book.writingComplete && bookIdx >= stageOrder.indexOf("cover") ? "in-progress" : "not-started";
   }
   const stepIdx = stageOrder.indexOf(stepStage[step]);
   // The stage only moves forward (a cover concept can move it to Cover while chapters are still being written), so
