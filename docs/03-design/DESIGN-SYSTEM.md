@@ -34,7 +34,7 @@ Volume is a calm studio for long work. A book takes hours of machine time and da
 +------------------------------------------------------------------+
 ```
 
-- **Left nav:** global items, then the open book's steps in order (Research, Titles, Blueprint, Writing, Editor, Cover, Export, Marketing) with a state dot each (not started, in progress, needs attention, done). Collapses to 64 px icons.
+- **Left nav:** global items, then the open book's steps in order (Research, Titles, Blueprint, Writing, Editor, Cover, Marketing, Export) with a state dot each (not started, in progress, needs attention, done). Collapses to 64 px icons.
 - **Main canvas:** the screen. Prose at 60 to 75 characters per line (max 760 px); tables and grids may use the full width.
 - **Inspector:** details for the current selection. Closed by default on small screens; opens as a sheet.
 - **Job bar:** fixed at the bottom while any job runs; never covers primary actions (content gets bottom padding).

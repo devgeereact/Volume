@@ -173,6 +173,10 @@ export interface Book {
   writingComplete: boolean;
   /** TikTok scripts and Instagram posts the template asks for (D-049). */
   marketingCounts: { tiktok: number; instagram: number };
+  /** Marketing posts have been made for this book (set from the server's marketing list). */
+  marketingMade?: boolean;
+  /** The upload pack on file still matches the book: nothing in it has changed since it was built. */
+  exported?: boolean;
 }
 
 export interface PublishedFormat {

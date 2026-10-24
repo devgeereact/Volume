@@ -3,7 +3,7 @@ import { BookStatusActions } from "../published/BookStatusActions";
 import { canMarkPublished } from "../published/publishDate";
 import { useCanWrite } from "../../lib/access";
 import { lazy, Suspense, useMemo, useState } from "react";
-import { ArrowRightLeft, Download, FileArchive, FileImage, FileText, FileType, Package, RotateCw, Sparkles } from "lucide-react";
+import { ArrowRightLeft, Check, Download, FileArchive, FileImage, FileText, FileType, Package, RotateCw, Sparkles } from "lucide-react";
 import {
   Banner,
   Button,
@@ -193,6 +193,18 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
     <>
       <PageHeader title="Export" summary="Check, build and download the KDP upload pack." />
       {origin && <p className="mt-2 text-small text-ink-secondary">{origin}</p>}
+      {pack?.status === "done" && (
+        <p role="status" className={`mt-2 flex items-center gap-1.5 text-small font-medium ${pack.stale ? "text-accent-text" : "text-success"}`}>
+          {pack.stale ? (
+            <>Changed since export. Something in the book, its covers, listing or marketing is newer than the pack: build the pack again.</>
+          ) : (
+            <>
+              <Check size={14} strokeWidth={2} aria-hidden />
+              Exported {formatRelative(new Date(pack.createdAt).toISOString(), now)}. Nothing in it has changed since.
+            </>
+          )}
+        </p>
+      )}
       {canWrite && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Button variant="secondary" onClick={() => setPricing(true)}>

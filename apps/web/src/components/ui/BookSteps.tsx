@@ -54,8 +54,8 @@ function Marker({ state, n }: { state: StepState; n: number }) {
 }
 
 /**
- * The one step bar for a book (D-016): Research, Titles, Blueprint, Writing, Editor, Cover, Export,
- * Marketing. The marker shows each step's state from the book (done, in progress, needs attention,
+ * The one step bar for a book (D-016): Research, Titles, Blueprint, Writing, Editor, Cover, Marketing, Export (last).
+ * The marker shows each step's state from the book (done, in progress, needs attention,
  * not started); the blue pencil underline and bold label show the page you are on. Links, so Tab moves
  * through them; on phones the bar scrolls sideways and keeps the current step in view.
  */

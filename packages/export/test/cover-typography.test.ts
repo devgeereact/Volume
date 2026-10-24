@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import type { Browser } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DEFAULT_COVER_STYLE } from '@volume/core';
-import { loadKdpRules } from '@volume/core/node';
+import { loadCoverStyles, loadKdpRules } from '@volume/core/node';
 import { acquireBrowser, applyCoverTypography, exportEbookCover, releaseBrowser } from '../src/index.ts';
 import { loadMiniBook } from './helpers.ts';
 
@@ -189,6 +189,114 @@ describe('cover preview page', () => {
       // 0.2 asked for: the fitted size can only be smaller, and is a share of the cover width.
       expect(m.titleSize).toBeGreaterThan(5);
       expect(m.titleSize).toBeLessThanOrEqual(20.01);
+    } finally {
+      await ctx.close();
+    }
+  });
+
+  // The title size the owner picks is the size they get, wherever the title sits.
+  it('fits the title to the same size at the top, middle and bottom', async () => {
+    const meta = { ...loadMiniBook().meta, title: 'Steady On Your Feet', subtitle: 'Build Confidence, Set Boundaries And Complete Preceptorship' };
+    const sizes: number[] = [];
+    for (const titlePosition of ['top', 'middle', 'bottom']) {
+      const style = applyCoverTypography(DEFAULT_COVER_STYLE, { titlePosition, titleSize: 0.2 });
+      const preview = await exportEbookCover(meta, style, { browser: browser3, rules: loadKdpRules(), htmlOnly: true });
+      const ctx = await browser3.newContext({ viewport: { width: 1600, height: 2560 } });
+      try {
+        const page = await ctx.newPage();
+        await page.addInitScript(() => {
+          window.addEventListener('message', (e) => {
+            (window as unknown as { __msg: unknown }).__msg = e.data;
+          });
+        });
+        await page.route('http://cover.test/', (r) => r.fulfill({ body: preview.html ?? '', contentType: 'text/html' }));
+        await page.goto('http://cover.test/', { waitUntil: 'load' });
+        await page.waitForFunction('window.__msg !== undefined');
+        sizes.push((await page.evaluate<{ titleSize: number }>('window.__msg')).titleSize);
+      } finally {
+        await ctx.close();
+      }
+    }
+    expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThan(0.5);
+  }, 60_000);
+
+  // A title set low and made big must not run into the author line, in any design.
+  it('keeps a big, low title and its subtitle clear of the author in every design', async () => {
+    const meta = {
+      ...loadMiniBook().meta,
+      title: 'Steady On Your Feet',
+      subtitle: 'Build Confidence, Set Boundaries And Complete Preceptorship As A Registered Nurse In Your First Twelve Months',
+    };
+    const bad: string[] = [];
+    for (const base of loadCoverStyles()) {
+      const style = applyCoverTypography(base, { titlePosition: 'bottom', titleSize: 0.26 });
+      const preview = await exportEbookCover(meta, style, { browser: browser3, rules: loadKdpRules(), htmlOnly: true });
+      const ctx = await browser3.newContext({ viewport: { width: 1600, height: 2560 } });
+      try {
+        const page = await ctx.newPage();
+        await page.addInitScript(() => {
+          window.addEventListener('message', (e) => {
+            (window as unknown as { __msg: unknown }).__msg = e.data;
+          });
+        });
+        await page.route('http://cover.test/', (r) => r.fulfill({ body: preview.html ?? '', contentType: 'text/html' }));
+        await page.goto('http://cover.test/', { waitUntil: 'load' });
+        await page.waitForFunction('window.__msg !== undefined');
+        const m = await page.evaluate<{
+          height: number;
+          width: number;
+          title: { top: number; height: number } | null;
+          subtitle: { top: number; height: number } | null;
+          author: { top: number; height: number } | null;
+        }>('window.__msg');
+        const lowest = Math.max(m.title ? m.title.top + m.title.height : 0, m.subtitle ? m.subtitle.top + m.subtitle.height : 0);
+        const limit = m.author ? m.author.top : (m.height / m.width) * 100;
+        if (lowest > limit + 0.5) bad.push(`${base.id}: text ends at ${lowest.toFixed(1)}, author starts at ${limit.toFixed(1)}`);
+      } finally {
+        await ctx.close();
+      }
+    }
+    expect(bad).toEqual([]);
+  }, 120_000);
+
+  // Over real art, after owner edits: what the studio shows is what the build writes, pixel for pixel (JPEG noise aside).
+  it.each([
+    ['the style as it is', {}],
+    ['a bigger title in another font and palette', { titleSize: 0.28, titlePosition: 'bottom', fonts: { title: 'Lora' } }],
+    ['a centred title at an exact position', { titleAlign: 'center', titleTopPct: 30, titleSize: 0.16 }],
+  ])('draws the same picture as the build: %s', async (_name, typography) => {
+    const art = await sharp({ create: { width: 800, height: 1280, channels: 3, background: '#1d4f5e' } })
+      .composite([
+        {
+          input: await sharp(
+            Buffer.from(
+              `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1280"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8d9a8"/><stop offset="0.6" stop-color="#2a6f7f"/><stop offset="1" stop-color="#0d2a36"/></linearGradient></defs><rect width="800" height="1280" fill="url(#g)"/><circle cx="560" cy="880" r="150" fill="#f08a6a"/></svg>`,
+            ),
+          )
+            .png()
+            .toBuffer(),
+        },
+      ])
+      .jpeg({ quality: 90 })
+      .toBuffer();
+    const meta = { ...loadMiniBook().meta, title: 'Steady On Your Feet', subtitle: 'Build confidence, set boundaries and complete preceptorship' };
+    const style = applyCoverTypography(DEFAULT_COVER_STYLE, typography);
+    const o = { browser: browser3, rules: loadKdpRules(), background: art };
+    const preview = await exportEbookCover(meta, style, { ...o, htmlOnly: true });
+    const built = await exportEbookCover(meta, style, o);
+
+    const ctx = await browser3.newContext({ viewport: { width: 1600, height: 2560 }, deviceScaleFactor: 1 });
+    try {
+      const page = await ctx.newPage();
+      await page.route('http://cover.test/', (r) => r.fulfill({ body: preview.html ?? '', contentType: 'text/html' }));
+      await page.goto('http://cover.test/', { waitUntil: 'load' });
+      await page.waitForFunction('window.__coverReady === true');
+      const shot = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1600, height: 2560 } });
+      const raw = async (b: Buffer): Promise<Buffer> => sharp(b).removeAlpha().resize(400, 640).raw().toBuffer();
+      const [a, b] = await Promise.all([raw(shot), raw(built.jpeg)]);
+      let sum = 0;
+      for (let i = 0; i < a.length; i++) sum += Math.abs((a[i] ?? 0) - (b[i] ?? 0));
+      expect(sum / a.length).toBeLessThan(2);
     } finally {
       await ctx.close();
     }

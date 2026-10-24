@@ -216,7 +216,8 @@ export function useRunningJobs(enabled: boolean): RunningJob[] {
     queryFn: ({ signal }) => booksApi.list({}, { signal }),
     select: (r) => r.items,
     enabled,
-    refetchInterval: enabled ? 20_000 : false,
+    // Quick while a job runs, slow when the shelf is idle: the event stream carries the live changes either way.
+    refetchInterval: enabled ? (query) => (query.state.data?.items.some((b) => b.runningJob !== null) ? 20_000 : 60_000) : false,
   });
   const busy = useMemo(() => (books.data ?? []).filter((b) => b.runningJob !== null), [books.data]);
   // Stall and failure ages need the time; a 30 s tick is plenty for a 5 minute stall threshold.

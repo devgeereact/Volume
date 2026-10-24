@@ -53,6 +53,12 @@ describe("cover edit rules", () => {
     });
   });
 
+  it("sends the title's top, so moving the title reaches the preview and the build, and restores it", () => {
+    expect(editsToTypography({ titleTop: 33.333 })).toEqual({ titleTopPct: 33.33 });
+    expect(editsFromSaved(editsToTypography({ titleTop: 33.33 }), 12)).toEqual({ titleTop: 33.33 });
+    expect(editsToTypography(clearTops({ titleTop: 40 }))).toEqual({});
+  });
+
   it("restores saved edits, ignores bad values, and keeps older covers unchanged", () => {
     const old = { styleId: "x", titleTopPct: 12, sizePct: 100, showSubtitle: true };
     expect(editsFromSaved(old, 12)).toEqual({});

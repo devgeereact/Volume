@@ -56,7 +56,12 @@ export function Tabs({ label, items, value, onChange, idBase, className }: TabsP
   }
 
   return (
-    <div role="tablist" aria-label={label} onKeyDown={onKey} className={cn("relative flex gap-1 overflow-x-auto border-b border-border", className)}>
+    <div
+      role="tablist"
+      aria-label={label}
+      onKeyDown={onKey}
+      className={cn("relative flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border", className)}
+    >
       {items.map((t, i) => {
         const selected = t.id === value;
         return (
@@ -91,7 +96,7 @@ export function Tabs({ label, items, value, onChange, idBase, className }: TabsP
                 {t.count}
               </span>
             )}
-            {selected && <span aria-hidden className="absolute right-2 -bottom-px left-2 h-0.5 origin-left animate-pencil-x rounded-[1px] bg-select" />}
+            {selected && <span aria-hidden className="absolute right-2 bottom-0 left-2 h-0.5 origin-left animate-pencil-x rounded-[1px] bg-select" />}
           </button>
         );
       })}

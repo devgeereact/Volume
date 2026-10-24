@@ -598,7 +598,13 @@ function Studio({ book, apiBook, cover }: { book: Book; apiBook: ApiBookDetail |
                           checked ? "bg-select-wash ring-2 ring-select" : "hover:bg-sunken",
                         )}
                       >
-                        <ConceptThumb bookId={bookId} assetId={c.assetId} typography={conceptTypography(c, i)} title={`${c.name}, as the build draws it`} />
+                        <ConceptThumb
+                          bookId={bookId}
+                          assetId={c.assetId}
+                          typography={conceptTypography(c, i)}
+                          title={`${c.name}, as the build draws it`}
+                          enabled={!previewOn || !ebookPage.isPending}
+                        />
                       </span>
                       <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                         <span className={cn("text-label", checked ? "font-semibold text-select" : "text-ink")}>{c.name}</span>
@@ -945,6 +951,12 @@ function Studio({ book, apiBook, cover }: { book: Book; apiBook: ApiBookDetail |
                             Paperback wrap (PDF)
                           </a>
                         )}
+                        {canWrite && (
+                          <button type="button" className={buttonClasses("secondary")} disabled={building} onClick={() => void startBuild()}>
+                            <RotateCw size={16} aria-hidden />
+                            {building ? "Building covers" : "Build again"}
+                          </button>
+                        )}
                       </div>
                       <Link to={`/books/${bookId}/export`} className="text-small font-medium text-select underline underline-offset-2">
                         Open Export
@@ -1046,8 +1058,21 @@ function useDebounced<T>(value: T, ms: number): T {
 }
 
 /** One concept card: the build's own page for this concept's art and look, at card size. */
-function ConceptThumb({ bookId, assetId, typography, title }: { bookId: string; assetId: string; typography: Record<string, unknown>; title: string }) {
-  const page = useCoverPreview(bookId, "ebook", typography, undefined, assetId, true);
+function ConceptThumb({
+  bookId,
+  assetId,
+  typography,
+  title,
+  enabled,
+}: {
+  bookId: string;
+  assetId: string;
+  typography: Record<string, unknown>;
+  title: string;
+  /** Held back until the main preview is in, so the server renders one page at a time rather than five at once. */
+  enabled: boolean;
+}) {
+  const page = useCoverPreview(bookId, "ebook", typography, undefined, assetId, enabled);
   return page.data ? (
     <CoverFrame html={page.data.html} widthPx={page.data.widthPx} heightPx={page.data.heightPx} title={title} />
   ) : (

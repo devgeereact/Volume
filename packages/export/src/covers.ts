@@ -176,7 +176,9 @@ document.fonts.ready.then(function () {
   document.querySelectorAll('[data-fit]').forEach(function (el) {
     var box = el.parentElement;
     var size = parseFloat(getComputedStyle(el).fontSize);
-    var maxH = box.clientHeight * 0.6;
+    // The most height a title may take is a share of the cover, not of the room left below where it starts: a low title is lifted, not shrunk.
+    var fr = el.closest('.front');
+    var maxH = fr ? fr.clientHeight * 0.5 : box.clientHeight * 0.6;
     var guard = 0;
     while ((el.scrollWidth > box.clientWidth + 1 || el.offsetHeight > maxH) && size > 8 && guard < 200) {
       size = size * 0.97; el.style.fontSize = size + 'px'; guard++;
@@ -195,6 +197,29 @@ document.fonts.ready.then(function () {
       sub.style.top = want + 'px';
       sub.setAttribute('data-pushed', '1');
     }
+  });
+  // A title set low or made large can run into the author line (or off the bottom of the cover): lift the title and subtitle clear of it.
+  document.querySelectorAll('.front').forEach(function (front) {
+    var stack = front.querySelector('.stack');
+    var title = front.querySelector('.title');
+    if (!stack || !title) return;
+    var f = front.getBoundingClientRect();
+    var sub = front.querySelector('.sub');
+    function lift(by) {
+      stack.style.top = Math.max(0, parseFloat(getComputedStyle(stack).top) - by) + 'px';
+      if (sub && sub.classList.contains('abs')) sub.style.top = parseFloat(getComputedStyle(sub).top) - by + 'px';
+      front.setAttribute('data-lifted', '1');
+    }
+    // First the title running off the bottom of the room it has; then, once the author has settled, anything still over it.
+    var over = stack.scrollHeight - stack.clientHeight;
+    if (over > 1) lift(over);
+    var author = front.querySelector('.author');
+    if (!author) return;
+    var rule = front.querySelector('.rule');
+    var nameTop = Math.min(author.getBoundingClientRect().top, rule ? rule.getBoundingClientRect().top : Infinity);
+    var lowest = Math.max(title.getBoundingClientRect().bottom, sub ? sub.getBoundingClientRect().bottom : 0);
+    var clash = lowest - (nameTop - f.width * 0.03);
+    if (clash > 1) lift(clash);
   });
   window.__coverReady = true;
 });

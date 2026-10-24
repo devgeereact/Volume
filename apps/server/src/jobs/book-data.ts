@@ -7,6 +7,7 @@ import { sha256Hex } from '../lib/util.js';
 import { CODE_KINDS, fieldDriftAppliesTo, hasDatedPrices, loadBookStructure, promptTemplate, sectionKindFor } from '../config/book-structure.js';
 import type { ExportBook, ExportClaim, ExportSection, PreflightReport } from '../ports/export.js';
 import type { Book } from '../repos/books.js';
+import type { Cover } from '../repos/production.js';
 import type { Repos } from '../repos/index.js';
 import type { WritingState } from '../repos/manuscript.js';
 
@@ -209,6 +210,39 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
   };
 }
 
+/**
+ * A fingerprint of everything the upload pack carries: the manuscript, title and subtitle, author details, listing,
+ * ISBNs and edition, AI disclosure, claims, every marketing post, and the covers (which concept, the type settings
+ * and the built files). The pack job stores it; a later fingerprint that differs means the pack is out of date. The
+ * `p1:` prefix tells it apart from the plain manuscript hash older packs carry.
+ */
+export function packHashOf(book: ExportBook, cover: Pick<Cover, 'chosenAssetId' | 'typography' | 'ebookAssetId' | 'wrapAssetId' | 'wrapSpec'> | null): string {
+  const photo = book.authorPhoto ? sha256Hex(Buffer.from(book.authorPhoto.data)) : null;
+  const parts = {
+    title: book.title,
+    subtitle: book.subtitle,
+    author: book.author,
+    language: book.language,
+    trim: book.trim,
+    paper: book.paper,
+    edition: book.edition,
+    year: book.publicationYear,
+    isbns: [book.isbnPaperback, book.isbnEbook],
+    kind: [book.bookTypeId, book.interiorThemeId, book.coverStyleId, book.templateId],
+    ai: [book.aiDisclosure, book.illustrativeLine],
+    manuscript: book.manuscriptHash,
+    photo,
+    listing: book.listing,
+    claims: book.claims,
+    marketing: book.marketing?.items ?? [],
+    ownCover: book.ownCover,
+    cover: cover
+      ? [cover.chosenAssetId, cover.typography, cover.ebookAssetId, cover.wrapAssetId, cover.wrapSpec['pages'] ?? null, cover.wrapSpec['mock'] === true]
+      : null,
+  };
+  return `p1:${sha256Hex(JSON.stringify(parts))}`;
+}
+
 /** Which cover files are the owner's own uploads (cover.wrapSpec ownEbook and ownWrap, set by POST /cover/own). */
 async function ownCoverOf(repos: Repos, ctx: RequestCtx, projectId: string): Promise<{ ebook: boolean; wrap: boolean }> {
   const cover = await repos.production.getCover(ctx, projectId);
@@ -246,6 +280,19 @@ async function marketingText(repos: Repos, ctx: RequestCtx, projectId: string): 
       .join('\n\n')}\n`;
   };
   const out: NonNullable<ExportBook['marketing']> = {};
+  const posts = items.filter((i) => i.kind === 'tiktok_script' || i.kind === 'instagram_caption' || i.kind === 'launch_email');
+  if (posts.length)
+    out.items = posts.map((i) => ({
+      kind: i.kind as 'tiktok_script' | 'instagram_caption' | 'launch_email',
+      title: i.title,
+      hook: i.hook,
+      body: i.body,
+      cta: i.cta,
+      hashtags: i.hashtags,
+      durationS: i.durationS,
+      subjectLines: i.subjectLines,
+      imageIdea: i.imageIdea,
+    }));
   const tiktok = block('tiktok_script');
   const instagram = block('instagram_caption');
   const email = block('launch_email');

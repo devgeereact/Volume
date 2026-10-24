@@ -1,7 +1,16 @@
 import type { ExportFile, ExportKind, PreflightReport } from '../../ports/export.js';
 import { EXPORT_KINDS } from '../../ports/export.js';
 import type { MarketingExtras } from '../../repos/production.js';
-import { bookMarketingCounts, buildExportBook, houseStyle, ownerListingFields, profileSummary, withOwnerPlaceholders, withPackCovers } from '../book-data.js';
+import {
+  bookMarketingCounts,
+  buildExportBook,
+  houseStyle,
+  ownerListingFields,
+  packHashOf,
+  profileSummary,
+  withOwnerPlaceholders,
+  withPackCovers,
+} from '../book-data.js';
 import { fixHouseStyleDeep } from '../house-style-fix.js';
 import { writtenSections, writtenSummaries } from '../book-checks.js';
 import { listingVariables } from '../listing-input.js';
@@ -475,7 +484,8 @@ export const exportPackHandler: JobHandler = async (jc) => {
       bytes: asset.bytes,
       pageCount: null,
       sha256: asset.sha256,
-      manuscriptHash: book.manuscriptHash,
+      // A pack stores the fingerprint of everything it carries, so any later change to the book marks it out of date.
+      manuscriptHash: packHashOf(book, cover),
       preflight,
       jobId: jc.job.id,
       mock: pack.mock,

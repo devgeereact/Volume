@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { ReadOnlyBanner } from "../lib/access";
 import { Outlet, useLocation, useParams } from "react-router";
 import { useBookEvents, useBookLive } from "../api/events";
+import { useExports, useMarketing } from "../api/hooks";
 import { BookSteps } from "../components/ui/BookSteps";
 import { Cover } from "../components/ui/Cover";
 import { libraryCover } from "../features/library/draftCover";
@@ -59,7 +60,12 @@ function ApiBookBar(props: { book: Book; penName: PenName | undefined; current: 
   const writing = Object.values(live.data.jobs).some(
     (j) => (j.kind === "write_book" || j.kind === "rebuild_book" || j.kind === "write_section") && (j.status === "running" || j.status === "queued"),
   );
-  return <BookBar {...props} runningBookId={writing ? props.book.id : null} />;
+  // Export is done while the newest pack still matches the book; marketing is done once posts exist.
+  const exports = useExports(props.book.id, { staleTimeMs: 30_000 });
+  const marketing = useMarketing(props.book.id);
+  const pack = (exports.data ?? []).filter((e) => e.kind === "pack" && e.status === "done").sort((a, b) => b.createdAt - a.createdAt)[0];
+  const book = { ...props.book, exported: !!pack && !pack.stale, marketingMade: (marketing.data?.length ?? 0) > 0 };
+  return <BookBar {...props} book={book} runningBookId={writing ? props.book.id : null} />;
 }
 
 function BookLoading() {

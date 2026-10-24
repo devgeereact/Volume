@@ -54,7 +54,23 @@ export interface ExportBook {
   /** True when the book type asks for every price to carry the month it was checked (preflight style.dated-prices). */
   datedPrices?: boolean;
   /** Marketing text for the pack's marketing/ folder. */
-  marketing?: { tiktokScripts?: string; instagramCaptions?: string; launchEmail?: string };
+  marketing?: {
+    tiktokScripts?: string;
+    instagramCaptions?: string;
+    launchEmail?: string;
+    /** Each post on its own, for the per-post files in the pack's marketing/ folders. */
+    items?: {
+      kind: 'tiktok_script' | 'instagram_caption' | 'launch_email';
+      title: string | null;
+      hook: string | null;
+      body: string;
+      cta: string | null;
+      hashtags: string[];
+      durationS: number | null;
+      subjectLines: string[];
+      imageIdea: string | null;
+    }[];
+  };
   /** Covers the owner uploaded ("use my own cover", POST /books/:id/cover/own): checked against the KDP rules, not rebuilt. */
   ownCover?: { ebook: boolean; wrap: boolean };
 }

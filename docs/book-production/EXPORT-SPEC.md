@@ -336,10 +336,18 @@ listing/ai-disclosure.txt       what was AI-generated (text, images) and why
 reports/preflight.txt
 reports/claims-to-verify.csv    chapter, sentence, category, check needed, status, needs check (yes, or no for a claim listed for the record)
 reports/kdp-rules-used.txt      rules file version, fact IDs and dates
-marketing/tiktok-scripts.txt
-marketing/instagram-captions.txt
-marketing/launch-email.txt
+marketing/00-START-HERE.txt                   what is in the folder, how to use it, every file with its first line
+marketing/tiktok/tiktok-01-<what it is about>.txt        one file per script: length, hook, script, call to action, hashtags
+marketing/tiktok/all-tiktok-scripts.txt
+marketing/instagram/instagram-01-<what it is about>.txt  one file per caption: opening line, caption, what the picture should show, hashtags
+marketing/instagram/all-instagram-captions.txt
+marketing/email/launch-email-01-<subject>.txt            subject, other subject lines to try, email, call to action
+marketing/email/all-launch-emails.txt
 ```
+
+Marketing is made before Export (Export is the last step, D-060), so the pack carries the posts as they stand. A pack built from a caller that gives no per-post items (`marketing.items`) falls back to the older single files `marketing/tiktok-scripts.txt`, `marketing/instagram-captions.txt` and `marketing/launch-email.txt`.
+
+A pack is "exported" while it matches the book: it stores a fingerprint (`p1:` plus a hash) of the manuscript, title and subtitle, author details, listing, ISBNs, AI disclosure, claims, every marketing post and the covers. `GET /books/:id/exports` marks it `stale` with reason `changed` when the current fingerprint differs, and a change put back makes it current again.
 
 `listing/back-cover-blurb.txt` and `listing/short-bio.txt` come from the optional `backCoverBlurb` and `shortBio` inputs to `buildUploadPack()` (D-049). Each is written only when its text is not blank, as UTF-8 with one trailing newline, and the README's `listing/` line names it. The caller picks the blurb: the matter-stage back-cover blurb, falling back to the blueprint blurb. Marketing files follow the same rule: only the ones with text are written. Marketing counts come from the book template at `packages.marketing[].default.count` (5 TikTok scripts and 5 Instagram captions in every template).
 
