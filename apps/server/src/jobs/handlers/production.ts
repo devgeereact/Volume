@@ -380,6 +380,10 @@ export const exportPackHandler: JobHandler = async (jc) => {
   const projectId = jc.job.projectId;
   if (!projectId) throw new JobFailed('Export job is missing its book.');
   const book = await buildExportBook(repos, jc.ctx, projectId, jc.services.configDir, jc.services.blobs);
+  // The cover and the fingerprint are taken before the exporter touches the book, so the pack stores exactly what a
+  // later GET /books/:id/exports computes from the saved data.
+  const cover = await repos.production.getCover(jc.ctx, projectId);
+  const fingerprint = packHashOf(book, cover);
   await jc.progress(0.05, 'Preflight');
   const preflight = await withOwnerPlaceholders(repos, jc.ctx, projectId, await exporter.preflight(book, { signal: jc.signal }));
   if (preflight.blocks > 0) {
@@ -391,7 +395,6 @@ export const exportPackHandler: JobHandler = async (jc) => {
   const files: ExportFile[] = [];
   const records: string[] = [];
   // The eBook cover from the cover studio becomes the EPUB's cover image (and goes into the pack's cover/ folder).
-  const cover = await repos.production.getCover(jc.ctx, projectId);
   const ebookCover = cover?.ebookAssetId ? await blobs.read(jc.ctx, cover.ebookAssetId) : null;
   const coverJpeg = ebookCover && ebookCover.meta.mime === 'image/jpeg' ? new Uint8Array(ebookCover.data) : null;
   for (const [i, kind] of kinds.entries()) {
@@ -485,7 +488,7 @@ export const exportPackHandler: JobHandler = async (jc) => {
       pageCount: null,
       sha256: asset.sha256,
       // A pack stores the fingerprint of everything it carries, so any later change to the book marks it out of date.
-      manuscriptHash: packHashOf(book, cover),
+      manuscriptHash: fingerprint,
       preflight,
       jobId: jc.job.id,
       mock: pack.mock,

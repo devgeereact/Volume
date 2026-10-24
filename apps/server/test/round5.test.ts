@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { MockAiAdapter } from '../src/adapters/mock-ai.js';
 import { conceptCountOf, createOpenRouterAi, estimatePlan } from '../src/adapters/openrouter-ai.js';
 import { loadBookStructure, loadBookTypes, promptTemplate, sectionKindFor } from '../src/config/book-structure.js';
+import { buildExportBook, packHashOf } from '../src/jobs/book-data.js';
 import { fitWordTargets, plannedWords } from '../src/jobs/handlers/planning.js';
 import { ACKNOWLEDGEMENTS_PLACEHOLDER } from '../src/jobs/handlers/writing.js';
 import type { AiPort, AiStage, AiStageInput, AiStageResult, RunStageOptions } from '../src/ports/ai.js';
@@ -352,6 +353,36 @@ describe('7. cover concepts', () => {
     expect(conceptCountOf({ settings: { coverConcepts: 1 } })).toBe(1);
     const plan = estimatePlan('cover_brief', { variables: { conceptCount: 1 } });
     expect(plan.find((p) => p.task === 'cover.cover-image')?.times).toBe(1);
+  });
+});
+
+describe('8a. a fresh pack is not stale', () => {
+  it('reads as up to date straight after the build, with an author photo on the profile', async () => {
+    t = await testApp({ ai: new MockAiAdapter() });
+    const id = await newBook(t, { bookTypeId: 'ai-tech-howto', wordTarget: 6000 });
+    const book = await t.services.repos.books.require(t.owner, id);
+    // A tiny PNG signature is enough: the export reads the bytes, it does not decode them.
+    const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4, 5, 6, 7, 8]);
+    const photo = await t.services.blobs.put(t.owner, { kind: 'author_photo', filename: 'portrait.png', mime: 'image/png', profileId: book.profileId }, png);
+    await t.services.repos.profiles.update(t.owner, book.profileId, { brand: { photoAssetId: photo.id } });
+    await t.call('POST', `/api/v1/books/${id}/research`, {});
+    await t.services.runner.runUntilIdle();
+    await approved(t, id, 1);
+    await written(t, id);
+    await buildCovers(t, id);
+    await t.call('POST', `/api/v1/books/${id}/exports`, { kinds: ['md'] });
+    await t.services.runner.runUntilIdle();
+    const out = await t.call<{ items: { kind: string; status: string; stale: boolean }[] }>('GET', `/api/v1/books/${id}/exports`);
+    expect(out.body.items.find((e) => e.kind === 'pack' && e.status === 'done')).toMatchObject({ stale: false });
+  });
+
+  it('stores a fingerprint that fits the 64 character column, so MariaDB does not cut it', async () => {
+    t = await testApp({ ai: new MockAiAdapter() });
+    const id = await newBook(t, { bookTypeId: 'ai-tech-howto', wordTarget: 6000 });
+    const book = await buildExportBook(t.services.repos, t.owner, id, t.services.configDir, t.services.blobs);
+    const hash = packHashOf(book, null);
+    expect(hash).toMatch(/^p1:[0-9a-f]+$/);
+    expect(hash.length).toBeLessThanOrEqual(64);
   });
 });
 

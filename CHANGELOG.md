@@ -17,6 +17,7 @@ User-visible changes, newest first. Dates in British format.
 - Title size now ranges from 60 to 180 percent and a larger title wraps onto more lines (preview and build) instead of stopping at the width of its longest line.
 
 #### Fixed
+- A pack built on the host no longer shows "Changed since export" straight after it is built. The pack's fingerprint was 67 characters and the database kept 64, so it never matched. It now fits, and packs already built on the host match again without a rebuild.
 - The tab strips (Marketing, New book and others) no longer show a stray vertical scrollbar over the labels.
 - Cover studio: Move up, Move down and dragging the title did nothing to the preview or the build, because the title's position was never sent with the other settings. It is now.
 - Cover studio: a title set low (Bottom) was shrunk to fit the room below it, so the size you picked and the size you got differed. The size now stays the same wherever the title sits, and a low or large title is lifted clear of the subtitle and author instead of running into them, in all 17 designs.
