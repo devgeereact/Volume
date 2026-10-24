@@ -310,7 +310,7 @@
       "aspectRatio": "2:3",
       "aspectRatios": {
         "cover": "2:3",
-        "spread": "2:1",
+        "spread": "16:9",
         "character-reference": "2:3"
       },
       "resolution": "2K",
@@ -318,7 +318,7 @@
       "n": 1,
       "prompts": [],
       "receives": "imagePrompt from cover.cover-image, a scene prompt from children.scene-prompts, or a reference prompt from children.character-reference",
-      "pictureBookNotes": "D-045: a spread image is one 2:1 picture split across the gutter of two facing pages. Each main character gets one 2:3 full-body reference image first; it is sent as input_references on every spread, and a fixed seed is sent when the model lists seed in supported_parameters (https://openrouter.ai/docs/guides/overview/multimodal/image-generation, read 2026-10-17). 2:1 and 2:3 are on the list the endpoint accepted on 2026-10-05. Whether google/gemini-2.5-flash-image lists seed is still to verify against GET /api/v1/models before phase 7 starts.",
+      "pictureBookNotes": "D-045: a spread image is one wide picture split across the gutter of two facing pages (asked for at 16:9, the widest ratio the Google image models accept near 2:1; the print export crops it to the spread shape). Each main character gets one 2:3 full-body reference image first; it is sent as input_references on every spread, and a fixed seed is sent when the model lists seed in supported_parameters (https://openrouter.ai/docs/guides/overview/multimodal/image-generation, read 2026-10-17). 2:3 and 16:9 are on the list the endpoint accepted; 2:1 was rejected on a live run on 24 October 2026 (accepted: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9), and the Google image models take at most 3 input_references. Whether google/gemini-2.5-flash-image lists seed is still to verify against GET /api/v1/models before phase 7 starts.",
       "notes": "Uses POST /api/v1/images (base64 results, no charge on failure per the plan). One image per concept (n 1). Aspect ratio 2:3 (5:8 is rejected); the export fits it to 1600 x 2560. The model never draws text; typography is added by the app. Export converts to JPEG for KDP (ebook.cover file types). To verify against GET /api/v1/models."
     },
     "marketing": {

@@ -18,6 +18,7 @@ User-visible changes, newest first. Dates in British format.
 - Title size now ranges from 60 to 180 percent and a larger title wraps onto more lines (preview and build) instead of stopping at the width of its longest line.
 
 #### Fixed
+- Picture book illustrations now paint. The image model rejected the spread request (it does not accept a 2:1 picture, and takes at most 3 reference images), so every spread failed. Spreads are now asked for at 16:9 and cropped to the page, and at most 3 character references are sent.
 - A long book's blueprint is no longer cut off by the 10 minute AI request limit. Blueprints for big books take 9 to 10 minutes, so they now get 25.
 - In Volume mode, one book that fails no longer stops the books after it. The batch carries on to the next book and reports which ones failed, so you can restart just those.
 - A pack built on the host no longer shows "Changed since export" straight after it is built. The pack's fingerprint was 67 characters and the database kept 64, so it never matched. It now fits, and packs already built on the host match again without a rebuild.

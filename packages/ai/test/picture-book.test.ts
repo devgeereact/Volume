@@ -114,14 +114,14 @@ describe('picture-book stages (mock fixtures)', () => {
 });
 
 describe('image requests with references and a seed', () => {
-  it('uses the aspect ratio for the purpose: spread 2:1, character reference 2:3, cover 2:3', async () => {
+  it('uses the aspect ratio for the purpose: spread 16:9, character reference 2:3, cover 2:3', async () => {
     const s = service();
     const spread = await s.generateImage('A spread, no text', { purpose: 'spread' });
     await s.generateImage('A reference, no text', { purpose: 'character-reference' });
     await s.generateImage('A cover, no text');
-    await s.generateImage('A spread, no text', { purpose: 'spread', aspectRatio: '16:9' });
-    expect(images(s).map((r) => r.aspectRatio)).toEqual(['2:1', '2:3', '2:3', '16:9']);
-    expect(spread.aspectRatio).toBe('2:1');
+    await s.generateImage('A spread, no text', { purpose: 'spread', aspectRatio: '3:2' });
+    expect(images(s).map((r) => r.aspectRatio)).toEqual(['16:9', '2:3', '2:3', '3:2']);
+    expect(spread.aspectRatio).toBe('16:9');
   });
 
   it('sends reference bytes as data URLs and the seed when the model lists seed', async () => {
@@ -140,6 +140,16 @@ describe('image requests with references and a seed', () => {
     expect(req?.seed).toBe(seed);
     expect(req?.inputReferences?.[0]?.url).toBe(`data:image/png;base64,${Buffer.from(PNG).toString('base64')}`);
     expect(req?.inputReferences?.[1]?.url).toBe('https://example.org/bramble.png');
+  });
+
+  it('sends at most 3 reference images and says how many were left out', async () => {
+    const s = service({ models: [mockModelInfo(IMAGE_MODEL, { inputModalities: ['text', 'image'] })] });
+    await s.listModels();
+    const ref = { data: PNG, mediaType: 'image/png' };
+    const r = await s.generateImage('Spread, no text', { purpose: 'spread', inputReferences: [ref, ref, ref, ref] });
+    expect(r.referencesSent).toBe(3);
+    expect(images(s)[0]?.inputReferences).toHaveLength(3);
+    expect(r.notes.join(' ')).toContain('at most 3 reference images, so 1 were left out');
   });
 
   it('leaves the seed out, with a note, when the model does not list it or no model list is loaded', async () => {

@@ -49,6 +49,9 @@ import {
 } from './types.ts';
 import { asObject, asString, sha256, stableStringify, wordCount } from './util.ts';
 
+/** Most reference images one image request may carry (Google image models: input_references must have 0 to 3 items). */
+const MAX_INPUT_REFERENCES = 3;
+
 export interface CreateAiServiceOptions {
   /** OPENROUTER_API_KEY, read by the server from its environment. Leave empty to get the mock provider. */
   apiKey?: string | undefined;
@@ -872,7 +875,9 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
   async function generateImage(prompt: string, opts: GenerateImageOptions = {}): Promise<GenerateImageResult> {
     if (!prompt.trim()) throw new BadRequestError('The image prompt is empty.');
     if (opts.seed !== undefined) assertSeed(opts.seed);
-    const references = (opts.inputReferences ?? []).map(toImageReference);
+    const allReferences = (opts.inputReferences ?? []).map(toImageReference);
+    // The Google image models take at most 3 input_references; the first ones are sent (a live run sent 4 and was rejected).
+    const references = allReferences.slice(0, MAX_INPUT_REFERENCES);
     const purpose = opts.purpose ?? 'cover';
     const purposeRatio = registry.stageConfig('cover_image').aspectRatios?.[purpose];
     let resolved = resolveStage('cover_image', opts);
@@ -889,6 +894,9 @@ export function createAiService(options: CreateAiServiceOptions): AiService {
       await opts.beforeCall?.(0, p?.perRequest === null || p?.perRequest === undefined ? null : p.perRequest * n);
       const info = registry.modelInfo(model);
       const notes: string[] = [];
+      if (allReferences.length > references.length) {
+        notes.push(`The image model takes at most ${MAX_INPUT_REFERENCES} reference images, so ${allReferences.length - references.length} were left out.`);
+      }
       const sendRefs = references.length > 0 && modelTakesReferences(info);
       if (references.length > 0 && !sendRefs) {
         notes.push(`${model} takes no image input, so the ${references.length} reference image(s) were not sent; the character sheet text still applies.`);
