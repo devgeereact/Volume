@@ -5,6 +5,7 @@ User-visible changes, newest first. Dates in British format.
 ## 24 October 2026
 
 #### Added
+- Typographic covers: the cover build can now make both covers with no artwork, set in the book's cover style, so a book can have a clean cover without an AI image or any image credit. Building from a concept later replaces it.
 - Export is now the last step, after Marketing, so the marketing posts go into the upload pack. The pack's marketing folder has a start-here guide, then one clearly named file per TikTok script, Instagram caption and launch email (with length, other subject lines and the picture idea), and one file per platform with every post together.
 - A pack stays marked Exported while nothing in it has changed. The step bar and the Export page now show Exported, or Changed since export as soon as the book, its covers, listing, claims or marketing change. Putting a change back marks it Exported again.
 - The Cover studio preview is now the build's own page, not a redrawing: what you see (eBook, thumbnail, paperback wrap and the cover cards) is exactly what Build makes, including fonts, colours, title size and positions. The editing handles and the title size numbers are read from that page.

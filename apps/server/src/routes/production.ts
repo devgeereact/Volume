@@ -128,11 +128,13 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
   app.post('/books/:id/cover/build', async (req, reply) => {
     writer(req);
     const id = idOf(req);
+    // typographic: a cover set in the book's cover style with no artwork, so it needs no AI image and no credit.
+    const { typographic = false } = parse(z.object({ typographic: z.boolean().optional() }).strict().optional(), req.body) ?? {};
     const cover = await p.getCover(req.ctx, id);
-    if (!cover?.chosenAssetId) throw new AppError('invalid_state', 'Choose a cover concept first.');
-    if (cover.wrapSpec['ownEbook'] === true && cover.wrapSpec['ownWrap'] === true && cover.ebookAssetId && cover.wrapAssetId)
+    if (!typographic && !cover?.chosenAssetId) throw new AppError('invalid_state', 'Choose a cover concept first.');
+    if (cover && cover.wrapSpec['ownEbook'] === true && cover.wrapSpec['ownWrap'] === true && cover.ebookAssetId && cover.wrapAssetId)
       throw new AppError('invalid_state', 'Both covers are your own uploads. Take one out to build that one from the concept.');
-    const job = await s.queue.enqueue(req.ctx, { kind: 'cover_build', projectId: id, payload: {} });
+    const job = await s.queue.enqueue(req.ctx, { kind: 'cover_build', projectId: id, payload: typographic ? { typographic: true } : {} });
     return accepted(reply, job);
   });
 

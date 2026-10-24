@@ -106,13 +106,15 @@ export const coverBuildHandler: JobHandler = async (jc) => {
   const projectId = jc.job.projectId;
   if (!projectId) throw new JobFailed('Cover job is missing its book.');
   const cover = await repos.production.getCover(jc.ctx, projectId);
-  if (!cover?.chosenAssetId) throw new JobFailed('Choose a cover concept first.', 'invalid_state');
+  // A typographic cover is set in the book's cover style with no artwork (no AI image, no credit).
+  const typographic = jc.payload['typographic'] === true;
+  if (!typographic && !cover?.chosenAssetId) throw new JobFailed('Choose a cover concept first.', 'invalid_state');
   // The owner's own covers ("use my own cover") stay: a build makes only the slots that are not the owner's.
-  const keepEbook = cover.wrapSpec['ownEbook'] === true && !!cover.ebookAssetId;
-  const keepWrap = cover.wrapSpec['ownWrap'] === true && !!cover.wrapAssetId;
-  if (keepEbook && keepWrap) return { result: { skipped: 'own covers in use', ebookAssetId: cover.ebookAssetId, wrapAssetId: cover.wrapAssetId } };
+  const keepEbook = cover?.wrapSpec['ownEbook'] === true && !!cover.ebookAssetId;
+  const keepWrap = cover?.wrapSpec['ownWrap'] === true && !!cover.wrapAssetId;
+  if (cover && keepEbook && keepWrap) return { result: { skipped: 'own covers in use', ebookAssetId: cover.ebookAssetId, wrapAssetId: cover.wrapAssetId } };
   const book = await buildExportBook(repos, jc.ctx, projectId, jc.services.configDir, jc.services.blobs);
-  const art = await blobs.read(jc.ctx, cover.chosenAssetId);
+  const art = !typographic && cover?.chosenAssetId ? await blobs.read(jc.ctx, cover.chosenAssetId) : null;
   // The same blurb as the pack: the matter stage's, else the blueprint's (D-049).
   const backBlurb = book.listing?.backBlurb ?? '';
 
@@ -137,16 +139,25 @@ export const coverBuildHandler: JobHandler = async (jc) => {
     } else pageCount = (await exporter.buildPdf(book, { signal: jc.signal })).pageCount ?? 24;
   }
 
-  const input = { book, artwork: { mime: art.meta.mime, data: art.data }, typography: cover.typography, coverStyleId: book.coverStyleId };
-  let ebookAssetId = cover.ebookAssetId;
-  let wrapAssetId = cover.wrapAssetId;
+  const input = {
+    book,
+    artwork: art ? { mime: art.meta.mime, data: art.data } : null,
+    typography: cover?.typography ?? {},
+    coverStyleId: book.coverStyleId,
+  };
+  let ebookAssetId = cover?.ebookAssetId ?? null;
+  let wrapAssetId = cover?.wrapAssetId ?? null;
   let mock = false;
   if (!keepEbook) {
     await jc.progress(0.3, 'Building the eBook cover');
     const ebook = await exporter.buildEbookCover(input, { signal: jc.signal });
     mock ||= ebook.mock;
     ebookAssetId = (
-      await blobs.put(jc.ctx, { kind: 'cover_ebook', filename: ebook.filename, mime: ebook.mime, projectId, aiGenerated: art.meta.aiGenerated }, ebook.data)
+      await blobs.put(
+        jc.ctx,
+        { kind: 'cover_ebook', filename: ebook.filename, mime: ebook.mime, projectId, aiGenerated: art?.meta.aiGenerated ?? false },
+        ebook.data,
+      )
     ).id;
     await jc.checkpoint();
   }
@@ -155,7 +166,11 @@ export const coverBuildHandler: JobHandler = async (jc) => {
     const wrap = await exporter.buildWrapCover({ ...input, pageCount, backBlurb, ...(picture ? { ink: PICTURE_INK } : {}) }, { signal: jc.signal });
     mock ||= wrap.mock;
     wrapAssetId = (
-      await blobs.put(jc.ctx, { kind: 'cover_wrap', filename: wrap.filename, mime: wrap.mime, projectId, aiGenerated: art.meta.aiGenerated }, wrap.data)
+      await blobs.put(
+        jc.ctx,
+        { kind: 'cover_wrap', filename: wrap.filename, mime: wrap.mime, projectId, aiGenerated: art?.meta.aiGenerated ?? false },
+        wrap.data,
+      )
     ).id;
   }
   await repos.production.upsertCover(jc.ctx, projectId, {
@@ -166,12 +181,19 @@ export const coverBuildHandler: JobHandler = async (jc) => {
       ...(keepEbook ? { ownEbook: true } : {}),
       ...(keepWrap ? { ownWrap: true } : {}),
       // What these covers were built from, so the studio can say when the title, style or art has changed since.
-      builtWith: { typography: cover.typography, coverStyleId: book.coverStyleId, title: book.title, subtitle: book.subtitle, chosen: cover.chosenAssetId },
+      builtWith: {
+        typography: cover?.typography ?? {},
+        coverStyleId: book.coverStyleId,
+        title: book.title,
+        subtitle: book.subtitle,
+        chosen: cover?.chosenAssetId ?? null,
+      },
+      ...(typographic ? { typographic: true } : {}),
       mock,
     },
     status: 'final',
   });
-  if (art.meta.aiGenerated) await repos.books.setAiDisclosure(jc.ctx, projectId, 'images', 'ai_generated');
+  if (art?.meta.aiGenerated) await repos.books.setAiDisclosure(jc.ctx, projectId, 'images', 'ai_generated');
   await jc.emit('cover.updated', { projectId, status: 'final', ebookAssetId, wrapAssetId });
   return { result: { ebookAssetId, wrapAssetId, kept: { ebook: keepEbook, wrap: keepWrap } } };
 };
