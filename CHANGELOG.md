@@ -17,6 +17,7 @@ User-visible changes, newest first. Dates in British format.
 - Title size now ranges from 60 to 180 percent and a larger title wraps onto more lines (preview and build) instead of stopping at the width of its longest line.
 
 #### Fixed
+- A long book's blueprint is no longer cut off by the 10 minute AI request limit. Blueprints for big books take 9 to 10 minutes, so they now get 25.
 - In Volume mode, one book that fails no longer stops the books after it. The batch carries on to the next book and reports which ones failed, so you can restart just those.
 - A pack built on the host no longer shows "Changed since export" straight after it is built. The pack's fingerprint was 67 characters and the database kept 64, so it never matched. It now fits, and packs already built on the host match again without a rebuild.
 - The tab strips (Marketing, New book and others) no longer show a stray vertical scrollbar over the labels.

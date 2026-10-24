@@ -81,6 +81,9 @@ export const titlesHandler: JobHandler = async (jc) => {
   return { result: { titleSetId: set.id } };
 };
 
+/** A long book's blueprint takes 9 to 10 minutes on a strong model, so the default 10 minute request limit cut it off (live run, 24 October 2026). */
+const BLUEPRINT_TIMEOUT_MS = 25 * 60_000;
+
 export const blueprintHandler: JobHandler = async (jc) => {
   const { repos } = jc.services;
   const projectId = jc.job.projectId;
@@ -92,27 +95,31 @@ export const blueprintHandler: JobHandler = async (jc) => {
   // The book type's own template (structure, word range, genre rules) and the book's word target.
   const structure = await loadBookStructure(jc.services.configDir, book.bookTypeId, book.template);
   const wordTarget = book.wordTarget ?? structure.defaultWordTarget;
-  const res = await jc.runAi('blueprint', {
-    promptId: 'blueprint.blueprint',
-    variables: {
-      title: book.title ?? book.idea,
-      subtitle: book.subtitle,
-      idea: book.idea,
-      notes: book.notes,
-      template: promptTemplate(structure),
-      bookTypeId: book.bookTypeId,
-      wordTarget,
-      illustrativeStories: book.illustrativeLine,
-      chapterCount: jc.payload['chapterCount'] ?? null,
-      // Fiction: the owner's point of view and tense (book settings); the adapter falls back to the template's voice.
-      pov: str(book.settings['pov']),
-      tense: str(book.settings['tense']),
-      instruction: jc.payload['instruction'] ?? null,
-      research,
-      sources: sources.map((s) => ({ title: s.title, url: s.url, excerpt: s.excerpt })),
-      profile: await profileSummary(repos, jc.ctx, book.profileId, book),
+  const res = await jc.runAi(
+    'blueprint',
+    {
+      promptId: 'blueprint.blueprint',
+      variables: {
+        title: book.title ?? book.idea,
+        subtitle: book.subtitle,
+        idea: book.idea,
+        notes: book.notes,
+        template: promptTemplate(structure),
+        bookTypeId: book.bookTypeId,
+        wordTarget,
+        illustrativeStories: book.illustrativeLine,
+        chapterCount: jc.payload['chapterCount'] ?? null,
+        // Fiction: the owner's point of view and tense (book settings); the adapter falls back to the template's voice.
+        pov: str(book.settings['pov']),
+        tense: str(book.settings['tense']),
+        instruction: jc.payload['instruction'] ?? null,
+        research,
+        sources: sources.map((s) => ({ title: s.title, url: s.url, excerpt: s.excerpt })),
+        profile: await profileSummary(repos, jc.ctx, book.profileId, book),
+      },
     },
-  });
+    { timeoutMs: BLUEPRINT_TIMEOUT_MS },
+  );
   // House style auto-fix on the AI's plan, blurb and listing; keywords and categories are search terms, left alone.
   const style = houseStyle(jc.services.configDir);
   const styled = cleanBlueprintTitles(fixHouseStyleDeep(res.output, style, BLUEPRINT_KEEP).value, (x) => cleanTitleText(x, style));
