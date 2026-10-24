@@ -80,7 +80,9 @@ export function WritingInspector({
             valueText={`${formatUsd(costSpent)} of ${formatUsd(job.cost.budget)}`}
           />
           <p className={cn("mt-2 text-small", nearBudget ? "text-accent-text" : "text-ink-secondary")}>
-            {nearBudget ? "Over 80% of the budget. The job pauses before it goes over." : `About ${formatUsd(low)} to ${formatUsd(high)} more to finish.`}
+            {nearBudget
+              ? "Over 80% of the budget guide. Writing carries on; it pauses only if the AI provider runs out of credit."
+              : `About ${formatUsd(low)} to ${formatUsd(high)} more to finish.`}
           </p>
         </InspectorSection>
 

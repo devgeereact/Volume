@@ -57,6 +57,7 @@ export const clearTops = (edits: CoverEdits): CoverEdits => ({ ...edits, titleTo
 
 /** The keys these edits add to the saved typography (POST /cover/choose). Unset edits add nothing. */
 export const EDIT_KEYS = [
+  "titleTopPct",
   "titleAlign",
   "subtitleAlign",
   "authorAlign",
@@ -69,6 +70,7 @@ export const EDIT_KEYS = [
 
 export function editsToTypography(e: CoverEdits): Record<string, unknown> {
   const out: Record<string, unknown> = {};
+  if (e.titleTop !== undefined) out["titleTopPct"] = round(e.titleTop, 2);
   if (e.titleAlign) out["titleAlign"] = e.titleAlign;
   if (e.subtitleAlign) out["subtitleAlign"] = e.subtitleAlign;
   if (e.authorAlign) out["authorAlign"] = e.authorAlign;

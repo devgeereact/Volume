@@ -15,6 +15,10 @@ User-visible changes, newest first. Dates in British format.
 - Title size now ranges from 60 to 180 percent and a larger title wraps onto more lines (preview and build) instead of stopping at the width of its longest line.
 
 #### Fixed
+- Cover studio: Move up, Move down and dragging the title did nothing to the preview or the build, because the title's position was never sent with the other settings. It is now.
+- Cover studio: a title set low (Bottom) was shrunk to fit the room below it, so the size you picked and the size you got differed. The size now stays the same wherever the title sits, and a low or large title is lifted clear of the subtitle and author instead of running into them, in all 17 designs.
+- Cover studio: after covers are built there was no way to build them again unless you changed something, so an old build stayed out of date. A Build again button now sits beside the downloads.
+- Writing: the budget note no longer says the job pauses before it goes over the budget. It carries on and pauses only if the AI provider runs out of credit (D-057).
 - Cover studio: the cover cards and the paperback wrap preview drew at the page's full size (1600 px wide) and pushed the page sideways. The preview now always scales to the space it has.
 - On built covers the subtitle no longer runs into a title that wraps onto three or more lines: it moves just below the title.
 - Cover previews now agree. The paperback wrap preview draws the front over the chosen art (it showed a flat colour and motif), lays the back out as the build does (blurb sized by length, paragraphs apart, author name under a rule at the foot), and the studio says when the title, style, type settings or art changed after the covers were built.

@@ -644,3 +644,14 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - What changed (PR #65): the studio previews with the build's own page (`POST /books/:id/cover/preview`, `CoverFrame`), not a web redrawing. Covers over art keep the art untouched; ink comes from `packages/core/src/cover-ink.ts`; subtitle clears a wrapped title; JPEG q95. Each concept card has its own design and palette; Design and Title font pickers; title size 60 to 180 with wrap. Cover prompts: `cover.cover-brief` v4, `cover.cover-image` v3. Rule set: `docs/book-production/COVER-SYSTEM.md`.
 - Checks: typecheck, lint, format, docs link check PASS; core 175, export 188, web 205, server 507, ai 257 tests PASS. NOT TESTED: the studio in a browser against the live site (needs the deploy); a live concept run with the new prompts (costs money).
 - Next: owner merges and deploys PR #65; then check the studio live, rebuild the covers and packs.
+
+## 2026-10-25 (later), Claude Code: local build, found and fixed cover holes
+
+- Found live (deploy of #65): cover cards and the wrap preview drew at 1600 px and pushed the page sideways; fixed in PR #66 (`CoverFrame` iframe out of flow), checked live (scale 0.1116 and 0.4346, scroll width equals viewport).
+- Found on a local book (mock AI, `AI_PROVIDER=mock`, no spend): Move up, Move down and title drag never reached the preview or the build (`editsToTypography` dropped `titleTop`); a title set to Bottom was shrunk to fit the room below (fit cap used the stack height, now half the cover height); a big low title ran into the subtitle and author (new two-pass lift in `FIT_SCRIPT`); a built cover had no way to be built again without an edit (Build again button); the Writing inspector promised the job pauses at the budget although D-057 removed that.
+- Tests added: `cover-typography.test.ts` (preview page and the build match pixel for pixel for three edits; no overlap with the author in all 17 designs at Bottom and 26% size; same fitted size at top, middle and bottom), `coverEdit.test.tsx` (title top is sent and restored). A mutation check showed the pixel test fails when the preview differs.
+- Checks: typecheck, lint, format PASS; unit tests PASS (core 175, ai 257, export 193 with 2 skipped, server 507 with 3 skipped, web 206). e2e NOT RUN. Studio click-through on the local mock book PASS (create, edit, build, build again, preview equals build). Live site NOT TESTED after these changes (not deployed).
+- Local note: `npm run dev` fails here with `ENOSPC` (inotify watches full, limit 65536); the server and web app were started without file watching and stopped afterwards.
+- Not fixed: the mock book built for only 20 pages (KDP minimum is 24); one cover studio tab froze once for about 30 s on first load of a dev build and did not repeat (event-loop stall 0 ms afterwards).
+- Next: owner opens a PR for `perf/cover-preview-cache-and-polling`, merges and deploys; live check in Chrome.
+

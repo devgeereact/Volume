@@ -951,6 +951,12 @@ function Studio({ book, apiBook, cover }: { book: Book; apiBook: ApiBookDetail |
                             Paperback wrap (PDF)
                           </a>
                         )}
+                        {canWrite && (
+                          <button type="button" className={buttonClasses("secondary")} disabled={building} onClick={() => void startBuild()}>
+                            <RotateCw size={16} aria-hidden />
+                            {building ? "Building covers" : "Build again"}
+                          </button>
+                        )}
                       </div>
                       <Link to={`/books/${bookId}/export`} className="text-small font-medium text-select underline underline-offset-2">
                         Open Export

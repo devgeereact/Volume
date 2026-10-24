@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import type { Browser } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DEFAULT_COVER_STYLE } from '@volume/core';
-import { loadKdpRules } from '@volume/core/node';
+import { loadCoverStyles, loadKdpRules } from '@volume/core/node';
 import { acquireBrowser, applyCoverTypography, exportEbookCover, releaseBrowser } from '../src/index.ts';
 import { loadMiniBook } from './helpers.ts';
 
@@ -193,6 +193,71 @@ describe('cover preview page', () => {
       await ctx.close();
     }
   });
+
+  // The title size the owner picks is the size they get, wherever the title sits.
+  it('fits the title to the same size at the top, middle and bottom', async () => {
+    const meta = { ...loadMiniBook().meta, title: 'Steady On Your Feet', subtitle: 'Build Confidence, Set Boundaries And Complete Preceptorship' };
+    const sizes: number[] = [];
+    for (const titlePosition of ['top', 'middle', 'bottom']) {
+      const style = applyCoverTypography(DEFAULT_COVER_STYLE, { titlePosition, titleSize: 0.2 });
+      const preview = await exportEbookCover(meta, style, { browser: browser3, rules: loadKdpRules(), htmlOnly: true });
+      const ctx = await browser3.newContext({ viewport: { width: 1600, height: 2560 } });
+      try {
+        const page = await ctx.newPage();
+        await page.addInitScript(() => {
+          window.addEventListener('message', (e) => {
+            (window as unknown as { __msg: unknown }).__msg = e.data;
+          });
+        });
+        await page.route('http://cover.test/', (r) => r.fulfill({ body: preview.html ?? '', contentType: 'text/html' }));
+        await page.goto('http://cover.test/', { waitUntil: 'load' });
+        await page.waitForFunction('window.__msg !== undefined');
+        sizes.push((await page.evaluate<{ titleSize: number }>('window.__msg')).titleSize);
+      } finally {
+        await ctx.close();
+      }
+    }
+    expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThan(0.5);
+  }, 60_000);
+
+  // A title set low and made big must not run into the author line, in any design.
+  it('keeps a big, low title and its subtitle clear of the author in every design', async () => {
+    const meta = {
+      ...loadMiniBook().meta,
+      title: 'Steady On Your Feet',
+      subtitle: 'Build Confidence, Set Boundaries And Complete Preceptorship As A Registered Nurse In Your First Twelve Months',
+    };
+    const bad: string[] = [];
+    for (const base of loadCoverStyles()) {
+      const style = applyCoverTypography(base, { titlePosition: 'bottom', titleSize: 0.26 });
+      const preview = await exportEbookCover(meta, style, { browser: browser3, rules: loadKdpRules(), htmlOnly: true });
+      const ctx = await browser3.newContext({ viewport: { width: 1600, height: 2560 } });
+      try {
+        const page = await ctx.newPage();
+        await page.addInitScript(() => {
+          window.addEventListener('message', (e) => {
+            (window as unknown as { __msg: unknown }).__msg = e.data;
+          });
+        });
+        await page.route('http://cover.test/', (r) => r.fulfill({ body: preview.html ?? '', contentType: 'text/html' }));
+        await page.goto('http://cover.test/', { waitUntil: 'load' });
+        await page.waitForFunction('window.__msg !== undefined');
+        const m = await page.evaluate<{
+          height: number;
+          width: number;
+          title: { top: number; height: number } | null;
+          subtitle: { top: number; height: number } | null;
+          author: { top: number; height: number } | null;
+        }>('window.__msg');
+        const lowest = Math.max(m.title ? m.title.top + m.title.height : 0, m.subtitle ? m.subtitle.top + m.subtitle.height : 0);
+        const limit = m.author ? m.author.top : (m.height / m.width) * 100;
+        if (lowest > limit + 0.5) bad.push(`${base.id}: text ends at ${lowest.toFixed(1)}, author starts at ${limit.toFixed(1)}`);
+      } finally {
+        await ctx.close();
+      }
+    }
+    expect(bad).toEqual([]);
+  }, 120_000);
 
   // Over real art, after owner edits: what the studio shows is what the build writes, pixel for pixel (JPEG noise aside).
   it.each([

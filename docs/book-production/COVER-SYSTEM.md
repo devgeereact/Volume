@@ -34,3 +34,10 @@ What the owner asked for: covers that are authentic and look original, with vivi
 - `packages/core/test/cover-ink.test.ts`: ink rules.
 - `apps/server/test/volume-export.test.ts`: the preview route returns the build's page.
 - `packages/ai/test/cover-prompts.test.ts`: the brief and image prompt rules.
+
+## Position and size rules the page enforces
+
+- The title keeps the size the owner picked wherever it sits. The fit cap is half the cover height, not the room below the title, so a low title is lifted, never shrunk.
+- A title or subtitle that would run into the author line, or off the bottom, is lifted clear of it (`data-lifted`), in every design. The tests render all 17 designs at Bottom and 26% title size and compare box positions.
+- The studio sends the title's position with the other settings (`titleTopPct`), so Move up, Move down and dragging change the preview and the build alike.
+- A built cover can always be built again (Build again beside the downloads), so a change to the cover engine reaches covers built earlier.

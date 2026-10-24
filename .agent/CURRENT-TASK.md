@@ -1,5 +1,10 @@
 # Current task
 
+## State on 25 October 2026 (local build checked)
+
+- PRs #65 and #66 are merged and deployed. Branch `perf/cover-preview-cache-and-polling` (not yet a PR, not deployed) now holds: slower shelf polling when idle, concept previews load after the main one, the title's position is sent so Move up and drag work, the title keeps its size at any position and is lifted clear of the author in every design, a Build again button, and honest budget copy. Tested on a local book built with the mock AI (no OpenRouter calls): create, titles, blueprint, write, concepts, edit, build, rebuild.
+- Next: owner opens one PR for the branch, merges and deploys; then check the studio live in Chrome (Build again on Steady On Your Feet, compare preview and build, title size and Move up), and speed. Owner still decides the 34 and 8 for-the-record claims on AI For Everyday People and How To Hand Over.
+
 ## State on 25 October 2026
 
 - PR #65 (cover preview is the build, untouched art with adaptive ink, four distinct concepts, new cover prompts) is open and not deployed. After deploy: check the Cover studio live (eBook, thumbnail, wrap, cards, pickers), rebuild covers and packs. Still with the owner: claims (37, 63, 34), imprints and social links.
