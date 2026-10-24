@@ -977,7 +977,14 @@ function Studio({ book, apiBook, cover }: { book: Book; apiBook: ApiBookDetail |
           />
         </div>
 
-        <CoverInspector book={book} pages={pages} paper={paper} interiorExists={realPages !== null} built={built} />
+        <CoverInspector
+          book={book}
+          pages={pages}
+          paper={paper}
+          interiorExists={realPages !== null}
+          built={built}
+          typographic={cover?.wrapSpec["typographic"] === true}
+        />
       </div>
       <span className="sr-only" role="status" aria-live="polite">
         {announce}
