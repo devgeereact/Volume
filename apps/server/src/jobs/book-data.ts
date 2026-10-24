@@ -210,6 +210,9 @@ export async function buildExportBook(repos: Repos, ctx: RequestCtx, projectId: 
   };
 }
 
+/** Width of the export record's manuscript_hash column. */
+const PACK_HASH_LENGTH = 64;
+
 /**
  * A fingerprint of everything the upload pack carries: the manuscript, title and subtitle, author details, listing,
  * ISBNs and edition, AI disclosure, claims, every marketing post, and the covers (which concept, the type settings
@@ -240,7 +243,8 @@ export function packHashOf(book: ExportBook, cover: Pick<Cover, 'chosenAssetId' 
       ? [cover.chosenAssetId, cover.typography, cover.ebookAssetId, cover.wrapAssetId, cover.wrapSpec['pages'] ?? null, cover.wrapSpec['mock'] === true]
       : null,
   };
-  return `p1:${sha256Hex(JSON.stringify(parts))}`;
+  // 64 characters at most: the export record's manuscript_hash column is 64 wide, and MariaDB cuts a longer value.
+  return `p1:${sha256Hex(JSON.stringify(parts)).slice(0, PACK_HASH_LENGTH - 3)}`;
 }
 
 /** Which cover files are the owner's own uploads (cover.wrapSpec ownEbook and ownWrap, set by POST /cover/own). */
