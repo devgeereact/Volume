@@ -412,6 +412,29 @@ describe('8a. a fresh pack is not stale', () => {
   });
 });
 
+describe('7a. a typographic cover needs no artwork', () => {
+  it('builds both covers with no concept chosen, and a normal build still asks for a concept', async () => {
+    t = await testApp({ ai: new MockAiAdapter() });
+    const id = await newBook(t, { bookTypeId: 'ai-tech-howto', wordTarget: 6000 });
+    await t.call('POST', `/api/v1/books/${id}/research`, {});
+    await t.services.runner.runUntilIdle();
+    await approved(t, id, 1);
+    await written(t, id);
+    expect((await t.call('POST', `/api/v1/books/${id}/cover/build`, {})).status).toBe(409);
+    expect((await t.call('POST', `/api/v1/books/${id}/cover/build`, { typographic: true })).status).toBe(202);
+    await t.services.runner.runUntilIdle();
+    const cover = await t.call<{
+      cover: { chosenAssetId: string | null; ebookAssetId: string | null; wrapAssetId: string | null; status: string; wrapSpec: Record<string, unknown> };
+    }>('GET', `/api/v1/books/${id}/cover`);
+    expect(cover.body.cover).toMatchObject({ chosenAssetId: null, status: 'final' });
+    expect(cover.body.cover.ebookAssetId).toBeTruthy();
+    expect(cover.body.cover.wrapAssetId).toBeTruthy();
+    expect(cover.body.cover.wrapSpec['typographic']).toBe(true);
+    const pre = await t.call<{ items: { id: string; severity: string }[] }>('GET', `/api/v1/books/${id}/preflight`);
+    expect(pre.body.items.find((i) => i.id === 'cover.files')?.severity).not.toBe('block');
+  });
+});
+
 describe('8. a pack built before marketing goes stale when marketing arrives', () => {
   it('marks the latest pack stale after marketing is generated', async () => {
     t = await testApp({ ai: new MockAiAdapter() });

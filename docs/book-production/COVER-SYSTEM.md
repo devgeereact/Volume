@@ -21,6 +21,7 @@ What the owner asked for: covers that are authentic and look original, with vivi
 
 - Prompt `cover.cover-brief` v4: four different art directions (symbolic or abstract, literal scene or object, bold graphic in flat or two-tone colour, typographic-led with rich texture), each with its own palette family and composition, and different from the author's other books.
 - Prompt `cover.cover-image` v3: vivid, fully saturated colour, sharp tactile detail, an authentic original look, a title area that is clearly light or dark and still richly coloured, no vignette.
+- A typographic cover needs no artwork: `POST /books/:id/cover/build` with `{ "typographic": true }` builds the eBook cover and the paperback wrap from the book's cover style alone (title, subtitle and author set in the style's fonts and colours). It uses no AI image and no OpenRouter credit, so it works when the image model cannot be paid for. It is recorded as `wrapSpec.typographic`; building from a concept later replaces it.
 - In the studio each concept card comes with its own cover design and palette (different from the others), so the choices differ in type, colour and layout as well as art. Choosing a concept applies its look; the Design and Title font pickers and the colours change it.
 
 ## 4. Numbers that match
