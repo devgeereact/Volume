@@ -180,7 +180,7 @@ async function writePlaceholderMatter(c: Ctx, bookId: string): Promise<string[]>
 
 /** Cover step: concepts, choose one, build. */
 async function buildCover(c: Ctx, bookId: string): Promise<void> {
-  const { page, main, footer } = c;
+  const { page, main } = c;
   await page.goto(`/books/${bookId}/cover`);
   await expect(main.getByRole("heading", { name: "Cover studio" }).first()).toBeVisible();
   await c.stepButton("Make concepts").click();
@@ -191,8 +191,8 @@ async function buildCover(c: Ctx, bookId: string): Promise<void> {
   await expect(concepts.getByText("In use")).toBeVisible();
   await c.stepButton("Build covers").click();
   await expect(main.getByRole("heading", { name: "Covers built" })).toBeVisible({ timeout: JOB_WAIT });
-  await footer.getByRole("link", { name: /^Next: Export/ }).click();
-  await page.waitForURL(/\/export$/);
+  // Marketing now sits between Cover and Export; these books go straight to Export.
+  await page.goto(`/books/${bookId}/export`);
   c.failNow();
 }
 
