@@ -263,6 +263,17 @@ export class JobQueue {
               .whereRef('d.id', '=', 'j.dependsOnJobId')
               .where('d.status', 'in', [...DONE_OK]),
           ),
+          // A batch only orders its books: the next book starts once the one before it has ended, however it ended.
+          eb.and([
+            eb('j.kind', '=', 'batch_book'),
+            eb.exists(
+              eb
+                .selectFrom('jobs as d')
+                .select('d.id')
+                .whereRef('d.id', '=', 'j.dependsOnJobId')
+                .where('d.status', 'in', [...TERMINAL]),
+            ),
+          ]),
         ]),
       )
       .orderBy('j.priority')
@@ -385,6 +396,8 @@ export class JobQueue {
         .selectFrom('jobs')
         .selectAll()
         .where('dependsOnJobId', 'in', frontier)
+        // A book in a batch does not depend on the one before it for its result: one failed book never stops the rest.
+        .where('kind', '!=', 'batch_book')
         .where('status', 'in', ['queued', 'paused', 'paused_budget'])
         .execute();
       frontier = [];
