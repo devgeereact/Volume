@@ -1,10 +1,10 @@
 /*
- * Phase 8: a book that fails inside a batch must stop the batch, not leave it running for ever.
+ * Phase 8: a book that fails inside a batch must not leave the batch running for ever, and must not stop the books behind it.
  *
  * It starts its own server on 127.0.0.1:5314 (mock AI, a fresh SQLite file in a temp folder, the third writing
  * call fails once, as in the main test server) and stops it at the end, like restart.spec.ts does on 5313. Three
- * books run one at a time; the first one's writing fails. The batch has to end (failed or needs_attention), the
- * books behind the failure must be cancelled as "not started", and the batch must be startable again.
+ * books run one at a time; the first one's writing fails. The books behind it still run, the batch ends (failed or
+ * needs_attention) once all three have ended, and the batch must be startable again to finish the failed book.
  *
  * The batch is driven through the API: the behaviour under test is the job queue's, not a screen's.
  */
@@ -21,7 +21,7 @@ interface BatchView {
   items: { bookId: string; run: { status: string; error: string | null } | null }[];
 }
 
-test("a failed book ends the batch and the books behind it are marked not started", async ({ request }) => {
+test("a failed book is reported and the books behind it still run", async ({ request }) => {
   const scratch = mkdtempSync(path.join(tmpdir(), "volume-batch-failure-"));
   const port = 5314;
   const api = `http://127.0.0.1:${port}/api/v1`;
@@ -82,10 +82,10 @@ test("a failed book ends the batch and the books behind it are marked not starte
     const ended = await batch(created.id);
     expect(["failed", "needs_attention"]).toContain(ended.status);
     expect(ended.items[0]?.run?.status).toBe("failed");
-    // Books behind the failure were never started: cancelled with the plain reason, not left queued.
-    expect(ended.items.slice(1).map((i) => i.run?.status)).toEqual(["cancelled", "cancelled"]);
+    // Books behind the failure still ran: a batch only orders its books, one failure does not cancel the rest.
+    for (const item of ended.items.slice(1)) expect(["succeeded", "needs_attention"]).toContain(item.run?.status);
 
-    // And the owner can run it again: the failure was a one-off, so every book now finishes.
+    // And the owner can run it again: the failure was a one-off, so the failed book now finishes too.
     await post(`/batches/${created.id}/start`, { chapterCount: 2 });
     await expect.poll(async () => (await batch(created.id)).status, { timeout: 120_000 }).toBe("succeeded");
   } finally {
