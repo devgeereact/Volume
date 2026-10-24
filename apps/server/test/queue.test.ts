@@ -177,8 +177,8 @@ describe('job queue', () => {
     await handle.close();
   });
 
-  it('cancels the jobs behind a parent that fails through its children (batch books queued for ever)', async () => {
-    // batch_run -> batch_book A (waits on a child that fails) and batch_book B, which depends on A.
+  it('keeps going after a failed book: the next book in a batch still runs', async () => {
+    // batch_run -> batch_book A (waits on a child that fails) and batch_book B, which only waits its turn behind A.
     const { handle, ctx, queue, runner } = await setup({
       batch_run: async (jc) => {
         const a = await jc.enqueueChild({ kind: 'batch_book', payload: { name: 'A' } });
@@ -186,6 +186,7 @@ describe('job queue', () => {
         return { waitForChildren: true };
       },
       batch_book: async (jc) => {
+        if (jc.payload['name'] === 'B') return { result: { written: true } };
         await jc.enqueueChild({ kind: 'noop' });
         return { waitForChildren: true };
       },
@@ -194,13 +195,31 @@ describe('job queue', () => {
     const parent = await queue.enqueue(ctx, { kind: 'batch_run' });
     await runner.runUntilIdle();
     const kids = await queue.list(ctx, { parentId: parent.id });
-    const a = kids.find((k) => k.payload['name'] === 'A');
-    const b = kids.find((k) => k.payload['name'] === 'B');
-    expect(a?.status).toBe('failed');
-    expect(b).toMatchObject({ status: 'cancelled', errorCode: 'dependency_failed' });
+    expect(kids.find((k) => k.payload['name'] === 'A')?.status).toBe('failed');
+    expect(kids.find((k) => k.payload['name'] === 'B')?.status).toBe('succeeded');
     const done = await queue.require(ctx, parent.id);
     expect(done.status).toBe('failed');
-    expect(done.error).toMatch(/1 of 2 books failed\. 1 book after it was not started\./);
+    expect(done.error).toMatch(/1 of 2 books failed\./);
+    expect(done.error).not.toMatch(/not started/);
+    await handle.close();
+  });
+
+  it('cancels the jobs behind a job that fails (other kinds still wait for the job before them)', async () => {
+    // A parent runs noop A (fails) and noop B, which depends on A: B is cancelled with a plain reason, not left queued for ever.
+    const { handle, ctx, queue, runner } = await setup({
+      batch_run: async (jc) => {
+        const a = await jc.enqueueChild({ kind: 'noop', payload: { name: 'A' } });
+        await jc.enqueueChild({ kind: 'noop', payload: { name: 'B' }, dependsOnJobId: a.id });
+        return { waitForChildren: true };
+      },
+      noop: () => Promise.reject(new JobFailed('The section failed.', 'job_failed')),
+    });
+    const parent = await queue.enqueue(ctx, { kind: 'batch_run' });
+    await runner.runUntilIdle();
+    const kids = await queue.list(ctx, { parentId: parent.id });
+    expect(kids.find((k) => k.payload['name'] === 'A')?.status).toBe('failed');
+    expect(kids.find((k) => k.payload['name'] === 'B')).toMatchObject({ status: 'cancelled', errorCode: 'dependency_failed' });
+    expect((await queue.require(ctx, parent.id)).status).toBe('failed');
     await handle.close();
   });
 

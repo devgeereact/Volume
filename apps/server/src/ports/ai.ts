@@ -343,6 +343,8 @@ export interface RunStageOptions {
   onDelta?: (text: string) => void;
   maxTokens?: number;
   temperature?: number;
+  /** Whole-request limit in ms; the AI package's default (10 minutes) when omitted. */
+  timeoutMs?: number;
   /** Mock adapter only: fault injection scenario name. */
   scenario?: string;
 }
