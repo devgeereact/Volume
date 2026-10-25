@@ -11,7 +11,10 @@ import type { ExportBook, ExportClaim, ExportSection, PreflightReport } from '..
 import type { Book } from '../repos/books.js';
 import type { Cover } from '../repos/production.js';
 import type { Repos } from '../repos/index.js';
+import { orderPartsWithChapters } from '../repos/manuscript.js';
 import type { WritingState } from '../repos/manuscript.js';
+
+export { orderPartsWithChapters };
 
 /** Sections whose text comes from code, never from the writer (docs/04, stage 7). */
 export const CODE_WRITTEN_KINDS: ReadonlySet<string> = CODE_KINDS;
@@ -85,28 +88,6 @@ export async function bookMarketingCounts(configDir: string, book: Pick<Book, 'b
     marketingCountsCache.set(key, hit);
   }
   return hit;
-}
-
-/**
- * Puts each part divider directly before its own chapters. Approving a blueprint stores every part first and the
- * chapters after them (the tree groups them by partId, the flat position order does not), so an export that walked the
- * positions printed "Part I" and "Part II" back to back, before Chapter 1. Sections keep their position order; a part
- * is followed by the chapters whose partId is that part; chapters with no part stay where they are. Pure.
- */
-export function orderPartsWithChapters<T extends { id: string; kind: string; area: string; partId: string | null }>(sections: readonly T[]): T[] {
-  const partIds = new Set(sections.filter((s) => s.kind === 'part').map((s) => s.id));
-  if (partIds.size === 0) return [...sections];
-  const children = new Map<string, T[]>();
-  for (const s of sections) {
-    if (s.kind !== 'part' && s.partId && partIds.has(s.partId)) children.set(s.partId, [...(children.get(s.partId) ?? []), s]);
-  }
-  const out: T[] = [];
-  for (const s of sections) {
-    if (s.kind !== 'part' && s.partId && partIds.has(s.partId)) continue;
-    out.push(s);
-    if (s.kind === 'part') out.push(...(children.get(s.id) ?? []));
-  }
-  return out;
 }
 
 /** Gathers everything the exporter needs. About the author is the profile bio, verbatim. */

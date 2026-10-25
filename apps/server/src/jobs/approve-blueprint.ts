@@ -75,12 +75,18 @@ async function syncSections(
     const created = await s.repos.manuscript.addSections(ctx, projectId, items, 1000);
     let pos = 1000 * (created.length + 1);
     const partIds = new Map<number, string>();
-    for (const p of bp.parts) {
+    // Reading order: each part is stored directly before its first chapter, so the stored positions already read
+    // front matter, Part I, its chapters, Part II, its chapters, back matter (older books store the parts first and
+    // are put in order when read, see orderPartsWithChapters).
+    const addPart = async (number: number): Promise<void> => {
+      const p = bp.parts.find((x) => x.number === number);
+      if (!p || partIds.has(number)) return;
       const [part] = await s.repos.manuscript.addSections(ctx, projectId, [{ kind: 'part', area: 'body', title: p.title, number: p.number }], pos);
       if (part) partIds.set(p.number, part.id);
       pos += 1000;
-    }
+    };
     for (const c of bp.chapters) {
+      if (c.part) await addPart(c.part);
       await s.repos.manuscript.addSections(
         ctx,
         projectId,
@@ -99,6 +105,8 @@ async function syncSections(
       );
       pos += 1000;
     }
+    // A part no chapter belongs to still gets its divider, after the chapters.
+    for (const p of bp.parts) await addPart(p.number);
     const backItems: NewSectionInput[] = structure.back.map((x) => {
       const sec = structureSection(x, bp);
       // Also by lists published books under this pen name; it starts off until there is one.
