@@ -18,7 +18,7 @@ interface ServerNames {
   profileName?: string | undefined;
 }
 
-function crumbsFor(pathname: string, server: ServerNames): Crumb[] {
+export function crumbsFor(pathname: string, server: ServerNames): Crumb[] {
   const parts = pathname.split("/").filter(Boolean);
   const library = { label: "Library", to: "/library" };
   if (parts.length === 0 || parts[0] === "library") return [library];
@@ -51,7 +51,8 @@ function crumbsFor(pathname: string, server: ServerNames): Crumb[] {
     return list;
   }
   if (parts[0] === "components") return [{ label: "Components", to: "/components" }];
-  return [library];
+  // An address the app does not know: the tab and the trail say so, not the screen before it.
+  return [library, { label: "Page not found", to: pathname }];
 }
 
 /** Where you are: Library, then the book (never the step; the step bar shows that). The last crumb is the current page. */
