@@ -17,7 +17,6 @@ import {
 } from '../src/adapters/openrouter-ai.js';
 import { hasDatedPrices, loadBookStructure } from '../src/config/book-structure.js';
 import { pricesCheckLine, takeawaysOf, writtenSummaries } from '../src/jobs/book-checks.js';
-import { RESOURCES_PLACEHOLDER } from '../src/jobs/handlers/writing.js';
 import type { AiPort, AiStage, AiStageInput, AiStageResult, RunStageOptions } from '../src/ports/ai.js';
 import { buildCovers, testApp, type TestApp } from './helpers.js';
 
@@ -124,18 +123,26 @@ function adapterWith(answers: Record<string, unknown>): { ai: OpenRouterAiAdapte
 const text = (r: ChatRequest | undefined) => (r?.messages ?? []).map((m) => m.content).join('\n');
 
 describe('1. resources', () => {
-  it('saves an owner placeholder with a preflight block when no source is ticked, and never calls the AI', async () => {
+  it('switches Resources off with a visible note when no source is ticked, and never calls the AI', async () => {
     const ai = new RecordingAi();
     t = await testApp({ ai });
     const id = await newBook(t, { bookTypeId: 'ai-tech-howto', wordTarget: 6000 });
     await approveAndWrite(t, id, 1);
     const res = (await sections(t, id)).find((s) => s['kind'] === 'resources')!;
-    expect(res['status']).toBe('needs_attention');
-    expect(await current(t, res['id'] as string)).toMatchObject({ bodyMd: RESOURCES_PLACEHOLDER, source: 'app:placeholder' });
+    expect(res['enabled']).toBe(false);
+    expect((res['plan'] as Record<string, unknown>)['autoSwitchedOff']).toMatchObject({ reason: 'no-sources' });
+    expect(res['currentVersionId'] ?? null).toBeNull();
     expect(ai.of('writing', 'resources')).toEqual([]);
-    const block = (await preflight(t, id)).find((i) => i.id === 'front.owner-placeholder.resources');
-    expect(block).toMatchObject({ severity: 'block' });
-    expect(block?.message).toContain('Resources needs sources: tick sources in Research');
+    const items = await preflight(t, id);
+    expect(items.find((i) => i.id === 'front.owner-placeholder.resources')).toBeUndefined();
+    expect(items.find((i) => i.id === 'resources.auto-off')).toMatchObject({
+      severity: 'pass',
+      message:
+        'Resources was switched off because no research sources are ticked. To list sources, tick them in Research, switch Resources back on, then write it.',
+    });
+    // Undo: switching the section back on removes the note (the owner ticks sources, then writes it).
+    await t.call('PATCH', `/api/v1/sections/${res['id'] as string}`, { enabled: true });
+    expect((await preflight(t, id)).find((i) => i.id === 'resources.auto-off')).toBeUndefined();
   });
 
   it('ticks resolved research sources by default and sends every one of them to the resources page', async () => {

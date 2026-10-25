@@ -102,6 +102,11 @@ export const ACKNOWLEDGEMENTS_PLACEHOLDER =
 /** Saved instead of AI text when no research source is ticked for the book. Preflight blocks the pack until it is replaced. */
 export const RESOURCES_PLACEHOLDER =
   'Resources to come. Tick the sources you want listed in Research, then write this section again, or switch the section off.';
+/** Key on a section's plan that records the app switched Resources off because no research source was ticked. */
+export const RESOURCES_AUTO_OFF_KEY = 'autoSwitchedOff';
+/** What the owner is told when Resources is switched off for lack of sources. */
+export const RESOURCES_AUTO_OFF_NOTE =
+  'Resources was switched off because no research sources are ticked. To list sources, tick them in Research, switch Resources back on, then write it.';
 /** The preflight and check message for resources with no ticked sources. */
 export const RESOURCES_NEED_SOURCES = 'Resources needs sources: tick sources in Research';
 /** Version source of an owner placeholder (preflight blocks while it is the current text). */
@@ -455,9 +460,17 @@ export const writeSectionHandler: JobHandler = async (jc) => {
       'Acknowledgements need the names of the people you want to thank. Add them in the book settings, or switch the section off.',
     );
   }
-  // Resources list only ticked research sources (live run 3: an empty list failed the job). None ticked: a placeholder.
+  // Resources list only ticked research sources (live run 3: an empty list failed the job). None ticked: the section is
+  // switched off with a note on its plan (the preflight shows it), instead of a placeholder that blocks the pack. The owner
+  // undoes it by ticking sources in Research and switching Resources back on.
   if (section.kind === 'resources' && sources.length === 0) {
-    return placeholder(RESOURCES_PLACEHOLDER, 'No research sources ticked yet.', `${RESOURCES_NEED_SOURCES}, then write this section again, or switch it off.`);
+    await repos.manuscript.updateSectionPlan(jc.ctx, sectionId, {
+      enabled: false,
+      plan: { ...section.plan, [RESOURCES_AUTO_OFF_KEY]: { reason: 'no-sources', at: Date.now() } },
+    });
+    await repos.manuscript.setSectionStatus(jc.ctx, sectionId, 'planned');
+    await advanceIfWritingComplete(repos, jc.ctx, projectId);
+    return { result: { sectionId, switchedOff: true, reason: RESOURCES_AUTO_OFF_NOTE } };
   }
 
   const { next, ledger, written, prices, blueprint, sectionVars, common, template } = await writingContext(jc, book, section, profile, sources);

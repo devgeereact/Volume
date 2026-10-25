@@ -1,7 +1,7 @@
 {
   "$comment": "House writing style for every book Volume writes. Checkers in packages/core read this file; prompts receive bannedPhrases and rules as variables. Profiles and book templates may add to these lists but never remove the core rules without the owner's say.",
   "version": 1,
-  "updatedOn": "2026-10-05",
+  "updatedOn": "2026-10-25",
   "locale": "en-GB",
   "rules": [
     {
@@ -620,6 +620,24 @@
     "millimeter": "millimetre"
   },
   "spellingNote": "Single words, lower case. The checker matches whole words case-insensitively and keeps the original capitalisation when it suggests a fix. Words in spellingExceptions depend on meaning, so the checker only warns. Quoted titles, names and URLs are never changed.",
+  "properNamesNote": "Official proper names that keep their own spelling (often American). The spelling and phrasing checks skip them, case-sensitively. Add a name here, never a general word.",
+  "properNames": [
+    "World Health Organization",
+    "Pan American Health Organization",
+    "World Trade Organization",
+    "World Intellectual Property Organization",
+    "International Organization for Standardization",
+    "Organization for Economic Co-operation and Development",
+    "Organization of American States",
+    "Centers for Disease Control and Prevention",
+    "Center for Disease Control and Prevention",
+    "Department of Labor",
+    "Bureau of Labor Statistics",
+    "Department of Defense",
+    "National Center for Complementary and Integrative Health",
+    "Americans with Disabilities Act",
+    "American Society of Anesthesiologists"
+  ],
   "spellingExceptions": {
     "program": "Use 'programme' for a plan, TV or radio show or course; keep 'program' for computer software.",
     "meter": "Keep 'meter' for a measuring device (gas meter); use 'metre' for the unit.",
@@ -751,18 +769,18 @@
     },
     {
       "id": "according-to",
-      "pattern": "\\baccording to\\b",
+      "pattern": "\\baccording to(?!\\s+(?:plan|schedule|need|the (?:plan|schedule|instructions?|recipe|label|manual|brief|contract|agreement|terms|rules|template|steps|checklist|guidelines?)|(?:your|my|our|their|his|her|its|how|what|which|whether|when|where|who|why)\\b))",
       "flags": "gi",
       "message": "Attributed claim. The source must be real and in the research sources.",
-      "description": "'According to...' attributions.",
+      "description": "'According to...' attributions. 'According to plan', 'according to your needs' and 'according to the instructions' are not attributed claims.",
       "action": "claims-report"
     },
     {
       "id": "survey-found",
-      "pattern": "\\b(?:survey|poll|report|study|trial|meta-analysis|review|census)\\b[^.!?]{0,80}?\\b(?:found|showed|revealed|reported|concluded|discovered)\\b",
+      "pattern": "\\b(?:survey|poll|report|study|trial|meta-analysis|census)\\b[^.!?]{0,80}?\\b(?:found|showed|revealed|reported|concluded|discovered)\\b",
       "flags": "gi",
       "message": "Named or implied study finding. Verify or remove.",
-      "description": "'A survey of 2,000 parents found...'.",
+      "description": "'A survey of 2,000 parents found...'. The word 'review' is not matched: 'when you review it you found' is not a study.",
       "action": "claims-report"
     },
     {
@@ -774,19 +792,27 @@
       "action": "claims-report"
     },
     {
+        "id": "stat-ratio",
+        "pattern": "\\b(?:(?:one|two|three|four|five|six|seven|eight|nine|\\d{1,2})\\s+in\\s+(?:every\\s+)?(?:one|two|three|four|five|six|seven|eight|nine|ten|\\d{1,3})\\b(?!\\s+(?:minutes?|hours?|days?|weeks?|months?|years?))|(?:half|a third|a quarter|two thirds|three quarters|most|the majority)\\s+of\\s+(?:all\\s+|the\\s+)?(?:nurses|patients|people|adults|women|men|children|workers|staff|employees|parents|carers|managers|teachers|doctors|readers|customers)\\b)",
+        "flags": "gi",
+        "message": "Statistic in words (one in five, half of nurses). Needs a real source or removal.",
+        "description": "Ratios and shares written as words; percent-of only catches digits.",
+        "action": "claims-report"
+    },
+    {
       "id": "award-words",
-      "pattern": "\\b(?:award[- ]winning|prize[- ]winning|winner of|won the|shortlisted|longlisted|nominated for|accolade|acclaimed)\\b",
+      "pattern": "\\b(?:award[- ]winning|prize[- ]winning|winner of (?:the |an? )?(?:[\\w'’-]+\\s+){0,4}(?:award|prize|medal|trophy|booker|pulitzer|nobel|oscar|emmy|grammy|bafta|costa|hugo|nebula|carnegie)s?|won (?:the |an? )?(?:[\\w'’-]+\\s+){0,4}(?:award|prize|medal|trophy|booker|pulitzer|nobel|oscar|emmy|grammy|bafta|costa|hugo|nebula|carnegie)s?|(?:short|long)listed for (?:the |an? )?(?:[\\w'’-]+\\s+){0,4}(?:award|prize|medal|trophy|booker|pulitzer|nobel|oscar|emmy|grammy|bafta|costa|hugo|nebula|carnegie)s?|nominated for (?:the |an? )?(?:[\\w'’-]+\\s+){0,4}(?:award|prize|medal|trophy|booker|pulitzer|nobel|oscar|emmy|grammy|bafta|costa|hugo|nebula|carnegie)s?|accolade|acclaimed)\\b",
       "flags": "gi",
       "message": "Award or acclaim claim. Only if true and entered by the owner.",
-      "description": "Awards and acclaim.",
+      "description": "Awards and acclaim. 'Won the argument', 'shortlisted for the job' and 'nominated for promotion' are not award claims; a prize word must follow.",
       "action": "block"
     },
     {
       "id": "bestselling",
-      "pattern": "\\b(?:best[- ]?sell(?:ing|er)s?|#\\s?1|number one|no\\.\\s?1)\\b",
+      "pattern": "\\b(?:best[- ]?sell(?:ing|er)s?|(?:#\\s?1|number one|no\\.\\s?1)(?=\\s+(?:best|new release|on amazon|in (?:the |its |their )?(?:uk|us|amazon|kindle|category|charts?|chart)|amazon|international|sunday|new york|bestsell|ranked|seller|choice)))",
       "flags": "gi",
       "message": "Bestseller or ranking claim. Remove unless verified by the owner.",
-      "description": "'Bestselling author', '#1'.",
+      "description": "'Bestselling author', '#1 bestseller', 'number one on Amazon'. Plain 'number one priority', 'Step #1' and 'no. 1' list numbers are not ranking claims.",
       "action": "block"
     },
     {
@@ -799,10 +825,10 @@
     },
     {
       "id": "review-words",
-      "pattern": "\\b(?:five[- ]star|5[- ]star|testimonial|readers (?:say|love|rave)|reviewers (?:say|call)|rave reviews?|highly rated|top[- ]rated)\\b",
+      "pattern": "\\b(?:five[- ]star|5[- ]star|(?<!\\b(?:not(?!\\s+only)|no|never|cannot|without|nor|neither|nothing|none|\\w+n['’]t|rather\\s+than|instead\\s+of)\\b(?:(?!\\b(?:and|but|so|then|we|i|our)\\b)[^.!?;:,\\n]){0,40})(?<!\\b(?:avoid|invent(?:ed|ing)?|fake|faking|fabricat\\w*|ask(?:ing)?|request(?:ing)?|collect(?:ing)?|gather(?:ing)?|get(?:ting)?|add(?:ing)?|include|display|publish|invite|send|offer(?:ing)?|promise|promising)\\b(?:(?!\\b(?:and|but|so|then|we|i|our)\\b)[^.!?;:,\\n]){0,40})testimonials?|readers (?:say|love|rave)|reviewers (?:say|call)|rave reviews?|highly rated|top[- ]rated)\\b",
       "flags": "gi",
       "message": "Review or rating claim. Never invented.",
-      "description": "Invented praise and ratings.",
+      "description": "Invented praise and ratings. The word testimonial is allowed when the sentence denies or advises about one (no testimonials, do not invent a testimonial, ask clients for a testimonial).",
       "action": "block"
     },
     {
@@ -831,10 +857,10 @@
     },
     {
       "id": "legal",
-      "pattern": "\\b(?:legally|unlawful|illegal|liable|liability|sue|tribunal|statutory|act \\d{4}|regulations \\d{4}|you have the right|entitled to|by law)\\b",
+      "pattern": "\\b(?:legally|unlawful|illegal|liable|liability|sue\\s+(?:for|over|them|him|her|you|me|us|your|their|the\\s+(?:company|business|client|customer|landlord|council|employer|firm))|tribunal|statutory|act \\d{4}|regulations \\d{4}|you have the right|entitled to|by law)\\b",
       "flags": "gi",
       "message": "Legal statement. Goes to the claims report.",
-      "description": "Legal claims and rights.",
+      "description": "Legal claims and rights. 'sue' only counts as a verb for suing (not the name Sue).",
       "action": "claims-report"
     },
     {
@@ -847,10 +873,10 @@
     },
     {
       "id": "guarantee",
-      "pattern": "\\b(?:(?<!\\b(?:not|no|never|cannot|without|nor|nothing|rather\\s+than|instead\\s+of|\\w+n['’]t)(?:\\s+(?:a|an|any|be|been|being|always|ever|really|actually|absolutely|one|can|could|will|would|is|are|that|it|you|anyone|anything))?(?:\\s+(?:a|an|any|be|been|always|ever|really|one|can|could|will|is|are|that|it|you|anyone))?\\s+)guarantee[ds]?\\b|proven to|100% (?:effective|safe|guaranteed)|will cure|works every time|the only book you need)",
+      "pattern": "\\b(?:(?<!\\b(?:not(?!\\s+only)|no|never|cannot|without|nor|neither|nothing|none|\\w+n['’]t|rather\\s+than|instead\\s+of)\\b(?:(?!\\b(?:and|but|so|then|we|i|our)\\b)[^.!?;:,\\n]){0,40})guarantee[ds]?\\b|proven to|100% (?:effective|safe|guaranteed)|will cure|works every time|the only book you need)",
       "flags": "gi",
       "message": "Guarantee or promise of results. Remove or soften.",
-      "description": "Promises the book cannot prove. Negated uses (not a guarantee, no guarantee, never guaranteed, can't guarantee, rather than a guarantee) are allowed.",
+      "description": "Promises the book cannot prove. Negated uses (not a guarantee, no guarantee, never guaranteed, can't guarantee, do not offer guarantees, rather than a guarantee) are allowed.",
       "action": "block"
     },
     {

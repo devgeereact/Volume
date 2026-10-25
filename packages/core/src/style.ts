@@ -37,6 +37,8 @@ export interface CompiledHouseStyle {
   spelling: Matcher[];
   phrasing: Matcher[];
   exceptions: Map<string, string>;
+  /** Official proper names (config properNames) that keep their own spelling: spelling and phrasing skip them. */
+  properNames: RegExp[];
   guardrails: { id: string; re: RegExp; message: string; action: string }[];
   emDash: { allowed: boolean; replacement: string };
   enDash: { allowedAsDash: boolean; allowedInNumberRanges: boolean; replacement: string };
@@ -104,6 +106,10 @@ export function compileHouseStyle(config: unknown, extraBanned: readonly string[
   const exceptions = new Map<string, string>();
   if (isObj(cfg.spellingExceptions)) for (const [k, v] of Object.entries(cfg.spellingExceptions)) exceptions.set(k.toLowerCase(), String(v));
 
+  const properNames = (Array.isArray(cfg.properNames) ? cfg.properNames : [])
+    .filter((n): n is string => typeof n === 'string' && n.trim().length > 0)
+    .map((n) => new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(n.trim()).replace(/\s+/g, '\\s+')}(?![\\p{L}\\p{N}])`, 'gu'));
+
   const guardrails: CompiledHouseStyle['guardrails'] = [];
   if (Array.isArray(cfg.guardrailPatterns)) {
     for (const g of cfg.guardrailPatterns) {
@@ -138,6 +144,7 @@ export function compileHouseStyle(config: unknown, extraBanned: readonly string[
     spelling: mapMatchers(cfg.usToUkSpelling),
     phrasing: mapMatchers(cfg.ukPhrasing),
     exceptions,
+    properNames,
     guardrails,
     emDash: { allowed: em.allowed === true, replacement: str(em.replacement) ?? ', ' },
     enDash: {
@@ -249,6 +256,11 @@ export function checkText(text: string, style: CompiledHouseStyle, opts: CheckTe
     }
   };
 
+  // Spans of official proper names ("World Health Organization"): their spelling is the organisation's own.
+  const properSpans: [number, number][] = [];
+  for (const re of style.properNames) scan(re, (m) => properSpans.push([m.index, m.index + m[0].length]));
+  const inProperName = (start: number, end: number) => properSpans.some(([a, b]) => start >= a && end <= b);
+
   if (rules.has('emdash') && !style.emDash.allowed) {
     scan(/\u2014/g, (m) =>
       add({
@@ -297,6 +309,7 @@ export function checkText(text: string, style: CompiledHouseStyle, opts: CheckTe
   if (rules.has('spelling')) {
     for (const s of style.spelling) {
       scan(s.re, (m) => {
+        if (inProperName(m.index, m.index + m[0].length)) return;
         const exc = style.exceptions.get(s.phrase.toLowerCase());
         const suggestion = matchCase(m[0], s.replacement ?? '');
         add({
@@ -317,7 +330,8 @@ export function checkText(text: string, style: CompiledHouseStyle, opts: CheckTe
   }
   if (rules.has('phrasing')) {
     for (const s of style.phrasing) {
-      scan(s.re, (m) =>
+      scan(s.re, (m) => {
+        if (inProperName(m.index, m.index + m[0].length)) return;
         add({
           rule: 'phrasing',
           severity: 'warn',
@@ -327,8 +341,8 @@ export function checkText(text: string, style: CompiledHouseStyle, opts: CheckTe
           match: m[0],
           suggestion: s.replacement ?? '',
           id: s.phrase,
-        }),
-      );
+        });
+      });
     }
   }
   if (rules.has('guardrail')) {
