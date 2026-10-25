@@ -5,6 +5,7 @@ User-visible changes, newest first. Dates in British format.
 ## 25 October 2026
 
 #### Added
+- When the server stops answering after it had answered, Volume now keeps your last real books and figures on screen under a "Not connected. Showing your last saved view. Reconnecting..." banner, instead of switching to invented sample data. Saving is paused with a plain reason, and everything refreshes by itself when the server returns (D-061). Sample data now appears only when a local build has never reached the server.
 - The smoke script can now build a real pack and check the zip file by file (`SMOKE_PACK=1`): file list, covers, PDF pages and text, EPUB, DOCX, TXT, MD and the marketing folder.
 - The Editor now shows every section as the exported book holds it. The title page, copyright, contents and About the author are built from your book, pen name and template, shown read-only with a note saying where each is edited. Parts show as dividers. Dedication and Acknowledgements show a kind prompt and the text the book will hold. Word totals count the built pages the way the text export does.
 - Also by is now built from the other books under the same pen name (it stays off until you switch it on). A blank owner page, such as a dedication nobody wrote, is left out of the export instead of printing a heading over a blank page.
@@ -12,6 +13,7 @@ User-visible changes, newest first. Dates in British format.
 - Technical SEO for the public pages: a title, description and social tags per page, structured data, a real 404 page, one address per page, font preloads, larger tap targets and a Pause animation button. The pages stay noindex (D-053), `robots.txt` disallows everything and `/sitemap.xml` answers 404 until you decide to index them.
 
 #### Fixed
+- A chapter moved by position out of its part no longer changes what the writer is told: the earlier-chapter summaries, the next chapter, the last-chapter flag and the book-wide repetition and price checks all follow the order the book reads, with each part before its own chapters.
 - In a book with parts, every part divider ("Part I", "Part II") printed together before Chapter 1 in the PDF, EPUB, DOCX, TXT and MD. Each part now comes right before its own chapters, in the Editor, the Writing screen and every export. New books store them in that order from the start.
 - Exporting a picture book through the generic export route no longer builds a wrong 15-page PDF. It answers with a message pointing to the picture book export.
 - The pack gate now counts only claims that need your check, as the preflight and the export spec already say. Claims listed for the record no longer block a pack. Nothing is ever resolved for you.

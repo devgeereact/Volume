@@ -17,6 +17,7 @@ import { useWorkspaceEvents } from "../api/events";
 import { toWiredBook, useApiBooks, useRunningJobs, useWireMode, stepForJob } from "../api/wire-a";
 import { ApiJobBar, JobBar } from "./JobBar";
 import { Spine } from "./Spine";
+import { NotConnectedBanner } from "./NotConnectedBanner";
 import { TopBar } from "./TopBar";
 import { useKeyChanged } from "../lib/useKeyChanged";
 
@@ -96,6 +97,7 @@ export function AppShell() {
       <div className="flex min-w-0 flex-col">
         <TopBar phone={phone} onOpenMenu={() => setDrawerOpen(true)} menuButtonRef={menuButtonRef} />
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
+          <NotConnectedBanner className="mx-6 mt-4" />
           {anthropicEmpty && (
             <Banner tone="attention" title="Anthropic credit has run out" className="mx-6 mt-4">
               Volume is using OpenRouter for Claude models until you top up at{" "}

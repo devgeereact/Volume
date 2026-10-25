@@ -36,6 +36,7 @@ export function useWireMode(): WireMode {
 /** An ApiError (or anything else) as one sentence for a banner. */
 export function apiErrorText(err: unknown): string {
   if (isApiError(err)) {
+    if (err.code === "not_connected") return err.message;
     if (err.code === "network_error" || err.status === 0 || err.status >= 500)
       return "The Volume server did not answer. Check your connection, then try again.";
     const issues = err.fieldIssues;

@@ -12,12 +12,16 @@
  * Optional: SMOKE_SHOTS=<folder> saves a screenshot per failed check; SMOKE_ONLY=<regex> runs only the
  * phases whose names match (server, shell-desktop, shell-mobile, profiles, wizard, book, bookpages-*, hub,
  * links, themes, keyboard, offline); SMOKE_BOOK=<id> reuses a finished book for phases after "book".
- * The offline checks block /api in the browser; no process is stopped.
+ * The offline checks (D-061) block /api in the browser after the app loaded and assert that no Demo badge or sample figure
+ * appears, the Not connected banner does, and everything recovers when /api is unblocked; no process is stopped.
  * SMOKE_PACK=1 adds the "pack" phase (off by default, about two minutes): it makes its own long-enough book with two parts
  * through the API, builds the real KDP pack and checks the zip file by file (needs the server on the real exporter,
  * EXPORT_PROVIDER=volume as in tests/e2e/playwright.config.ts). Run it alone with SMOKE_PACK=1 SMOKE_ONLY=^pack$.
+ * SMOKE_PACK_UI=1 adds the "pack-ui" phase (about two minutes, same server needs): the same kind of book, then the Export page in
+ * the browser: preflight list, tick the warnings, Build pack, "Pack ready", Download, unzip the file, "Exported", then an edit through
+ * the API and "Changed since export". Run it alone with SMOKE_PACK_UI=1 SMOKE_ONLY=^pack-ui$.
  */
-/* global window, document, getComputedStyle, location, innerHeight */
+/* global window, document, getComputedStyle, location, innerHeight, history, dispatchEvent, PopStateEvent */
 import { createRequire } from "node:module";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -222,6 +226,7 @@ async function main() {
     ["keyboard", () => phaseKeyboard()],
     ["offline", () => phaseOffline()],
     ...(process.env.SMOKE_PACK === "1" ? [["pack", () => phasePack()]] : []),
+    ...(process.env.SMOKE_PACK_UI === "1" ? [["pack-ui", () => phasePackUi()]] : []),
   ];
   for (const [name, fn] of phases) {
     if (only && !only.test(name)) continue;
@@ -1108,42 +1113,85 @@ async function phaseKeyboard() {
   await m.context.close();
 }
 
+/** D-061: once the API has answered, a dead server must never bring back sample data. Blocks /api after the app loaded. */
 async function phaseOffline() {
   const { context, page } = await open(browser, "desktop");
+  const nudge = () => page.evaluate(() => document.dispatchEvent(new Event("visibilitychange"))).catch(() => {});
+  const bodyText = () => page.locator("body").innerText();
+  const books = await fetch(`${BASE}/api/v1/books`)
+    .then((r) => r.json())
+    .catch(() => ({ items: [] }));
+  const realTitle = (books.items ?? []).map((b) => b.title).find((t) => typeof t === "string" && t.length > 3) ?? "";
   await page.goto("/library");
   await page.locator("main h1").first().waitFor();
   await settle(page);
+  await check(
+    "offline: before the drop the app shows real data, no Demo badge and no sample spend",
+    async () => {
+      const t = await bodyText();
+      if (/\bDemo\b/.test(t)) return "Demo badge while the server is up";
+      if (/\$4\.82/.test(t)) return "sample spend ($4.82) while the server is up";
+      if (realTitle && !t.includes(realTitle)) return `real book "${realTitle}" not on screen`;
+    },
+    page,
+  );
   await context.route("**/api/**", (r) => r.abort());
   await check(
-    "offline: a screen that cannot load says so in plain words with a Retry",
+    "offline: after the drop the Not connected banner appears (up to 40s)",
     async () => {
-      await page.getByRole("link", { name: "Published" }).first().click();
-      await page
-        .getByText(/Could not load/)
-        .first()
-        .waitFor({ timeout: 15_000 });
-      await page.getByRole("button", { name: "Retry" }).waitFor();
-      const t = await page.locator("main").innerText();
-      if (!/Check your connection/.test(t)) return "no hint about the connection";
+      const banner = page.getByTestId("not-connected-banner");
+      const end = Date.now() + 40_000;
+      while (Date.now() < end && !(await banner.isVisible().catch(() => false))) {
+        await nudge();
+        await page.waitForTimeout(1000);
+      }
+      await banner.waitFor({ timeout: 2000 });
+      const t = await banner.innerText();
+      if (!/Not connected\. Showing your last saved view\. Reconnecting\.\.\./.test(t)) return `banner words: ${t.slice(0, 120)}`;
     },
     page,
   );
   await check(
-    "offline: after the next health check a visible notice says the server is unreachable (up to 40s)",
+    "offline: no Demo badge and no invented spend ($4.82), and the real data is still there",
     async () => {
-      await page.waitForFunction(() => /Demo|Not connected/.test(document.body.innerText), null, { timeout: 40_000 });
+      const t = await bodyText();
+      if (/\bDemo\b/.test(t)) return "Demo badge appeared";
+      if (/\$4\.82/.test(t)) return "invented spend ($4.82 of $40) appeared";
+      if (/sample data/i.test(t)) return "sample-data wording appeared";
+      if (realTitle && !t.includes(realTitle)) return `real book "${realTitle}" disappeared`;
     },
     page,
   );
   await check(
-    "offline: the notice says the data on screen is sample data",
+    "offline: waiting does not bring the sample data back (two more health checks)",
     async () => {
-      const t = await page.locator("body").innerText();
-      if (/Demo/.test(t) && !/sample data/i.test(t)) return "Demo badge without the sample-data wording";
+      for (let i = 0; i < 2; i++) {
+        await nudge();
+        await page.waitForTimeout(2500);
+      }
+      const t = await bodyText();
+      if (/\bDemo\b|\$4\.82/.test(t)) return "sample data appeared after a later health check";
+      if (!(await page.getByTestId("not-connected-banner").isVisible())) return "banner went away while still offline";
     },
     page,
   );
   await context.unroute("**/api/**");
+  await check(
+    "offline: when the API returns the banner clears and the data is refetched (up to 45s)",
+    async () => {
+      const banner = page.getByTestId("not-connected-banner");
+      const end = Date.now() + 45_000;
+      while (Date.now() < end && (await banner.isVisible().catch(() => false))) {
+        await nudge();
+        await page.waitForTimeout(1000);
+      }
+      if (await banner.isVisible()) return "banner still showing 45s after the API returned";
+      const t = await bodyText();
+      if (/\bDemo\b|\$4\.82/.test(t)) return "sample data after recovery";
+      if (realTitle && !t.includes(realTitle)) return `real book "${realTitle}" missing after recovery`;
+    },
+    page,
+  );
   await context.close();
 }
 
@@ -1196,31 +1244,96 @@ const squash = (s) =>
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, "");
 
+/** Calls the server API directly (the same one the web app proxies). */
+async function packApi(method, route, body) {
+  const r = await fetch(`${BASE}/api/v1${route}`, {
+    method,
+    headers: { "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`${method} ${route} answered ${r.status}: ${text.slice(0, 200)}`);
+  return text ? JSON.parse(text) : null;
+}
+
+/** Waits for an accepted job; a job that ends any way but done is an error carrying its message. */
+async function packDone(accepted) {
+  const id = accepted.id ?? accepted.jobId;
+  for (let i = 0; i < 240; i++) {
+    const j = await packApi("GET", `/jobs/${id}`);
+    if (j.status === "succeeded" || j.status === "done") return j;
+    if (["failed", "cancelled", "paused", "needs_attention"].includes(j.status))
+      throw new Error(
+        `job ${j.kind} ${j.status}: ${j.error ?? ""} ${JSON.stringify((j.result?.preflight?.items ?? []).filter((x) => x.severity === "block").map((x) => x.message)).slice(0, 300)}`,
+      );
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  throw new Error("a job took longer than four minutes");
+}
+
+/**
+ * A long-enough book with two parts, made through the API up to (and including) marketing, cover and claims:
+ * everything the pack needs except the preflight ticks and the build itself. Returns { id, bio, chapterIds }.
+ */
+async function makeLongPackBook(bio, titleTag) {
+  const api = packApi;
+  const done = packDone;
+  const profile = await api("POST", "/profiles", { penName: `Pack Tester ${titleTag}`, bioThirdPerson: bio });
+  const book = await api("POST", "/books", {
+    profileId: profile.id,
+    bookTypeId: "self-help",
+    idea: "Calm mornings for people on shifts.",
+    title: `Smoke Pack ${titleTag}`,
+    settings: { acknowledgements: ["The reading group at the library"] },
+  });
+  const id = book.id;
+  await done(await api("POST", `/books/${id}/research`, {}));
+  await done(await api("POST", `/books/${id}/title-sets`, {}));
+  const [set] = (await api("GET", `/books/${id}/title-sets`)).items;
+  await api("POST", `/title-sets/${set.id}/choose`, { index: 0 });
+  await done(await api("POST", `/books/${id}/blueprints`, { chapterCount: 6 }));
+  // Two parts: the first three chapters in Part I, the rest in Part II.
+  const bp = (await api("GET", `/books/${id}/blueprint`)).blueprint.data;
+  const chapters = bp.chapters.map((c, i) => ({ ...c, part: i < bp.chapters.length / 2 ? 1 : 2 }));
+  await api("PATCH", `/books/${id}/blueprint`, {
+    parts: {
+      parts: [
+        { number: 1, title: "Foundations" },
+        { number: 2, title: "Putting it to work" },
+      ],
+      chapters,
+    },
+  });
+  await api("POST", `/books/${id}/blueprint/approve`, {});
+  await done(await api("POST", `/books/${id}/write`, {}));
+  // The mock AI writes about 1,000 words in all and KDP needs 24 pages: add text of our own to every chapter, as an author would.
+  const tree = await api("GET", `/books/${id}/sections`);
+  const chapterSections = tree.body.flatMap((b) => (b.kind === "part" ? b.children : [b])).filter((x) => x.kind === "chapter");
+  for (const ch of chapterSections) {
+    const cur = await api("GET", `/sections/${ch.id}`);
+    const sentences = Array.from(
+      { length: 150 },
+      (_, i) => `On shift number ${i + 1} I slept for seven hours in a dark room and felt calmer for the next one.`,
+    );
+    const paras = [];
+    for (let i = 0; i < sentences.length; i += 6) paras.push(sentences.slice(i, i + 6).join(" "));
+    await api("POST", `/sections/${ch.id}/versions`, { bodyMd: `${cur.current?.bodyMd ?? ""}\n\n${paras.join("\n\n")}` });
+  }
+  // A scratch database: every claim the mock writer raised is the author's own experience.
+  for (const c of (await api("GET", `/books/${id}/claims`)).items.filter((x) => x.status === "open"))
+    await api("POST", `/claims/${c.id}/verify`, { authorExperience: true });
+  await done(await api("POST", `/books/${id}/listing`, {}));
+  await done(await api("POST", `/books/${id}/cover/concepts`, {}));
+  const { cover } = await api("GET", `/books/${id}/cover`);
+  await api("POST", `/books/${id}/cover/choose`, { assetId: cover.concepts[0].assetId });
+  await done(await api("POST", `/books/${id}/cover/build`, {}));
+  await done(await api("POST", `/books/${id}/marketing`, {}));
+  return { id, chapterIds: chapterSections.map((c) => c.id) };
+}
+
 async function phasePack() {
-  const api = async (method, route, body) => {
-    const r = await fetch(`${BASE}/api/v1${route}`, {
-      method,
-      headers: { "content-type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    const text = await r.text();
-    if (!r.ok) throw new Error(`${method} ${route} answered ${r.status}: ${text.slice(0, 200)}`);
-    return text ? JSON.parse(text) : null;
-  };
-  /** Waits for an accepted job; a job that ends any way but done is an error carrying its message. */
-  const done = async (accepted) => {
-    const id = accepted.id ?? accepted.jobId;
-    for (let i = 0; i < 240; i++) {
-      const j = await api("GET", `/jobs/${id}`);
-      if (j.status === "succeeded" || j.status === "done") return j;
-      if (["failed", "cancelled", "paused", "needs_attention"].includes(j.status))
-        throw new Error(
-          `job ${j.kind} ${j.status}: ${j.error ?? ""} ${JSON.stringify((j.result?.preflight?.items ?? []).filter((x) => x.severity === "block").map((x) => x.message)).slice(0, 300)}`,
-        );
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-    throw new Error("a job took longer than four minutes");
-  };
+  const api = packApi;
+  const done = packDone;
 
   const bio = `Pat Packer writes plain books for busy people. ${STAMP} is the proof that this bio is printed word for word.`;
   let id = "";
@@ -1228,56 +1341,7 @@ async function phasePack() {
   let record = null;
   let pdfPages = 0;
   await check("pack: a long-enough book with two parts goes from idea to a built KDP pack", async () => {
-    const profile = await api("POST", "/profiles", { penName: `Pack Tester ${STAMP}`, bioThirdPerson: bio });
-    const book = await api("POST", "/books", {
-      profileId: profile.id,
-      bookTypeId: "self-help",
-      idea: "Calm mornings for people on shifts.",
-      title: `Smoke Pack ${STAMP}`,
-      settings: { acknowledgements: ["The reading group at the library"] },
-    });
-    id = book.id;
-    await done(await api("POST", `/books/${id}/research`, {}));
-    await done(await api("POST", `/books/${id}/title-sets`, {}));
-    const [set] = (await api("GET", `/books/${id}/title-sets`)).items;
-    await api("POST", `/title-sets/${set.id}/choose`, { index: 0 });
-    await done(await api("POST", `/books/${id}/blueprints`, { chapterCount: 6 }));
-    // Two parts: the first three chapters in Part I, the rest in Part II.
-    const bp = (await api("GET", `/books/${id}/blueprint`)).blueprint.data;
-    const chapters = bp.chapters.map((c, i) => ({ ...c, part: i < bp.chapters.length / 2 ? 1 : 2 }));
-    await api("PATCH", `/books/${id}/blueprint`, {
-      parts: {
-        parts: [
-          { number: 1, title: "Foundations" },
-          { number: 2, title: "Putting it to work" },
-        ],
-        chapters,
-      },
-    });
-    await api("POST", `/books/${id}/blueprint/approve`, {});
-    await done(await api("POST", `/books/${id}/write`, {}));
-    // The mock AI writes about 1,000 words in all and KDP needs 24 pages: add text of our own to every chapter, as an author would.
-    const tree = await api("GET", `/books/${id}/sections`);
-    const chapterSections = tree.body.flatMap((b) => (b.kind === "part" ? b.children : [b])).filter((x) => x.kind === "chapter");
-    for (const ch of chapterSections) {
-      const cur = await api("GET", `/sections/${ch.id}`);
-      const sentences = Array.from(
-        { length: 150 },
-        (_, i) => `On shift number ${i + 1} I slept for seven hours in a dark room and felt calmer for the next one.`,
-      );
-      const paras = [];
-      for (let i = 0; i < sentences.length; i += 6) paras.push(sentences.slice(i, i + 6).join(" "));
-      await api("POST", `/sections/${ch.id}/versions`, { bodyMd: `${cur.current?.bodyMd ?? ""}\n\n${paras.join("\n\n")}` });
-    }
-    // A scratch database: every claim the mock writer raised is the author's own experience.
-    for (const c of (await api("GET", `/books/${id}/claims`)).items.filter((x) => x.status === "open"))
-      await api("POST", `/claims/${c.id}/verify`, { authorExperience: true });
-    await done(await api("POST", `/books/${id}/listing`, {}));
-    await done(await api("POST", `/books/${id}/cover/concepts`, {}));
-    const { cover } = await api("GET", `/books/${id}/cover`);
-    await api("POST", `/books/${id}/cover/choose`, { assetId: cover.concepts[0].assetId });
-    await done(await api("POST", `/books/${id}/cover/build`, {}));
-    await done(await api("POST", `/books/${id}/marketing`, {}));
+    id = (await makeLongPackBook(bio, STAMP)).id;
     const pf = await api("GET", `/books/${id}/preflight`);
     for (const w of pf.items.filter((x) => x.severity === "warn")) await api("PUT", `/books/${id}/preflight/acknowledgements`, { itemId: w.id, on: true });
     await done(await api("POST", `/books/${id}/exports`, {}));
@@ -1465,3 +1529,154 @@ try {
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) console.log(`Failed:\n  ${failures.join("\n  ")}`);
 process.exit(fail ? 1 : 0);
+
+/* ------------------------------------------------------------------ pack through the browser (SMOKE_PACK_UI=1) ------------------------------------------------------------------ */
+
+async function phasePackUi() {
+  const bio = `Una Browser writes plain books for busy people. ${STAMP} is the proof that this bio is printed word for word.`;
+  let book = null;
+  await check("pack-ui: a long-enough book with two parts is made through the API", async () => {
+    book = await makeLongPackBook(bio, `UI ${STAMP}`);
+  });
+  if (!book) return;
+  const { context, page, log } = await open(browser, "desktop");
+  const mainEl = page.locator("main");
+  const footer = page.locator("footer");
+  await page.goto(`/books/${book.id}/export`);
+  await check(
+    "pack-ui: the preflight list renders with its checks",
+    async () => {
+      const preflight = mainEl.locator('section[aria-labelledby="preflight-title"]');
+      await preflight.waitFor({ timeout: JOB });
+      await preflight
+        .getByRole("status")
+        .getByText(/passed|warning|fail/i)
+        .first()
+        .waitFor({ timeout: JOB });
+      const rows = await preflight.locator("li").count();
+      if (rows < 5) return `only ${rows} preflight rows`;
+      if (
+        !(await mainEl
+          .getByText(/Not built/)
+          .first()
+          .isVisible())
+      )
+        return "no 'Not built' file status before the first build";
+      if (await mainEl.getByRole("heading", { name: "Pack ready" }).count()) return "Pack ready shown before any build";
+    },
+    page,
+  );
+  await check(
+    "pack-ui: ticking every warning enables Build pack, which asks first, builds and shows Pack ready",
+    async () => {
+      const labels = mainEl.locator('section[aria-labelledby="preflight-title"]').getByText("I have checked this");
+      for (let i = (await labels.count()) - 1; i >= 0; i--) await labels.nth(i).click();
+      const build = footer.getByRole("button", { name: /^Build pack/ });
+      await page
+        .waitForFunction(() => [...document.querySelectorAll("footer button")].some((b) => /^Build pack/.test(b.textContent ?? "") && !b.disabled), null, {
+          timeout: 10_000,
+        })
+        .catch(() => {});
+      if (!(await build.isEnabled())) return `Build pack stays disabled: ${(await mainEl.innerText()).slice(0, 200).replace(/\s+/g, " ")}`;
+      await build.click();
+      const dialog = page.getByRole("dialog", { name: "Build pack" });
+      await dialog.waitFor();
+      await dialog.getByRole("button", { name: "Build pack" }).click();
+      const ready = mainEl.getByRole("heading", { name: "Pack ready" });
+      const refused = mainEl.getByText(/The upload pack was not built\. .+|The final preflight blocked the upload pack/).first();
+      await ready.or(refused).first().waitFor({ timeout: 240_000 });
+      if (!(await ready.isVisible())) return `the build was refused: ${(await refused.innerText()).slice(0, 200)}`;
+    },
+    page,
+  );
+  let zip = [];
+  await check(
+    "pack-ui: Download delivers a zip that unzips with the expected files",
+    async () => {
+      const dl = page.waitForEvent("download", { timeout: 30_000 });
+      await mainEl.getByRole("heading", { name: "Pack ready" }).locator("xpath=ancestor::section").getByRole("link", { name: "Download", exact: true }).click();
+      const d = await dl;
+      if (!/\.zip$/i.test(d.suggestedFilename())) return `file is ${d.suggestedFilename()}, not a zip`;
+      const file = await d.path();
+      const { readFileSync } = await import("node:fs");
+      zip = readZip(readFileSync(file));
+      const names = zip.map((e) => e.name);
+      const need = [
+        /^README\.txt$/,
+        /^manuscript\/[^/]+-interior-[^/]+\.pdf$/,
+        /^manuscript\/[^/]+\.epub$/,
+        /^manuscript\/[^/]+\.docx$/,
+        /^cover\/[^/]+-ebook-cover\.jpg$/,
+        /^cover\/[^/]+-paperback-wrap-[^/]+\.pdf$/,
+        /^listing\/metadata\.txt$/,
+        /^reports\/preflight\.txt$/,
+        /^marketing\/00-START-HERE\.txt$/,
+      ];
+      const missing = need.filter((re) => !names.some((n) => re.test(n))).map(String);
+      if (missing.length) return `missing: ${missing.join(" ")}`;
+      const empty = zip.filter((e) => !e.name.endsWith("/") && e.size === 0).map((e) => e.name);
+      if (empty.length) return `empty: ${empty.join(", ")}`;
+    },
+    page,
+  );
+  await check(
+    "pack-ui: the page then says Exported",
+    async () => {
+      await mainEl
+        .getByText(/^Exported .*Nothing in it has changed since\./)
+        .first()
+        .waitFor({ timeout: 15_000 });
+      if (await mainEl.getByText(/Changed since export/).count()) return "also says Changed since export";
+      await page.reload();
+      await mainEl
+        .getByText(/^Exported .*Nothing in it has changed since\./)
+        .first()
+        .waitFor({ timeout: 15_000 });
+      const label = await footer.getByRole("button", { name: /^Build pack/ }).innerText();
+      if (!/again/i.test(label)) return `footer button says "${label}" while Exported, not Build pack again`;
+    },
+    page,
+  );
+  /** Moves inside the app with no reload (React Router listens to popstate). */
+  const goInApp = async (to) => {
+    await page.evaluate((t) => {
+      history.pushState({}, "", t);
+      dispatchEvent(new PopStateEvent("popstate"));
+    }, to);
+  };
+  await check(
+    "pack-ui: after an edit elsewhere, coming back to Export in the app (no reload) says Changed since export at once",
+    async () => {
+      await goInApp(`/books/${book.id}/cover`);
+      await page.locator("main h1").first().waitFor();
+      const id = book.chapterIds[0];
+      const cur = await packApi("GET", `/sections/${id}`);
+      await packApi("POST", `/sections/${id}/versions`, { bodyMd: `${cur.current?.bodyMd ?? ""}\n\nOne more line added after the export.` });
+      await goInApp(`/books/${book.id}/export`);
+      await mainEl
+        .getByText(/Changed since export/)
+        .first()
+        .waitFor({ timeout: 8000 });
+      if (await mainEl.getByText(/Nothing in it has changed since/).count()) return "still says Exported";
+      const label = await footer.getByRole("button", { name: /^Build pack/ }).innerText();
+      if (/again/i.test(label)) return `footer button still says "${label}" when the pack is out of date`;
+    },
+    page,
+  );
+  await check(
+    "pack-ui: a reload also says Changed since export",
+    async () => {
+      await page.reload();
+      await mainEl
+        .getByText(/Changed since export/)
+        .first()
+        .waitFor({ timeout: 15_000 });
+    },
+    page,
+  );
+  await check("pack-ui: no console errors, page errors or failed requests", async () => {
+    const all = [...log.console, ...log.pageErrors, ...log.requests];
+    if (all.length) return [...new Set(all)].slice(0, 4).join(" | ");
+  });
+  await context.close();
+}
