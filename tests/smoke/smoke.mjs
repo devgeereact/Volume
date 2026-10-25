@@ -1121,7 +1121,11 @@ async function phaseOffline() {
   const books = await fetch(`${BASE}/api/v1/books`)
     .then((r) => r.json())
     .catch(() => ({ items: [] }));
-  const realTitle = (books.items ?? []).map((b) => b.title).find((t) => typeof t === "string" && t.length > 3) ?? "";
+  // Earlier phases archive and move books, so any one of the newest active books on the shelf will do.
+  const realTitles = (books.items ?? [])
+    .filter((b) => b.status !== "archived" && typeof b.title === "string" && b.title.length > 3)
+    .slice(-3)
+    .map((b) => b.title);
   await page.goto("/library");
   await page.locator("main h1").first().waitFor();
   await settle(page);
@@ -1131,7 +1135,7 @@ async function phaseOffline() {
       const t = await bodyText();
       if (/\bDemo\b/.test(t)) return "Demo badge while the server is up";
       if (/\$4\.82/.test(t)) return "sample spend ($4.82) while the server is up";
-      if (realTitle && !t.includes(realTitle)) return `real book "${realTitle}" not on screen`;
+      if (realTitles.length && !realTitles.some((x) => t.includes(x))) return `none of the real books (${realTitles.join(", ")}) is on screen`;
     },
     page,
   );
@@ -1158,7 +1162,7 @@ async function phaseOffline() {
       if (/\bDemo\b/.test(t)) return "Demo badge appeared";
       if (/\$4\.82/.test(t)) return "invented spend ($4.82 of $40) appeared";
       if (/sample data/i.test(t)) return "sample-data wording appeared";
-      if (realTitle && !t.includes(realTitle)) return `real book "${realTitle}" disappeared`;
+      if (realTitles.length && !realTitles.some((x) => t.includes(x))) return "the real books disappeared";
     },
     page,
   );
@@ -1188,7 +1192,7 @@ async function phaseOffline() {
       if (await banner.isVisible()) return "banner still showing 45s after the API returned";
       const t = await bodyText();
       if (/\bDemo\b|\$4\.82/.test(t)) return "sample data after recovery";
-      if (realTitle && !t.includes(realTitle)) return `real book "${realTitle}" missing after recovery`;
+      if (realTitles.length && !realTitles.some((x) => t.includes(x))) return "the real books are missing after recovery";
     },
     page,
   );
