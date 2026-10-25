@@ -13,10 +13,15 @@
  * phases whose names match (server, shell-desktop, shell-mobile, profiles, wizard, book, bookpages-*, hub,
  * links, themes, keyboard, offline); SMOKE_BOOK=<id> reuses a finished book for phases after "book".
  * The offline checks block /api in the browser; no process is stopped.
+ * SMOKE_PACK=1 adds the "pack" phase (off by default, about two minutes): it makes its own long-enough book with two parts
+ * through the API, builds the real KDP pack and checks the zip file by file (needs the server on the real exporter,
+ * EXPORT_PROVIDER=volume as in tests/e2e/playwright.config.ts). Run it alone with SMOKE_PACK=1 SMOKE_ONLY=^pack$.
  */
 /* global window, document, getComputedStyle, location, innerHeight */
 import { createRequire } from "node:module";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { inflateRawSync } from "node:zlib";
 import path from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -216,6 +221,7 @@ async function main() {
     ["themes", () => phaseThemes()],
     ["keyboard", () => phaseKeyboard()],
     ["offline", () => phaseOffline()],
+    ...(process.env.SMOKE_PACK === "1" ? [["pack", () => phasePack()]] : []),
   ];
   for (const [name, fn] of phases) {
     if (only && !only.test(name)) continue;
@@ -1139,6 +1145,314 @@ async function phaseOffline() {
   );
   await context.unroute("**/api/**");
   await context.close();
+}
+
+/* ------------------------------------------------------------------ pack (SMOKE_PACK=1) ------------------------------------------------------------------ */
+
+/** A tiny zip reader (central directory plus raw inflate), so no package is needed. Entries: { name, size, method, read() }. */
+function readZip(buf) {
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 70_000); i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error("not a zip file");
+  const count = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
+  const entries = [];
+  for (let n = 0; n < count; n++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error("bad central directory");
+    const method = buf.readUInt16LE(p + 10);
+    const compressed = buf.readUInt32LE(p + 20);
+    const size = buf.readUInt32LE(p + 24);
+    const nameLen = buf.readUInt16LE(p + 28);
+    const extraLen = buf.readUInt16LE(p + 30);
+    const commentLen = buf.readUInt16LE(p + 32);
+    const local = buf.readUInt32LE(p + 42);
+    const name = buf.toString("utf8", p + 46, p + 46 + nameLen);
+    entries.push({
+      name,
+      size,
+      method,
+      read: () => {
+        const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
+        const raw = buf.subarray(start, start + compressed);
+        return method === 0 ? Buffer.from(raw) : inflateRawSync(raw);
+      },
+    });
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return entries;
+}
+
+/** Letters and digits only, lower case, so line wraps, hyphens, curly quotes and entities do not matter. */
+const squash = (s) =>
+  s
+    .replace(/&amp;/g, "&")
+    .replace(/&#x27;|&#39;|&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "");
+
+async function phasePack() {
+  const api = async (method, route, body) => {
+    const r = await fetch(`${BASE}/api/v1${route}`, {
+      method,
+      headers: { "content-type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await r.text();
+    if (!r.ok) throw new Error(`${method} ${route} answered ${r.status}: ${text.slice(0, 200)}`);
+    return text ? JSON.parse(text) : null;
+  };
+  /** Waits for an accepted job; a job that ends any way but done is an error carrying its message. */
+  const done = async (accepted) => {
+    const id = accepted.id ?? accepted.jobId;
+    for (let i = 0; i < 240; i++) {
+      const j = await api("GET", `/jobs/${id}`);
+      if (j.status === "succeeded" || j.status === "done") return j;
+      if (["failed", "cancelled", "paused", "needs_attention"].includes(j.status))
+        throw new Error(
+          `job ${j.kind} ${j.status}: ${j.error ?? ""} ${JSON.stringify((j.result?.preflight?.items ?? []).filter((x) => x.severity === "block").map((x) => x.message)).slice(0, 300)}`,
+        );
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    throw new Error("a job took longer than four minutes");
+  };
+
+  const bio = `Pat Packer writes plain books for busy people. ${STAMP} is the proof that this bio is printed word for word.`;
+  let id = "";
+  let zip = [];
+  let record = null;
+  let pdfPages = 0;
+  await check("pack: a long-enough book with two parts goes from idea to a built KDP pack", async () => {
+    const profile = await api("POST", "/profiles", { penName: `Pack Tester ${STAMP}`, bioThirdPerson: bio });
+    const book = await api("POST", "/books", {
+      profileId: profile.id,
+      bookTypeId: "self-help",
+      idea: "Calm mornings for people on shifts.",
+      title: `Smoke Pack ${STAMP}`,
+      settings: { acknowledgements: ["The reading group at the library"] },
+    });
+    id = book.id;
+    await done(await api("POST", `/books/${id}/research`, {}));
+    await done(await api("POST", `/books/${id}/title-sets`, {}));
+    const [set] = (await api("GET", `/books/${id}/title-sets`)).items;
+    await api("POST", `/title-sets/${set.id}/choose`, { index: 0 });
+    await done(await api("POST", `/books/${id}/blueprints`, { chapterCount: 6 }));
+    // Two parts: the first three chapters in Part I, the rest in Part II.
+    const bp = (await api("GET", `/books/${id}/blueprint`)).blueprint.data;
+    const chapters = bp.chapters.map((c, i) => ({ ...c, part: i < bp.chapters.length / 2 ? 1 : 2 }));
+    await api("PATCH", `/books/${id}/blueprint`, {
+      parts: {
+        parts: [
+          { number: 1, title: "Foundations" },
+          { number: 2, title: "Putting it to work" },
+        ],
+        chapters,
+      },
+    });
+    await api("POST", `/books/${id}/blueprint/approve`, {});
+    await done(await api("POST", `/books/${id}/write`, {}));
+    // The mock AI writes about 1,000 words in all and KDP needs 24 pages: add text of our own to every chapter, as an author would.
+    const tree = await api("GET", `/books/${id}/sections`);
+    const chapterSections = tree.body.flatMap((b) => (b.kind === "part" ? b.children : [b])).filter((x) => x.kind === "chapter");
+    for (const ch of chapterSections) {
+      const cur = await api("GET", `/sections/${ch.id}`);
+      const sentences = Array.from(
+        { length: 150 },
+        (_, i) => `On shift number ${i + 1} I slept for seven hours in a dark room and felt calmer for the next one.`,
+      );
+      const paras = [];
+      for (let i = 0; i < sentences.length; i += 6) paras.push(sentences.slice(i, i + 6).join(" "));
+      await api("POST", `/sections/${ch.id}/versions`, { bodyMd: `${cur.current?.bodyMd ?? ""}\n\n${paras.join("\n\n")}` });
+    }
+    // A scratch database: every claim the mock writer raised is the author's own experience.
+    for (const c of (await api("GET", `/books/${id}/claims`)).items.filter((x) => x.status === "open"))
+      await api("POST", `/claims/${c.id}/verify`, { authorExperience: true });
+    await done(await api("POST", `/books/${id}/listing`, {}));
+    await done(await api("POST", `/books/${id}/cover/concepts`, {}));
+    const { cover } = await api("GET", `/books/${id}/cover`);
+    await api("POST", `/books/${id}/cover/choose`, { assetId: cover.concepts[0].assetId });
+    await done(await api("POST", `/books/${id}/cover/build`, {}));
+    await done(await api("POST", `/books/${id}/marketing`, {}));
+    const pf = await api("GET", `/books/${id}/preflight`);
+    for (const w of pf.items.filter((x) => x.severity === "warn")) await api("PUT", `/books/${id}/preflight/acknowledgements`, { itemId: w.id, on: true });
+    await done(await api("POST", `/books/${id}/exports`, {}));
+    const list = (await api("GET", `/books/${id}/exports`)).items;
+    record = list.find((e) => e.kind === "pack" && e.status === "done");
+    if (!record) return "no finished pack export";
+    const res = await fetch(`${BASE}/api/v1/exports/${record.id}/download`);
+    zip = readZip(Buffer.from(await res.arrayBuffer()));
+    const pdfRecord = list.find((e) => e.kind === "pdf_print" && e.status === "done");
+    pdfPages = pdfRecord?.pageCount ?? 0;
+    if (pdfPages < 24) return `the interior PDF has ${pdfRecord?.pageCount} pages, KDP needs 24`;
+  });
+  if (!zip.length) return;
+
+  const names = zip.map((e) => e.name);
+  const entry = (re) => zip.find((e) => re.test(e.name));
+  await check("pack: every file the export spec names is in the zip and none is empty", async () => {
+    const need = [
+      /^README\.txt$/,
+      /^manuscript\/[^/]+-interior-[^/]+\.pdf$/,
+      /^manuscript\/[^/]+\.epub$/,
+      /^manuscript\/[^/]+\.docx$/,
+      /^manuscript\/[^/]+\.txt$/,
+      /^manuscript\/[^/]+\.md$/,
+      /^cover\/[^/]+-ebook-cover\.jpg$/,
+      /^cover\/[^/]+-paperback-wrap-[^/]+\.pdf$/,
+      /^listing\/(metadata|back-cover-blurb|short-bio|ai-disclosure)\.txt$/,
+      /^listing\/description\.html$/,
+      /^reports\/preflight\.txt$/,
+      /^reports\/claims-to-verify\.csv$/,
+      /^reports\/kdp-rules-used\.txt$/,
+      /^marketing\/00-START-HERE\.txt$/,
+      /^marketing\/tiktok\/tiktok-01-.+\.txt$/,
+      /^marketing\/tiktok\/all-tiktok-scripts\.txt$/,
+      /^marketing\/instagram\/instagram-01-.+\.txt$/,
+      /^marketing\/instagram\/all-instagram-captions\.txt$/,
+      /^marketing\/email\/launch-email-01-.+\.txt$/,
+      /^marketing\/email\/all-launch-emails\.txt$/,
+    ];
+    const missing = need.filter((re) => !names.some((n) => re.test(n))).map(String);
+    if (missing.length) return `missing: ${missing.join(" ")}`;
+    const empty = zip.filter((e) => !e.name.endsWith("/") && e.size === 0).map((e) => e.name);
+    if (empty.length) return `empty: ${empty.join(", ")}`;
+  });
+  await check("pack: the marketing posts are real text, not placeholders", async () => {
+    const bad = zip
+      .filter((e) => /^marketing\/.+\.txt$/.test(e.name))
+      .filter((e) => {
+        const t = e.read().toString("utf8");
+        return t.trim().length < 40 || /\bundefined\b|\[object|\{\w+\}|\bNaN\b/.test(t);
+      })
+      .map((e) => e.name);
+    if (bad.length) return bad.join(", ");
+  });
+
+  const md =
+    entry(/^manuscript\/[^/]+\.md$/)
+      ?.read()
+      .toString("utf8") ?? "";
+  const headings = [...md.matchAll(/^# (.+)$/gm)].map((m) => m[1].trim());
+  const sections = md.split(/^# .+$/m).slice(1);
+  const chapterHeadings = headings.filter((h) => /^Chapter \d+:/.test(h));
+  await check("pack: MD has every chapter, no empty section and no placeholder junk", async () => {
+    if (chapterHeadings.length !== 6) return `${chapterHeadings.length} chapters in the MD, expected 6`;
+    const empty = headings.filter((h, i) => sections[i].replace(/^::: [\s\S]*?^:::$/gm, "").trim() === "" && !/::: contents/.test(sections[i]));
+    if (empty.length) return `empty sections: ${empty.join(", ")}`;
+    const junk = md.match(/.{0,30}(\{[A-Za-z_ ]+\}|\bundefined\b|\[object|\bNaN\b|\bTODO\b).{0,30}/);
+    if (junk) return `junk: ${junk[0]}`;
+  });
+  await check("pack: each part divider is followed by its own chapters (never two parts in a row)", async () => {
+    if (/^::: part\n.+\n.+\n:::\n+::: part/m.test(md)) return "Part I and Part II back to back";
+    const at = (needle) => md.indexOf(needle);
+    const ok =
+      at("Part I\nFoundations") < at("# Chapter 1:") &&
+      at("# Chapter 3:") < at("Part II\nPutting it to work") &&
+      at("Part II\nPutting it to work") < at("# Chapter 4:");
+    if (!ok) return "the parts are not around their chapters";
+  });
+  await check("pack: About the author is the profile bio word for word in MD and TXT", async () => {
+    const txt =
+      entry(/^manuscript\/[^/]+\.txt$/)
+        ?.read()
+        .toString("utf8") ?? "";
+    if (!squash(md).includes(squash(bio))) return "MD";
+    if (!squash(txt).includes(squash(bio))) return "TXT";
+    if (txt.includes("\r") || !txt.endsWith("\n")) return "TXT line endings";
+  });
+  await check("pack: EPUB opens, mimetype is first and stored, the cover is declared, the nav lists parts and chapters", async () => {
+    const epub = entry(/^manuscript\/[^/]+\.epub$/);
+    const inner = readZip(epub.read());
+    if (inner[0].name !== "mimetype" || inner[0].method !== 0) return "mimetype is not the first stored entry";
+    const opf =
+      inner
+        .find((e) => e.name.endsWith(".opf"))
+        ?.read()
+        .toString("utf8") ?? "";
+    if (!/properties="cover-image"/.test(opf)) return "no cover-image in the package";
+    const nav = (
+      inner
+        .find((e) => /nav\.xhtml$/.test(e.name))
+        ?.read()
+        .toString("utf8") ?? ""
+    ).replace(/<[^>]+>/g, " ");
+    const missing = ["Foundations", "Putting it to work", ...chapterHeadings.map((h) => h.replace(/^Chapter \d+: /, ""))].filter((t) => !nav.includes(t));
+    if (missing.length) return `nav misses: ${missing.join(", ")}`;
+    const text = inner.filter((e) => /text\/.+\.x?html$/.test(e.name) && !/cover\.xhtml$/.test(e.name));
+    const blank = text
+      .filter(
+        (e) =>
+          e
+            .read()
+            .toString("utf8")
+            .replace(/<head>[\s\S]*?<\/head>/, "")
+            .replace(/<[^>]+>/g, "")
+            .trim() === "",
+      )
+      .map((e) => e.name);
+    if (blank.length) return `empty pages: ${blank.join(", ")}`;
+    const all = squash(
+      text
+        .map((e) =>
+          e
+            .read()
+            .toString("utf8")
+            .replace(/<[^>]+>/g, " "),
+        )
+        .join(" "),
+    );
+    if (!all.includes(squash(bio))) return "bio is not word for word";
+  });
+  await check("pack: DOCX opens and has a Heading 1 for every chapter and part", async () => {
+    const docx = readZip(entry(/^manuscript\/[^/]+\.docx$/).read());
+    const xml =
+      docx
+        .find((e) => e.name === "word/document.xml")
+        ?.read()
+        .toString("utf8") ?? "";
+    const h1 = [...xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)]
+      .filter((m) => /<w:pStyle w:val="Heading1"/.test(m[0]))
+      .map((m) => [...m[0].matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map((x) => x[1]).join(""));
+    const missing = chapterHeadings.map((h) => h.replace(/^Chapter \d+: /, "")).filter((t) => !h1.some((x) => x.includes(t)));
+    if (missing.length) return `no Heading 1 for: ${missing.join(", ")}`;
+    if (!squash(xml.replace(/<\/w:p>/g, " ").replace(/<[^>]+>/g, "")).includes(squash(bio))) return "bio is not word for word";
+  });
+  await check("pack: the print PDF has the title page, contents, every heading, the bio and no blank page after a heading", async () => {
+    const pdf = entry(/^manuscript\/[^/]+-interior-[^/]+\.pdf$/).read();
+    const dir = path.join(process.env.TMPDIR ?? "/tmp", `volume-smoke-pack-${STAMP}`);
+    mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, "interior.pdf");
+    writeFileSync(file, pdf);
+    const run = spawnSync("pdftotext", ["-layout", file, "-"], { maxBuffer: 1 << 28 });
+    if (run.error) {
+      console.log("SKIP  pack: PDF text checks need pdftotext (poppler), which is not installed");
+      return;
+    }
+    const pages = run.stdout.toString("utf8").split("\f");
+    pages.length = Math.min(pages.length, pdfPages);
+    const flat = pages.map(squash);
+    if (!flat[0].includes(squash(`Smoke Pack ${STAMP}`).slice(0, 12))) return "title page does not carry the title";
+    const contents = flat.findIndex((t, i) => i < 8 && t.startsWith("contents"));
+    if (contents < 0) return "no contents page";
+    const wanted = ["foundations", "puttingittowork", ...chapterHeadings.map((h) => squash(h.replace(/^Chapter \d+: /, "")))];
+    const missing = wanted.filter(
+      (w) =>
+        !flat
+          .slice(0, contents + 3)
+          .join("")
+          .includes(w) || flat.slice(contents + 1).filter((t) => t.includes(w)).length === 0,
+    );
+    if (missing.length) return `contents or body misses: ${missing.join(", ")}`;
+    if (!flat.join("").includes(squash(bio))) return "bio is not word for word";
+    const blankAfter = [];
+    for (let i = 0; i < pages.length - 1; i++) if (pages[i].trim() && pages[i].trim().length < 120 && !pages[i + 1].trim()) blankAfter.push(i + 1);
+    if (blankAfter.length) return `a heading page is followed by a blank page: page ${blankAfter.join(", ")}`;
+  });
 }
 
 try {

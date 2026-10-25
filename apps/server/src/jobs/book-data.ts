@@ -87,6 +87,28 @@ export async function bookMarketingCounts(configDir: string, book: Pick<Book, 'b
   return hit;
 }
 
+/**
+ * Puts each part divider directly before its own chapters. Approving a blueprint stores every part first and the
+ * chapters after them (the tree groups them by partId, the flat position order does not), so an export that walked the
+ * positions printed "Part I" and "Part II" back to back, before Chapter 1. Sections keep their position order; a part
+ * is followed by the chapters whose partId is that part; chapters with no part stay where they are. Pure.
+ */
+export function orderPartsWithChapters<T extends { id: string; kind: string; area: string; partId: string | null }>(sections: readonly T[]): T[] {
+  const partIds = new Set(sections.filter((s) => s.kind === 'part').map((s) => s.id));
+  if (partIds.size === 0) return [...sections];
+  const children = new Map<string, T[]>();
+  for (const s of sections) {
+    if (s.kind !== 'part' && s.partId && partIds.has(s.partId)) children.set(s.partId, [...(children.get(s.partId) ?? []), s]);
+  }
+  const out: T[] = [];
+  for (const s of sections) {
+    if (s.kind !== 'part' && s.partId && partIds.has(s.partId)) continue;
+    out.push(s);
+    if (s.kind === 'part') out.push(...(children.get(s.id) ?? []));
+  }
+  return out;
+}
+
 /** Gathers everything the exporter needs. About the author is the profile bio, verbatim. */
 /** The blueprint's listing fields, as the owner edits them in the blueprint (PATCH /books/:id/blueprint). */
 export const LISTING_FIELDS = ['description_draft', 'keywords', 'categories', 'back_blurb'] as const;
@@ -137,13 +159,16 @@ export async function buildExportBook(
     authorPhoto = { mime: photo.meta.mime, data: photo.data };
   }
   const allSections = await repos.manuscript.listSections(ctx, projectId);
-  const sections = allSections.filter((s) => s.enabled);
+  const sections = orderPartsWithChapters(allSections.filter((s) => s.enabled));
+  // The exporters sort by position, so the reordered sections take the same positions in the new order (a book with no
+  // parts keeps every position exactly as stored, and so its fingerprint).
+  const slots = sections.map((s) => s.position).sort((a, b) => a - b);
   const structure = await loadBookStructure(configDir, book.bookTypeId, book.template);
   const alsoBy = await alsoByTitles(repos, ctx, book);
   const out: ExportSection[] = [];
   /** Switched-on pages left out of the book on purpose, so the book does not print a blank page for them. */
   const leftOut = new Set<string>();
-  for (const s of sections) {
+  for (const [at, s] of sections.entries()) {
     let bodyMd = '';
     if (s.kind === 'about_author') bodyMd = `# About the author\n\n${profile.bioThirdPerson}`;
     else if (s.kind === 'also_by') bodyMd = alsoByMarkdown(alsoBy);
@@ -158,7 +183,7 @@ export async function buildExportBook(
       id: s.id,
       kind: s.kind,
       area: s.area,
-      position: s.position,
+      position: slots[at] ?? s.position,
       number: s.number,
       title: s.title,
       bodyMd,
