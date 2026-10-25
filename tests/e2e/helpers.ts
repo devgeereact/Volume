@@ -23,6 +23,10 @@ export interface Section {
   status: string;
   wordCount: number;
   currentVersionId: string | null;
+  /** A page the exporter builds: the lines the exported book prints (null for text someone writes). */
+  generated?: { lines: { text: string; level: number }[]; words: number; leftOut: boolean } | null;
+  /** A page only the owner can write, still empty or a placeholder. */
+  ownerPrompt?: { message: string; placeholder: string } | null;
 }
 export interface SectionNode extends Section {
   children: Section[];

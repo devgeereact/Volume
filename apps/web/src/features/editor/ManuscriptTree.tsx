@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { OutlineItem, ProgressBar, Select } from "../../components/ui";
 import { formatNumber } from "../../lib/format";
+import { treeMeta } from "./generatedPage";
 import { groupLabels, type MsGroup, type MsSection } from "./manuscript";
 
 interface ManuscriptTreeProps {
@@ -19,11 +20,7 @@ const groups: MsGroup[] = ["front", "body", "back"];
 /** Manuscript tree: front matter, chapters and back matter with words, claims and unsaved marks. */
 export function ManuscriptTree({ bookId, sections, current, wordsFor, claimsFor, dirty, totalWords, targetWords }: ManuscriptTreeProps) {
   const navigate = useNavigate();
-  const meta = (s: MsSection) => {
-    if (!s.enabled) return "Off";
-    if (s.blocks.length === 0 && s.baseWords === 0) return "Empty";
-    return `${formatNumber(wordsFor(s))}${dirty(s.id) ? ", edited" : ""}`;
-  };
+  const meta = (s: MsSection) => treeMeta(s, wordsFor(s), dirty(s.id));
   return (
     <>
       <div className="px-4 pt-4 pb-1 sm:px-8 xl:hidden">

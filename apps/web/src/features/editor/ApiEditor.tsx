@@ -81,6 +81,7 @@ import { claimNeedsCheck } from "./claimTier";
 import { DiffText } from "./DiffText";
 import { draftStore, useSectionAutosave } from "./useSectionAutosave";
 import { draftBehind, draftKey, type LocalDraft } from "./autosave";
+import { builtPageWords, partTitle, shownWords } from "./generatedPage";
 
 /* Editor on the Volume server (API mode). The same galley, tree and inspector as the demo editor, with
    the text, versions, suggestions, claims and author notes read from and saved to the server. Typing
@@ -107,6 +108,7 @@ const KIND_TITLES: Record<string, string> = {
 };
 
 function sectionTitle(s: ApiSection): string {
+  if (s.kind === "part") return partTitle(s.number, s.title);
   if (s.title) return s.title;
   if (s.kind === "chapter" && s.number !== null) return `Chapter ${s.number}`;
   return KIND_TITLES[s.kind] ?? s.kind.replace(/_/g, " ");
@@ -119,12 +121,15 @@ function toMsSection(s: ApiSection): MsSection {
     group,
     number: s.kind === "chapter" ? s.number : null,
     title: sectionTitle(s),
-    baseWords: s.wordCount,
+    baseWords: shownWords(s),
     wordTarget: s.wordTarget,
     blocks: [],
-    source: "writer",
+    source: s.generated ? "app" : "writer",
     enabled: s.enabled,
     excerpt: false,
+    generated: s.generated ?? null,
+    ownerPrompt: s.ownerPrompt ?? null,
+    isPart: s.kind === "part",
     ...(s.enabled ? {} : { offReason: "This page is turned off for this book. Turn it on in the blueprint to include it." }),
   };
 }
@@ -212,8 +217,10 @@ export function ApiEditor({ book, apiBook, penName }: { book: Book; apiBook: Api
         <ErrorPanel className="mt-5 max-w-[720px]" title="Could not open the manuscript" body={errorText(tree.error)} onRetry={() => void tree.refetch()} />
       </div>
     );
-  const sections = flattenSections(tree.data).filter((s) => s.kind !== "part");
-  if (sections.length === 0 || tree.data.totals.words === 0)
+  // Part dividers stay in the list: the exported book prints them, so the Editor shows them (as a preview, not as empty text).
+  const sections = flattenSections(tree.data);
+  const chapters = sections.filter((s) => s.kind !== "part");
+  if (chapters.length === 0 || tree.data.totals.words === 0)
     return (
       <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
         <h1 className="font-book text-title text-ink">Editor</h1>
@@ -222,16 +229,16 @@ export function ApiEditor({ book, apiBook, penName }: { book: Book; apiBook: Api
           drawing="page"
           title="Nothing to edit yet"
           body={
-            sections.length === 0
+            chapters.length === 0
               ? "This book has no sections yet. Approve the blueprint, then write the book; the sections appear here."
               : "No section has text yet. Write the book first, or open a section and write it on its own."
           }
           action={
             <Link
-              to={`/books/${book.id}/${sections.length === 0 ? "blueprint" : "writing"}`}
+              to={`/books/${book.id}/${chapters.length === 0 ? "blueprint" : "writing"}`}
               className="inline-flex h-10 items-center rounded-sm border border-border-strong bg-sheet px-4 text-label font-semibold text-ink hover:bg-sunken"
             >
-              {sections.length === 0 ? "Open Blueprint" : "Open Writing"}
+              {chapters.length === 0 ? "Open Blueprint" : "Open Writing"}
             </Link>
           }
         />
@@ -371,7 +378,13 @@ function Body({
   }, [msSections, sectionId, apiSection, blocks, ready, words]);
   const treeSections = useMemo(() => msSections.map((s) => (s.id === sectionId ? section : s)), [msSections, section, sectionId]);
   const wordsFor = useCallback((s: MsSection) => (s.id === sectionId ? words : s.baseWords), [sectionId, words]);
-  const totalWords = tree.totals.words - apiSection.wordCount + (ready ? words : apiSection.wordCount);
+  // The server totals the saved text. Built pages (About the author, Also by) add their own words; the open section counts live.
+  const builtCounted = apiSection.generated?.countsInTotal ? apiSection.generated.words : 0;
+  const totalWords =
+    tree.totals.words +
+    builtPageWords(apiSections) -
+    (apiSection.wordCount + builtCounted) +
+    (apiSection.generated ? builtCounted : ready ? words : apiSection.wordCount);
   const target = apiBook?.wordTarget ?? apiSections.reduce((n, s) => n + (s.enabled ? (s.wordTarget ?? 0) : 0), 0);
 
   /* ---------- Saving ---------- */
@@ -1210,7 +1223,20 @@ function Body({
   const versionNo = ready ? doc.version : 0;
   const sTarget = section.wordTarget;
   const over = sTarget !== null && words > sTarget ? words - sTarget : 0;
-  const metaRight = over > 0 ? `${formatNumber(over)} words over target` : versionNo > 0 ? `Version ${versionNo}` : "Not written yet";
+  const built = section.generated;
+  const metaRight = built
+    ? built.leftOut
+      ? "Left out of the book"
+      : "Built at export"
+    : section.isPart
+      ? "Divider page"
+      : over > 0
+        ? `${formatNumber(over)} words over target`
+        : versionNo > 0
+          ? `Version ${versionNo}`
+          : section.ownerPrompt
+            ? "Waiting for you"
+            : "Not written yet";
   const issues = useMemo(() => findIssues(liveBlocks), [liveBlocks]);
   const auto = autosave.status;
   const statusLine =
@@ -1218,7 +1244,14 @@ function Body({
       ? "Saving"
       : auto.kind === "saved" || auto.kind === "error" || auto.kind === "conflict"
         ? autosaveText(auto, (at) => formatTime(new Date(at).toISOString()))
-        : (saveNote ?? (dirty ? "Unsaved changes" : versionNo > 0 ? `Saved as version ${versionNo}` : "Nothing saved yet"));
+        : (saveNote ??
+          (dirty
+            ? "Unsaved changes"
+            : versionNo > 0
+              ? `Saved as version ${versionNo}`
+              : built
+                ? "Nothing to save: built when you export"
+                : "Nothing saved yet"));
 
   /* ---------- Previous version: the one before this edit session ---------- */
   const curVersion = detail?.section.id === sectionId ? detail.current : null;
@@ -1473,6 +1506,8 @@ function Body({
                 }}
               >
                 <EditorCanvas
+                  bookId={bookId}
+                  penNameId={book.penNameId}
                   section={{ ...section, blocks: shownBlocks }}
                   readOnly={!canWrite || choosing}
                   insertKinds={insertKinds}
@@ -1541,7 +1576,7 @@ function Body({
           onTab={setTab}
           section={section}
           sectionLabel={sectionLabel}
-          words={words}
+          words={section.generated ? section.generated.words : words}
           issues={issues}
           onFixIssue={onFixIssue}
           claims={claims}

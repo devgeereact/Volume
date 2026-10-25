@@ -10,7 +10,6 @@ import {
   escapeHtml,
   exerciseHeading,
   inlineToHtml,
-  inContents,
   sectionHeading,
   stripInline,
   type Block,
@@ -20,6 +19,7 @@ import {
   type Section,
 } from '@volume/core';
 import { loadFontLibrary, type FontLibrary } from './fonts.ts';
+import { contentsSections } from './front-matter.ts';
 
 export interface EpubOptions {
   /** eBook cover JPEG (1600 x 2560). Adds the cover-image item and a cover page. */
@@ -188,10 +188,7 @@ export async function exportEpub(book: BookDoc, theme: InteriorTheme = DEFAULT_I
       body = `<section epub:type="copyright-page" class="copyright">${s.blocks.map((b) => (b.type === 'paragraph' ? `<p>${inlineToHtml(b.text)}</p>` : '')).join('')}</section>`;
     } else if (s.subtype === 'contents') {
       tocFile = fileOf(s);
-      const items = secs
-        .slice(idx + 1)
-        .filter((x) => !FENCED.has(x.subtype) && inContents(book, x))
-        .map((x) => `<li><a href="${x.id}.xhtml">${escapeHtml(sectionHeading(x))}</a></li>`);
+      const items = contentsSections(book, secs, idx + 1).map((x) => `<li><a href="${x.id}.xhtml">${escapeHtml(sectionHeading(x))}</a></li>`);
       body = `<section epub:type="toc" class="contents"><h1>Contents</h1><ol class="toc">${items.join('')}</ol></section>`;
     } else {
       // An untitled chapter prints its kicker ("Chapter 1") as the heading.

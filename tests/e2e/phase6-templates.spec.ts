@@ -294,6 +294,22 @@ test.describe("phase 6 templates, from the wizard to a pack", () => {
       c.failNow();
     });
 
+    await test.step("Editor: built pages show what the exported book holds, not an empty page", async () => {
+      const tree = await getJson<SectionTree>(request, `/books/${bookId}/sections`);
+      const built = leafSections(tree).filter((s) => ["title_page", "copyright", "contents", "about_author"].includes(s.kind));
+      expect(built.map((s) => s.kind)).toEqual(expect.arrayContaining(["title_page", "copyright", "about_author"]));
+      for (const s of built) {
+        expect(s.generated?.lines.length, `${s.kind} has built lines`).toBeGreaterThan(0);
+        expect(s.generated?.words, `${s.kind} has words`).toBeGreaterThan(0);
+      }
+      const title = built.find((s) => s.kind === "title_page")!;
+      await c.page.goto(`/books/${bookId}/editor/${title.id}`);
+      await expect(main.getByText("Read-only preview")).toBeVisible({ timeout: JOB_WAIT });
+      await expect(main.getByText("Built from your book details when you export").first()).toBeVisible();
+      await expect(main.getByText("This section is empty")).toHaveCount(0);
+      c.failNow();
+    });
+
     await test.step("Editor: a chapter has scene breaks and no subheadings", async () => {
       await c.page.goto(`/books/${bookId}/editor`);
       await expect(c.h1("Editor")).toBeVisible();

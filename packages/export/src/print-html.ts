@@ -5,7 +5,6 @@ import {
   enabledSections,
   escapeHtml,
   exerciseHeading,
-  inContents,
   inlineToHtml,
   marginsFor,
   parseTrimKey,
@@ -18,6 +17,7 @@ import {
   type TrimKey,
 } from '@volume/core';
 import { fontFaceCss, resolveFamily, type FontLibrary } from './fonts.ts';
+import { contentsSections } from './front-matter.ts';
 import { ornamentSvg } from './ornaments.ts';
 import { glyphWarning, normaliseBookGlyphs, symbolFallbackCss, withSymbolFallback } from './print-glyphs.ts';
 
@@ -142,8 +142,7 @@ function blocksHtml(s: Section, theme: InteriorTheme, opts: PrintHtmlOptions, wa
 
 function tocHtml(book: BookDoc, secs: Section[], from: number, withSubs: boolean): string {
   const rows: string[] = [];
-  for (const s of secs.slice(from)) {
-    if (FENCED.has(s.subtype) || !inContents(book, s)) continue;
+  for (const s of contentsSections(book, secs, from)) {
     // An untitled chapter lists its kicker ("Chapter 1") as the entry.
     const k = s.kicker && s.title ? `<span class="k">${escapeHtml(s.kicker)}</span>` : '<span class="nk"></span>';
     rows.push(
