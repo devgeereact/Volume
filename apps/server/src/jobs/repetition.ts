@@ -13,9 +13,9 @@ export const REPETITION_PASS = 'repetition';
  */
 export async function bookRepetitions(jc: JobContext, projectId: string, sectionId: string): Promise<{ suggestions: number; warnings: number }> {
   const { repos } = jc.services;
-  const sections = (await repos.manuscript.listSections(jc.ctx, projectId))
-    .filter((s) => s.enabled && s.currentVersionId && !CODE_WRITTEN_KINDS.has(s.kind) && s.kind !== 'part')
-    .sort((a, b) => a.position - b.position);
+  const sections = (await repos.manuscript.listSections(jc.ctx, projectId)).filter(
+    (s) => s.enabled && s.currentVersionId && !CODE_WRITTEN_KINDS.has(s.kind) && s.kind !== 'part',
+  );
   const units: RepetitionUnit[] = [];
   let currentVersionId: string | null = null;
   for (const s of sections) {

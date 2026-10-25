@@ -278,9 +278,25 @@ async function unsourcedPriceClaims(jc: JobContext, projectId: string, sectionId
   return claims.length;
 }
 
+/**
+ * The sections that come after this one when the book is read. `all` is in reading order (listSections puts each part
+ * before its own chapters, whatever positions an older book stored), so "after" is the place in that list and not the
+ * raw position: a chapter moved by position out of its part still reads, and is written about, where its part puts it.
+ */
+function sectionsAfter(all: readonly Section[], section: Section): Section[] {
+  const at = all.findIndex((s) => s.id === section.id);
+  return at < 0 ? all.filter((s) => s.position > section.position) : all.slice(at + 1);
+}
+
+/** The sections before this one in reading order (see sectionsAfter). */
+function sectionsBefore(all: readonly Section[], section: Section): Section[] {
+  const at = all.findIndex((s) => s.id === section.id);
+  return at < 0 ? all.filter((s) => s.position < section.position) : all.slice(0, at);
+}
+
 /** The section variables the writing and summary prompts share. */
 function sectionVarsOf(section: Section, all: readonly Section[]): Record<string, unknown> {
-  const later = all.filter((s) => s.enabled && s.position > section.position && BODY_FLOW.has(s.kind));
+  const later = sectionsAfter(all, section).filter((s) => s.enabled && BODY_FLOW.has(s.kind));
   const isLast = section.kind === 'chapter' && !later.some((s) => s.kind === 'chapter');
   const partTitle = section.partId ? (all.find((s) => s.id === section.partId)?.title ?? null) : null;
   return { kind: section.kind, title: section.title, number: section.number, word_target: section.wordTarget, ...section.plan, partTitle, isLast };
@@ -297,15 +313,15 @@ async function writingContext(jc: JobContext, book: Book, section: Section, prof
   const { repos } = jc.services;
   const projectId = book.id;
   const sectionId = section.id;
-  const all = [...(await repos.manuscript.listSections(jc.ctx, projectId))].sort((a, b) => a.position - b.position);
-  const earlier = all.filter((s) => s.enabled && s.position < section.position && s.currentVersionId);
+  const all = await repos.manuscript.listSections(jc.ctx, projectId);
+  const earlier = sectionsBefore(all, section).filter((s) => s.enabled && s.currentVersionId);
   const summaries: { number: number; title: string | null; summary: string }[] = [];
   for (const s of earlier) {
     const v = await repos.manuscript.getVersion(jc.ctx, s.currentVersionId as string);
     if (v?.summary) summaries.push({ number: s.number ?? summaries.length + 1, title: s.title, summary: v.summary });
   }
   // An earlier section whose summary failed is simply absent here; its open summary_missing flag says so.
-  const later = all.filter((s) => s.enabled && s.position > section.position && BODY_FLOW.has(s.kind));
+  const later = sectionsAfter(all, section).filter((s) => s.enabled && BODY_FLOW.has(s.kind));
   const next = later[0] ?? null;
   const ledger = await repos.manuscript.listLedger(jc.ctx, projectId);
   // Dated prices, and where the author's background is already stated (a profile fact goes in the body once).
