@@ -231,7 +231,12 @@ export function EditorCanvas(props: EditorCanvasProps) {
 
   return (
     <div ref={wrapRef} className="relative" onKeyDown={onSheetKey}>
-      <GalleySheet label={`${section.title}, editable`} metaLeft={label} metaRight={metaRight} className="px-5! sm:px-14!">
+      <GalleySheet
+        label={section.generated || section.isPart ? `${section.title}, read-only preview` : `${section.title}, editable`}
+        metaLeft={label}
+        metaRight={metaRight}
+        className="px-5! sm:px-14!"
+      >
         <p className="mt-6 text-label text-ink-secondary">{section.number !== null ? `Chapter ${section.number}` : sectionKind(section)}</p>
         <h2
           className="opsz-title mt-1 font-book text-[28px] leading-[34px] font-medium tracking-[-0.015em] text-ink sm:text-title sm:leading-[42px]"

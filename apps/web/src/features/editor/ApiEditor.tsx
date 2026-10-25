@@ -404,7 +404,8 @@ function Body({
   });
   // While a draft from this browser waits for the owner's choice, the page is read only: nothing saves over either text.
   const choosing = !!recovered && recovered.sectionId === sectionId;
-  const typingAllowed = canWrite && !review && !choosing;
+  // A built page is read only: nothing to type, autosave or save.
+  const typingAllowed = canWrite && !review && !choosing && !section.generated;
   useEffect(() => {
     if (ready && typingAllowed) autosave.change(liveMd);
   }, [ready, typingAllowed, liveMd, autosave]);
@@ -492,7 +493,7 @@ function Body({
     async (note: string | null = null): Promise<boolean> => {
       // Typed text lives in drafts until the paragraph is left; it is saved as is, and the blocks are
       // left alone so the paragraph being typed in keeps its caret.
-      if (!doc || doc.sectionId !== sectionId) return true;
+      if (!doc || doc.sectionId !== sectionId || section.generated) return true;
       const md = markdownFromBlocks(blocks.map((b) => (drafts[b.id] !== undefined ? { ...b, text: drafts[b.id]! } : b)));
       autosave.change(md);
       if (!(await autosave.flush())) return false; // a conflict or an error shows its own message
@@ -521,7 +522,7 @@ function Body({
         return false;
       }
     },
-    [blocks, drafts, doc, sectionId, bookId, save, autosave],
+    [blocks, drafts, doc, sectionId, bookId, save, autosave, section.generated],
   );
 
   /** Server-side text changes (suggestions, claims, notes, restore) start from saved text. */
@@ -1329,7 +1330,7 @@ function Body({
               </Button>
             )}
             <div className="ml-auto flex flex-wrap items-center gap-1.5">
-              {canWrite && (
+              {canWrite && !section.generated && (
                 <Button
                   variant="ghost"
                   icon={MessageSquarePlus}
@@ -1356,7 +1357,7 @@ function Body({
               >
                 Versions
               </Button>
-              {canWrite && (
+              {canWrite && !section.generated && (
                 <Button
                   icon={Save}
                   onClick={() => void saveNow()}

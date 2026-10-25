@@ -177,6 +177,19 @@ describe('editor pages match the exported book', () => {
     expect(exportMarkdown(again.doc).toString('utf8')).toContain('For Sam, who read every draft.');
   });
 
+  it('clears the Resources switched-off note when the owner switches Resources back on', async () => {
+    const { id } = await written('ai-tech-howto', {});
+    const res = kind(flat(await tree(id)), 'resources');
+    expect(res.enabled).toBe(false);
+    expect((res['plan'] as Obj)['autoSwitchedOff']).toMatchObject({ reason: 'no-sources' });
+    const patched = await t.call<Sec>('PATCH', `/api/v1/sections/${res.id}`, { enabled: true });
+    expect(patched.status).toBe(200);
+    expect(patched.body['plan']).not.toHaveProperty('autoSwitchedOff');
+    // Other plan fields stay, and switching off again by hand adds no note.
+    const off = await t.call<Sec>('PATCH', `/api/v1/sections/${res.id}`, { enabled: false });
+    expect(off.body['plan']).not.toHaveProperty('autoSwitchedOff');
+  });
+
   it('shows the placeholder the exported book holds while Acknowledgements has no names', async () => {
     const { id } = await written('self-help', {});
     const ack = kind(flat(await tree(id)), 'acknowledgements');

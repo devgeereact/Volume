@@ -114,7 +114,13 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
     const base = writeStatusOf(s, job, delta.length > 0 && job?.status === "running");
     const status: WriteRowStatus = summarising.has(s.id) && base !== "writing" && base !== "checking" && base !== "queued" ? "summarising" : base;
     const draft = delta.length > 0 && (status === "writing" || status === "checking" || status === "paused" || status === "stopped");
-    return { section: s, status, words: draft ? countWords(delta) : s.wordCount, job, flags: guardrailsOf(s)?.needsAttention ?? [] };
+    return {
+      section: s,
+      status,
+      words: draft ? countWords(delta) : s.generated ? (s.generated.countsInTotal ? s.generated.words : 0) : s.wordCount,
+      job,
+      flags: guardrailsOf(s)?.needsAttention ?? [],
+    };
   });
 
   const children = parentDetail.data?.children ?? [];

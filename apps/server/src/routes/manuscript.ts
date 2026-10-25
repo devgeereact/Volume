@@ -7,6 +7,7 @@ import { contextOf, findMatches, replaceMatches } from '../lib/find.js';
 import { KeyedLock } from '../lib/keyed-lock.js';
 import { lineDiff } from '../lib/text.js';
 import { NoteInputSchema, NotePatchSchema, SaveVersionSchema, sessionStartOf, type Section } from '../repos/manuscript.js';
+import { RESOURCES_AUTO_OFF_KEY } from '../jobs/handlers/writing.js';
 import { advanceIfWritingComplete, CHECKS_MISSING_CHECKER, CODE_WRITTEN_KINDS, sectionPreviews, SUMMARY_MISSING_CHECKER } from '../jobs/book-data.js';
 import { estimateRuns } from './fixes.js';
 import { sectionGuardrails } from '../repos/run-info.js';
@@ -96,10 +97,15 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
       }),
       req.body,
     );
-    await m.requireSection(req.ctx, id);
+    const existing = await m.requireSection(req.ctx, id);
     const set: Parameters<typeof m.updateSectionPlan>[2] = {};
     if (body.title !== undefined) set.title = body.title;
     if (body.enabled !== undefined) set.enabled = body.enabled;
+    // Switching a page back on ends the app's "switched off" note (Resources with no sources), so it does not linger.
+    if (body.enabled === true && RESOURCES_AUTO_OFF_KEY in existing.plan) {
+      const { [RESOURCES_AUTO_OFF_KEY]: _note, ...rest } = existing.plan;
+      set.plan = rest;
+    }
     if (body.position !== undefined) set.position = body.position;
     if (body.wordTarget !== undefined) set.wordTarget = body.wordTarget;
     await m.updateSectionPlan(req.ctx, id, set);
