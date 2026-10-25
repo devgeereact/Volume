@@ -1,5 +1,11 @@
 # Current task
 
+## State on 25 October 2026 (smoke test and polish, local only)
+
+- Branch `feat/smoke-test-and-polish` (not merged, not deployed, owner asked for push only). Four engineers' work: editor and export completeness (3f7c334, 513bdd9), claims gate and house-style false positives (11bf667, b4401c4), SEO and public pages (d950900, dbbb271), smoke script and UX fixes (78312af). Local gate green: typecheck, lint, format:check, unit tests in every workspace, e2e 20 passed.
+- Owner decisions to confirm: (1) the pack gate now blocks only on needs-check claims (it counted every open claim before); (2) indexing the public pages is a proposal, D-053 item 5 keeps noindex (flip INDEXABLE in apps/web/src/site/seo.ts and INDEXABLE_KEYS in apps/server/src/http/seo.ts, then record a superseding decision); (3) the house-style and invented-content rules were loosened for legitimate uses, review the audit table in the PR.
+- Known gaps: the app swaps to sample data under a small Demo badge when the server dies mid-session (D-016); `HostedAuth` shows a blank loader until Clerk loads, so crawlers get only the no-script copy; in-app NotFound has no title or noindex; docs/05-security/SECURITY.md still says robots.txt disallows everything; packages/ai guardrails do not use the properNames list; mock books are 20 pages so the pack build is refused in the smoke script (e2e covers a real build).
+
 ## State on 25 October 2026 (export last)
 
 - Branch `perf/cover-preview-cache-and-polling` also holds D-060: Export is the last step, the pack carries named marketing files, and a pack is Exported until something in it changes. Tested locally on a mock book; not deployed. Owner opens one PR, merges and deploys; then check the live Export page.

@@ -2,6 +2,21 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 25 October 2026
+
+#### Added
+- The Editor now shows every section as the exported book holds it. The title page, copyright, contents and About the author are built from your book, pen name and template, shown read-only with a note saying where each is edited. Parts show as dividers. Dedication and Acknowledgements show a kind prompt and the text the book will hold. Word totals count the built pages the way the text export does.
+- Also by is now built from the other books under the same pen name (it stays off until you switch it on). A blank owner page, such as a dedication nobody wrote, is left out of the export instead of printing a heading over a blank page.
+- Whole-app smoke script: `tests/smoke/smoke.mjs` walks every screen and flow with mock AI at desktop and phone widths and checks console errors, failed requests, overflow, labels, copy and speed.
+- Technical SEO for the public pages: a title, description and social tags per page, structured data, a real 404 page, one address per page, font preloads, larger tap targets and a Pause animation button. The pages stay noindex (D-053), `robots.txt` disallows everything and `/sitemap.xml` answers 404 until you decide to index them.
+
+#### Fixed
+- The pack gate now counts only claims that need your check, as the preflight and the export spec already say. Claims listed for the record no longer block a pack. Nothing is ever resolved for you.
+- The profile bio on the About the author page is no longer flagged for banned words, official names such as World Health Organization are no longer flagged as US spellings, and "no testimonials" or "does not guarantee" no longer count as invented praise or promises. Real invented praise, awards and promises still block.
+- A book with no research sources switches its Resources section off with a note, instead of blocking the pack. Switching it back on clears the note.
+- The About the author and Contents checks read "not applicable" when a template leaves that page out.
+- An unknown address no longer keeps the previous screen's tab title, and the Writing page says when Acknowledgements need names before Marketing opens.
+
 ## 24 October 2026
 
 #### Added

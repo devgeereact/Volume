@@ -662,3 +662,9 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Not done: no Exported chip on the Library cards (it needs the full export book per card); a failed-job notice stays until dismissed even when a later job succeeded; Cover shows in progress after a build until the pack is built (step state follows the stage). Live site NOT TESTED after these changes.
 - Next: owner opens a PR for the branch, merges and deploys; check the live Export page on Steady On Your Feet after Build again and a pack rebuild.
 
+## 25 October 2026, Claude (integrator, four engineers): smoke test and polish
+
+- Branch `feat/smoke-test-and-polish`, local only, pushed for review, not merged or deployed.
+- Editor and export: built pages shown read-only in the Editor from the same code the exporter uses (`packages/export/src/front-matter.ts`, `sectionPreviews` in `jobs/book-data.ts`), Also by built, blank owner pages dropped from the export. Claims gate follows the claim tiers; house-style and invented-content rules refined (`config/house-style.json`, `packages/core`); Resources switches off without sources. SEO: `apps/server/src/http/seo.ts`, `apps/web/src/site/seo.ts`, real 404, robots and sitemap (noindex kept). Smoke: `tests/smoke/smoke.mjs`.
+- Checks: typecheck, lint, format:check, `npm run test` (all workspaces), `npm run e2e` (20 passed) all PASS. Smoke script: 363 PASS, 0 FAIL on the agent's run.
+- Next: owner reviews the PR; decisions listed in CURRENT-TASK.md.
