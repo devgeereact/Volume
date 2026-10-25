@@ -26,8 +26,8 @@ describe("public page metadata", () => {
     }
   });
 
-  it("indexes only the landing and How it works", () => {
-    expect([...INDEXABLE]).toEqual(["home", "how-it-works"]);
+  it("indexes nothing while D-053 item 5 stands", () => {
+    expect([...INDEXABLE]).toEqual([]);
   });
 });
 

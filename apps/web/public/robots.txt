@@ -1,10 +1,3 @@
-# Volume is a private studio. Only the public pages (the landing and How it works) may be indexed.
-# The server answers /robots.txt itself with the same rules plus the Sitemap line (apps/server/src/http/seo.ts).
+# Volume is a private studio. Nothing here is for search engines.
 User-agent: *
-Allow: /$
-Allow: /how-it-works$
-Allow: /assets/
-Allow: /favicon.ico
-Allow: /favicon.svg
-Allow: /og-image.png
 Disallow: /

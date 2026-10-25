@@ -10,7 +10,8 @@ import pages from "./seo-pages.json";
 export type SeoKey = keyof typeof pages;
 
 /** Pages search engines may index. Everything else is noindex. */
-export const INDEXABLE: readonly SeoKey[] = ["home", "how-it-works"];
+// D-053 item 5: noindex stays. To index the landing page and How it works, add 'home' and 'how-it-works' here and in the web seo.ts, after a superseding decision.
+export const INDEXABLE: readonly SeoKey[] = [];
 
 /** First path segments that belong to the signed-in app. A signed-out visitor who follows one gets sign-in. */
 export const APP_PATH_PREFIXES: readonly string[] = [
@@ -92,7 +93,8 @@ export function resetSeo(): void {
 export function applySeo(key: SeoKey, origin: string = window.location.origin): void {
   const page = pages[key];
   const index = INDEXABLE.includes(key);
-  const url = `${origin}${index ? page.path : window.location.pathname}`;
+  const own = key === "home" || key === "how-it-works";
+  const url = `${origin}${own ? page.path : window.location.pathname}`;
   document.title = page.title;
   meta("name", "description", page.description);
   meta("name", "robots", index ? "index, follow, max-image-preview:large" : "noindex, nofollow");

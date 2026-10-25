@@ -173,13 +173,13 @@ function registerSeoPages(app: FastifyInstance, config: AppConfig, shell: string
         void reply.redirect(page.to, 301);
         return;
       case 'public':
-        html(200, renderPage(shell, { origin: origin(), key: page.key, indexable: true, fonts }));
+        html(200, renderPage(shell, { origin: origin(), key: page.key, fonts }));
         return;
       case 'app':
-        html(200, page.key ? renderPage(shell, { origin: origin(), key: page.key, indexable: false }) : shell);
+        html(200, page.key ? renderPage(shell, { origin: origin(), key: page.key }) : shell);
         return;
       case 'not-found':
-        html(404, renderPage(shell, { origin: origin(), key: 'not-found', indexable: false }));
+        html(404, renderPage(shell, { origin: origin(), key: 'not-found' }));
         return;
       default:
         return done();

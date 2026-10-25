@@ -47,10 +47,15 @@ export const SEO_PAGES = {
 type SeoKey = keyof typeof SEO_PAGES;
 
 /** The pages search engines may index, in sitemap order. */
-export const INDEXABLE_KEYS = ['home', 'how-it-works'] as const satisfies readonly SeoKey[];
+export type PublicKey = 'home' | 'how-it-works';
 
-/** Paths whose answers carry no noindex header (the pages themselves, plus the files crawlers must read). */
-export const INDEXABLE_PATHS: readonly string[] = ['/', '/how-it-works', '/robots.txt', '/sitemap.xml'];
+// D-053 item 5: noindex stays. To index the landing page and How it works, add 'home' and 'how-it-works' here and in the web seo.ts, after a superseding decision.
+export const INDEXABLE_KEYS: readonly PublicKey[] = [];
+
+/** Paths whose answers carry no noindex header: the indexable pages, plus the files crawlers must read. */
+export function indexablePaths(keys: readonly PublicKey[] = INDEXABLE_KEYS): string[] {
+  return ['/robots.txt', ...(keys.length > 0 ? ['/sitemap.xml', ...keys.map((k) => SEO_PAGES[k].path)] : [])];
+}
 
 /** First path segments that belong to the signed-in app (and sign-in). They answer 200 with the app shell, noindex. */
 export const APP_PATH_PREFIXES: readonly string[] = [
@@ -80,7 +85,7 @@ export const STAGES: readonly { name: string; detail: string }[] = [
 const HEADLINE = 'Bring a working title. Leave with a finished book.';
 
 export type PageKind =
-  | { kind: 'public'; key: (typeof INDEXABLE_KEYS)[number] }
+  | { kind: 'public'; key: PublicKey }
   | { kind: 'app'; key: 'sign-in' | null }
   | { kind: 'redirect'; to: string }
   | { kind: 'not-found' }
@@ -103,7 +108,8 @@ export function classifyPath(url: string): PageKind {
   const lower = path.toLowerCase();
   if (lower === '/api' || lower.startsWith('/api/') || lower.startsWith('/assets/')) return { kind: 'other' };
   if (lower === '/robots.txt') return { kind: 'robots' };
-  if (lower === '/sitemap.xml') return { kind: 'sitemap' };
+  // No sitemap while nothing is indexable: a normal 404.
+  if (lower === '/sitemap.xml') return INDEXABLE_KEYS.length > 0 ? { kind: 'sitemap' } : { kind: 'other' };
   if (lower === '/index.html') return { kind: 'redirect', to: '/' };
   if (/\.[a-z0-9]{1,8}$/i.test(path)) return { kind: 'other' };
   // One address per page: trailing slash, other letter case and /welcome all lead to the page itself.
@@ -122,7 +128,7 @@ export function classifyPath(url: string): PageKind {
 /** True when the response at this URL may be indexed (no X-Robots-Tag header). */
 export function isIndexablePath(url: string): boolean {
   const raw = url.split('?')[0] ?? '';
-  return INDEXABLE_PATHS.includes(raw);
+  return indexablePaths().includes(raw);
 }
 
 /**
@@ -135,12 +141,12 @@ export function siteOrigin(config: AppConfig, req: FastifyRequest): string {
   return /^[a-z0-9.-]+(:\d{1,5})?$/i.test(host) ? `${req.protocol}://${host}` : 'http://127.0.0.1';
 }
 
-export function robotsTxt(origin: string): string {
+export function robotsTxt(origin: string, keys: readonly PublicKey[] = INDEXABLE_KEYS): string {
+  if (keys.length === 0) return ['# Volume is a private studio. Nothing here is for search engines.', 'User-agent: *', 'Disallow: /', ''].join('\n');
   return [
-    '# Volume is a private studio. Only the landing page and How it works may be indexed.',
+    '# Volume is a private studio. Only the listed public pages may be indexed.',
     'User-agent: *',
-    'Allow: /$',
-    'Allow: /how-it-works$',
+    ...keys.map((k) => `Allow: ${SEO_PAGES[k].path === '/' ? '/$' : `${SEO_PAGES[k].path}$`}`),
     'Allow: /assets/',
     'Allow: /favicon.ico',
     'Allow: /favicon.svg',
@@ -152,8 +158,8 @@ export function robotsTxt(origin: string): string {
   ].join('\n');
 }
 
-export function sitemapXml(origin: string): string {
-  const urls = INDEXABLE_KEYS.map((k) => `  <url><loc>${escapeXml(origin + SEO_PAGES[k].path)}</loc></url>`);
+export function sitemapXml(origin: string, keys: readonly PublicKey[] = INDEXABLE_KEYS): string {
+  const urls = keys.map((k) => `  <url><loc>${escapeXml(origin + SEO_PAGES[k].path)}</loc></url>`);
   return ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', ...urls, '</urlset>', ''].join('\n');
 }
 
@@ -171,7 +177,7 @@ function jsonForScript(data: unknown): string {
 }
 
 /** Structured data that says only what is true of the pages: a name, a description and where things are. No ratings, prices or reviews. */
-export function structuredData(key: (typeof INDEXABLE_KEYS)[number], origin: string): Record<string, unknown> {
+export function structuredData(key: PublicKey, origin: string): Record<string, unknown> {
   const home = SEO_PAGES.home;
   const org = { '@type': 'Organization', '@id': `${origin}/#organization`, name: 'Volume', url: `${origin}/`, logo: `${origin}/icon-512.png` };
   const site = {
@@ -223,7 +229,7 @@ export function structuredData(key: (typeof INDEXABLE_KEYS)[number], origin: str
 }
 
 /** The copy of a public page for visitors and crawlers that run no scripts (the web app is client-rendered). */
-export function noscriptBody(key: (typeof INDEXABLE_KEYS)[number]): string {
+export function noscriptBody(key: PublicKey): string {
   const page = SEO_PAGES[key];
   const links = '<p><a href="/">Home</a> | <a href="/how-it-works">How it works</a> | <a href="/sign-in">Sign in</a></p>';
   if (key === 'home') {
@@ -251,19 +257,22 @@ export interface RenderOptions {
   origin: string;
   /** Page-specific head: title, description, robots and the tags that follow from them. */
   key: SeoKey;
-  /** True for the pages search engines may index (canonical, social tags, structured data, preloads, no-script copy). */
-  indexable: boolean;
+  /** The pages search engines may index (default INDEXABLE_KEYS). Any other page is noindex, nofollow and has no canonical. */
+  indexableKeys?: readonly PublicKey[];
+  /** Font preload links, for the public pages. */
   fonts?: string;
 }
 
 /** The app shell (index.html) with the head tags of one page written in. Everything else in the file is left as built. */
 export function renderPage(html: string, o: RenderOptions): string {
   const page = SEO_PAGES[o.key];
-  const robots = o.indexable ? 'index, follow, max-image-preview:large' : 'noindex, nofollow';
+  const indexable = (o.indexableKeys ?? INDEXABLE_KEYS).includes(o.key as PublicKey);
+  const robots = indexable ? 'index, follow, max-image-preview:large' : 'noindex, nofollow';
   const url = `${o.origin}${page.path}`;
   const extra: string[] = [];
   const key = o.key;
-  if (o.indexable && (key === 'home' || key === 'how-it-works')) {
+  // The landing page and How it works carry social tags and structured data even while they are noindex.
+  if (key === 'home' || key === 'how-it-works') {
     const image = `${o.origin}/og-image.png`;
     const alt = 'Volume, a book production studio';
     const og: [string, string][] = [
@@ -285,7 +294,7 @@ export function renderPage(html: string, o: RenderOptions): string {
       ['twitter:image', image],
       ['twitter:image:alt', alt],
     ];
-    extra.push(`<link rel="canonical" href="${escapeHtml(url)}">`);
+    if (indexable) extra.push(`<link rel="canonical" href="${escapeHtml(url)}">`);
     for (const [p, c] of og) extra.push(`<meta property="${p}" content="${escapeHtml(c)}">`);
     for (const [n, c] of tw) extra.push(`<meta name="${n}" content="${escapeHtml(c)}">`);
     extra.push(`<script type="application/ld+json">${jsonForScript(structuredData(key, o.origin))}</script>`);
@@ -296,6 +305,6 @@ export function renderPage(html: string, o: RenderOptions): string {
     .replace(/<meta\s+name="description"[^>]*>/i, () => `<meta name="description" content="${escapeHtml(page.description)}">`)
     .replace(/<meta\s+name="robots"[^>]*>/i, () => `<meta name="robots" content="${robots}">`);
   if (extra.length > 0) out = out.replace(/<\/head>/i, () => `${extra.join('\n')}\n</head>`);
-  if (o.indexable && (key === 'home' || key === 'how-it-works')) out = out.replace(/(<div id="root"><\/div>)/i, (m) => `${m}\n${noscriptBody(key)}`);
+  if (key === 'home' || key === 'how-it-works') out = out.replace(/(<div id="root"><\/div>)/i, (m) => `${m}\n${noscriptBody(key)}`);
   return out;
 }

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config/env.js';
-import { APP_PATH_PREFIXES, SEO_PAGES, STAGES, classifyPath, robotsTxt, sitemapXml } from '../src/http/seo.js';
+import { APP_PATH_PREFIXES, INDEXABLE_KEYS, SEO_PAGES, STAGES, classifyPath, indexablePaths, renderPage, robotsTxt, sitemapXml } from '../src/http/seo.js';
 import { testApp, type TestApp } from './helpers.js';
 
 const ORIGIN = 'https://volume.example.com';
@@ -29,46 +29,49 @@ afterAll(async () => {
 });
 
 describe('robots.txt and sitemap.xml', () => {
-  it('allow only the public pages and name the sitemap', async () => {
+  it('disallow everything, with no sitemap, while nothing is indexable', async () => {
     const res = await t.call('GET', '/robots.txt');
     expect(res.status).toBe(200);
     expect(String(res.headers['content-type'])).toMatch(/^text\/plain/);
     expect(res.headers['x-robots-tag']).toBeUndefined();
-    expect(res.raw).toContain('Disallow: /\n');
-    expect(res.raw).toContain('Allow: /$');
-    expect(res.raw).toContain('Allow: /how-it-works$');
-    expect(res.raw).toContain(`Sitemap: ${ORIGIN}/sitemap.xml`);
+    expect(res.raw).toBe('# Volume is a private studio. Nothing here is for search engines.\nUser-agent: *\nDisallow: /\n');
+    expect(res.raw).not.toContain('Sitemap');
   });
 
   it('keep the static fallback in public/ the same as the served rules', () => {
-    const served = robotsTxt(ORIGIN)
-      .split('\n')
-      .filter((l) => l.startsWith('Allow:') || l.startsWith('Disallow:'));
-    const file = readFileSync(join(WEB, 'public/robots.txt'), 'utf8')
-      .split('\n')
-      .filter((l) => l.startsWith('Allow:') || l.startsWith('Disallow:'));
-    expect(file).toEqual(served);
+    expect(readFileSync(join(WEB, 'public/robots.txt'), 'utf8')).toBe(robotsTxt(ORIGIN));
   });
 
-  it('list the two public pages and nothing signed-in', async () => {
+  it('answers /sitemap.xml with a normal 404 while nothing is indexable', async () => {
+    expect(INDEXABLE_KEYS).toEqual([]);
     const res = await t.call('GET', '/sitemap.xml');
-    expect(res.status).toBe(200);
-    expect(String(res.headers['content-type'])).toMatch(/^application\/xml/);
-    expect(res.raw).toContain(`<loc>${ORIGIN}/</loc>`);
-    expect(res.raw).toContain(`<loc>${ORIGIN}/how-it-works</loc>`);
-    expect(res.raw.match(/<url>/g)).toHaveLength(2);
-    expect(sitemapXml(ORIGIN)).not.toContain('library');
+    expect(res.status).toBe(404);
+  });
+
+  it('can still build the sitemap and robots rules for pages that are enabled', () => {
+    const xml = sitemapXml(ORIGIN, ['home', 'how-it-works']);
+    expect(xml).toContain(`<loc>${ORIGIN}/</loc>`);
+    expect(xml).toContain(`<loc>${ORIGIN}/how-it-works</loc>`);
+    expect(xml.match(/<url>/g)).toHaveLength(2);
+    expect(xml).not.toContain('library');
+    const robots = robotsTxt(ORIGIN, ['home', 'how-it-works']);
+    expect(robots).toContain('Allow: /$');
+    expect(robots).toContain('Allow: /how-it-works$');
+    expect(robots).toContain('Disallow: /\n');
+    expect(robots).toContain(`Sitemap: ${ORIGIN}/sitemap.xml`);
+    expect(indexablePaths(['home'])).toEqual(['/robots.txt', '/sitemap.xml', '/']);
+    expect(renderPage(SHELL, { origin: ORIGIN, key: 'home', indexableKeys: ['home'] })).toContain('content="index, follow, max-image-preview:large"');
   });
 });
 
 describe('public pages', () => {
-  it('write title, description, canonical, social tags and structured data into the first response', async () => {
+  it('carry title, description, social tags and structured data, but stay noindex without a canonical', async () => {
     const res = await t.call('GET', '/');
     expect(res.status).toBe(200);
-    expect(res.headers['x-robots-tag']).toBeUndefined();
+    expect(res.headers['x-robots-tag']).toBe('noindex, nofollow');
     expect(res.raw).toContain(`<title>${SEO_PAGES.home.title}</title>`);
-    expect(res.raw).toContain('content="index, follow, max-image-preview:large"');
-    expect(res.raw).toContain(`<link rel="canonical" href="${ORIGIN}/">`);
+    expect(res.raw).toContain('<meta name="robots" content="noindex, nofollow">');
+    expect(res.raw).not.toContain('rel="canonical"');
     expect(res.raw).toContain(`property="og:image" content="${ORIGIN}/og-image.png"`);
     expect(res.raw).toContain('name="twitter:card" content="summary_large_image"');
     expect(res.raw).toContain('rel="preload" href="/assets/literata-latin-opsz-normal-abc.woff2"');
@@ -80,11 +83,13 @@ describe('public pages', () => {
     expect(String(res.headers['content-security-policy'])).toContain("default-src 'self'");
   });
 
-  it('give How it works its own title, canonical and breadcrumb', async () => {
+  it('give How it works its own title and breadcrumb, also noindex', async () => {
     const res = await t.call('GET', '/how-it-works');
     expect(res.status).toBe(200);
+    expect(res.headers['x-robots-tag']).toBe('noindex, nofollow');
     expect(res.raw).toContain(`<title>${SEO_PAGES['how-it-works'].title}</title>`);
-    expect(res.raw).toContain(`<link rel="canonical" href="${ORIGIN}/how-it-works">`);
+    expect(res.raw).toContain('<meta name="robots" content="noindex, nofollow">');
+    expect(res.raw).not.toContain('rel="canonical"');
     expect(res.raw).toContain('BreadcrumbList');
     for (const s of STAGES) expect(res.raw).toContain(s.name);
   });
