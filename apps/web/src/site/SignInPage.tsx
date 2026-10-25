@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { Book } from "./Book";
 import { SplitText } from "./bits/SplitText";
 import { gsap, prefersReducedMotion, useGSAP } from "./gsap";
+import { useSeo } from "./seo";
 import "./site.css";
 
 /* Sign-in, in Volume's own clothes: a spine-navy panel with the brand and the sample book, and the
@@ -50,6 +51,7 @@ function afterSignIn(): string {
 
 export default function SignInPage({ mode }: SignInPageProps) {
   const scope = useRef<HTMLDivElement>(null);
+  useSeo("sign-in");
 
   useGSAP(
     () => {

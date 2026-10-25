@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import fastifyStatic from '@fastify/static';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AppConfig } from '../config/env.js';
+import { classifyPath, fontPreloads, isIndexablePath, renderPage, robotsTxt, siteOrigin, sitemapXml } from './seo.js';
 
 /**
  * Public hosting helpers: the visitor's IP behind Cloudflare, security headers, and the built web app served by the
@@ -102,9 +103,10 @@ export function baseSecurityHeaders(url: string, config: AppConfig): Record<stri
     'Referrer-Policy': isApiPath(url) ? 'no-referrer' : 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
     'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
-    // Private app: keep every page, file and API answer out of search results.
-    'X-Robots-Tag': 'noindex, nofollow',
   };
+  // Private app: keep every page, file and API answer out of search results. Only the public pages (and robots.txt
+  // and sitemap.xml, which crawlers must read) go without the header; their own robots meta tag speaks for them.
+  if (!isIndexablePath(url)) h['X-Robots-Tag'] = 'noindex, nofollow';
   if (config.production) h['Strict-Transport-Security'] = HSTS;
   return h;
 }
@@ -131,6 +133,7 @@ export async function registerWebApp(app: FastifyInstance, config: AppConfig): P
   if (!dir || !existsSync(join(dir, 'index.html'))) return null;
   const csp = contentSecurityPolicy(config, inlineScriptHashes(readFileSync(join(dir, 'index.html'), 'utf8')));
   await app.register(fastifyStatic, { root: dir, prefix: '/', wildcard: true, index: ['index.html'], cacheControl: false, dotfiles: 'deny' });
+  registerSeoPages(app, config, readFileSync(join(dir, 'index.html'), 'utf8'));
   return csp;
 }
 
@@ -143,4 +146,43 @@ export function sendSpaIndex(req: FastifyRequest, reply: FastifyReply, config: A
   if (path.startsWith('/assets/') || /\.[a-z0-9]{1,8}$/i.test(path)) return false;
   void reply.header('Cache-Control', 'no-cache').sendFile('index.html');
   return true;
+}
+
+/**
+ * Answers the page addresses before the static handler: the public pages with their own head tags (200), the app
+ * and sign-in with the shell (200, noindex), one address per page (301), an address that matches nothing with the
+ * shell and status 404, plus robots.txt and sitemap.xml.
+ */
+function registerSeoPages(app: FastifyInstance, config: AppConfig, shell: string): void {
+  const fonts = fontPreloads(config.webDistDir);
+  app.addHook('onRequest', (req, reply, done) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return done();
+    const page = classifyPath(req.url);
+    const origin = () => siteOrigin(config, req);
+    const html = (status: number, body: string) => {
+      void reply.code(status).header('Cache-Control', 'no-cache').type('text/html; charset=utf-8').send(body);
+    };
+    switch (page.kind) {
+      case 'robots':
+        void reply.header('Cache-Control', 'public, max-age=3600').type('text/plain; charset=utf-8').send(robotsTxt(origin()));
+        return;
+      case 'sitemap':
+        void reply.header('Cache-Control', 'public, max-age=3600').type('application/xml; charset=utf-8').send(sitemapXml(origin()));
+        return;
+      case 'redirect':
+        void reply.redirect(page.to, 301);
+        return;
+      case 'public':
+        html(200, renderPage(shell, { origin: origin(), key: page.key, indexable: true, fonts }));
+        return;
+      case 'app':
+        html(200, page.key ? renderPage(shell, { origin: origin(), key: page.key, indexable: false }) : shell);
+        return;
+      case 'not-found':
+        html(404, renderPage(shell, { origin: origin(), key: 'not-found', indexable: false }));
+        return;
+      default:
+        return done();
+    }
+  });
 }

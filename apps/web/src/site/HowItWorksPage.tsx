@@ -5,19 +5,20 @@ import { cn } from "../lib/cn";
 import { ShinyText } from "./bits/ShinyText";
 import { SplitText } from "./bits/SplitText";
 import { gsap, prefersReducedMotion, useGSAP } from "./gsap";
+import { useSeo } from "./seo";
 import { useSiteCta } from "./SiteLayout";
 
 /* How it works: its own hero. Copy left; right, a sample book runs through the seven stages on a
    loop, and the upload pack appears when the last one finishes. Reduced motion shows the end state. */
 
 const STAGES = [
-  { name: "Research", detail: "Sources gathered. Every claim is linked to one." },
+  { name: "Research", detail: "Sources gathered and linked. Claims the sources do not back are flagged for you." },
   { name: "Title options", detail: "Titles proposed. You choose the one you want." },
   { name: "Blueprint", detail: "The chapter plan, ready before writing starts." },
   { name: "Manuscript", detail: "Written in your author's voice, chapter by chapter." },
   { name: "Editing", detail: "Edit passes. Claims to check go to their own report." },
   { name: "Cover", detail: "Front cover and full wrap, spine sized to the page count." },
-  { name: "Upload pack", detail: "Every file KDP asks for, ready to upload." },
+  { name: "Upload pack", detail: "Interior files, covers and listing copy for your KDP upload." },
 ] as const;
 
 const PACK = ["Print PDF", "EPUB", "Word", "Covers", "Listing copy", "Claims to verify"] as const;
@@ -30,6 +31,7 @@ export default function HowItWorksPage() {
   const nameRef = useRef<HTMLSpanElement>(null);
   const barRef = useRef<HTMLSpanElement>(null);
   const cta = useSiteCta();
+  useSeo("how-it-works");
   // Stages before `step` are done; `step` is running. STAGES.length means all done.
   const [step, setStep] = useState(() => (prefersReducedMotion() ? STAGES.length : 0));
   const finished = step >= STAGES.length;
@@ -88,7 +90,8 @@ export default function HowItWorksPage() {
           </span>
         </h1>
         <p className="how-rise m-0 max-w-[32em] text-[18px] leading-relaxed text-pretty text-ink-secondary">
-          You choose the title and approve the plan. Volume writes, edits and builds the files. Nothing is published for you.
+          You choose the title and approve the plan. Volume writes, edits and builds the files. Nothing is published for you. Made for independent authors who
+          publish on Amazon KDP.
         </p>
         <div className="how-rise flex flex-wrap items-center gap-3">
           <Link
@@ -120,6 +123,7 @@ export default function HowItWorksPage() {
           <span ref={barRef} className="block h-full origin-left bg-accent" />
         </div>
 
+        <h2 className="sr-only">The seven stages</h2>
         <ol className="site-rail m-0 grid list-none gap-0.5 p-0">
           {STAGES.map((s, i) => {
             const done = i < step;
@@ -127,7 +131,10 @@ export default function HowItWorksPage() {
             return (
               <li key={s.name} className={cn("grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 rounded-md px-3 py-2", live && "bg-accent-wash")}>
                 <span className="font-mono text-[12px] text-ink-tertiary tabular-nums">{String(i + 1).padStart(2, "0")}</span>
-                <span className={cn("text-label font-semibold", done || live ? "text-ink" : "text-ink-tertiary")}>{s.name}</span>
+                <span className={cn("text-label font-semibold", done || live ? "text-ink" : "text-ink-tertiary")}>
+                  {s.name}
+                  <span className="sr-only">. {s.detail}</span>
+                </span>
                 <span
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-[10.5px] tracking-[0.06em] uppercase",
@@ -145,7 +152,7 @@ export default function HowItWorksPage() {
         </ol>
 
         <div className={cn("grid gap-2.5 transition-opacity duration-500", finished ? "opacity-100" : "opacity-40")}>
-          <span className="font-mono text-[11px] tracking-[0.12em] text-ink-tertiary uppercase">Upload pack</span>
+          <h2 className="m-0 font-mono text-[11px] font-normal tracking-[0.12em] text-ink-tertiary uppercase">Upload pack</h2>
           <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
             {PACK.map((p) => (
               <li

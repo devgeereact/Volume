@@ -5,6 +5,7 @@ import { Book } from "./Book";
 import { ScrambleText } from "./bits/ScrambleText";
 import { SplitText } from "./bits/SplitText";
 import { gsap, prefersReducedMotion, useGSAP } from "./gsap";
+import { useSeo } from "./seo";
 import { useSiteCta } from "./SiteLayout";
 
 /* Landing: one hero and nothing else. Headline left, the sample book right with a manuscript sheet
@@ -25,6 +26,7 @@ const HEADLINE = "Bring a working title. Leave with a finished book.";
 export default function LandingPage() {
   const scope = useRef<HTMLElement>(null);
   const cta = useSiteCta();
+  useSeo("home");
 
   useGSAP(
     () => {
@@ -63,8 +65,8 @@ export default function LandingPage() {
         </h1>
 
         <p className="land-rise m-0 max-w-[34em] text-[18px] leading-relaxed text-pretty text-ink-secondary">
-          Volume researches with real sources, writes the manuscript in your author&apos;s voice, edits it, designs the cover and hands you a KDP-ready upload
-          pack.
+          Volume researches your topic with linked sources, writes the manuscript in your author&apos;s voice, edits it, designs the cover and builds an upload
+          pack for Amazon KDP. Made for independent authors. You choose the title and approve the plan. Nothing is published for you.
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -93,6 +95,7 @@ export default function LandingPage() {
             </li>
           ))}
         </ul>
+        <p className="land-rise m-0 text-caption text-ink-tertiary">The book and manuscript page shown are sample content.</p>
       </div>
 
       <div className="relative min-h-[420px] min-w-0 sm:min-h-[500px]">

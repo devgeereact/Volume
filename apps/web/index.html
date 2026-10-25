@@ -3,10 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Private-app defaults. The public pages replace these (src/site/seo.ts, and the server on first load). -->
     <meta name="description" content="Volume, a private book production studio." />
     <meta name="robots" content="noindex, nofollow" />
+    <meta name="application-name" content="Volume" />
     <title>Volume</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Browser bar colour: the canvas token (packages/ui tokens.css), light and dark. src/lib/theme.tsx keeps it in step with a saved theme. -->

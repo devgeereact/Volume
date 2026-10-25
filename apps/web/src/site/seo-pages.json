@@ -1,0 +1,22 @@
+{
+  "home": {
+    "path": "/",
+    "title": "Volume | Book production studio for independent authors",
+    "description": "Volume researches your topic with linked sources, writes in your author's voice, edits, designs the cover and builds an upload pack for Amazon KDP."
+  },
+  "how-it-works": {
+    "path": "/how-it-works",
+    "title": "How Volume works | Seven stages from title to upload pack",
+    "description": "Research, titles, blueprint, manuscript, editing, cover and upload pack. You choose the title and approve the plan. Nothing is published for you."
+  },
+  "sign-in": {
+    "path": "/sign-in",
+    "title": "Sign in | Volume",
+    "description": "Volume is a private book studio. Access is by invitation."
+  },
+  "not-found": {
+    "path": "/404",
+    "title": "Page not found | Volume",
+    "description": "There is nothing at this address."
+  }
+}
