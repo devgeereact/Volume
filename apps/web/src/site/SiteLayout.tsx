@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet } from "react-router";
 import { cn } from "../lib/cn";
 import { useMediaQuery } from "../lib/useMediaQuery";
@@ -30,12 +30,25 @@ export function useSiteCta(): { to: string; label: string } {
 const pill =
   "inline-flex h-11 items-center rounded-full border border-border px-5 text-small font-semibold text-ink transition-colors hover:border-border-strong";
 
-const footLink = "inline-flex min-h-10 items-center underline-offset-4 transition-colors hover:text-ink hover:underline";
+const footLink = "inline-flex min-h-11 items-center underline-offset-4 transition-colors hover:text-ink hover:underline";
 
-/** Pauses or resumes every GSAP animation on the page (WCAG 2.2.2: moving content that runs for more than five seconds needs a stop). */
+/** Attribute on <html> that pauses the CSS loops in site.css (sheen, shiny text, live dot, caret). */
+const PAUSED_ATTR = "data-site-paused";
+
+/**
+ * Pauses or resumes every animation on the page, GSAP and the CSS loops (WCAG 2.2.2: moving content that runs for
+ * more than five seconds needs a stop). Leaving the public pages clears the pause.
+ */
 function MotionToggle() {
   const reduce = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [paused, setPaused] = useState(false);
+  useEffect(
+    () => () => {
+      document.documentElement.removeAttribute(PAUSED_ATTR);
+      gsap.globalTimeline.paused(false);
+    },
+    [],
+  );
   if (reduce) return null;
   return (
     <button
@@ -43,6 +56,7 @@ function MotionToggle() {
       aria-pressed={paused}
       onClick={() => {
         gsap.globalTimeline.paused(!paused);
+        document.documentElement.toggleAttribute(PAUSED_ATTR, !paused);
         setPaused(!paused);
       }}
       className={cn(footLink, "cursor-pointer")}

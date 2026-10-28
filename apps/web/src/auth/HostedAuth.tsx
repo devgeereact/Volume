@@ -61,29 +61,27 @@ function AccessCheck({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/** The public pages, which need no session, so they draw before Clerk has loaded. */
+const PUBLIC_PAGES = new Set(["/", "/how-it-works", "/welcome"]);
+
 function Gate({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   // Set during render, before any child query runs: every API call then carries a fresh session token.
   setAuthTokenGetter(isSignedIn ? () => getToken() : null);
-  if (!isLoaded)
+  const loader = (
+    <Centre>
+      <Loader label="Opening Volume" />
+    </Centre>
+  );
+  // Signed out, or a public page while Clerk loads: the public pages (landing hero, how it works, the branded
+  // sign-in). The same element in both cases, so it stays mounted when Clerk finishes and the visitor is signed out.
+  if ((!isLoaded && PUBLIC_PAGES.has(window.location.pathname)) || (isLoaded && !isSignedIn))
     return (
-      <Centre>
-        <Loader label="Opening Volume" />
-      </Centre>
-    );
-  // Signed out: the public pages (landing hero, how it works, the branded sign-in).
-  if (!isSignedIn)
-    return (
-      <Suspense
-        fallback={
-          <Centre>
-            <Loader label="Opening Volume" />
-          </Centre>
-        }
-      >
+      <Suspense fallback={loader}>
         <PublicSite />
       </Suspense>
     );
+  if (!isLoaded) return loader;
   return <AccessCheck>{children}</AccessCheck>;
 }
 

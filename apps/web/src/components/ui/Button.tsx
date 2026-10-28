@@ -29,7 +29,7 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
 
 const sizes: Record<ButtonSize, string> = {
   sm: "h-8 px-3 text-small font-semibold hit-44",
-  md: "h-10 px-4 text-label font-semibold",
+  md: "h-10 px-4 text-label font-semibold hit-44",
   lg: "h-11 px-4 text-label font-semibold",
 };
 
