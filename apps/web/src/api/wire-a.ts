@@ -5,6 +5,7 @@
    Every query here is switched off unless the server answered its health check, so the screens never
    call the server in demo mode. */
 
+import { supersededFailureIds } from "./failureNotices";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { getPenName as demoPenName } from "../demo/penNames";
@@ -261,8 +262,9 @@ export function useRunningJobs(enabled: boolean): RunningJob[] {
   // Recent failures, from GET /activity (job_failed), until the owner dismisses them.
   const activity = useActivity(20, { enabled });
   const dismissed = useDismissedFailures();
+  const superseded = supersededFailureIds(activity.data ?? []);
   for (const a of activity.data ?? []) {
-    if (a.kind !== "job_failed" || !a.projectId || !a.jobId || dismissed.has(a.jobId)) continue;
+    if (a.kind !== "job_failed" || !a.projectId || !a.jobId || dismissed.has(a.jobId) || superseded.has(a.jobId)) continue;
     if (now - a.at > FAILED_SHOWN_MS || out.some((j) => j.jobId === a.jobId)) continue;
     out.push({
       jobId: a.jobId,
