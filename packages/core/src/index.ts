@@ -15,4 +15,5 @@ export * from './template-rules.ts';
 export * from './schedule.ts';
 export * from './spread.ts';
 export * from './field-drift.ts';
+export * from './originality.ts';
 export * from './claims.ts';

@@ -2,7 +2,7 @@ import { exportTemplate, toBookDoc } from '../adapters/volume-export.js';
 import type { BlobStore } from '../files/blob-store.js';
 import { dirname } from 'node:path';
 import { generatedPage, isGeneratedSubtype, FENCED_SUBTYPES, type ContentsLine } from '@volume/export';
-import { checkText, claimNeedsCheck, fieldDriftMessage, findHealthTerms, type CompiledHouseStyle } from '@volume/core';
+import { checkText, claimNeedsCheck, fieldDriftMessage, findCopiedPassages, findHealthTerms, originalityMessage, type CompiledHouseStyle } from '@volume/core';
 import { loadHouseStyle } from '@volume/core/node';
 import type { RequestCtx } from '../auth/context.js';
 import { sha256Hex } from '../lib/util.js';
@@ -588,6 +588,38 @@ export async function withFieldDrift(
       area: s.area,
       severity: 'warn',
       message: `${s.title ?? s.kind}: ${check.message}`,
+      fix: { route: 'writing', label: 'Open the section' },
+    });
+    report.warnings += 1;
+  }
+  return report;
+}
+
+/**
+ * Adds a preflight warning for each switched-on section that copies a passage word for word from the pen name's voice
+ * samples or a ticked research source excerpt (findCopiedPassages, owner 27 October 2026). Quoting inside quotation
+ * marks does not count. Warnings never stop the pack. Returns the same report.
+ */
+export async function withOriginality(repos: Repos, ctx: RequestCtx, book: Pick<Book, 'id' | 'profileId'>, report: PreflightReport): Promise<PreflightReport> {
+  const samples = (await repos.profiles.listSamples(ctx, book.profileId))
+    .filter((s) => VOICE_SAMPLE_KINDS.includes(s.kind))
+    .map((s) => ({ label: 'your voice sample', text: s.text }));
+  const sources = (await repos.planning.listSources(ctx, { projectId: book.id, useInBook: true }))
+    .filter((s) => s.excerpt)
+    .map((s) => ({ label: `the source "${s.title ?? s.domain ?? s.url}"`, text: s.excerpt ?? '' }));
+  const against = [...samples, ...sources];
+  if (against.length === 0) return report;
+  for (const s of await repos.manuscript.listSections(ctx, book.id)) {
+    if (!s.enabled || !s.currentVersionId) continue;
+    const v = await repos.manuscript.getVersion(ctx, s.currentVersionId);
+    const found = v ? findCopiedPassages(v.bodyMd, against) : [];
+    const id = `${s.area}.originality.${s.id}`;
+    if (found.length === 0 || report.items.some((i) => i.id === id)) continue;
+    report.items.push({
+      id,
+      area: s.area,
+      severity: 'warn',
+      message: `${s.title ?? s.kind}: ${originalityMessage(found)}`,
       fix: { route: 'writing', label: 'Open the section' },
     });
     report.warnings += 1;

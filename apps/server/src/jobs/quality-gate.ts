@@ -3,7 +3,7 @@ import type { RequestCtx } from '../auth/context.js';
 import { AppError } from '../http/errors.js';
 import type { PreflightItem, PreflightReport } from '../ports/export.js';
 import { RESOURCES_AUTO_OFF_KEY, RESOURCES_AUTO_OFF_NOTE } from './handlers/writing.js';
-import { buildExportBook, withFieldDrift, withOwnerPlaceholders, withPackCovers } from './book-data.js';
+import { buildExportBook, withFieldDrift, withOriginality, withOwnerPlaceholders, withPackCovers } from './book-data.js';
 import type { JobServices } from './runner.js';
 
 type GateServices = Pick<JobServices, 'repos' | 'configDir' | 'blobs' | 'exporter'>;
@@ -17,7 +17,10 @@ export async function preflightReport(s: GateServices, ctx: RequestCtx, bookId: 
     wrap: !!cover?.wrapAssetId,
   });
   // Text that drifts out of the pen name's field (health terms in a book that is not a health book) warns only.
-  await withFieldDrift(s.repos, ctx, s.configDir, await s.repos.books.require(ctx, bookId), report);
+  const bookRow = await s.repos.books.require(ctx, bookId);
+  await withFieldDrift(s.repos, ctx, s.configDir, bookRow, report);
+  // Passages copied word for word from the voice samples or a research source warn only (originality, 27 October 2026).
+  await withOriginality(s.repos, ctx, bookRow, report);
   // Resources the app switched off for lack of ticked sources: say so, and say how to undo it. It does not block.
   const sectionRows = await s.repos.manuscript.listSections(ctx, bookId);
   if (sectionRows.some((x) => x.kind === 'resources' && !x.enabled && x.plan[RESOURCES_AUTO_OFF_KEY] !== undefined)) {
