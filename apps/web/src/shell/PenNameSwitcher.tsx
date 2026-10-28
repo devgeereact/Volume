@@ -8,7 +8,7 @@ import { cn } from "../lib/cn";
 import { fadeOnly, popover } from "../lib/motion";
 import { usePenNameFilter } from "../lib/penName";
 
-/** Avatar circle in gilt with initials (spine). */
+/** Avatar circle in gilt with initials (side menu). */
 export function Avatar({ initials, className }: { initials: string; className?: string | undefined }) {
   return (
     <span
@@ -53,6 +53,14 @@ function useSwitcherOptions(): { options: SwitcherOption[]; ready: boolean } {
       }),
     ],
   };
+}
+
+/** Books under the profile picked in the switcher (all books when none is picked), or null until known. */
+export function useCurrentProfileCount(): number | null {
+  const { selectedId } = usePenNameFilter();
+  const { options, ready } = useSwitcherOptions();
+  if (!ready) return null;
+  return (options.find((o) => o.id === selectedId) ?? options[0])?.count ?? null;
 }
 
 /**
@@ -139,16 +147,16 @@ export function PenNameSwitcher() {
             openList();
           }
         }}
-        className="flex min-h-[52px] w-full items-center gap-3 rounded-md bg-spine-raised px-3 py-2 text-left text-ink-on-spine"
+        className="flex min-h-[52px] w-full items-center gap-3 rounded-control border border-glass-edge bg-glass-soft px-3 py-2 text-left text-ink shadow-glass-sm hover:bg-glass-strong"
       >
         <Avatar initials={current?.initials ?? "All"} />
         <span className="min-w-0 flex-1">
           <b className="block truncate text-[14px] leading-[18px] font-semibold">{current?.name}</b>
-          <small className="block text-[12.5px] leading-4 text-ink-on-spine-muted">
+          <small className="block text-[12.5px] leading-4 text-ink-secondary">
             {current?.count} {current?.count === 1 ? "book" : "books"}
           </small>
         </span>
-        <ChevronDown size={16} className="text-ink-on-spine-muted" aria-hidden />
+        <ChevronDown size={16} className="text-ink-secondary" aria-hidden />
       </button>
       <AnimatePresence>
         {open && (

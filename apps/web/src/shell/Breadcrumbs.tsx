@@ -75,23 +75,24 @@ export function Breadcrumbs() {
   useEffect(() => {
     document.title = pageTitle;
   }, [pageTitle]);
+  // Two lines: the trail above (hidden on phones), then the current page as the bar's title on its own line.
   return (
     <nav aria-label="Breadcrumb" className="min-w-0">
-      <ol className="flex min-w-0 items-center gap-1 text-[13.5px] font-medium">
+      <ol className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
         {crumbs.map((c, i) => {
           const last = i === crumbs.length - 1;
-          return (
-            <li key={c.to + i} className={last ? "flex min-w-0 items-center gap-1" : "hidden min-w-0 items-center gap-1 sm:flex"}>
-              {i > 0 && <ChevronRight size={14} className="hidden shrink-0 text-ink-tertiary sm:block" aria-hidden />}
-              {last ? (
-                <span aria-current="page" className="truncate text-ink">
-                  {c.label}
-                </span>
-              ) : (
-                <Link to={c.to} className="truncate rounded-xs text-ink-secondary hover:text-ink">
-                  {c.label}
-                </Link>
-              )}
+          return last ? (
+            <li key={c.to + i} className="flex w-full min-w-0">
+              <span aria-current="page" className="truncate text-subhead text-ink sm:text-bar-title">
+                {c.label}
+              </span>
+            </li>
+          ) : (
+            <li key={c.to + i} className="hidden min-w-0 items-center gap-1 text-caption text-ink-secondary sm:flex">
+              {i > 0 && <ChevronRight size={12} className="shrink-0" aria-hidden />}
+              <Link to={c.to} className="truncate rounded-xs hover:text-ink hover:underline">
+                {c.label}
+              </Link>
             </li>
           );
         })}

@@ -13,14 +13,16 @@ interface CardProps extends HTMLAttributes<HTMLElement> {
 
 const pads = { none: "", sm: "p-3", md: "p-4", lg: "p-6" };
 
-/** Flat card: sheet surface, hairline border, 10 px radius, no shadow (borders do the work). */
+/**
+ * Card. "sheet" is a glass panel (studio redesign): translucent with a 1 px edge, a soft shadow and a
+ * backdrop blur, solid where blur is not available. "canvas" stays a flat inset card inside a panel.
+ */
 export function Card({ as: Tag = "div", padding = "md", tone = "sheet", selected = false, className, children, ...rest }: CardProps) {
   return (
     <Tag
       className={cn(
-        "rounded-md border",
-        tone === "sheet" ? "bg-sheet" : "bg-canvas",
-        selected ? "vol-pencil-edge border-select bg-select-wash" : "border-border",
+        tone === "sheet" ? "vol-glass rounded-card" : "rounded-md border bg-canvas",
+        selected ? "vol-pencil-edge border-select bg-select-wash" : tone === "canvas" && "border-border",
         pads[padding],
         className,
       )}

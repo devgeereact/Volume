@@ -7,12 +7,14 @@
   "exports": {
     "./tokens.css": "./tokens.css",
     "./theme.css": "./theme.css",
+    "./glass.css": "./glass.css",
     "./tokens.json": "./tokens.json",
     "./package.json": "./package.json"
   },
   "files": [
     "tokens.css",
     "theme.css",
+    "glass.css",
     "tokens.json",
     "README.md"
   ]

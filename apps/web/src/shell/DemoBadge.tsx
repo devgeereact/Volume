@@ -18,7 +18,7 @@ export function DemoBadge() {
     <Tooltip content="Everything here is sample data. Nothing is saved, and nothing is sent to OpenRouter." side="bottom">
       <span
         tabIndex={0}
-        className="inline-flex h-6 shrink-0 items-center gap-1 rounded-pill border border-border-strong px-2 text-caption leading-none whitespace-nowrap text-ink-secondary"
+        className="inline-flex h-7 shrink-0 items-center gap-1 rounded-pill bg-accent-wash px-2.5 text-caption leading-none whitespace-nowrap text-accent-text"
       >
         <Info size={13} strokeWidth={2} aria-hidden />
         Demo
@@ -35,7 +35,7 @@ function NotConnectedBadge() {
       <span
         tabIndex={0}
         role="status"
-        className="inline-flex h-6 shrink-0 items-center gap-1 rounded-pill border border-border-strong px-2 text-caption leading-none whitespace-nowrap text-ink-secondary"
+        className="inline-flex h-7 shrink-0 items-center gap-1 rounded-pill border border-glass-edge bg-glass-strong px-2.5 text-caption leading-none whitespace-nowrap text-ink-secondary"
       >
         <WifiOff size={13} strokeWidth={2} aria-hidden />
         Not connected
