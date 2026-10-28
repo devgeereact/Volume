@@ -825,6 +825,42 @@ export interface ApiSection {
   writtenBy?: WrittenBy;
   /** Guardrails of the latest writing or weave run; null when no AI run touched the section. */
   guardrails?: ApiGuardrailSummary | null;
+  /** A page the app builds when the book is exported: the text the exported book holds. Null for text someone writes. */
+  generated?: ApiGeneratedPage | null;
+  /** A page only the owner can write, still empty or holding the app's placeholder. Null otherwise. */
+  ownerPrompt?: ApiOwnerPrompt | null;
+}
+
+/** One line of a built page. Level 1 is a chapter subheading indented under its chapter in the contents. */
+export interface ApiPageLine {
+  text: string;
+  level: 0 | 1;
+}
+
+/** Where the owner changes what a built page shows. */
+export interface ApiPageEdit {
+  target: "titles" | "blueprint" | "profile" | "published";
+  label: string;
+}
+
+/** Server GeneratedPageView (apps/server jobs/book-data.ts). */
+export interface ApiGeneratedPage {
+  lines: ApiPageLine[];
+  words: number;
+  /** False for the pages before the contents: they print but add nothing to the manuscript's word total. */
+  countsInTotal: boolean;
+  note: string;
+  edit: ApiPageEdit | null;
+  /** The exported book leaves the page out (Also by with no published book). */
+  leftOut: boolean;
+}
+
+/** Server OwnerPromptView. */
+export interface ApiOwnerPrompt {
+  message: string;
+  /** What the exported book holds for the page until the owner writes it. */
+  placeholder: string;
+  leftOut: boolean;
 }
 
 /** One guardrail hit (server AiGuardrailHit). */

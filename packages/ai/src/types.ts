@@ -5,6 +5,8 @@ export type ChatRole = 'system' | 'user' | 'assistant';
 export interface ChatMessage {
   role: ChatRole;
   content: string;
+  /** Length of the start of `content` that stays the same from call to call within a book. Providers that cache mark it. */
+  cachePrefix?: number | undefined;
 }
 
 /** A research source. Built only from OpenRouter url_citation annotations, never from model text. */

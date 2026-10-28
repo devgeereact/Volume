@@ -5,13 +5,14 @@ import { useDataSourceState } from "../api/source";
 import { hostedSignIn } from "../auth/HostedAuth";
 
 /**
- * The single small Demo badge (D-016): everything on screen is sample data. Shown whenever the app runs
- * on its demo data (the server did not answer); hidden when the screens read the Volume server.
+ * The single small Demo badge (D-016): everything on screen is sample data. Shown only while the app runs on
+ * its demo data because this page has never reached the server (D-061); hidden when the screens read the Volume server.
  */
 export function DemoBadge() {
   const mode = useWireMode();
-  const { down } = useDataSourceState();
-  if (hostedSignIn && down) return <NotConnectedBadge />;
+  const { down, everConnected } = useDataSourceState();
+  // After the API has answered once, sample data is never shown (D-061): a dead server gives the Not connected badge.
+  if (down && (hostedSignIn || everConnected)) return <NotConnectedBadge />;
   if (mode !== "mock") return null;
   return (
     <Tooltip content="Everything here is sample data. Nothing is saved, and nothing is sent to OpenRouter." side="bottom">
@@ -27,7 +28,7 @@ export function DemoBadge() {
   );
 }
 
-/** Hosted only: the server did not answer its last health check. Screens keep real data and show their own errors. */
+/** The server did not answer its last health check after it had answered, or on the hosted app. Screens keep their last real data. */
 function NotConnectedBadge() {
   return (
     <Tooltip content="Volume could not reach its server. Your work is safe. Check your connection; this clears by itself when it answers." side="bottom">

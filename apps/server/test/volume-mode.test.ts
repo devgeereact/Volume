@@ -210,6 +210,7 @@ describe('Volume mode quality gates', () => {
       expect(res.status, url).toBe(409);
       expect(res.body.error.code, url).toBe('quality_gate');
       expect((res.body.error.details as { openClaims: number }).openClaims, url).toBeGreaterThan(0);
+      expect(res.body.error.message, url).toMatch(/\d+ open claims? needs? your check/);
     }
 
     // Claims reviewed, but preflight still blocks (no cover files yet).
@@ -219,6 +220,28 @@ describe('Volume mode quality gates', () => {
     const gate = blocked.body.error.details as { openClaims: number; blocks: { id: string }[] };
     expect(gate.openClaims).toBe(0);
     expect(gate.blocks.map((b) => b.id)).toContain('cover.files');
+
+    // Claim tiers (owner, 21 October 2026): an open claim listed for the record does not hold the book back, and the
+    // gate says how many there are. Nothing is resolved for the owner.
+    const [firstSection] = await t.services.repos.manuscript.listSections(t.owner, bookId);
+    const versionId = firstSection?.currentVersionId ?? '';
+    await t.services.repos.manuscript.addClaims(t.owner, bookId, str(firstSection?.id), versionId, [
+      {
+        sentence: 'The example brand Acme sells mugs.',
+        category: 'other',
+        checkNeeded: 'Harmless detail.',
+        start: null,
+        end: null,
+        risk: 'low',
+        harmIfWrong: false,
+      },
+    ]);
+    const stillOpen = await t.call<{ items: unknown[] }>('GET', `/api/v1/books/${bookId}/claims?status=open`);
+    expect(stillOpen.body.items).toHaveLength(1);
+    const recordOnly = await t.call<ErrorBody>('POST', `/api/v1/schedule/slots/${str(slot?.id)}/confirm`, {});
+    const recordGate = recordOnly.body.error.details as { openClaims: number; claimsForRecord: number };
+    expect(recordGate.openClaims).toBe(0);
+    expect(recordGate.claimsForRecord).toBe(1);
 
     await buildCovers(t, bookId);
     const gates = await t.call<{ items: { bookId: string; gate: { ok: boolean } }[] }>('GET', `/api/v1/batches/${batchId}/gates`);

@@ -99,8 +99,9 @@ describe('stage selection by template', () => {
     expect(loader.load('writing.conclusion').system).toMatch(/Never open on a clock time/);
   });
 
-  it('non-fiction runs writing.chapter v9 and blueprint.blueprint v7; v5 to v8 stay loadable for pinned books', () => {
-    expect(loader.load('writing.chapter').meta.version).toBe(9);
+  it('non-fiction runs writing.chapter v10 and blueprint.blueprint v7; v5 to v9 stay loadable for pinned books', () => {
+    expect(loader.load('writing.chapter').meta.version).toBe(10);
+    expect(loader.load('writing.chapter', 9).meta.version).toBe(9);
     expect(loader.load('writing.chapter', 8).meta.version).toBe(8);
     expect(loader.load('writing.chapter', 7).meta.version).toBe(7);
     expect(loader.load('writing.chapter', 6).meta.version).toBe(6);

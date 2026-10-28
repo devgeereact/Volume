@@ -36,6 +36,28 @@ export const OWNER_AUTOSAVE_SOURCE = 'owner:autosave';
 /** An autosave younger than this, by the same user and still current, is updated in place instead of adding a version. */
 export const AUTOSAVE_WINDOW_MS = 5 * 60 * 1000;
 
+/**
+ * Puts each part divider directly before its own chapters. Approving a blueprint stores every part first and the
+ * chapters after them (the tree groups them by partId, the flat position order does not), so an export that walked the
+ * positions printed "Part I" and "Part II" back to back, before Chapter 1. Sections keep their position order; a part
+ * is followed by the chapters whose partId is that part; chapters with no part stay where they are. Pure.
+ */
+export function orderPartsWithChapters<T extends { id: string; kind: string; area: string; partId: string | null }>(sections: readonly T[]): T[] {
+  const partIds = new Set(sections.filter((s) => s.kind === 'part').map((s) => s.id));
+  if (partIds.size === 0) return [...sections];
+  const children = new Map<string, T[]>();
+  for (const s of sections) {
+    if (s.kind !== 'part' && s.partId && partIds.has(s.partId)) children.set(s.partId, [...(children.get(s.partId) ?? []), s]);
+  }
+  const out: T[] = [];
+  for (const s of sections) {
+    if (s.kind !== 'part' && s.partId && partIds.has(s.partId)) continue;
+    out.push(s);
+    if (s.kind === 'part') out.push(...(children.get(s.id) ?? []));
+  }
+  return out;
+}
+
 /** Sources of text the owner wrote: an explicit save (`human`) or an `owner:` save such as an autosave or a claim fix. */
 export function isOwnerSource(source: string): boolean {
   return source === 'human' || source.startsWith('owner:');
@@ -359,7 +381,8 @@ export class ManuscriptRepo {
       .where('s.projectId', '=', projectId)
       .orderBy('s.position')
       .execute();
-    return rows.map((r) => toSection(r, Number(r.currentWords ?? 0)));
+    // Reading order: a part sits directly before its own chapters, whatever positions an older book stored.
+    return orderPartsWithChapters(rows.map((r) => toSection(r, Number(r.currentWords ?? 0))));
   }
 
   async tree(
@@ -372,18 +395,16 @@ export class ManuscriptRepo {
     const bodyAll = all.filter((s) => s.area === 'body');
     const body: (Section & { children: Section[] })[] = [];
     const parts = new Map<string, Section & { children: Section[] }>();
+    // bodyAll is in reading order (listSections): parts, and sections that belong to no part, stay where the book reads them.
+    for (const s of bodyAll) if (s.kind === 'part') parts.set(s.id, { ...s, children: [] });
     for (const s of bodyAll) {
-      if (s.kind === 'part') {
-        const node = { ...s, children: [] as Section[] };
-        parts.set(s.id, node);
-        body.push(node);
+      const node = s.kind === 'part' ? parts.get(s.id) : undefined;
+      if (node) body.push(node);
+      else if (s.kind !== 'part') {
+        const parent = s.partId ? parts.get(s.partId) : undefined;
+        if (parent) parent.children.push(s);
+        else body.push({ ...s, children: [] });
       }
-    }
-    for (const s of bodyAll) {
-      if (s.kind === 'part') continue;
-      const parent = s.partId ? parts.get(s.partId) : undefined;
-      if (parent) parent.children.push(s);
-      else body.push({ ...s, children: [] });
     }
     const enabled = all.filter((s) => s.enabled);
     return {

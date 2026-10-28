@@ -16,6 +16,7 @@ import { DiffText } from "./DiffText";
 import { findRanges, mockRewrite, rewriteLabels, type RewriteKind } from "./textTools";
 import { exerciseKindLabels, newBlockMarkdown, type ExerciseKind, type InsertKind } from "../../lib/workbookMarkdown";
 import { SceneBreak, WorkbookBlock } from "./WorkbookBlock";
+import { GeneratedPagePreview, OwnerPagePrompt } from "./GeneratedPagePreview";
 
 interface Selection {
   blockId: string;
@@ -40,6 +41,9 @@ interface Rewrite extends Selection {
 }
 
 interface EditorCanvasProps {
+  /** The book and its pen name, for the links on a built page's preview. */
+  bookId?: string | undefined;
+  penNameId?: string | undefined;
   section: MsSection;
   label: string;
   metaRight: ReactNode;
@@ -227,7 +231,12 @@ export function EditorCanvas(props: EditorCanvasProps) {
 
   return (
     <div ref={wrapRef} className="relative" onKeyDown={onSheetKey}>
-      <GalleySheet label={`${section.title}, editable`} metaLeft={label} metaRight={metaRight} className="px-5! sm:px-14!">
+      <GalleySheet
+        label={section.generated || section.isPart ? `${section.title}, read-only preview` : `${section.title}, editable`}
+        metaLeft={label}
+        metaRight={metaRight}
+        className="px-5! sm:px-14!"
+      >
         <p className="mt-6 text-label text-ink-secondary">{section.number !== null ? `Chapter ${section.number}` : sectionKind(section)}</p>
         <h2
           className="opsz-title mt-1 font-book text-[28px] leading-[34px] font-medium tracking-[-0.015em] text-ink sm:text-title sm:leading-[42px]"
@@ -240,35 +249,53 @@ export function EditorCanvas(props: EditorCanvasProps) {
           <Banner tone="info" title="This page is off" className="mt-6">
             {section.offReason}
           </Banner>
+        ) : section.generated && empty ? (
+          <GeneratedPagePreview className="mt-6" page={section.generated} bookId={props.bookId ?? ""} penNameId={props.penNameId ?? ""} />
+        ) : section.isPart && empty ? (
+          <Banner tone="info" title="A container for chapters" className="mt-6">
+            This part groups the chapters that follow it. The exported book prints a divider page with its number and title. It holds no text of its own.
+          </Banner>
         ) : empty && readOnly ? (
-          <EmptyState className="mt-8" drawing="page" headingLevel={3} title="This section is empty" body="Nothing has been written here yet." />
+          <>
+            {section.ownerPrompt && <OwnerPagePrompt className="mt-6" prompt={section.ownerPrompt} />}
+            {!section.ownerPrompt && (
+              <EmptyState className="mt-8" drawing="page" headingLevel={3} title="This section is empty" body="Nothing has been written here yet." />
+            )}
+          </>
         ) : empty ? (
-          <EmptyState
-            className="mt-8"
-            drawing="page"
-            headingLevel={3}
-            title="This section is empty"
-            body={props.writeDisabledReason ?? "Ask the writer for a draft, or paste your own text."}
-            action={
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  icon={PenLine}
-                  estimate="about $0.02"
-                  loading={props.writing}
-                  loadingLabel="Writing"
-                  onClick={props.onWriteSection}
-                  disabledReason={props.writeDisabledReason}
-                >
-                  Write this section
-                </Button>
-                <Button variant="ghost" icon={ClipboardPaste} onClick={props.onPasteOwn}>
-                  Paste your own
-                </Button>
-              </div>
-            }
-          />
+          <>
+            {section.ownerPrompt && <OwnerPagePrompt className="mt-6" prompt={section.ownerPrompt} />}
+            <EmptyState
+              className="mt-8"
+              drawing="page"
+              headingLevel={3}
+              title={section.ownerPrompt ? "Ready when you are" : "This section is empty"}
+              body={
+                props.writeDisabledReason ??
+                (section.ownerPrompt ? "Ask the writer for a draft, or write your own." : "Ask the writer for a draft, or paste your own text.")
+              }
+              action={
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    icon={PenLine}
+                    estimate="about $0.02"
+                    loading={props.writing}
+                    loadingLabel="Writing"
+                    onClick={props.onWriteSection}
+                    disabledReason={props.writeDisabledReason}
+                  >
+                    Write this section
+                  </Button>
+                  <Button variant="ghost" icon={ClipboardPaste} onClick={props.onPasteOwn}>
+                    Paste your own
+                  </Button>
+                </div>
+              }
+            />
+          </>
         ) : (
           <>
+            {section.ownerPrompt && <OwnerPagePrompt className="mt-6" prompt={section.ownerPrompt} />}
             {insertKinds.length > 0 && (
               <InsertMenu
                 kinds={insertKinds}

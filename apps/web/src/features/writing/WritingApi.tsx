@@ -114,7 +114,13 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
     const base = writeStatusOf(s, job, delta.length > 0 && job?.status === "running");
     const status: WriteRowStatus = summarising.has(s.id) && base !== "writing" && base !== "checking" && base !== "queued" ? "summarising" : base;
     const draft = delta.length > 0 && (status === "writing" || status === "checking" || status === "paused" || status === "stopped");
-    return { section: s, status, words: draft ? countWords(delta) : s.wordCount, job, flags: guardrailsOf(s)?.needsAttention ?? [] };
+    return {
+      section: s,
+      status,
+      words: draft ? countWords(delta) : s.generated ? (s.generated.countsInTotal ? s.generated.words : 0) : s.wordCount,
+      job,
+      flags: guardrailsOf(s)?.needsAttention ?? [],
+    };
   });
 
   const children = parentDetail.data?.children ?? [];
@@ -163,6 +169,9 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
   const doneCount = written.filter((r) => isWritten(r.status)).length;
   const notDone = written.filter((r) => !isWritten(r.status));
   const failedRows = rows.filter((r) => r.status === "failed");
+  // Acknowledgements thank only people the owner names. Without names the writer saves a placeholder, which shows as
+  // "Needs a look" with no house-style flag, and Marketing stays locked until it is written (D-049).
+  const ackNeedsNames = rows.some((r) => r.section.kind === "acknowledgements" && r.status === "attention" && r.flags.length === 0);
   const wordsWritten = written.reduce((n, r) => n + r.words, 0);
   const wordTarget = written.reduce((n, r) => n + (r.section.wordTarget ?? 0), 0);
 
@@ -346,7 +355,9 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
               {jobState === "failed" && "The writer stopped at a section that failed. Retry it, then write the rest."}
               {jobState === "finished" &&
                 (notDone.length === 0
-                  ? "Every section is written."
+                  ? ackNeedsNames
+                    ? "Every section is written except Acknowledgements, which needs names before Marketing opens."
+                    : "Every section is written."
                   : `${notDone.length} ${notDone.length === 1 ? "section is" : "sections are"} not written yet.`)}
               {jobState === "idle" && (rows.length > 0 ? "Not started. Write book writes every section in order." : "")}
             </p>

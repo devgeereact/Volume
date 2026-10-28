@@ -276,6 +276,14 @@
     color 0.3s;
 }
 
+/* "Pause animation" in the footer (SiteLayout MotionToggle) stops the CSS loops as well as GSAP. */
+[data-site-paused] .site-sheen::after,
+[data-site-paused] .site-live-dot,
+[data-site-paused] .site-caret,
+[data-site-paused] .shiny-text {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .site-sheen::after,
   .site-live-dot,

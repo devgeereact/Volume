@@ -169,3 +169,59 @@ describe('AI habits', () => {
     for (const x of f) expect(units.find((u) => u.sectionId === x.sectionId)?.text.slice(x.start, x.end)).toBe(x.match);
   });
 });
+
+describe('live run 24 October 2026: false positives and misses', () => {
+  const ids = (t: string) => checkText(t, style, { rules: ['guardrail'] }).map((f) => f.id);
+  const spelling = (t: string) => checkText(t, style, { rules: ['spelling'] }).map((f) => f.match);
+
+  it('keeps official proper names in their own spelling, case-sensitively', () => {
+    expect(spelling('The World Health Organization and the Centers for Disease Control and Prevention agree.')).toEqual([]);
+    expect(spelling('We organize it. The World Health Organization did not.')).toEqual(['organize']);
+    expect(spelling('A world health organization of friends.')).toEqual(['organization']);
+  });
+
+  it('lets "testimonial" through when denied or advised about, and blocks invented praise', () => {
+    for (const t of [
+      'You have no testimonials yet.',
+      'Do not invent a testimonial.',
+      'Ask clients for a testimonial.',
+      'Contracts that do not guarantee a result are common.',
+      'I do not offer guarantees.',
+    ])
+      expect(ids(t), t).toEqual([]);
+    for (const t of [
+      'Here is a testimonial from Sam.',
+      'Readers say it changed their lives.',
+      'A five-star review.',
+      'Not only do we guarantee results.',
+      'We guarantee results.',
+    ])
+      expect(ids(t), t.slice(0, 20)).toEqual(expect.arrayContaining([expect.stringMatching(/review-words|guarantee/)]));
+  });
+
+  it('does not take everyday phrases for awards or rankings, but still blocks real claims', () => {
+    for (const t of ['I won the argument.', 'She was shortlisted for the job.', 'My number one tip.', 'Step #1: start here.', 'Tip no. 1 is rest.'])
+      expect(ids(t), t).toEqual([]);
+    for (const t of [
+      'He won the Costa Book Award.',
+      'Winner of the 2024 Booker Prize.',
+      'A #1 bestseller.',
+      'Number one on Amazon.',
+      'An award-winning author.',
+    ])
+      expect(ids(t), t).toEqual(expect.arrayContaining([expect.stringMatching(/award-words|bestselling/)]));
+  });
+
+  it('does not take "according to plan", the name Sue or "review ... found" for claims', () => {
+    expect(ids('It went according to plan, according to your needs.')).toEqual([]);
+    expect(ids('Sue said hello. When I review it I found errors.')).toEqual([]);
+    expect(ids('According to the NHS, rest helps.')).toContain('according-to');
+    expect(ids('You can sue for damages.')).toContain('legal');
+  });
+
+  it('files statistics written in words', () => {
+    expect(ids('One in five nurses quit.')).toContain('stat-ratio');
+    expect(ids('Half of nurses burn out.')).toContain('stat-ratio');
+    expect(ids('Wait 1 in 5 minutes. Most of the day was quiet.')).not.toContain('stat-ratio');
+  });
+});

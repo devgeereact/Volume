@@ -75,7 +75,7 @@ import { GENTLE_PROBLEM_RULE, messageOptions, runEstimate } from "../spreads/mod
 /* New book wizard (docs/03-design/UX-SPEC.md, M3). Owner: screen agent B. With the server running, profiles
    come from it, Save draft creates (then updates) the book through POST /books and PATCH /books/:id, and
    Start research or Skip to titles saves it the same way and opens that book.
-   Five steps: profile, book type (all 35 from config/book-types.json, by category), idea, details,
+   Five steps: profile, book type (all 36 from config/book-types.json, by category), idea, details,
    review. Choosing a profile fills in its defaults (book type, word target, trim, interior theme,
    cover style, models); choosing a type fills in that type's. Cancel on the first step, Back on every
    other, Save draft throughout; "Start research" on the last. Values are kept when anything fails. */

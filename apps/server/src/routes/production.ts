@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import type { RequestCtx } from '../auth/context.js';
 import { AppError, parse } from '../http/errors.js';
+import { isPictureBook, pictureStructure } from '../jobs/picture-book.js';
 import { bookWritingComplete, buildExportBook, packHashOf } from '../jobs/book-data.js';
 import { KeyedLock } from '../lib/keyed-lock.js';
 import { assertQualityGate, preflightAcks, preflightReport } from '../jobs/quality-gate.js';
@@ -208,7 +209,13 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const id = idOf(req);
     const body = parse(z.object({ kinds: z.array(z.enum(EXPORT_KINDS)).min(1).optional(), pack: z.boolean().optional() }).optional(), req.body) ?? {};
-    await s.repos.books.require(req.ctx, id);
+    const book = await s.repos.books.require(req.ctx, id);
+    // A picture book has its own full-bleed export; this route would build an ordinary 15 page book from its spreads.
+    if (isPictureBook(await pictureStructure(s.configDir, book)))
+      throw new AppError(
+        'conflict',
+        'This is a picture book, so it is exported from the picture book Export step (POST /books/:id/picture-book/export), not with the ordinary export.',
+      );
     // Volume mode: a book that is or ever was in a batch is packed only after preflight and claims review (P8-2).
     if (body.pack !== false && (await s.repos.batches.everBatched(req.ctx, id))) await assertQualityGate(s, req.ctx, id, 'packed');
     const job = await s.queue.enqueue(req.ctx, {

@@ -196,6 +196,14 @@ describe('picture-book pipeline (mock AI, mock exporter)', () => {
     expect(exps.body.items.filter((e) => e.status === 'done').map((e) => e.kind)).toEqual(expect.arrayContaining(['pdf_print', 'pack']));
     expect(exps.body.items.every((e) => e.trim === '8.5x8.5')).toBe(true);
   });
+
+  it('refuses the ordinary export for a picture book and points to the picture book export', async () => {
+    const before = (await t.call<{ items: unknown[] }>('GET', `/api/v1/books/${bookId}/exports`)).body.items.length;
+    const r = await t.call<{ error: { code: string; message: string } }>('POST', `/api/v1/books/${bookId}/exports`, {});
+    expect(r.status).toBe(409);
+    expect(r.body.error.message).toContain('/picture-book/export');
+    expect((await t.call<{ items: unknown[] }>('GET', `/api/v1/books/${bookId}/exports`)).body.items.length).toBe(before);
+  });
 });
 
 describe('a failed safety check', () => {

@@ -42,6 +42,8 @@ const EnvSchema = z.object({
   ALLOWED_HOSTS: z.string().optional(),
   /** Trust the proxy in front (Passenger, Cloudflare): X-Forwarded-* and CF-Connecting-IP. Default: on in production only. */
   TRUST_PROXY: boolish.optional(),
+  /** Origin lock by Cloudflare's IP ranges: off (default), report (log requests that did not come through Cloudflare) or on (refuse them, 403). */
+  CLOUDFLARE_ONLY: z.preprocess((v) => (typeof v === 'string' ? v.trim().toLowerCase() || undefined : v), z.enum(['off', 'report', 'on'])).optional(),
   /** Requests per minute per client IP for reads, writes and the public health check. Production 600, 300, 30; development has no practical limit. */
   RATE_LIMIT_MAX: z.coerce.number().int().min(1).max(1000000).optional(),
   RATE_LIMIT_WRITE_MAX: z.coerce.number().int().min(1).max(1000000).optional(),
@@ -130,6 +132,8 @@ export interface AppConfig {
   /** APP_ORIGIN, or null in development when unset. */
   appOrigin: string | null;
   trustProxy: boolean;
+  /** CLOUDFLARE_ONLY: whether requests that did not come through Cloudflare's network are logged or refused. */
+  cloudflareOnly: 'off' | 'report' | 'on';
   rateLimit: { max: number; writeMax: number; healthMax: number };
   /** Built web app folder served by Fastify, or null (development uses Vite). */
   webDistDir: string | null;
@@ -312,6 +316,7 @@ export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
     accountsMode: e.ACCOUNTS_MODE ?? 'owner-only',
     appOrigin,
     trustProxy: e.TRUST_PROXY ?? production,
+    cloudflareOnly: e.CLOUDFLARE_ONLY ?? 'off',
     rateLimit: {
       max: e.RATE_LIMIT_MAX ?? (production ? 600 : DEV_RATE_LIMIT),
       writeMax: e.RATE_LIMIT_WRITE_MAX ?? (production ? 300 : DEV_RATE_LIMIT),

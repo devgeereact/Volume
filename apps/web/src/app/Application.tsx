@@ -1,22 +1,16 @@
-import { useState } from "react";
-import { RouterProvider } from "react-router/dom";
+import { lazy, Suspense } from "react";
 import { HostedAuth } from "../auth/HostedAuth";
-import { ApplicationProviders } from "./Providers";
-import { createAppRouter } from "./router";
 
-/** The router is made when the app first renders behind sign-in, so it starts from the address the
-    visitor reached while signed out (for example /sign-in), not the one the page loaded at. */
-function AppRouter() {
-  const [router] = useState(createAppRouter);
-  return <RouterProvider router={router} />;
-}
+/* The signed-in frame (providers, router, shell, Library) is a lazy chunk, so a visitor who only reads the
+   public pages never downloads it. */
+const SignedInApp = lazy(() => import("./SignedInApp"));
 
 export function Application() {
   return (
     <HostedAuth>
-      <ApplicationProviders>
-        <AppRouter />
-      </ApplicationProviders>
+      <Suspense fallback={<div className="min-h-dvh bg-canvas" />}>
+        <SignedInApp />
+      </Suspense>
     </HostedAuth>
   );
 }

@@ -102,6 +102,11 @@ export const ACKNOWLEDGEMENTS_PLACEHOLDER =
 /** Saved instead of AI text when no research source is ticked for the book. Preflight blocks the pack until it is replaced. */
 export const RESOURCES_PLACEHOLDER =
   'Resources to come. Tick the sources you want listed in Research, then write this section again, or switch the section off.';
+/** Key on a section's plan that records the app switched Resources off because no research source was ticked. */
+export const RESOURCES_AUTO_OFF_KEY = 'autoSwitchedOff';
+/** What the owner is told when Resources is switched off for lack of sources. */
+export const RESOURCES_AUTO_OFF_NOTE =
+  'Resources was switched off because no research sources are ticked. To list sources, tick them in Research, switch Resources back on, then write it.';
 /** The preflight and check message for resources with no ticked sources. */
 export const RESOURCES_NEED_SOURCES = 'Resources needs sources: tick sources in Research';
 /** Version source of an owner placeholder (preflight blocks while it is the current text). */
@@ -273,9 +278,25 @@ async function unsourcedPriceClaims(jc: JobContext, projectId: string, sectionId
   return claims.length;
 }
 
+/**
+ * The sections that come after this one when the book is read. `all` is in reading order (listSections puts each part
+ * before its own chapters, whatever positions an older book stored), so "after" is the place in that list and not the
+ * raw position: a chapter moved by position out of its part still reads, and is written about, where its part puts it.
+ */
+function sectionsAfter(all: readonly Section[], section: Section): Section[] {
+  const at = all.findIndex((s) => s.id === section.id);
+  return at < 0 ? all.filter((s) => s.position > section.position) : all.slice(at + 1);
+}
+
+/** The sections before this one in reading order (see sectionsAfter). */
+function sectionsBefore(all: readonly Section[], section: Section): Section[] {
+  const at = all.findIndex((s) => s.id === section.id);
+  return at < 0 ? all.filter((s) => s.position < section.position) : all.slice(0, at);
+}
+
 /** The section variables the writing and summary prompts share. */
 function sectionVarsOf(section: Section, all: readonly Section[]): Record<string, unknown> {
-  const later = all.filter((s) => s.enabled && s.position > section.position && BODY_FLOW.has(s.kind));
+  const later = sectionsAfter(all, section).filter((s) => s.enabled && BODY_FLOW.has(s.kind));
   const isLast = section.kind === 'chapter' && !later.some((s) => s.kind === 'chapter');
   const partTitle = section.partId ? (all.find((s) => s.id === section.partId)?.title ?? null) : null;
   return { kind: section.kind, title: section.title, number: section.number, word_target: section.wordTarget, ...section.plan, partTitle, isLast };
@@ -292,15 +313,15 @@ async function writingContext(jc: JobContext, book: Book, section: Section, prof
   const { repos } = jc.services;
   const projectId = book.id;
   const sectionId = section.id;
-  const all = [...(await repos.manuscript.listSections(jc.ctx, projectId))].sort((a, b) => a.position - b.position);
-  const earlier = all.filter((s) => s.enabled && s.position < section.position && s.currentVersionId);
+  const all = await repos.manuscript.listSections(jc.ctx, projectId);
+  const earlier = sectionsBefore(all, section).filter((s) => s.enabled && s.currentVersionId);
   const summaries: { number: number; title: string | null; summary: string }[] = [];
   for (const s of earlier) {
     const v = await repos.manuscript.getVersion(jc.ctx, s.currentVersionId as string);
     if (v?.summary) summaries.push({ number: s.number ?? summaries.length + 1, title: s.title, summary: v.summary });
   }
   // An earlier section whose summary failed is simply absent here; its open summary_missing flag says so.
-  const later = all.filter((s) => s.enabled && s.position > section.position && BODY_FLOW.has(s.kind));
+  const later = sectionsAfter(all, section).filter((s) => s.enabled && BODY_FLOW.has(s.kind));
   const next = later[0] ?? null;
   const ledger = await repos.manuscript.listLedger(jc.ctx, projectId);
   // Dated prices, and where the author's background is already stated (a profile fact goes in the body once).
@@ -455,9 +476,17 @@ export const writeSectionHandler: JobHandler = async (jc) => {
       'Acknowledgements need the names of the people you want to thank. Add them in the book settings, or switch the section off.',
     );
   }
-  // Resources list only ticked research sources (live run 3: an empty list failed the job). None ticked: a placeholder.
+  // Resources list only ticked research sources (live run 3: an empty list failed the job). None ticked: the section is
+  // switched off with a note on its plan (the preflight shows it), instead of a placeholder that blocks the pack. The owner
+  // undoes it by ticking sources in Research and switching Resources back on.
   if (section.kind === 'resources' && sources.length === 0) {
-    return placeholder(RESOURCES_PLACEHOLDER, 'No research sources ticked yet.', `${RESOURCES_NEED_SOURCES}, then write this section again, or switch it off.`);
+    await repos.manuscript.updateSectionPlan(jc.ctx, sectionId, {
+      enabled: false,
+      plan: { ...section.plan, [RESOURCES_AUTO_OFF_KEY]: { reason: 'no-sources', at: Date.now() } },
+    });
+    await repos.manuscript.setSectionStatus(jc.ctx, sectionId, 'planned');
+    await advanceIfWritingComplete(repos, jc.ctx, projectId);
+    return { result: { sectionId, switchedOff: true, reason: RESOURCES_AUTO_OFF_NOTE } };
   }
 
   const { next, ledger, written, prices, blueprint, sectionVars, common, template } = await writingContext(jc, book, section, profile, sources);

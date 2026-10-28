@@ -25,7 +25,10 @@ export interface PromptMeta {
 export interface PromptFile {
   meta: PromptMeta;
   system: string;
+  /** The User part, or its first half when the part has a "# Per call" heading. */
   user: string;
+  /** The User part after a "# Per call" heading: text that changes on every call. Empty when there is no heading. */
+  perCall: string;
   /** Variables used in the System and User parts. */
   variables: string[];
   /** Variables marked "(may be empty)" on the line where they appear. */
@@ -113,11 +116,17 @@ export function parsePromptFile(raw: string, path: string): PromptFile {
   const usr = /^# User\s*$/m.exec(body);
   if (!sys || !usr || usr.index < sys.index) throw new PromptError(`${path}: needs "# System" then "# User" headings`);
   const system = body.slice(sys.index + sys[0].length, usr.index).trim();
-  const user = body.slice(usr.index + usr[0].length).trim();
+  let user = body.slice(usr.index + usr[0].length).trim();
+  let perCall = '';
+  const split = /^# Per call\s*$/m.exec(user);
+  if (split) {
+    perCall = user.slice(split.index + split[0].length).trim();
+    user = user.slice(0, split.index).trim();
+  }
 
   const variables = new Set<string>();
   const optional = new Set<string>();
-  for (const part of [system, user]) {
+  for (const part of [system, user, perCall]) {
     for (const line of part.split('\n')) {
       const marked = /\(may be empty/i.test(line);
       for (const m of line.matchAll(VAR_RE)) {
@@ -127,7 +136,7 @@ export function parsePromptFile(raw: string, path: string): PromptFile {
       }
     }
   }
-  return { meta, system, user, variables: [...variables], optional: [...optional], path, hash: sha256(raw) };
+  return { meta, system, user, perCall, variables: [...variables], optional: [...optional], path, hash: sha256(raw) };
 }
 
 export function renderTemplate(
@@ -234,18 +243,21 @@ export class PromptLoader {
       }
     };
     const system = render(file.system);
-    const user = render(file.user);
+    const shared = render(file.user);
+    const perCall = file.perCall ? render(file.perCall) : '';
     if (missing.length > 0) throw new MissingVariableError(id, [...new Set(missing)]);
+    // With a "# Per call" part, the user message records where the shared start ends, so a provider that caches
+    // can reuse the system part and that start from one chapter to the next.
+    const userMessage: ChatMessage = perCall
+      ? { role: 'user', content: `${shared}\n\n${perCall}`, cachePrefix: shared.length }
+      : { role: 'user', content: shared };
     return {
       promptId: id,
       promptVersion: file.meta.version,
       promptHash: file.hash,
       stage: file.meta.stage,
       tier: file.meta.tier,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
+      messages: [{ role: 'system', content: system }, userMessage],
       values: used,
     };
   }

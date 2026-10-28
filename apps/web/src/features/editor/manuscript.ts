@@ -1,4 +1,5 @@
 import { getPenName, handoverJob } from "../../demo";
+import type { ApiGeneratedPage, ApiOwnerPrompt } from "../../api/types";
 
 /* Screen-only manuscript data for the Editor. Two books carry text in the demo: The New Charge Nurse
    (in editing) and Handover (being written). Each chapter shows its opening pages only; the word
@@ -33,6 +34,12 @@ export interface MsSection {
   offReason?: string;
   /** Shown text is only the opening pages. */
   excerpt: boolean;
+  /** A page the app builds at export (API mode): shown as a read-only preview. */
+  generated?: ApiGeneratedPage | null;
+  /** A page only the owner writes, still empty or a placeholder (API mode). */
+  ownerPrompt?: ApiOwnerPrompt | null;
+  /** True for a part divider: a container for chapters, not text. */
+  isPart?: boolean;
 }
 
 export type VersionOrigin = "AI write" | "Checker fix" | "AI edit" | "AI rewrite" | "Owner" | "Restore";

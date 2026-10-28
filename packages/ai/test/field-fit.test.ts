@@ -8,12 +8,12 @@ const loader = new PromptLoader(PROMPTS_DIR);
 const config = loadConfig(CONFIG_DIR);
 
 const WRITERS: [TaskId, number][] = [
-  ['writing.chapter', 9],
+  ['writing.chapter', 10],
   ['writing.introduction', 9],
   ['writing.conclusion', 9],
   ['writing.back-matter', 8],
   ['writing.front-matter', 7],
-  ['writing.extend-section', 6],
+  ['writing.extend-section', 7],
 ];
 
 const TECH_PROFILE = {

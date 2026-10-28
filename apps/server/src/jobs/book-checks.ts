@@ -37,9 +37,9 @@ export function sectionTitle(s: { kind: string; number: number | null; title: st
 }
 
 export async function writtenSections(repos: Repos, ctx: RequestCtx, projectId: string): Promise<WrittenSection[]> {
-  const sections = (await repos.manuscript.listSections(ctx, projectId))
-    .filter((s) => s.enabled && s.currentVersionId && !CODE_WRITTEN_KINDS.has(s.kind) && s.kind !== 'part')
-    .sort((a, b) => a.position - b.position);
+  const sections = (await repos.manuscript.listSections(ctx, projectId)).filter(
+    (s) => s.enabled && s.currentVersionId && !CODE_WRITTEN_KINDS.has(s.kind) && s.kind !== 'part',
+  );
   const out: WrittenSection[] = [];
   for (const s of sections) {
     const v = await repos.manuscript.getVersion(ctx, s.currentVersionId as string);

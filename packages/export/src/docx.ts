@@ -35,7 +35,6 @@ import {
   marginsFor,
   parseInline,
   parseTrimKey,
-  inContents,
   sectionHeading,
   type Block,
   type BookDoc,
@@ -43,6 +42,7 @@ import {
   type Section,
   type TrimKey,
 } from '@volume/core';
+import { contentsSections } from './front-matter.ts';
 import { fillInLines } from './print-html.ts';
 import { fontBytes, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
 
@@ -366,7 +366,7 @@ export async function exportDocx(book: BookDoc, theme: InteriorTheme = DEFAULT_I
         continue;
       case 'contents': {
         children.push(new Paragraph({ style: 'ContentsHeading', children: [new TextRun('Contents')] }));
-        const after = secs.slice(secs.indexOf(s) + 1).filter((x) => mark.has(x.id) && inContents(book, x));
+        const after = contentsSections(book, secs, secs.indexOf(s) + 1).filter((x) => mark.has(x.id));
         for (const x of after) {
           children.push(
             new Paragraph({

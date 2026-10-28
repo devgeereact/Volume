@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { Book } from "./Book";
 import { SplitText } from "./bits/SplitText";
 import { gsap, prefersReducedMotion, useGSAP } from "./gsap";
+import { useSeo } from "./seo";
 import "./site.css";
 
 /* Sign-in, in Volume's own clothes: a spine-navy panel with the brand and the sample book, and the
@@ -50,6 +51,7 @@ function afterSignIn(): string {
 
 export default function SignInPage({ mode }: SignInPageProps) {
   const scope = useRef<HTMLDivElement>(null);
+  useSeo("sign-in");
 
   useGSAP(
     () => {
@@ -87,7 +89,7 @@ export default function SignInPage({ mode }: SignInPageProps) {
             <span className="site-mark" aria-hidden="true" />
             Volume
           </Link>
-          <Link to="/" className="ml-auto inline-flex items-center gap-1.5 text-small text-ink-secondary transition-colors hover:text-ink">
+          <Link to="/" className="ml-auto inline-flex min-h-11 items-center gap-1.5 text-small text-ink-secondary transition-colors hover:text-ink">
             <ArrowLeft aria-hidden="true" size={15} />
             Back to home
           </Link>
@@ -114,7 +116,10 @@ export default function SignInPage({ mode }: SignInPageProps) {
                 </div>
               )}
             </div>
-            <Link to="/how-it-works" className="in-rise text-small text-ink-secondary underline-offset-4 hover:text-ink hover:underline">
+            <Link
+              to="/how-it-works"
+              className="in-rise inline-flex min-h-11 items-center text-small text-ink-secondary underline-offset-4 hover:text-ink hover:underline"
+            >
               New here? See how it works
             </Link>
           </div>

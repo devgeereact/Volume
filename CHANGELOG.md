@@ -2,6 +2,50 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 28 October 2026
+
+#### Changed
+- Calls that go straight to Anthropic now ask Anthropic to cache the instructions part of each prompt (D-063), so repeated instructions within a book cost a fraction of the normal price.
+- Chapter and extend-section prompts now send the book-wide material (blueprint, research sources, template, story bible) first and this chapter's details last (D-064): writing.chapter v10, chapter-fiction v2, chapter-workbook v3, chapter-reference v2, extend-section v7, extend-section-fiction v2. On direct Anthropic calls that material is cached from one chapter to the next. The rules are unchanged.
+
+#### Fixed
+- Cost figures for Claude Fable 5.1 counted cached reading at four times its real price.
+
+## 27 October 2026
+
+#### Added
+- Originality check in preflight: a section that repeats 12 or more words in a row from your voice sample or a ticked research source gets a warning naming the source and the start of the passage. Quoting inside quotation marks does not count. It runs offline and never blocks the pack.
+- A real origin lock (D-062): with `CLOUDFLARE_ONLY=on` the server refuses any request that did not come through Cloudflare's network, even one that fakes Cloudflare's headers. It ships off; turn it on with the steps in the deployment guide.
+
+#### Changed
+- The landing page and How it works now appear straight away instead of waiting for sign-in to load, and a visitor downloads less than half as much before the page shows (about 125 kB instead of 309 kB).
+- Security updates: zod, fastify, fast-uri and vite. `npm audit` now reports no known vulnerabilities.
+
+#### Fixed
+- A failed-job notice now clears itself when a later run of the same step on the same book succeeds.
+- The "page not found" screen inside the app now has its own title and is never indexed.
+- Public pages: "Pause animation" now stops every moving part, links and buttons have 44 px tap areas, the changing status line is read by screen readers, and sign-in no longer carries social sharing tags.
+
+## 25 October 2026
+
+#### Added
+- When the server stops answering after it had answered, Volume now keeps your last real books and figures on screen under a "Not connected. Showing your last saved view. Reconnecting..." banner, instead of switching to invented sample data. Saving is paused with a plain reason, and everything refreshes by itself when the server returns (D-061). Sample data now appears only when a local build has never reached the server.
+- The smoke script can now build a real pack and check the zip file by file (`SMOKE_PACK=1`): file list, covers, PDF pages and text, EPUB, DOCX, TXT, MD and the marketing folder.
+- The Editor now shows every section as the exported book holds it. The title page, copyright, contents and About the author are built from your book, pen name and template, shown read-only with a note saying where each is edited. Parts show as dividers. Dedication and Acknowledgements show a kind prompt and the text the book will hold. Word totals count the built pages the way the text export does.
+- Also by is now built from the other books under the same pen name (it stays off until you switch it on). A blank owner page, such as a dedication nobody wrote, is left out of the export instead of printing a heading over a blank page.
+- Whole-app smoke script: `tests/smoke/smoke.mjs` walks every screen and flow with mock AI at desktop and phone widths and checks console errors, failed requests, overflow, labels, copy and speed.
+- Technical SEO for the public pages: a title, description and social tags per page, structured data, a real 404 page, one address per page, font preloads, larger tap targets and a Pause animation button. The pages stay noindex (D-053), `robots.txt` disallows everything and `/sitemap.xml` answers 404 until you decide to index them.
+
+#### Fixed
+- A chapter moved by position out of its part no longer changes what the writer is told: the earlier-chapter summaries, the next chapter, the last-chapter flag and the book-wide repetition and price checks all follow the order the book reads, with each part before its own chapters.
+- In a book with parts, every part divider ("Part I", "Part II") printed together before Chapter 1 in the PDF, EPUB, DOCX, TXT and MD. Each part now comes right before its own chapters, in the Editor, the Writing screen and every export. New books store them in that order from the start.
+- Exporting a picture book through the generic export route no longer builds a wrong 15-page PDF. It answers with a message pointing to the picture book export.
+- The pack gate now counts only claims that need your check, as the preflight and the export spec already say. Claims listed for the record no longer block a pack. Nothing is ever resolved for you.
+- The profile bio on the About the author page is no longer flagged for banned words, official names such as World Health Organization are no longer flagged as US spellings, and "no testimonials" or "does not guarantee" no longer count as invented praise or promises. Real invented praise, awards and promises still block.
+- A book with no research sources switches its Resources section off with a note, instead of blocking the pack. Switching it back on clears the note.
+- The About the author and Contents checks read "not applicable" when a template leaves that page out.
+- An unknown address no longer keeps the previous screen's tab title, and the Writing page says when Acknowledgements need names before Marketing opens.
+
 ## 24 October 2026
 
 #### Added

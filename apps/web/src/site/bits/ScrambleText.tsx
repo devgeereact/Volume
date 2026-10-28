@@ -30,7 +30,8 @@ export function ScrambleText({ lines, className, hold = 2.6 }: ScrambleTextProps
   );
 
   return (
-    <span className={className} aria-label={first}>
+    <span className={className}>
+      <span className="sr-only">{first}</span>
       <span ref={ref} aria-hidden="true">
         {first}
       </span>

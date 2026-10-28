@@ -32,6 +32,7 @@ import {
   trimPageRange,
   wrapSizeIn,
   type BookDoc,
+  type Section,
   type CheckItem,
   type ColourInk,
   type PictureBookDoc,
@@ -346,6 +347,19 @@ const near = (a: number, b: number, tol: number) => Math.abs(a - b) <= tol;
 /** Wrap size tolerance in inches: Volume's own (no KDP rounding rule in config/kdp-rules), so unverified. */
 const WRAP_TOLERANCE_IN = 0.001;
 
+/** Style rules that do not apply to the profile bio: it is the owner's own wording, checked for equality instead. */
+const BIO_EXEMPT_RULES: ReadonlySet<string> = new Set(['banned', 'spelling', 'phrasing', 'habit']);
+
+/** True when the About the author paragraphs equal the profile bio (curly quotes and spacing ignored). */
+function aboutMatchesBio(about: Section, bio: string): boolean {
+  const text = about.blocks
+    .filter((b) => b.type === 'paragraph')
+    .map((b) => (b.type === 'paragraph' ? stripInline(b.text) : ''))
+    .join('\n\n');
+  // The typeset book sets curly quotes (curlQuotes), so the bio is compared in the same typography.
+  return curlQuotes(text).replace(/\s+/g, ' ').trim() === curlQuotes(bio).replace(/\s+/g, ' ').trim();
+}
+
 export async function runPreflight(input: PreflightInput): Promise<PreflightReport> {
   const items: CheckItem[] = [];
   const add = (i: CheckItem) => items.push(i);
@@ -380,16 +394,31 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
   if (isObj(input.template) && isObj(input.template.chapterRules)) add(templateRulesItem(book, input.template));
   const contents = secs.find((s) => s.subtype === 'contents');
   const pb = input.pictureBook;
+  // A template with no contents section (the journal and planner template) or a book with Contents switched off has
+  // no contents page on purpose: the check is not applicable, not a warning.
+  const templateIds =
+    isObj(input.template) && Array.isArray(input.template.sections) ? input.template.sections.map((t) => (isObj(t) ? String(t.id) : '')) : null;
+  const contentsNotApplicable = !contents && ((templateIds !== null && !templateIds.includes('contents')) || (input.sectionsOff ?? []).includes('contents'));
   if (!pb)
     add({
       id: 'structure.contents',
       label: 'Contents page',
-      level: contents ? 'pass' : 'warn',
-      detail: contents ? 'Contents is built from the headings, so it always matches them.' : 'No contents section.',
+      level: contents || contentsNotApplicable ? 'pass' : 'warn',
+      detail: contents
+        ? 'Contents is built from the headings, so it always matches them.'
+        : contentsNotApplicable
+          ? 'Not applicable: this book has no contents page by design.'
+          : 'No contents section.',
     });
 
   // House style
-  const findings = checkBookStyle(book, input.houseStyle, { titleCase: false });
+  // The About the author text is the profile bio word for word, so while it matches the bio its words are the
+  // owner's own: banned words, US spellings and phrasing are not flagged inside it. The equality check below stays.
+  const aboutSection = secs.find((s) => s.subtype === 'about_the_author');
+  const aboutIsBio = aboutSection !== undefined && input.profileBio !== undefined && aboutMatchesBio(aboutSection, input.profileBio);
+  const findings = checkBookStyle(book, input.houseStyle, { titleCase: false }).filter(
+    (f) => !(aboutIsBio && f.sectionId === aboutSection?.id && BIO_EXEMPT_RULES.has(f.rule)),
+  );
   const blocking = findings.filter((f) => ['emdash', 'endash', 'banned', 'spelling'].includes(f.rule) && f.severity === 'error');
   add({
     id: 'style.house',
@@ -457,19 +486,19 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
   // Honesty and front matter
   const about = secs.find((s) => s.subtype === 'about_the_author');
   if (input.profileBio !== undefined) {
-    const text = about
-      ? about.blocks
-          .filter((b) => b.type === 'paragraph')
-          .map((b) => (b.type === 'paragraph' ? stripInline(b.text) : ''))
-          .join('\n\n')
-      : '';
-    // The typeset book sets curly quotes (curlQuotes), so the bio is compared in the same typography.
-    const same = curlQuotes(text).replace(/\s+/g, ' ').trim() === curlQuotes(input.profileBio).replace(/\s+/g, ' ').trim();
+    const aboutOff = about === undefined && (input.sectionsOff ?? []).includes('about-the-author');
+    const same = about !== undefined && aboutMatchesBio(about, input.profileBio);
     add({
       id: 'honesty.about-author',
       label: 'About the author equals the profile bio',
-      level: same ? 'pass' : 'fail',
-      detail: same ? 'Word for word.' : 'About the author differs from the profile bio.',
+      level: same || aboutOff ? 'pass' : 'fail',
+      detail: aboutOff
+        ? 'Not applicable: About the author is switched off for this book, so there is nothing to compare.'
+        : same
+          ? 'Word for word.'
+          : about
+            ? 'About the author differs from the profile bio.'
+            : 'There is no About the author section to compare with the profile bio.',
     });
   }
   const year = input.copyrightYear ?? now.getUTCFullYear();

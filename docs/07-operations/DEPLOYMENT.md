@@ -81,6 +81,12 @@ Migration order: `0006_picture_books`, `0008_volume_mode` and `0009_invitations`
 - Create the database and two users in cPanel MySQL Databases: runtime user with SELECT, INSERT, UPDATE, DELETE; migration user with those plus CREATE, ALTER, INDEX, DROP, REFERENCES. Passwords are generated on the server and typed into `shared/.env` only.
 - Install chromium-headless-shell 1243 into `~/apps/volume/shared/browsers` and the two libraries into `~/apps/volume/shared/chromium-libs`.
 - Docroot `.htaccess`: start with the Cloudflare origin-lock block exactly as given in [deploy/htaccess.volume](../../deploy/htaccess.volume); the Node.js selector adds its own Passenger block after it.
+- Origin lock by Cloudflare's IP ranges (D-062), after the release that carries it is live. It is off until you set it, so a wrong host setting cannot lock the site:
+  1. Add `CLOUDFLARE_ONLY=report` to `shared/.env` and restart (stop `lsnode`).
+  2. Open the site normally a few times, then read the app log. There must be no `request did not come through Cloudflare` lines for your own visits. If there are, LiteSpeed is not passing the Cloudflare hop in `X-Forwarded-For`: leave it on `report` and say so in `KNOWN-ISSUES.md`.
+  3. When the log is clean, set `CLOUDFLARE_ONLY=on` and restart. A direct hit on the origin IP now gets 403 `not_via_cloudflare`. To undo, set `off` and restart.
+  4. Cloudflare's ranges are in `apps/server/src/http/hosting.ts` (`CLOUDFLARE_RANGES`). Compare them with <https://www.cloudflare.com/ips/> now and then.
+- HTTP to HTTPS: Cloudflare redirects it (checked 27 October 2026: `http://volume.gakinz.com/` answers 301 to `https://`, `Server: cloudflare`). HSTS from the app covers repeat visits.
 - Keep-alive cron (cPanel Cron Jobs), so Passenger does not stop the app while AI jobs run in the background:
 
   ```
@@ -131,7 +137,7 @@ A local Volume on the Mac can add the file to every pack it builds: start it wit
 | `https://volume.gakinz.com/library` (signed in as the owner) | Library loads with the owner's books; Settings shows MySQL |
 | Sign in from a new device | Lands on `/library` (D-054; a deep link returns to its own page) |
 | Same, signed in as anyone else | "This account is not allowed" (API answers 403) |
-| Origin IP directly, without Cloudflare | 403 from the origin lock |
+| Origin IP directly, without Cloudflare | 403 from the origin lock (with `CLOUDFLARE_ONLY=on`, also with a forged `CF-RAY` header: `not_via_cloudflare`) |
 | Export a short book to PDF | PDF downloads (proves Chromium and the libraries) |
 
 ## What the server enforces in production

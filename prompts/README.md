@@ -39,6 +39,8 @@ Two headed parts, in this order:
 - `# System`: role, rules, honesty guardrails and the output contract.
 - `# User`: the job, with the filled-in variables.
 
+A prompt that runs once per chapter or section may split its User part with a `# Per call` heading (D-064). Above the heading goes only what stays the same for the whole book (blueprint, research sources, template, story bible); below it goes what changes per call (earlier summaries, the used-already list, this chapter's details and the closing instruction). The model still gets one user message. On the direct Anthropic path the part above the heading is cached, so keep per-chapter values out of it and out of the System part.
+
 Anything after a `# Changes` heading is ignored by the loader. HTML comments (such as the `<!-- house-style:off -->` markers that let the style hook skip a deliberate list) are stripped before sending.
 
 ## Variables

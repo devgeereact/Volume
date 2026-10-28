@@ -233,6 +233,15 @@ export function copyrightLines(book: ExportBook, template: unknown): string[] {
   return out;
 }
 
+/** The book template the exporters use for a book (config/book-templates/<id>.json), or undefined when it cannot be read. */
+export function exportTemplate(root: string, book: Pick<ExportBook, 'templateId'>): unknown {
+  try {
+    return loadBookTemplate(book.templateId ?? 'nonfiction', root);
+  } catch {
+    return undefined;
+  }
+}
+
 /** Maps the server's book onto the package's BookDoc. */
 export function toBookDoc(book: ExportBook, template: unknown): BookDoc {
   const meta: BookMeta = { title: book.title, author: book.author.penName, language: book.language, year: book.publicationYear, identifier: book.projectId };
@@ -500,12 +509,7 @@ export class VolumeExportAdapter implements ExportPort {
   }
 
   private template(book: ExportBook): unknown {
-    const id = book.templateId ?? 'nonfiction';
-    try {
-      return loadBookTemplate(id, this.opts.root);
-    } catch {
-      return undefined;
-    }
+    return exportTemplate(this.opts.root, book);
   }
 
   private async getBrowser(): Promise<Browser> {

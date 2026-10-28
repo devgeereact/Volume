@@ -269,6 +269,56 @@ describe('event streams', () => {
   });
 });
 
+describe('origin lock (CLOUDFLARE_ONLY)', () => {
+  // 104.16.0.1 is in Cloudflare's 104.16.0.0/13; 203.0.113.7 is a documentation address outside every range.
+  const lockedApp = (mode: string) => {
+    const config = loadConfig({ dotenv: false, env: prodEnv(webDir, { CLOUDFLARE_ONLY: mode }) });
+    return testApp({ config, auth: (owner, db) => new ClerkAuthProvider(db, owner, config.clerk, verifier, null) });
+  };
+  const hit = (r: TestApp, url: string, remoteAddress: string, xff?: string) =>
+    r.app.inject({
+      method: 'GET',
+      url,
+      remoteAddress,
+      headers: { host: SITE, 'cf-connecting-ip': '198.51.100.9', ...(xff ? { 'x-forwarded-for': xff } : {}) },
+    });
+
+  it('is off by default', () => {
+    expect(loadConfig({ dotenv: false, env: prodEnv(webDir) }).cloudflareOnly).toBe('off');
+    expect(() => loadConfig({ dotenv: false, env: prodEnv(webDir, { CLOUDFLARE_ONLY: 'maybe' }) })).toThrow();
+  });
+
+  it('on: refuses a direct hit, even with a forged CF-RAY or X-Forwarded-For, and lets Cloudflare through', async () => {
+    const r = await lockedApp('on');
+    try {
+      // Direct to the origin: the host proxy on loopback appends the caller's real address last.
+      const direct = await hit(r, '/api/health', '127.0.0.1', '104.16.0.1, 203.0.113.7');
+      expect(direct.statusCode).toBe(403);
+      expect(JSON.parse(direct.body)).toMatchObject({ error: { code: 'not_via_cloudflare' } });
+      expect((await hit(r, '/', '203.0.113.7')).statusCode).toBe(403);
+      // No outside hop at all (only loopback): refused, so a missing proxy header never opens the lock.
+      expect((await hit(r, '/api/health', '127.0.0.1')).statusCode).toBe(403);
+      // Through Cloudflare: the visitor is first, Cloudflare's edge is the hop the host proxy saw.
+      expect((await hit(r, '/api/health', '127.0.0.1', '198.51.100.9, 104.16.0.1')).statusCode).toBe(200);
+      expect((await hit(r, '/api/health', '::ffff:104.16.0.1')).statusCode).toBe(200);
+      expect((await hit(r, '/api/health', '2606:4700::1')).statusCode).toBe(200);
+      // Certificate checks pass, as in the docroot .htaccess.
+      expect((await hit(r, '/.well-known/acme-challenge/x', '203.0.113.7')).statusCode).not.toBe(403);
+    } finally {
+      await r.close();
+    }
+  });
+
+  it('report: logs but does not refuse', async () => {
+    const r = await lockedApp('report');
+    try {
+      expect((await hit(r, '/api/health', '203.0.113.7')).statusCode).toBe(200);
+    } finally {
+      await r.close();
+    }
+  });
+});
+
 describe('rate limits', () => {
   it('limit the public health check per visitor IP from CF-Connecting-IP', async () => {
     const config = loadConfig({ dotenv: false, env: prodEnv(webDir, { RATE_LIMIT_HEALTH_MAX: '2' }) });

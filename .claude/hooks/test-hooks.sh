@@ -209,10 +209,10 @@ run stop-handoff-reminder.sh 'garbage'
 expect "Bad input fails open silently" 0 EMPTY
 
 echo "== settings.json =="
-if node -e 'const s=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); for (const e of ["PreToolUse","PostToolUse","SessionStart","Stop"]) if (!s.hooks[e]) throw new Error("missing "+e);' "$REAL_ROOT/.claude/settings.json" 2>"$SANDBOX/stderr"; then
-  ok "settings.json parses and wires all four events"
+if node -e 'const s=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); for (const e of ["PreToolUse","PostToolUse","SessionStart"]) if (!s.hooks[e]) throw new Error("missing "+e);' "$REAL_ROOT/.claude/settings.json" 2>"$SANDBOX/stderr"; then
+  ok "settings.json parses and wires the three retained events"
 else
-  CODE=1; OUT=""; ERR=$(cat "$SANDBOX/stderr"); bad "settings.json parses and wires all four events"
+  CODE=1; OUT=""; ERR=$(cat "$SANDBOX/stderr"); bad "settings.json parses and wires the three retained events"
 fi
 for f in "$REAL_ROOT"/.claude/hooks/*.sh; do
   [ -x "$f" ] && ok "executable: $(basename "$f")" || { CODE=1; OUT=""; ERR=""; bad "executable: $(basename "$f")"; }

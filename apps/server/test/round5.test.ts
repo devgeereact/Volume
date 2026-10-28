@@ -319,16 +319,11 @@ describe('5. book-type templates', () => {
     await written(t, id);
     const glossary = ai.of('writing').find((w) => (w.variables['section'] as Obj)['kind'] === 'glossary');
     expect(glossary).toBeDefined();
-    // No research source is ticked, so resources is an owner placeholder (no AI call) that blocks the preflight.
+    // No research source is ticked, so resources is switched off with a note (no AI call, nothing blocking).
     expect(ai.of('writing').some((w) => (w.variables['section'] as Obj)['kind'] === 'resources')).toBe(false);
     const pre = await t.call<{ items: { id: string; severity: string; message: string }[] }>('GET', `/api/v1/books/${id}/preflight`);
-    expect(pre.body.items).toContainEqual(
-      expect.objectContaining({
-        id: 'front.owner-placeholder.resources',
-        severity: 'block',
-        message: expect.stringContaining('Resources needs sources: tick sources in Research') as unknown,
-      }),
-    );
+    expect(pre.body.items.some((i) => i.id === 'front.owner-placeholder.resources')).toBe(false);
+    expect(pre.body.items).toContainEqual(expect.objectContaining({ id: 'resources.auto-off', severity: 'pass' }));
     const structure = await loadBookStructure(CONFIG, 'ai-tech-howto', 'nonfiction');
     expect((promptTemplate(structure)!['sections'] as Obj[]).map((s) => s['id'])).toEqual(expect.arrayContaining(['glossary', 'resources', 'how-to-use']));
   });

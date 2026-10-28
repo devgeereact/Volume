@@ -4,7 +4,6 @@ import {
   countWords,
   enabledSections,
   exerciseHeading,
-  inContents,
   sectionHeading,
   stripInline,
   wrapText,
@@ -13,6 +12,7 @@ import {
   type BookDoc,
   type Section,
 } from '@volume/core';
+import { contentsSections, FENCED_SUBTYPES } from './front-matter.ts';
 
 export interface TxtOptions {
   /** Line width for wrapping. Default 80. */
@@ -26,7 +26,7 @@ export interface TxtOptions {
   includeMarketing?: boolean;
 }
 
-const FRONT_FENCES = new Set(['titlepage', 'copyright', 'contents', 'halftitle']);
+const FRONT_FENCES = FENCED_SUBTYPES;
 
 /** Decode the few entities a description is likely to hold. */
 function decodeEntities(s: string): string {
@@ -157,8 +157,7 @@ function headingFor(s: Section): string {
 function contentsLines(book: BookDoc, secs: Section[], from: number): string[] {
   const out: string[] = [];
   let n = 0;
-  for (const s of secs.slice(from)) {
-    if (FRONT_FENCES.has(s.subtype) || !inContents(book, s)) continue;
+  for (const s of contentsSections(book, secs, from)) {
     if (s.kind === 'chapter') {
       n = s.number ?? n + 1;
       out.push(s.title ? `${n}. ${s.title}` : `${n}. ${s.kicker ?? `Chapter ${n}`}`);

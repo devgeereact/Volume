@@ -31,7 +31,7 @@ interface ClaudePrice {
 
 /** Anthropic API model ids Volume maps to, with first-party prices (claude-api reference, read 22 October 2026). */
 const CLAUDE_MODELS: Record<string, ClaudePrice> = {
-  'claude-fable-5-1': { input: 10, output: 50, cacheRead: 1 },
+  'claude-fable-5-1': { input: 10, output: 50, cacheRead: 0.25 },
   'claude-fable-5': { input: 10, output: 50, cacheRead: 1 },
   'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.2 },
   'claude-opus-5': { input: 5, output: 25, cacheRead: 0.5 },
@@ -195,9 +195,24 @@ export class AnthropicClient {
           : req.responseFormat?.type === 'json_object'
             ? '\n\nReply with one JSON object only, no prose and no code fence.'
             : '';
+      let marked = false;
       const messages: Anthropic.MessageParam[] = req.messages
         .filter((m) => m.role !== 'system')
-        .map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
+        .map((m) => {
+          const role = m.role === 'assistant' ? 'assistant' : 'user';
+          const cut = m.cachePrefix;
+          // A user message with a shared start (a prompt's "# Per call" split) gets a second cache marker after
+          // that start, so the book-wide material is read back on the next chapter. Only the first one is marked.
+          if (marked || role !== 'user' || cut === undefined || cut <= 0 || cut >= m.content.length) return { role, content: m.content };
+          marked = true;
+          return {
+            role,
+            content: [
+              { type: 'text', text: m.content.slice(0, cut), cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: m.content.slice(cut) },
+            ],
+          };
+        });
       if (messages.length === 0) messages.push({ role: 'user', content: system || 'Continue.' });
       const effort = req.reasoning?.effort;
       // temperature is never sent: the Messages API stopped accepting sampling parameters on 21 October 2026.
@@ -205,7 +220,9 @@ export class AnthropicClient {
         model,
         max_tokens: req.maxTokens ?? 16000,
         messages,
-        ...(system || jsonHint ? { system: `${system}${jsonHint}`.trim() } : {}),
+        // The system part is the reusable start of each prompt, so it carries the cache marker. The rest of the user
+        // part differs on every call and is left unmarked: marking it would pay the cache write price for text never read back.
+        ...(system || jsonHint ? { system: [{ type: 'text', text: `${system}${jsonHint}`.trim(), cache_control: { type: 'ephemeral' } }] } : {}),
         ...(effort && effort !== 'none' ? { output_config: { effort: effort === 'minimal' ? 'low' : effort } } : {}),
       };
       armIdle();

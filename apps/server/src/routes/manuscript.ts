@@ -7,7 +7,8 @@ import { contextOf, findMatches, replaceMatches } from '../lib/find.js';
 import { KeyedLock } from '../lib/keyed-lock.js';
 import { lineDiff } from '../lib/text.js';
 import { NoteInputSchema, NotePatchSchema, SaveVersionSchema, sessionStartOf, type Section } from '../repos/manuscript.js';
-import { advanceIfWritingComplete, CHECKS_MISSING_CHECKER, CODE_WRITTEN_KINDS, SUMMARY_MISSING_CHECKER } from '../jobs/book-data.js';
+import { RESOURCES_AUTO_OFF_KEY } from '../jobs/handlers/writing.js';
+import { advanceIfWritingComplete, CHECKS_MISSING_CHECKER, CODE_WRITTEN_KINDS, sectionPreviews, SUMMARY_MISSING_CHECKER } from '../jobs/book-data.js';
 import { estimateRuns } from './fixes.js';
 import { sectionGuardrails } from '../repos/run-info.js';
 import { LEDGER_KINDS } from '../ports/ai.js';
@@ -47,10 +48,14 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
       all.map((x) => x.id),
     );
     const who = await m.writtenBy(req.ctx, all, CODE_WRITTEN_KINDS);
-    const add = <T extends Section>(x: T): T & { guardrails: unknown; writtenBy: 'app' | 'ai' | 'owner' } => ({
+    // Built pages and owner pages: what the exported book holds for them (the Editor shows it, not an empty page).
+    const previews = await sectionPreviews(s.repos, req.ctx, id, s.configDir);
+    const add = <T extends Section>(x: T) => ({
       ...x,
       guardrails: g.get(x.id)?.guardrails ?? null,
       writtenBy: who.get(x.id) ?? 'ai',
+      generated: previews.generated.get(x.id) ?? null,
+      ownerPrompt: previews.ownerPrompts.get(x.id) ?? null,
     });
     return {
       ...tree,
@@ -66,7 +71,18 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
     const checks = current ? await m.listChecks(req.ctx, { versionId: current.id }) : [];
     const g = (await sectionGuardrails(s.db, req.ctx, [section.id])).get(section.id);
     const who = (await m.writtenBy(req.ctx, [section], CODE_WRITTEN_KINDS)).get(section.id) ?? 'ai';
-    return { section: { ...section, guardrails: g?.guardrails ?? null, writtenBy: who }, current, checks };
+    const previews = await sectionPreviews(s.repos, req.ctx, section.projectId, s.configDir);
+    return {
+      section: {
+        ...section,
+        guardrails: g?.guardrails ?? null,
+        writtenBy: who,
+        generated: previews.generated.get(section.id) ?? null,
+        ownerPrompt: previews.ownerPrompts.get(section.id) ?? null,
+      },
+      current,
+      checks,
+    };
   });
 
   app.patch('/sections/:id', async (req) => {
@@ -81,10 +97,15 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
       }),
       req.body,
     );
-    await m.requireSection(req.ctx, id);
+    const existing = await m.requireSection(req.ctx, id);
     const set: Parameters<typeof m.updateSectionPlan>[2] = {};
     if (body.title !== undefined) set.title = body.title;
     if (body.enabled !== undefined) set.enabled = body.enabled;
+    // Switching a page back on ends the app's "switched off" note (Resources with no sources), so it does not linger.
+    if (body.enabled === true && RESOURCES_AUTO_OFF_KEY in existing.plan) {
+      const { [RESOURCES_AUTO_OFF_KEY]: _note, ...rest } = existing.plan;
+      set.plan = rest;
+    }
     if (body.position !== undefined) set.position = body.position;
     if (body.wordTarget !== undefined) set.wordTarget = body.wordTarget;
     await m.updateSectionPlan(req.ctx, id, set);
