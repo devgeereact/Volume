@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { isIP } from 'node:net';
+import { BlockList, isIP } from 'node:net';
 import { join } from 'node:path';
 import fastifyStatic from '@fastify/static';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -23,6 +23,69 @@ export function clientIp(req: FastifyRequest, trustProxy: boolean): string {
     if (typeof value === 'string' && isIP(value.trim()) !== 0) return value.trim();
   }
   return req.ip || 'unknown';
+}
+
+/**
+ * Cloudflare's published edge ranges (https://www.cloudflare.com/ips-v4 and /ips-v6, fetched 27 October 2026).
+ * Check them again when Cloudflare announces a change.
+ */
+export const CLOUDFLARE_RANGES = {
+  v4: [
+    '173.245.48.0/20',
+    '103.21.244.0/22',
+    '103.22.200.0/22',
+    '103.31.4.0/22',
+    '141.101.64.0/18',
+    '108.162.192.0/18',
+    '190.93.240.0/20',
+    '188.114.96.0/20',
+    '197.234.240.0/22',
+    '198.41.128.0/17',
+    '162.158.0.0/15',
+    '104.16.0.0/13',
+    '104.24.0.0/14',
+    '172.64.0.0/13',
+    '131.0.72.0/22',
+  ],
+  v6: ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32'],
+} as const;
+
+function blockList(v4: readonly string[], v6: readonly string[]): BlockList {
+  const list = new BlockList();
+  for (const r of v4) list.addSubnet(r.split('/')[0] as string, Number(r.split('/')[1]), 'ipv4');
+  for (const r of v6) list.addSubnet(r.split('/')[0] as string, Number(r.split('/')[1]), 'ipv6');
+  return list;
+}
+
+const cloudflare = blockList(CLOUDFLARE_RANGES.v4, CLOUDFLARE_RANGES.v6);
+// The host's own proxies (LiteSpeed, Passenger) sit on loopback or a private network.
+const hostLocal = blockList(['127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'], ['::1/128', 'fc00::/7']);
+
+/** A bare IP from a socket or header value, IPv4-mapped IPv6 unwrapped; null when it is not an IP. */
+function bareIp(value: string | undefined): { ip: string; family: 'ipv4' | 'ipv6' } | null {
+  const v = (value ?? '').trim().replace(/^::ffff:(?=\d+\.\d+\.\d+\.\d+$)/i, '');
+  const kind = isIP(v);
+  return kind === 4 ? { ip: v, family: 'ipv4' } : kind === 6 ? { ip: v, family: 'ipv6' } : null;
+}
+
+/**
+ * The address that connected to the host from outside: walking back from the socket through X-Forwarded-For (each
+ * proxy appends the peer it saw), the first hop that is not loopback or private. Null when there is none.
+ */
+export function edgeIp(req: FastifyRequest): string | null {
+  const xff = req.headers['x-forwarded-for'];
+  const chain = (Array.isArray(xff) ? xff.join(',') : (xff ?? '')).split(',').reverse();
+  for (const hop of [req.socket.remoteAddress, ...chain]) {
+    const a = bareIp(hop);
+    if (a && !hostLocal.check(a.ip, a.family)) return a.ip;
+  }
+  return null;
+}
+
+/** True when the request reached the host through Cloudflare's network. */
+export function viaCloudflare(req: FastifyRequest): boolean {
+  const a = bareIp(edgeIp(req) ?? undefined);
+  return a !== null && cloudflare.check(a.ip, a.family);
 }
 
 /**

@@ -9,7 +9,18 @@ import type { Db, DbHandle } from './db/connect.js';
 import { BlobStore, DEFAULT_CHUNK_BYTES } from './files/blob-store.js';
 import { AppError, errorBody, registerErrorHandling } from './http/errors.js';
 import { errSerializer, hashIp, logUrl, safeErr } from './http/log-safety.js';
-import { applySecurityHeaders, clientIp, isApiPath, isPublicHealth, PUBLIC_HEALTH_PATH, registerWebApp, sendSpaIndex } from './http/hosting.js';
+import {
+  applySecurityHeaders,
+  clientIp,
+  edgeIp,
+  isApiPath,
+  isPublicHealth,
+  PUBLIC_HEALTH_PATH,
+  registerWebApp,
+  requestPath,
+  sendSpaIndex,
+  viaCloudflare,
+} from './http/hosting.js';
 import { defaultHandlers } from './jobs/handlers/index.js';
 import { JobQueue } from './jobs/queue.js';
 import { RetentionService } from './jobs/retention.js';
@@ -163,6 +174,18 @@ export async function buildApp(opts: BuildAppOptions): Promise<{ app: FastifyIns
   app.removeContentTypeParser('text/plain');
 
   app.decorateRequest('ctx', null as unknown as RequestCtx);
+
+  // Origin lock (CLOUDFLARE_ONLY): a request that did not reach the host from Cloudflare's IP ranges is logged
+  // (report) or refused (on) before the rate limit trusts its CF-Connecting-IP. Certificate checks under
+  // /.well-known/ pass, as in the docroot .htaccess.
+  if (config.cloudflareOnly !== 'off') {
+    app.addHook('onRequest', async (req, reply) => {
+      if (requestPath(req.url).startsWith('/.well-known/') || viaCloudflare(req)) return undefined;
+      req.log.warn({ edge: hashIp(edgeIp(req) ?? 'unknown'), mode: config.cloudflareOnly }, 'request did not come through Cloudflare');
+      if (config.cloudflareOnly === 'on') return reply.code(403).send(errorBody('not_via_cloudflare', 'Open this site at its own address.'));
+      return undefined;
+    });
+  }
 
   // Rate limit per visitor IP, before anything else runs: reads, writes (the expensive AI, export and import starts)
   // and the public health check each have their own allowance per minute.
