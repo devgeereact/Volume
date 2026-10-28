@@ -130,7 +130,8 @@ describe('extend pass and word targets in the prompts', () => {
   it('renders the extend prompt with the current and target words', () => {
     const r = loader.render('writing.extend-section', buildVariables({ ...FULL_INPUT, currentWords: 120 }, config));
     const text = r.messages.map((m) => m.content).join('\n');
-    expect(text).toContain('came back at 120 words against a target of 180');
+    expect(text).toContain('came back short of its word target');
+    expect(text).toContain('Word target: 180\nWords now: 120');
     expect(text).toContain('never by padding');
   });
 
