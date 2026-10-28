@@ -1,9 +1,11 @@
 import { Link } from "react-router";
 import { EmptyState } from "../components/ui/EmptyState";
 import { PageHeader } from "../components/ui/PageHeader";
+import { useNotFoundSeo } from "../site/seo";
 
 /** Unknown route or unknown book id. */
 export function NotFound({ what = "page" }: { what?: "page" | "book" | "profile" }) {
+  useNotFoundSeo();
   return (
     <div className="mx-auto grid w-full max-w-[1200px] grid-cols-1 gap-8 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
       <PageHeader title={what === "book" ? "Book not found" : what === "profile" ? "Profile not found" : "Page not found"} />

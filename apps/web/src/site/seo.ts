@@ -100,6 +100,13 @@ export function applySeo(key: SeoKey, origin: string = window.location.origin): 
   meta("name", "robots", index ? "index, follow, max-image-preview:large" : "noindex, nofollow");
   if (index) canonical(url);
   else head()?.querySelector('link[rel="canonical"]')?.remove();
+  // Social tags only on the two pages people share, as the server writes them (apps/server/src/http/seo.ts).
+  if (!own) {
+    head()
+      ?.querySelectorAll('meta[property^="og:"], meta[name^="twitter:"]')
+      .forEach((el) => el.remove());
+    return;
+  }
   meta("property", "og:type", "website");
   meta("property", "og:site_name", SITE_NAME);
   meta("property", "og:locale", "en_GB");
@@ -123,4 +130,19 @@ export function useSeo(key: SeoKey): void {
     applySeo(key);
     return resetSeo;
   }, [key]);
+}
+
+/** Title and noindex for a private app screen that has no public page, such as the in-app "not found". */
+export function applyPrivateTitle(title: string): void {
+  if (!head()) return;
+  document.title = title;
+  meta("name", "robots", "noindex, nofollow");
+}
+
+/** The in-app "not found" screen: its own title and noindex while mounted, the private defaults after. */
+export function useNotFoundSeo(): void {
+  useEffect(() => {
+    applyPrivateTitle(pages["not-found"].title);
+    return resetSeo;
+  }, []);
 }
