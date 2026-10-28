@@ -668,3 +668,88 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Editor and export: built pages shown read-only in the Editor from the same code the exporter uses (`packages/export/src/front-matter.ts`, `sectionPreviews` in `jobs/book-data.ts`), Also by built, blank owner pages dropped from the export. Claims gate follows the claim tiers; house-style and invented-content rules refined (`config/house-style.json`, `packages/core`); Resources switches off without sources. SEO: `apps/server/src/http/seo.ts`, `apps/web/src/site/seo.ts`, real 404, robots and sitemap (noindex kept). Smoke: `tests/smoke/smoke.mjs`.
 - Checks: typecheck, lint, format:check, `npm run test` (all workspaces), `npm run e2e` (20 passed) all PASS. Smoke script: 363 PASS, 0 FAIL on the agent's run.
 - Next: owner reviews the PR; decisions listed in CURRENT-TASK.md.
+
+## 2026-10-25 (smoke run), Claude Code: full local smoke test, no code changed
+
+- Ran on branch `feat/smoke-test-and-polish` (`9517aa7`) against a scratch mock-AI server and web preview (ports 5221, 5222; stopped afterwards). No private folders touched.
+- Checks: typecheck, lint, format:check, `npm run test`, docs:check, hooks:test (83) PASS. Smoke with `SMOKE_PACK=1 SMOKE_PACK_UI=1`: 416 PASS, 0 FAIL. `npm run e2e`: 20 passed. Live site NOT TESTED.
+- Harness note: run `vite preview` from `apps/web` so the /api proxy applies, otherwise the smoke script gets HTML for /api and fails everything.
+- Book move to live (D-051 project zips) NOT DONE: needs the list of local books, and the owner's approval and sign-in on the live site.
+- Next: owner chooses which books to move; download project zips, import on https://volume.gakinz.com.
+
+## 2026-10-27, Claude Code (Opus 5.5): originality check, audit quick wins, front-end polish
+
+- What changed: step 9 of the 11-step eBook process (originality) built as a model-free preflight warning (`packages/core/src/originality.ts`, `withOriginality` in `apps/server/src/jobs/book-data.ts`, called from `quality-gate.ts`). Website audit against the 10-area cheat sheet: 84/100, report `../reports/volume/WEBSITE-AUDIT-2026-10-27.md`; quick wins applied (pause stops CSS loops, 44 px tap targets, ScrambleText sr-only, social tags only on home and How it works, SECURITY.md drift). Earlier the same branch: NotFound title and noindex, failed-job notice clears after a later success (`apps/web/src/api/failureNotices.ts`). Guardrails properNames gap checked: not real, no change.
+- Files: packages/core/src/{originality.ts,index.ts}, packages/core/test/originality.test.ts, apps/server/src/jobs/{book-data.ts,quality-gate.ts}, apps/server/test/originality.test.ts, apps/web/src/site/{SiteLayout.tsx,site.css,SignInPage.tsx,seo.ts,notFoundSeo.test.ts,bits/ScrambleText.tsx}, apps/web/src/shell/NotFound.tsx, apps/web/src/api/{failureNotices.ts,failureNotices.test.ts,wire-a.ts}, apps/web/src/components/ui/Button.tsx, docs/05-security/SECURITY.md, docs/02-architecture/AI-PIPELINE.md, KNOWN-ISSUES.md, CHANGELOG.md.
+- Checks: typecheck, lint, format:check, docs:check, hooks:test PASS; tests PASS (core 185, ai 258, export 206 +2 skipped, server 556 +3 skipped, web 240); smoke with SMOKE_PACK and SMOKE_PACK_UI 416 PASS 0 FAIL; e2e 20 passed; npm audit FAIL (zod high, fastify low, fast-uri moderate). Live NOT TESTED. Nothing committed.
+- Next: owner OK for the zod bump, origin lock, Clerk-first public load; then commit, PR, merge, deploy and live check.
+
+## 2026-10-27 (late), Claude Code (Opus 5.5)
+- What changed: owner approved the three held audit items. Dependency fixes (zod 4.6.7 with floor ^4.6.6, fastify 5.12.7, fast-uri 3.1.9 and 4.2.3, vite pinned 8.3.5). Origin lock by Cloudflare's published IP ranges in the server, `CLOUDFLARE_ONLY` off/report/on, before the rate limit (D-062). Public pages draw while clerk-js loads; signed-in frame split into a lazy `SignedInApp` chunk. HTTPS redirect checked live with one HEAD request (Cloudflare 301).
+- Files: package-lock.json, apps/server/package.json, packages/core/package.json, packages/ai/package.json, apps/web/package.json, apps/server/src/http/hosting.ts, apps/server/src/config/env.ts, apps/server/src/app.ts, apps/server/test/hosting.test.ts, apps/web/src/auth/HostedAuth.tsx, apps/web/src/app/Application.tsx, apps/web/src/app/SignedInApp.tsx (new), .env.example, KNOWN-ISSUES.md, docs/05-security/SECURITY.md, docs/07-operations/DEPLOYMENT.md, docs/08-change-management/DECISIONS.md, CHANGELOG.md.
+- Checks: typecheck PASS, lint PASS, format:check PASS (after prettier on hosting.test.ts), docs:check PASS, hooks:test PASS, test PASS (core 185, ai 258, export 206 + 2 skipped, server 559 + 3 skipped, web 240), e2e PASS 20, smoke PASS 416/0 with SMOKE_PACK and SMOKE_PACK_UI, npm audit PASS 0 (dev included). Bundle: up-front gzipped 308,527 bytes at HEAD vs 125,291 now (hosted-shape build, fake key). Origin lock on the real host: NOT TESTED (needs deploy, then report mode).
+- Next: commit and PR when the owner asks; deploy; live check; then CLOUDFLARE_ONLY=report, read log, then on.
+
+## 28 October 2026, Claude Code (design preview artifact, no repo code changed)
+
+- Built "Volume Studio", a private claude.ai artifact (https://claude.ai/artifact/PVCWrAhXG1Wkwgaa56DthM) in a mint studio layout from the owner's reference image. Its files live in the session scratchpad, not in the repo.
+- Checked against the real app first: ran apps/web with Vite on 127.0.0.1:5390 in demo mode (no API, Clerk key blanked, no secrets or stored book files read), captured 13 screens, then stopped the server. The artifact uses the app's own demo data (apps/web/src/demo), config/house-style.json, config/kdp-rules/2026-10-17.json, the real nav and the real 8 steps with Export last.
+- Checks: Playwright, 18 views at 1440 and 390, no page errors, no sideways scroll. Streaming, bulk archive and undo, search palette, blueprint approval, preflight ticks and pack build, royalty maths (176 pages: £2.61 printing, £3.38 paperback, £2.63 eBook, matching the real Export screen), house-style fixes and the new-book wizard: PASS.
+- Found: the demo data and the Writing screen still show per-book and monthly budgets ("$1.92 of $15.00 budget", "$4.82 of $40") although D-057 says there is no cap. Owner to decide which is right.
+- Same day, version 2 of Volume Studio (same link): frosted-glass style from the owner's second reference. A floating icon rail (a bottom dock on phones), greeting and tool pills, and a misty scene, in light and dark. The step bar is a fixed footer on every book step. The Library home has widgets plus a book shelf capped at 8 with "Show all". Settings, New book (live title checks against the house style), Published and Archive are rebuilt. Checks: Playwright at 1440 and 390, no page errors, no sideways scroll; the footer is in the same place on every step; the interactions above all PASS.
+- Same day, version 3 of Volume Studio (same link): the owner wanted the original Studio layout kept and only the new colours and glass look applied. Rebuilt from the version 1 engine: the labelled side menu, top bar, Library tiles, the Writing now hero and the right column are back, in the frost palette (light and dark). Kept from the owner's earlier request: a fixed step footer, Library capped at 8 books with Show all, and the rebuilt Settings, New book, Published and Archive pages. Checks: Playwright at 1440 and 390, no page errors, no sideways scroll; the footer is in the same place on every step; interactions PASS.
+
+## 2026-10-28, Claude (Opus 5.5): Volume Studio artifact v4, cover studio proposal
+
+- What: design proposal only, no repo code changed. Rebuilt the Cover step in the Volume Studio artifact (https://claude.ai/artifact/PVCWrAhXG1Wkwgaa56DthM, version 4) as a full cover studio: eBook, Paperback wrap, Thumbnails and Mockups views; layers for every part (front title, subtitle, author, artwork, band; spine title and author; back blurb, about the author, barcode area); drag with snapping (safe area, margins, centre, thirds, other parts) and live gap labels; width and size handles; inspector for text, typeface, size, line and letter spacing, align, caps, italic, colour, position in inches and spacing; front spacing ladder with Space evenly; undo and redo; live cover checks (contrast, thumbnail size, safe area, overlaps, barcode area, spine text, names, blurb, file sizes).
+- Based on the real app: apps/web/src/features/cover (CoverPage preview options, coverEdit.ts edits, WrapPreview guides), packages/export/src/covers.ts (back blurb sizes, author block, barcode, spine font), config/kdp-rules/2026-10-17.json (bleed 0.125, safe 0.125, spine 0.002252/0.0025 per page, text from 80 pages, barcode 2 x 1.2 partial, eBook 1600 x 2560).
+- Not in the real app today (proposal): spine and back editing, artwork and band editing, typeface choice, snapping, gap ladder, checks panel, mockups. The demo blurb for Speaking Up Safely is sample copy for the preview.
+- Files (scratchpad only): cover.js, cover.css, studio.js (motifCSS split, cover step uses coverStudio), build-studio.py.
+- Checks: Playwright PASS for no page errors, no sideways scroll at 1440 and 390, drag, snap guides, undo and redo, arrows, gap ladder, Space evenly, concept switch, checks tab, dark mode. NOT TESTED: screen readers, touch drag on a real phone.
+- Next: owner reviews; if wanted, plan the real CoverEditor changes with the frontend and export agents (the build would need the new fields).
+
+## 2026-10-28, Claude Code (Opus 5.5)
+- What changed: prompt caching on direct Anthropic calls (D-063). System part sent as a text block with `cache_control: ephemeral`; user part unmarked. Fable 5.1 cache read price $1 to $0.25. Guard test freezes today's per-chapter variables in system parts so no new ones get in.
+- Files: packages/ai/src/provider/anthropic.ts, packages/ai/test/prompt-caching.test.ts (new), docs/02-architecture/AI-PIPELINE.md, docs/08-change-management/DECISIONS.md (D-063), CHANGELOG.md, .agent/CURRENT-TASK.md.
+- Checks: npm run typecheck PASS, npm run lint PASS, npm run format:check PASS, npm run docs:check PASS, npm run test -w packages/ai PASS (261), npm run test -w apps/server PASS (559, 3 skipped). New tests fail against the old anthropic.ts (checked). Live cache hits NOT TESTED (costs money).
+- Next: owner OK on the prompt reorder plan (new prompt versions, second cache mark after per-book context), then a small LIVE_AI run.
+
+## 2026-10-28, Claude (Opus 5.5): Volume Studio design preview v5 (artifact only, no repo code)
+
+- What: same private artifact https://claude.ai/artifact/PVCWrAhXG1Wkwgaa56DthM, version 5. Cover studio fits one screen (panels scroll inside, wrap and eBook fit the canvas, optional hide-panels toggle); guide legend and shortcuts moved into two small popovers; signature palette per book (seeded from the book id) plus 32 hand-picked palettes in 8 families; background as colour, gradient or image (5 built-in textures or an upload, with opacity, blend, zoom, focus, blur, greyscale, tint, spread over the whole wrap or the front only); shape layers (13 kinds) with opacity, blend, rotate, side, order, duplicate, delete; trim select with Volume's 7 confirmed trims, children's sizes and other KDP sizes marked "not in Volume's rules yet"; ink (black, standard, premium colour) using the spine rates in config/kdp-rules 2026-10-17; page-range check. Bottom step bar removed: a sticky step rail at the top carries previous and next, each step has a head with its tools, and an "Up next" card ends each page. Research, Titles, Blueprint, Writing, Editor, Marketing and Export restyled.
+- Files: scratchpad only (studio.js, steps.js, cover.js, cover-insp.js, cover.css, steps.css, build-studio.py). v4 copies kept as *.v4.*.
+- Checks: Playwright at 1440 x 900 and 390 x 844: PASS (no page errors, no sideways overflow, cover page does not scroll at 1440 x 900, wrap fits the canvas, drag, shapes, textures, trim change, popovers, editor find, bold, focus mode, dark mode). NOT TESTED: screen readers, touch drag on a real phone.
+- Open: the extra KDP trims (5.06 x 7.81, 6.14 x 9.21, 6.69 x 9.61, 7.44 x 9.69, 7.5 x 9.25, 8 x 10, 8.25 x 6, 8.25 x 8.25, 8.27 x 11.69) are not in config/kdp-rules; add them with the official source and date before the real app offers them. Building any of this in the app needs a plan with the frontend and export agents.
+
+## 2026-10-28, Claude Code (Opus 5.5): Studio demo v6 (artifact only, no repo code)
+
+- What: the Volume Studio artifact, now at version 6 (https://claude.ai/artifact/PVCWrAhXG1Wkwgaa56DthM).
+  - Library covers view: one 3 by 3 grid of 9 books, with "Show all" for the rest. Every card is the same size, footers line up, and each card carries a small group tag.
+  - The library side column stays under the header while you scroll. It is sized to the window and scrolls inside, with a fade at the bottom edge.
+  - Step-page inspectors are smart-sticky: short ones pin under the rail, tall ones pin by their bottom edge.
+  - Marketing is now a launch kit:
+    - a hero in the cover colours with counts and swatches;
+    - channel cards for TikTok, Instagram and email;
+    - phone, post and inbox previews, where clicking one shows the full post with Copy;
+    - no invented like or view counts.
+- Files (scratchpad only): steps.js, steps.css, studio.js. v5 backups are kept as *.v5.*.
+- Checks: Playwright at 1440 and 390, in light and dark.
+  - PASS: no page errors and no sideways overflow.
+  - PASS: 9 cards, all 222 x 406 at 1440.
+  - PASS: the side column is sticky at y 98 after scrolling.
+  - PASS: selecting a marketing post updates the inspector.
+- NOT TESTED: screen readers.
+- Next: the owner reviews. Building this into apps/web needs a plan with the frontend agent first.
+
+## 2026-10-28, Claude Code (Opus 5.5), prompt reorder for caching (D-064)
+- What changed: prompt User parts may split at a `# Per call` heading; the loader sets `cachePrefix` on the user message and `AnthropicClient` sends the shared start as its own block with a second `cache_control` mark (first such message only). Six new prompt versions put per-book material first and per-chapter values (word target, last chapter flag, viewpoint character, current words) after the heading. Introduction and conclusion left as they are (once per book). Packer excerpt drift not changed (only above 60% of context; reasoning in D-064).
+- Files: packages/ai/src/{prompts.ts,types.ts,provider/anthropic.ts}, packages/ai/test/{prompt-caching,clean-drafts,field-fit,fiction-workbook,round5}.test.ts, prompts/writing/{chapter.v10,chapter-fiction.v2,chapter-workbook.v3,chapter-reference.v2,extend-section.v7,extend-section-fiction.v2}.md, prompts/README.md, docs/book-production/PROMPTS.md, docs/02-architecture/AI-PIPELINE.md, docs/08-change-management/DECISIONS.md (D-064), CHANGELOG.md, .agent/CURRENT-TASK.md.
+- Checks: typecheck PASS, lint PASS, format:check PASS, docs:check PASS (94), unit tests PASS (core 185, ai 265, export 206, server 559, web 240), e2e PASS (20 passed). Live cache hits NOT TESTED (needs LIVE_AI=1 and a budget).
+- Next: owner OK and budget under $1 for a three-chapter live run; then commit with the 27 October work.
+
+## 2026-10-28, Claude Code (Opus 5.5), live cache check
+- What changed: new `packages/ai/scripts/live-cache.ts` (LIVE_AI=1 only, keys loaded in process, never printed, $1 cap). Ran it with the owner's OK ("go on").
+- Result: claude-sonnet-5-5 via Anthropic, writing.chapter v10. Chapter 1: 9,098 input, 0 cached, $0.038. Chapter 2: 9,239 input, 8,688 cached, $0.025. Chapter 3: 9,379 input, 8,688 cached, $0.017. Total $0.081. Quality: subheadings in order, no dashes, varied openings, guardrails passed; chapter 1 at 594 words against 500 (19% over).
+- Files: packages/ai/scripts/live-cache.ts, docs/08-change-management/DECISIONS.md (D-064 consequences), .agent/CURRENT-TASK.md.
+- Checks: typecheck -w packages/ai PASS, eslint on the script PASS, live run PASS.
+- Next: owner asks to commit, PR, merge, deploy.

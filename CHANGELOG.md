@@ -2,6 +2,30 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 28 October 2026
+
+#### Changed
+- Calls that go straight to Anthropic now ask Anthropic to cache the instructions part of each prompt (D-063), so repeated instructions within a book cost a fraction of the normal price.
+- Chapter and extend-section prompts now send the book-wide material (blueprint, research sources, template, story bible) first and this chapter's details last (D-064): writing.chapter v10, chapter-fiction v2, chapter-workbook v3, chapter-reference v2, extend-section v7, extend-section-fiction v2. On direct Anthropic calls that material is cached from one chapter to the next. The rules are unchanged.
+
+#### Fixed
+- Cost figures for Claude Fable 5.1 counted cached reading at four times its real price.
+
+## 27 October 2026
+
+#### Added
+- Originality check in preflight: a section that repeats 12 or more words in a row from your voice sample or a ticked research source gets a warning naming the source and the start of the passage. Quoting inside quotation marks does not count. It runs offline and never blocks the pack.
+- A real origin lock (D-062): with `CLOUDFLARE_ONLY=on` the server refuses any request that did not come through Cloudflare's network, even one that fakes Cloudflare's headers. It ships off; turn it on with the steps in the deployment guide.
+
+#### Changed
+- The landing page and How it works now appear straight away instead of waiting for sign-in to load, and a visitor downloads less than half as much before the page shows (about 125 kB instead of 309 kB).
+- Security updates: zod, fastify, fast-uri and vite. `npm audit` now reports no known vulnerabilities.
+
+#### Fixed
+- A failed-job notice now clears itself when a later run of the same step on the same book succeeds.
+- The "page not found" screen inside the app now has its own title and is never indexed.
+- Public pages: "Pause animation" now stops every moving part, links and buttons have 44 px tap areas, the changing status line is read by screen readers, and sign-in no longer carries social sharing tags.
+
 ## 25 October 2026
 
 #### Added

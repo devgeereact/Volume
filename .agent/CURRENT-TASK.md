@@ -1,5 +1,20 @@
 # Current task
 
+## State on 28 October 2026 (prompt caching, local only, nothing committed)
+
+- Anthropic reported a low prompt cache hit rate. Cause: direct Anthropic calls (D-058) sent no `cache_control`. Built (D-063): system part marked `ephemeral` in `packages/ai/src/provider/anthropic.ts`, Fable 5.1 cache read price fixed ($0.25), guard test `packages/ai/test/prompt-caching.test.ts`. Gate: typecheck, lint, format, docs PASS; ai 261 and server 559 tests PASS. Not tested live (needs `LIVE_AI=1` and a budget).
+- Prompt reorder built (D-064, owner OK): `# Per call` split in prompt User parts, `cachePrefix` on the user message, second cache mark in `AnthropicClient`. New versions writing.chapter v10, chapter-fiction v2, chapter-workbook v3, chapter-reference v2, extend-section v7, extend-section-fiction v2. Gate: typecheck, lint, format, docs PASS; unit tests core 185, ai 265, export 206, server 559, web 240 PASS; e2e see HANDOFF.
+- Live check PASS (28 October): chapters 2 and 3 read 94% of their input from the cache, $0.081 for three chapters, quality checks fine (details in D-064). Script: `LIVE_AI=1 npx tsx packages/ai/scripts/live-cache.ts <out folder>`.
+- Next: owner asks to commit, PR, merge and deploy (with the 27 October work). After deploy, watch the hit rate in the Anthropic Console.
+
+## State on 27 October 2026 (originality and audit, local only, nothing committed)
+
+- Same branch `feat/smoke-test-and-polish`, uncommitted on top of `9517aa7`: originality preflight warning (step 9 of the eBook process), audit quick wins, NotFound title and noindex, failed-job notice clears after a later success. Audit 84/100: `../reports/volume/WEBSITE-AUDIT-2026-10-27.md`.
+- Owner said yes to all three held items (27 October, late), all built locally: dependency fixes (zod 4.6.7, fastify 5.12.7, fast-uri, vite 8.3.5; `npm audit` 0), origin lock by Cloudflare IP ranges `CLOUDFLARE_ONLY` (D-062, ships off), public pages draw before Clerk with a lazy signed-in frame (308.5 to 125.3 kB gzipped up front). HTTPS redirect confirmed live (Cloudflare 301).
+- Gate green: typecheck, lint, format, docs, hooks, unit tests (core 185, ai 258, export 206, server 559, web 240), e2e 20, smoke 416/0 with both pack phases, `npm audit` 0.
+- Next: owner asks to commit, PR, merge, deploy; then live check; then on the host `CLOUDFLARE_ONLY=report`, read the log, then `on` (DEPLOYMENT.md one-off steps). Then the open decisions and book moves below.
+- Closed from the gap list below: NotFound title and noindex; SECURITY.md robots line was accurate; guardrails properNames gap was not real.
+
 ## State on 25 October 2026 (smoke test and polish, local only)
 
 - Branch `feat/smoke-test-and-polish` (not merged, not deployed, owner asked for push only). Four engineers' work: editor and export completeness (3f7c334, 513bdd9), claims gate and house-style false positives (11bf667, b4401c4), SEO and public pages (d950900, dbbb271), smoke script and UX fixes (78312af). Local gate green: typecheck, lint, format:check, unit tests in every workspace, e2e 20 passed.
