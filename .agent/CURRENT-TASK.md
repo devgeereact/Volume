@@ -3,7 +3,7 @@
 ## State on 28 October 2026 (studio redesign, stages 0 to 2)
 
 - Plan: `docs/08-change-management/plans/2026-10-28-studio-redesign.md` (owner approved, stage by stage, one PR each, every deploy needs the owner's yes).
-- Approved Volume Studio design on every screen: `feat/studio-approved-design`, PR open (D-066). Stages 0 to 4a merged (#76 to #80) and live: release `20261029T115250Z` from `ec9e603`, rollback `20261029T075300Z`.
+- Approved Volume Studio design (D-066) merged (#81) and live: release `20261029T142955Z` from `f8703c0`, rollback `20261029T115250Z`.
 - Stage 1 (frost and glass shell, D-065): PR #77 from `feat/studio-shell`, open. Gate PASS: typecheck, lint, format, docs, web 240, e2e 20.
 - Stage 2 (StepRail, StepHead, Up next): committed on `feat/studio-steps`, cut from `feat/studio-shell`; PR open, merge after #77.
 - Stage 3 (library grid): committed on `feat/studio-library`, PR open.
