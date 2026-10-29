@@ -276,7 +276,7 @@ describe('8. settings: house style and KDP rules', () => {
     expect(s.body.houseStyle).toMatchObject({ version: 1, bannedCount: anyNumber, spellingPairs: anyNumber });
     expect(s.body.houseStyle['bannedCount'] as number).toBeGreaterThan(50);
     // The newest dated rules file wins; its check dates come from the file, so only their shape is pinned here.
-    expect(s.body.kdpRules).toMatchObject({ version: '2026-10-17' });
+    expect(s.body.kdpRules).toMatchObject({ version: '2026-10-29' });
     expect(s.body.kdpRules['checkedAt']).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(s.body.kdpRules['recheckDueAt']).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });

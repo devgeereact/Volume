@@ -18,7 +18,7 @@
  * is made through the API (setup, not the thing under test); everything else goes through the screens. The
  * API is read only to assert what was saved and to wait on jobs.
  */
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test, type APIRequestContext, type Locator } from "@playwright/test";
@@ -70,9 +70,14 @@ interface PictureExport extends ExportRecord {
   preflight: { items: PreflightItem[] } | null;
 }
 
-/** The trim and the bleed from config/kdp-rules, so no size is typed in this file. */
+/** The trim and the bleed from the newest config/kdp-rules file (the one the app reads), so no size is typed in this file. */
 function expectedPageSizeIn(): { widthIn: number; heightIn: number } {
-  const rules = JSON.parse(readFileSync(path.join(ROOT, "config/kdp-rules/2026-10-17.json"), "utf8")) as {
+  const newest =
+    readdirSync(path.join(ROOT, "config/kdp-rules"))
+      .filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
+      .sort()
+      .pop() ?? "";
+  const rules = JSON.parse(readFileSync(path.join(ROOT, "config/kdp-rules", newest), "utf8")) as {
     rules: { id: string; values: Record<string, unknown> }[];
   };
   const bleed = rules.rules.find((r) => r.id === "print.bleed")?.values;

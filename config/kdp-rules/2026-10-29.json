@@ -1,0 +1,1367 @@
+{
+  "$comment": "Revision of 2026-10-17 for trim sizes (studio redesign stage 6). Read on 29 October 2026 from the official KDP pages GVBQ3CMEQW3W2VL6 (trim, bleed and margins), G201834180 (print options) and GAVW3FZZAKA2KY3B (hardcover). Rules re-read on those pages carry verifiedOn 2026-10-29; every other rule keeps its own date. New and re-read facts are entries 13.1 to 13.6 in factsFile. Top-level verifiedOn stays at the oldest rule check (2026-10-03) and recheckDue is 90 days after it, as config/kdp-rules/README.md step 4 says.",
+  "version": "2026-10-29",
+  "verifiedOn": "2026-10-03",
+  "factsFile": "docs/book-production/KDP-RULES.md",
+  "previousVersion": "2026-10-17",
+  "recheckAfterDays": 90,
+  "recheckDue": "2027-01-01",
+  "primaryMarketplace": "amazon.co.uk",
+  "currency": "GBP",
+  "statusKey": {
+    "confirmed": "Seen on the official page named in source.",
+    "partial": "Official page found, but the exact detail was not shown, was only in a search summary, or was inconsistent. Show a check-before-use warning.",
+    "unverified": "Not in the facts file. Do not use for calculations or print it as fact until someone checks the official page and adds a new dated file."
+  },
+  "rules": [
+    {
+      "id": "ebook.royalty.options",
+      "values": [
+        0.35,
+        0.7
+      ],
+      "unit": "fraction of list price excluding VAT",
+      "factId": "2.1",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200644210",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "35% of list price without VAT, or 70% of list price without VAT less delivery costs. 70% applies only to sales in eligible territories; 35% applies elsewhere. Public domain works can only use 35%."
+    },
+    {
+      "id": "ebook.royalty.formula",
+      "value": "royalty = rate x (listPrice - vat - deliveryCost)",
+      "unit": "formula",
+      "factId": "10.1",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200644210",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Order of deductions: VAT and delivery cost are taken off the list price before the rate is applied. KDP's worked example: 0.70 x (EUR 1.99 - EUR 0.08 - EUR 0.10) = EUR 1.27. For 35%, deliveryCost is 0. Replaces the looser wording of 2.1.",
+      "workedExample": {
+        "description": "Our sum, not KDP's: 2 MB eBook at GBP 2.99 on amazon.co.uk at 70%",
+        "inputs": {
+          "rate": 0.7,
+          "listPrice": 2.99,
+          "vat": 0,
+          "fileSizeMB": 2,
+          "deliveryCostPerMB": 0.1
+        },
+        "expected": 1.953
+      }
+    },
+    {
+      "id": "ebook.royalty70.priceBand.uk",
+      "values": {
+        "min": 1.77,
+        "max": 12.99
+      },
+      "unit": "GBP list price including VAT",
+      "factId": "2.2",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200634560",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "The 70% option on amazon.co.uk needs a list price in this band. The EU/UK price page labels it 'minimum and maximum list price with VAT' and dates the range 'as of July 7, 2026'. Second source: https://kdp.amazon.com/en_US/help/topic/G201645450"
+    },
+    {
+      "id": "ebook.royalty35.priceBands.uk",
+      "values": [
+        {
+          "fileSizeMB": {
+            "lt": 3
+          },
+          "min": 0.77,
+          "max": 150
+        },
+        {
+          "fileSizeMB": {
+            "gte": 3,
+            "lt": 10
+          },
+          "min": 1.25,
+          "max": 150
+        },
+        {
+          "fileSizeMB": {
+            "gte": 10
+          },
+          "min": 1.49,
+          "max": 150
+        }
+      ],
+      "unit": "GBP list price",
+      "factId": "2.3",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200634560",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "amazon.co.uk price range at 35% depends on the eBook file size."
+    },
+    {
+      "id": "ebook.deliveryCost.uk",
+      "value": 0.1,
+      "unit": "GBP per MB (70% option only)",
+      "factId": "2.4",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200634500",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Quote: 'Amazon.co.uk: UK GBP 0.10/MB' (currency symbol written out). Deducted on 70% sales only."
+    },
+    {
+      "id": "ebook.vat.uk",
+      "value": 0,
+      "unit": "VAT rate (fraction)",
+      "factId": "2.5",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200634500",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "UK eBook VAT has been 0% since 1 May 2020. KDP calculates royalties on the price after any applicable VAT. KDP describes EU/UK eBook list prices as VAT-inclusive; with UK VAT at 0% the effect on a UK price is nil. Do not say more than that. Second source: https://kdp.amazon.com/en_US/help/topic/G200644210"
+    },
+    {
+      "id": "ebook.kdpSelect",
+      "values": {
+        "termDays": 90,
+        "exclusiveToKindleStore": true,
+        "autoRenews": true,
+        "kindleUnlimitedKenpCapPerTitlePerCustomer": 3000
+      },
+      "unit": "days / pages",
+      "factId": "2.6",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200798990",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Free 90-day programme for Kindle eBooks only, exclusive to the Kindle Store for the term, renews automatically unless you opt out. Print and audio can be sold elsewhere. KU pays from the Global Fund by KENP read, capped at 3,000 KENP per title per customer (fact 2.7, https://kdp.amazon.com/en_US/help/topic/G201541130). Countdown Deals run only on amazon.com and amazon.co.uk (fact 2.8)."
+    },
+    {
+      "id": "promo.countdownDeal",
+      "values": {
+        "minDaysEnrolledInSelect": 30,
+        "listPriceUnchangedDaysBefore": 30,
+        "listPriceUnchangedDaysAfter": 14,
+        "ukPriceRange": {
+          "min": 1.99,
+          "max": 15.99,
+          "includesVat": true
+        },
+        "ukMinimumPriceCut": 1,
+        "maxDealLengthDays": 7,
+        "latestEndDaysBeforeEnrolmentEnds": 14,
+        "marketplaces": [
+          "amazon.com",
+          "amazon.co.uk"
+        ]
+      },
+      "unit": "days / GBP",
+      "factId": "10.2",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201293780",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "A newly published eBook cannot run a Countdown Deal in its first 30 days. PARTIAL sub-detail: a Countdown Deal and a Free Book Promotion probably cannot both run in the same enrolment period (fetch summary, not quoted word for word). Marketplaces from fact 2.8."
+    },
+    {
+      "id": "paperback.royalty.tiers.uk",
+      "values": [
+        {
+          "listPrice": {
+            "lte": 7.98
+          },
+          "rate": 0.5
+        },
+        {
+          "listPrice": {
+            "gte": 7.99
+          },
+          "rate": 0.6
+        }
+      ],
+      "formula": "royalty = (rate x listPrice) - printingCost",
+      "unit": "fraction of list price / GBP",
+      "factId": "3.1",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201834330",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Paperback royalties on amazon.co.uk are tiered, not a flat 60%. The page does not give the date the tiering started."
+    },
+    {
+      "id": "paperback.royalty.expandedDistribution",
+      "value": 0.4,
+      "formula": "royalty = (0.4 x listPrice) - printingCost",
+      "unit": "fraction of list price",
+      "factId": "3.2",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201834330",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Expanded Distribution pays 40% of list price minus printing costs."
+    },
+    {
+      "id": "paperback.printingCost.uk.blackInk",
+      "values": {
+        "regularTrim": [
+          {
+            "pages": {
+              "min": 24,
+              "max": 110
+            },
+            "flat": 1.93
+          },
+          {
+            "pages": {
+              "min": 110,
+              "max": 828
+            },
+            "fixed": 0.85,
+            "perPage": 0.01
+          }
+        ],
+        "largeTrim": [
+          {
+            "band": "low",
+            "flat": 2.15
+          },
+          {
+            "band": "high",
+            "fixed": 0.85,
+            "perPage": 0.012
+          }
+        ]
+      },
+      "formula": "printingCost = flat (low band) or fixed + pages x perPage (high band)",
+      "unit": "GBP",
+      "factId": "3.3",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201834340",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Caution: the page returned the bands as '24 - 110' and '110 - 828', which overlap at 110 pages; check the live table before relying on the boundary. The large-trim page bands were not stated in the facts file; check them before use. KDP's worked example: a 55-page black-ink book costs GBP 1.93. Our sum, not KDP's: 200-page 6 x 9 in black ink = 0.85 + 200 x 0.010 = GBP 2.85.",
+      "workedExamples": [
+        {
+          "pages": 55,
+          "trim": "regular",
+          "expected": 1.93,
+          "by": "KDP"
+        },
+        {
+          "pages": 200,
+          "trim": "regular",
+          "expected": 2.85,
+          "by": "Volume"
+        }
+      ]
+    },
+    {
+      "id": "paperback.printingCost.uk.standardColour",
+      "values": {
+        "regularTrim": [
+          {
+            "pages": {
+              "min": 72,
+              "max": 600
+            },
+            "fixed": 0.85,
+            "perPage": 0.02
+          }
+        ],
+        "largeTrim": [
+          {
+            "pages": {
+              "min": 72,
+              "max": 600
+            },
+            "fixed": 0.85,
+            "perPage": 0.027
+          }
+        ]
+      },
+      "formula": "printingCost = fixed + pages x perPage",
+      "unit": "GBP",
+      "factId": "12.1",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201834340",
+      "verifiedOn": "2026-10-17",
+      "status": "confirmed",
+      "note": "Standard colour ink paperback, 72 to 600 pages, amazon.co.uk. Read on the official page on 17 October 2026 (two separate reads of the amazon.co.uk column gave the same table; the black-ink rows on the same read matched the confirmed rule paperback.printingCost.uk.blackInk). Large trim is defined by paperback.trimAndPages largeTrimThreshold. Standard colour cannot print a book under 72 pages, so a 24-page picture book needs premium colour. No UK colour worked example is on the page."
+    },
+    {
+      "id": "paperback.printingCost.uk.premiumColour",
+      "values": {
+        "regularTrim": [
+          {
+            "pages": {
+              "min": 24,
+              "max": 40
+            },
+            "flat": 2.59
+          },
+          {
+            "pages": {
+              "min": 42,
+              "max": 828
+            },
+            "fixed": 0.85,
+            "perPage": 0.0435
+          }
+        ],
+        "largeTrim": [
+          {
+            "pages": {
+              "min": 24,
+              "max": 40
+            },
+            "flat": 3.24
+          },
+          {
+            "pages": {
+              "min": 42,
+              "max": 828
+            },
+            "fixed": 0.85,
+            "perPage": 0.0598
+          }
+        ]
+      },
+      "formula": "printingCost = flat (24 to 40 pages) or fixed + pages x perPage (42 to 828 pages)",
+      "unit": "GBP",
+      "factId": "12.2",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201834340",
+      "verifiedOn": "2026-10-17",
+      "status": "confirmed",
+      "note": "Premium colour ink paperback, amazon.co.uk. Read on the official page on 17 October 2026 (two separate reads of the amazon.co.uk column gave the same table; the black-ink rows on the same read matched the confirmed rule paperback.printingCost.uk.blackInk). Page counts are even, so the bands meet at 40 and 42. The trim limits in paperback.trimAndPages.colour still apply (590 pages maximum on 8.5 x 8.5 and 8.5 x 11)."
+    },
+    {
+      "id": "paperback.minimumListPrice",
+      "value": "minListPrice = printingCost / rate",
+      "unit": "formula (GBP)",
+      "factId": "3.4",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201834340",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "So that 'your royalties earned are always enough to cover the cost to print your book'. Use the rate of the tier the resulting price falls in (3.1): compute with 0.6, and if the result is GBP 7.98 or less, recompute with 0.5."
+    },
+    {
+      "id": "print.vat.uk",
+      "value": "list price is VAT-exclusive; Amazon adds VAT",
+      "unit": "rule",
+      "factId": "3.5",
+      "source": "https://kdp.amazon.com/en_US/help/topic/GPQL5W3J6WNRCZTV",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Most UK books are at 0%, but notebooks, planners and books with bonus content can be at 20%. 'Your royalties are not impacted by VAT rate variations.' Relevant to the workbook template."
+    },
+    {
+      "id": "paperback.trimAndPages",
+      "values": {
+        "mostCommonTrimUS": {
+          "widthIn": 6,
+          "heightIn": 9
+        },
+        "sixByNineBlackWhite": {
+          "minPages": 24,
+          "maxPages": 828
+        },
+        "minPagesAnyTrim": 24,
+        "maxPagesRangeAcrossOptions": {
+          "min": 590,
+          "max": 828
+        },
+        "blackInkByTrim": [
+          {
+            "widthIn": 5,
+            "heightIn": 8,
+            "minPages": 24,
+            "whiteMaxPages": 828,
+            "creamMaxPages": 776,
+            "groundwoodMaxPages": 812
+          },
+          {
+            "widthIn": 5.06,
+            "heightIn": 7.81,
+            "minPages": 24,
+            "whiteMaxPages": 828,
+            "creamMaxPages": 776,
+            "groundwoodMaxPages": 812
+          },
+          {
+            "widthIn": 5.25,
+            "heightIn": 8,
+            "minPages": 24,
+            "whiteMaxPages": 828,
+            "creamMaxPages": 776,
+            "groundwoodMaxPages": 812
+          },
+          {
+            "widthIn": 5.5,
+            "heightIn": 8.5,
+            "minPages": 24,
+            "whiteMaxPages": 828,
+            "creamMaxPages": 776,
+            "groundwoodMaxPages": 812
+          },
+          {
+            "widthIn": 6,
+            "heightIn": 9,
+            "minPages": 24,
+            "whiteMaxPages": 828,
+            "creamMaxPages": 776,
+            "groundwoodMaxPages": 812
+          },
+          {
+            "widthIn": 6.14,
+            "heightIn": 9.21,
+            "minPages": 24,
+            "whiteMaxPages": 828,
+            "creamMaxPages": 776,
+            "groundwoodMaxPages": 812
+          },
+          {
+            "widthIn": 6.69,
+            "heightIn": 9.61,
+            "minPages": 24,
+            "whiteMaxPages": 828,
+            "creamMaxPages": 776,
+            "groundwoodMaxPages": 812
+          },
+          {
+            "widthIn": 7,
+            "heightIn": 10,
+            "minPages": 24,
+            "whiteMaxPages": 828,
+            "creamMaxPages": 776,
+            "groundwoodMaxPages": 812
+          },
+          {
+            "widthIn": 7.44,
+            "heightIn": 9.69,
+            "minPages": 24,
+            "whiteMaxPages": 828,
+            "creamMaxPages": 776,
+            "groundwoodMaxPages": 812
+          },
+          {
+            "widthIn": 7.5,
+            "heightIn": 9.25,
+            "minPages": 24,
+            "whiteMaxPages": 828,
+            "creamMaxPages": 776,
+            "groundwoodMaxPages": 812
+          },
+          {
+            "widthIn": 8,
+            "heightIn": 10,
+            "minPages": 24,
+            "whiteMaxPages": 828,
+            "creamMaxPages": 776,
+            "groundwoodMaxPages": 812
+          },
+          {
+            "widthIn": 8.25,
+            "heightIn": 6,
+            "minPages": 24,
+            "whiteMaxPages": 800,
+            "creamMaxPages": 750,
+            "groundwoodMaxPages": 784
+          },
+          {
+            "widthIn": 8.25,
+            "heightIn": 8.25,
+            "minPages": 24,
+            "whiteMaxPages": 800,
+            "creamMaxPages": 750,
+            "groundwoodMaxPages": 784
+          },
+          {
+            "widthIn": 8.5,
+            "heightIn": 8.5,
+            "minPages": 24,
+            "whiteMaxPages": 590,
+            "creamMaxPages": 550,
+            "groundwoodMaxPages": 578
+          },
+          {
+            "widthIn": 8.5,
+            "heightIn": 11,
+            "minPages": 24,
+            "whiteMaxPages": 590,
+            "creamMaxPages": 550,
+            "groundwoodMaxPages": 578
+          },
+          {
+            "widthIn": 8.27,
+            "heightIn": 11.69,
+            "minPages": 24,
+            "whiteMaxPages": 780,
+            "creamMaxPages": 730,
+            "groundwoodMaxPages": 764
+          }
+        ],
+        "largeTrimThreshold": {
+          "widthGreaterThanIn": 6.12,
+          "heightGreaterThanIn": 9
+        }
+      },
+      "unit": "inches / pages",
+      "factId": "13.2",
+      "source": "https://kdp.amazon.com/en_US/help/topic/GVBQ3CMEQW3W2VL6",
+      "verifiedOn": "2026-10-29",
+      "status": "confirmed",
+      "note": "Columns \"Black ink and white paper\", \"Black ink and cream paper\" and \"Black ink and groundwood paper\" of the official kdp.amazon.com paperback table, read 29 October 2026, for all 16 trims. The seven earlier rows are unchanged; groundwoodMaxPages is new (Volume does not offer groundwood paper yet and has no groundwood spine width). Large trim: \"more than 6.12 inches (155.5 mm) in width or more than 9 inches (228.6 mm) in height\" (unchanged)."
+    },
+    {
+      "id": "paperback.trimAndPages.colour",
+      "values": {
+        "paper": "white",
+        "standardColourByTrim": [
+          {
+            "widthIn": 5,
+            "heightIn": 8,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 5.06,
+            "heightIn": 7.81,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 5.25,
+            "heightIn": 8,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 5.5,
+            "heightIn": 8.5,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 6,
+            "heightIn": 9,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 6.14,
+            "heightIn": 9.21,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 6.69,
+            "heightIn": 9.61,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 7,
+            "heightIn": 10,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 7.44,
+            "heightIn": 9.69,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 7.5,
+            "heightIn": 9.25,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 8,
+            "heightIn": 10,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 8.25,
+            "heightIn": 6,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 8.25,
+            "heightIn": 8.25,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 8.5,
+            "heightIn": 8.5,
+            "minPages": 72,
+            "maxPages": 600
+          },
+          {
+            "widthIn": 8.5,
+            "heightIn": 11,
+            "minPages": 72,
+            "maxPages": 600
+          }
+        ],
+        "standardColourNotAvailable": [
+          {
+            "widthIn": 8.27,
+            "heightIn": 11.69
+          }
+        ],
+        "premiumColourByTrim": [
+          {
+            "widthIn": 5,
+            "heightIn": 8,
+            "minPages": 24,
+            "maxPages": 828
+          },
+          {
+            "widthIn": 5.06,
+            "heightIn": 7.81,
+            "minPages": 24,
+            "maxPages": 828
+          },
+          {
+            "widthIn": 5.25,
+            "heightIn": 8,
+            "minPages": 24,
+            "maxPages": 828
+          },
+          {
+            "widthIn": 5.5,
+            "heightIn": 8.5,
+            "minPages": 24,
+            "maxPages": 828
+          },
+          {
+            "widthIn": 6,
+            "heightIn": 9,
+            "minPages": 24,
+            "maxPages": 828
+          },
+          {
+            "widthIn": 6.14,
+            "heightIn": 9.21,
+            "minPages": 24,
+            "maxPages": 828
+          },
+          {
+            "widthIn": 6.69,
+            "heightIn": 9.61,
+            "minPages": 24,
+            "maxPages": 828
+          },
+          {
+            "widthIn": 7,
+            "heightIn": 10,
+            "minPages": 24,
+            "maxPages": 828
+          },
+          {
+            "widthIn": 7.44,
+            "heightIn": 9.69,
+            "minPages": 24,
+            "maxPages": 828
+          },
+          {
+            "widthIn": 7.5,
+            "heightIn": 9.25,
+            "minPages": 24,
+            "maxPages": 828
+          },
+          {
+            "widthIn": 8,
+            "heightIn": 10,
+            "minPages": 24,
+            "maxPages": 828
+          },
+          {
+            "widthIn": 8.25,
+            "heightIn": 6,
+            "minPages": 24,
+            "maxPages": 800
+          },
+          {
+            "widthIn": 8.25,
+            "heightIn": 8.25,
+            "minPages": 24,
+            "maxPages": 800
+          },
+          {
+            "widthIn": 8.5,
+            "heightIn": 8.5,
+            "minPages": 24,
+            "maxPages": 590
+          },
+          {
+            "widthIn": 8.5,
+            "heightIn": 11,
+            "minPages": 24,
+            "maxPages": 590
+          },
+          {
+            "widthIn": 8.27,
+            "heightIn": 11.69,
+            "minPages": 24,
+            "maxPages": 590
+          }
+        ]
+      },
+      "unit": "inches / pages",
+      "factId": "13.3",
+      "source": "https://kdp.amazon.com/en_US/help/topic/GVBQ3CMEQW3W2VL6",
+      "verifiedOn": "2026-10-29",
+      "status": "confirmed",
+      "note": "Columns \"Standard color ink and white paper\" and \"Premium color ink and white paper\" of the official kdp.amazon.com paperback table, read 29 October 2026, for all 16 trims. The seven earlier rows are unchanged. 8.27 x 11.69 in shows \"Not available\" for standard colour, so it is listed in standardColourNotAvailable and has no standard row. Caution: the US table gives 8.27 x 11.69 in premium colour as \"24 - 590\" while black ink on white paper is \"24 - 780\" and the kdp.amazon.co.jp table gives premium colour on the same size as \"24 - 780\"; Volume uses the US value (590) as stated. The page notes standard colour is unavailable for Amazon.co.jp."
+    },
+    {
+      "id": "paperback.colour.paper",
+      "value": "white",
+      "unit": "paper colour",
+      "factId": "13.6",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201834180",
+      "verifiedOn": "2026-10-29",
+      "status": "confirmed",
+      "note": "Promoted from partial on 29 October 2026: the official Print Options page now says in prose \"Books with color ink are printed on white paper, which shows a higher contrast for images and graphics.\" The trim table on GVBQ3CMEQW3W2VL6 still shows colour only in white-paper columns."
+    },
+    {
+      "id": "paperback.trimSizes.list",
+      "values": [
+        {
+          "widthIn": 5,
+          "heightIn": 8
+        },
+        {
+          "widthIn": 5.06,
+          "heightIn": 7.81
+        },
+        {
+          "widthIn": 5.25,
+          "heightIn": 8
+        },
+        {
+          "widthIn": 5.5,
+          "heightIn": 8.5,
+          "note": "owner's drafts use 14.00 x 21.59 cm"
+        },
+        {
+          "widthIn": 6,
+          "heightIn": 9
+        },
+        {
+          "widthIn": 6.14,
+          "heightIn": 9.21
+        },
+        {
+          "widthIn": 6.69,
+          "heightIn": 9.61
+        },
+        {
+          "widthIn": 7,
+          "heightIn": 10
+        },
+        {
+          "widthIn": 7.44,
+          "heightIn": 9.69
+        },
+        {
+          "widthIn": 7.5,
+          "heightIn": 9.25
+        },
+        {
+          "widthIn": 8,
+          "heightIn": 10
+        },
+        {
+          "widthIn": 8.25,
+          "heightIn": 6
+        },
+        {
+          "widthIn": 8.25,
+          "heightIn": 8.25
+        },
+        {
+          "widthIn": 8.5,
+          "heightIn": 8.5
+        },
+        {
+          "widthIn": 8.5,
+          "heightIn": 11
+        },
+        {
+          "widthIn": 8.27,
+          "heightIn": 11.69
+        }
+      ],
+      "unit": "inches",
+      "factId": "13.1",
+      "source": "https://kdp.amazon.com/en_US/help/topic/GVBQ3CMEQW3W2VL6",
+      "verifiedOn": "2026-10-29",
+      "status": "confirmed",
+      "note": "All 16 paperback trims in the official table \"Trim size specifications (width x height) with minimum and maximum page counts(kdp.amazon.com)\", read 29 October 2026, in page order. The seven earlier Volume trims are unchanged; nine were added (5.06 x 7.81, 6.14 x 9.21, 6.69 x 9.61, 7.44 x 9.69, 7.5 x 9.25, 8 x 10, 8.25 x 6, 8.25 x 8.25, 8.27 x 11.69). 8.25 x 6 is landscape (width first, as the page says: \"All specifications below are shown width by height\"). The kdp.amazon.co.jp trims are not included. 8.25 x 11 in appears in the bleed examples and the hardcover table but not in the paperback page-count table, so it is not a paperback trim here."
+    },
+    {
+      "id": "paperback.trimSizes.custom",
+      "values": {
+        "widthIn": {
+          "min": 4,
+          "max": 8.5
+        },
+        "heightIn": {
+          "min": 6,
+          "max": 11.69
+        }
+      },
+      "unit": "inches",
+      "factId": "13.4",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201834180",
+      "verifiedOn": "2026-10-29",
+      "status": "confirmed",
+      "note": "Paperback only: \"For paperbacks, you can also enter your own custom trim size. Width must be within 4\"-8.5\" (10.16-21.59 cm). Height must be within 6\"-11.69\" (15.24-29.69 cm).\" The page does not give page counts for custom sizes. Volume does not offer custom trims; this rule is recorded for reference."
+    },
+    {
+      "id": "print.bleed",
+      "values": {
+        "addWidthIn": 0.125,
+        "addHeightIn": 0.25,
+        "example": {
+          "trim": "6 x 9 in",
+          "withBleed": "6.125 x 9.25 in"
+        }
+      },
+      "unit": "inches",
+      "factId": "3.7",
+      "source": "https://kdp.amazon.com/en_US/help/topic/GVBQ3CMEQW3W2VL6",
+      "verifiedOn": "2026-10-29",
+      "status": "confirmed",
+      "note": "Interior bleed: add 0.125 in to the width (outside edge only) and 0.25 in to the height (0.125 in top and bottom). Re-read 29 October 2026, unchanged: \"(Trim height) + (0.125\" x 2 (bleed)) = Page height with bleed\" and \"(Trim width) +(0.125\" (bleed)) = Page width with bleed\". Volume uses this formula, not the example table, because the example table on the same page rounds a few sizes differently (for example 5.5 x 8.5 in is shown as 5.626 x 8.75 in)."
+    },
+    {
+      "id": "paperback.cover",
+      "values": {
+        "singlePdf": [
+          "back",
+          "spine",
+          "front"
+        ],
+        "bleedIn": 0.125,
+        "bleedMm": 3.2,
+        "minDpi": 300
+      },
+      "unit": "inches / dpi",
+      "factId": "3.8",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201953020",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "One PDF with back cover, spine and front cover, 0.125 in (3.2 mm) bleed on all outer edges, images at least 300 DPI. KDP's cover calculator (https://kdp.amazon.com/cover-calculator) takes binding, ink, paper, trim, units and page count and gives exact dimensions plus a template. Phase 4 acceptance compares Volume's wrap sizes to it."
+    },
+    {
+      "id": "paperback.spine.widthPerPage",
+      "values": {
+        "white": 0.002252,
+        "cream": 0.0025
+      },
+      "formula": "spineWidthIn = pageCount x perPage[paper]",
+      "unit": "inches per page",
+      "factId": "3.9",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201953020",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Black ink on white paper 0.002252 in per page; cream paper 0.0025 in per page. Colour paper is not in the facts file."
+    },
+    {
+      "id": "paperback.spine.widthPerPage.colour",
+      "values": {
+        "standardColour": 0.002252,
+        "premiumColour": 0.002347
+      },
+      "formula": "spineWidthIn = pageCount x perPage[ink]",
+      "unit": "inches per page",
+      "factId": "12.5",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201953020",
+      "verifiedOn": "2026-10-17",
+      "status": "confirmed",
+      "note": "Spine measurements for colour books on the official cover page, read 17 October 2026: standard colour paper 0.002252 in (0.0572 mm) per page, premium colour paper 0.002347 in (0.0596 mm) per page. Spine text still needs paperback.spine.textMinPages."
+    },
+    {
+      "id": "paperback.spine.textMinPages",
+      "value": 80,
+      "unit": "pages",
+      "factId": "3.10",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201953020",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "The page says both 'at least 79 pages' and 'more than 79 pages'; Cover Creator needs 80. Volume uses 80 to be safe: no spine text below 80 pages. Covers with spine text on books under 79 pages are rejected.",
+      "rawValues": {
+        "atLeast": 79,
+        "coverCreatorMin": 80
+      }
+    },
+    {
+      "id": "paperback.interiorMargins",
+      "values": {
+        "insideByPageCount": [
+          {
+            "pages": {
+              "min": 24,
+              "max": 150
+            },
+            "insideIn": 0.375
+          },
+          {
+            "pages": {
+              "min": 151,
+              "max": 300
+            },
+            "insideIn": 0.5
+          },
+          {
+            "pages": {
+              "min": 301,
+              "max": 500
+            },
+            "insideIn": 0.625
+          },
+          {
+            "pages": {
+              "min": 501,
+              "max": 700
+            },
+            "insideIn": 0.75
+          },
+          {
+            "pages": {
+              "min": 701,
+              "max": 828
+            },
+            "insideIn": 0.875
+          }
+        ],
+        "outsideMinNoBleedIn": 0.25,
+        "outsideMinWithBleedIn": 0.375
+      },
+      "unit": "inches",
+      "factId": "11.2",
+      "source": "https://kdp.amazon.com/en_US/help/topic/GVBQ3CMEQW3W2VL6",
+      "verifiedOn": "2026-10-29",
+      "status": "confirmed",
+      "note": "Re-read on the official page 29 October 2026, unchanged: \"The top, bottom, and outside margins must be a minimum of 0.25 inches for books without bleed and 0.375 inches (9.6mm) for books with bleed.\" The inside margin table runs from 24 to 150 pages (0.375 in) to 701 to 828 pages (0.875 in). The page gives the same margins for every trim."
+    },
+    {
+      "id": "paperback.cover.barcodeArea",
+      "values": {
+        "widthIn": 2,
+        "heightIn": 1.2,
+        "position": "back cover, lower right, inside the safe area",
+        "insetFromTrimIn": 0.25
+      },
+      "unit": "inches",
+      "factId": "11.4",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G5HDYGP4BXLX4RUW",
+      "verifiedOn": "2026-10-06",
+      "status": "partial",
+      "note": "The suggested supplied-barcode size is confirmed. Confirm the automatic barcode position against the generated KDP template for this book before upload. The layout keeps at least 0.25 inch from trim and spine."
+    },
+    {
+      "id": "paperback.cover.safeZone",
+      "values": {
+        "textInsetFromTrimIn": 0.125,
+        "spineTextClearanceIn": 0.0625
+      },
+      "unit": "inches",
+      "factId": "11.3",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201953020",
+      "verifiedOn": "2026-10-06",
+      "status": "confirmed",
+      "note": "Verified against the official KDP page on 6 October 2026. See the dated facts supplement."
+    },
+    {
+      "id": "hardcover.basics",
+      "values": {
+        "minPages": 75,
+        "maxPages": 550,
+        "trimSizeCount": 5,
+        "royaltyRates": [
+          0.5,
+          0.6
+        ]
+      },
+      "unit": "pages / fraction",
+      "factId": "3.11",
+      "source": "https://kdp.amazon.com/en_US/help/topic/GAVW3FZZAKA2KY3B",
+      "verifiedOn": "2026-10-29",
+      "status": "confirmed",
+      "note": "Re-read 29 October 2026, unchanged: \"There are five available trim sizes\" and \"The minimum and maximum page count is 75 - 550 pages\". Hardcovers are available on KDP, including amazon.co.uk, but not on Amazon.co.jp. Not a v1 export target. The trims and page counts per ink are in hardcover.trimAndPages."
+    },
+    {
+      "id": "hardcover.trimAndPages",
+      "values": {
+        "byTrim": [
+          {
+            "widthIn": 5.5,
+            "heightIn": 8.5,
+            "blackWhite": {
+              "minPages": 75,
+              "maxPages": 550
+            },
+            "blackCream": {
+              "minPages": 75,
+              "maxPages": 550
+            },
+            "premiumColourWhite": {
+              "minPages": 75,
+              "maxPages": 550
+            }
+          },
+          {
+            "widthIn": 6,
+            "heightIn": 9,
+            "blackWhite": {
+              "minPages": 75,
+              "maxPages": 550
+            },
+            "blackCream": {
+              "minPages": 75,
+              "maxPages": 550
+            },
+            "premiumColourWhite": {
+              "minPages": 75,
+              "maxPages": 550
+            }
+          },
+          {
+            "widthIn": 6.14,
+            "heightIn": 9.21,
+            "blackWhite": {
+              "minPages": 75,
+              "maxPages": 550
+            },
+            "blackCream": {
+              "minPages": 75,
+              "maxPages": 550
+            },
+            "premiumColourWhite": {
+              "minPages": 75,
+              "maxPages": 550
+            }
+          },
+          {
+            "widthIn": 7,
+            "heightIn": 10,
+            "blackWhite": {
+              "minPages": 75,
+              "maxPages": 550
+            },
+            "blackCream": {
+              "minPages": 75,
+              "maxPages": 550
+            },
+            "premiumColourWhite": {
+              "minPages": 75,
+              "maxPages": 550
+            }
+          },
+          {
+            "widthIn": 8.25,
+            "heightIn": 11,
+            "blackWhite": {
+              "minPages": 75,
+              "maxPages": 550
+            },
+            "blackCream": {
+              "minPages": 75,
+              "maxPages": 550
+            },
+            "premiumColourWhite": {
+              "minPages": 75,
+              "maxPages": 550
+            }
+          }
+        ],
+        "notAvailable": [
+          "black ink and groundwood paper",
+          "standard colour ink"
+        ]
+      },
+      "unit": "inches / pages",
+      "factId": "13.5",
+      "source": "https://kdp.amazon.com/en_US/help/topic/GVBQ3CMEQW3W2VL6",
+      "verifiedOn": "2026-10-29",
+      "status": "confirmed",
+      "note": "Hardcover table on the official trim page, read 29 October 2026: 5.5 x 8.5, 6 x 9, 6.14 x 9.21, 7 x 10 and 8.25 x 11 in, each \"75 - 550\" for black ink on white, black ink on cream and premium colour on white, and \"Not available\" for groundwood and standard colour. The Print Options page (G201834180) gives the same table. Hardcover is not a v1 export target."
+    },
+    {
+      "id": "ebook.cover",
+      "values": {
+        "idealPx": {
+          "width": 1600,
+          "height": 2560
+        },
+        "minHeightToWidthRatio": 1.6,
+        "minPx": {
+          "width": 625,
+          "height": 1000
+        },
+        "maxPxEachSide": 10000,
+        "fileTypes": [
+          "jpeg",
+          "jpg",
+          "tif",
+          "tiff"
+        ],
+        "maxFileSizeMB": 50,
+        "colourMode": "RGB"
+      },
+      "unit": "pixels / MB",
+      "factId": "10.5",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200645690",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "PNG is not in the listed file types: export the eBook cover as JPEG (or TIFF). The eBook cover is a front-cover image uploaded separately from the paperback cover PDF."
+    },
+    {
+      "id": "isbn",
+      "values": {
+        "freeKdpIsbnFormats": [
+          "paperback",
+          "hardcover"
+        ],
+        "freeIsbnUsableOutsideKdp": false,
+        "ebookIsbnRequired": false,
+        "imprintWithFreeIsbn": "Independently published"
+      },
+      "unit": "rule",
+      "factId": "4.1",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201834170",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Volume never generates an ISBN. The ISBN field is filled by the owner (from KDP or Nielsen) or left empty. eBook ISBN optional (4.2). Low-content books not eligible for the free ISBN (4.3, PARTIAL). Each format needs its own ISBN (10.3)."
+    },
+    {
+      "id": "manuscript.formats",
+      "values": {
+        "ebookRecommended": [
+          "docx",
+          "doc",
+          "kpf",
+          "epub"
+        ],
+        "ebookAlsoAccepted": [
+          "html",
+          "rtf",
+          "txt",
+          "pdf (certain languages only)"
+        ],
+        "paperback": [
+          "pdf",
+          "doc",
+          "docx",
+          "rtf",
+          "html",
+          "txt"
+        ],
+        "paperbackPdfRequiredForBleed": true
+      },
+      "unit": "file types",
+      "factId": "6.1",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200634390",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Paperback list and bleed rule from fact 6.2 (https://kdp.amazon.com/en_US/help/topic/G201857950). MOBI no longer accepted for fixed-layout eBooks from March 2025. KDP advises saving print PDFs with fonts embedded (6.6)."
+    },
+    {
+      "id": "listing.keywords",
+      "values": {
+        "max": 7,
+        "avoid": [
+          "quality claims",
+          "time-sensitive words such as 'new' or 'on sale'",
+          "unauthorised brand names",
+          "programme names such as 'Kindle Unlimited'"
+        ]
+      },
+      "unit": "keywords or short phrases",
+      "factId": "5.1",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201298500",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Up to seven keywords or short phrases. No exact character limit per box is stated on the page."
+    },
+    {
+      "id": "listing.categories",
+      "value": 3,
+      "unit": "categories",
+      "factId": "5.2",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200652170",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "'You can select 3 categories when creating a book in KDP.' Category names must be picked in KDP's own chooser; the AI only suggests."
+    },
+    {
+      "id": "listing.description.maxChars",
+      "value": 4000,
+      "unit": "characters including HTML tags",
+      "factId": "5.3",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201189630",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "HTML tags count towards the 4,000 characters (confirmed again in 10.14)."
+    },
+    {
+      "id": "listing.description.allowedFormatting",
+      "values": {
+        "formatting": [
+          "bold",
+          "italics",
+          "underline",
+          "line breaks",
+          "paragraphs",
+          "headings h4 to h6",
+          "numbered lists",
+          "bulleted lists"
+        ],
+        "assumedTags": [
+          "b",
+          "strong",
+          "i",
+          "em",
+          "u",
+          "br",
+          "p",
+          "h4",
+          "h5",
+          "h6",
+          "ol",
+          "ul",
+          "li"
+        ]
+      },
+      "unit": "HTML",
+      "factId": "10.14",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201189630",
+      "verifiedOn": "2026-10-03",
+      "status": "partial",
+      "note": "The formatting list is confirmed. The exact tag spellings in assumedTags (for example b versus strong) were not in the facts file; the checker should allow them but the owner should check the page before relying on strong or em."
+    },
+    {
+      "id": "listing.titleSubtitle.maxChars",
+      "values": {
+        "lessThan": 200,
+        "maxAllowed": 199
+      },
+      "unit": "characters (title and subtitle together)",
+      "factId": "5.4",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G201097560",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "'Your title and subtitle together must be fewer than 200 characters.' Volume counts title + subtitle without the separator; if in doubt the owner should keep a margin."
+    },
+    {
+      "id": "ai.disclosure",
+      "values": {
+        "aiGenerated": "An AI tool created the actual content (text, images or translations), even if you applied substantial edits afterwards. Must be disclosed to KDP when publishing or republishing.",
+        "aiAssisted": "You created the content yourself and used AI tools to edit, refine, error-check or otherwise improve it. 'It is not necessary to inform us.'",
+        "volumeDefault": "ai-generated whenever Volume's AI wrote any of the text or made any of the images"
+      },
+      "unit": "definitions",
+      "factId": "5.5",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200672390",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Fully automatic mode means the text is AI-generated under KDP's definition. The publishing package always includes an AI disclosure note set to AI-generated for text, and for images when the cover art came from the image model."
+    },
+    {
+      "id": "content.prohibited",
+      "values": [
+        "content that's typically disappointing to customers",
+        "descriptive content meant to mislead customers",
+        "undifferentiated versions of public domain titles if a free version is available in our store"
+      ],
+      "unit": "rule",
+      "factId": "5.6",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G200672390",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "Drives the quality gates and the honest-description rules in the matter prompts."
+    },
+    {
+      "id": "titles.creationLimit",
+      "values": {
+        "maxNewTitlesPerFormat": 2,
+        "period": "week"
+      },
+      "unit": "titles per book format per week",
+      "factId": "5.7",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G202172740",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "'we limit the number of titles you can create at the same time to 2 per book format each week.' The older '3 titles per day' figure is out of date. PARTIAL sub-details: the weekly reset time (reported in search results as Sunday 00:00 UTC) and the start date were not visible on an official page. Volume mode's scheduler refuses a third new title per format per week."
+    },
+    {
+      "id": "publish.goLiveTiming",
+      "values": {
+        "liveAfterSubmitBusinessDays": 3,
+        "lowContentLiveBusinessDaysMax": 10,
+        "ebookDetailPageHoursMax": 72,
+        "paperbackDetailPageHoursMaxAmazonCom": 72,
+        "paperbackDetailPageDaysMaxOtherMarketplaces": 5
+      },
+      "unit": "business days / hours / days",
+      "factId": "10.15",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G202173620",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "'it takes 3 business days for your book (or update) to be Live on Amazon'. Paperback detail pages can take up to 5 days on other marketplaces such as amazon.co.uk. Used by the launch email and launch plan so dates are not promised too early."
+    },
+    {
+      "id": "reviews.amazonCommunityRules",
+      "values": {
+        "noReviewsOfOwnProducts": true,
+        "noReviewsFrom": [
+          "friends",
+          "relatives",
+          "employers",
+          "business associates",
+          "competitors"
+        ],
+        "noReviewsForCompensation": [
+          "cash",
+          "discounts",
+          "free products",
+          "gift cards",
+          "refunds"
+        ],
+        "advanceReaderCopyAllowed": "a free or discounted copy is fine, but the author cannot require a review or try to influence it"
+      },
+      "unit": "rule",
+      "factId": "10.6",
+      "source": "https://www.amazon.co.uk/gp/help/customer/display.html?nodeId=GLHXEX85MENUE4XF",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "The rule covers friends and relatives generally, not only close friends. Review swaps between authors are not named but count as an exchange and a conflict of interest, so Volume never suggests them."
+    },
+    {
+      "id": "reviews.kdpRules",
+      "values": {
+        "freeOrDiscountedCopiesAllowed": true,
+        "mustNotRequireReview": true,
+        "mustNotInfluenceReview": true,
+        "anythingElseInvalidatesReview": "anything other than a free or discounted copy, including gift cards"
+      },
+      "unit": "rule",
+      "factId": "10.7",
+      "source": "https://kdp.amazon.com/en_US/help/topic/G202101910",
+      "verifiedOn": "2026-10-03",
+      "status": "confirmed",
+      "note": "So the review request in the back matter asks politely for an honest review, offers nothing, and never asks for a positive one. 'A free copy in exchange for a review' is not allowed."
+    },
+    {
+      "id": "legalDeposit.uk",
+      "values": {
+        "britishLibraryCopies": 1,
+        "deadline": "within one month beginning with the day of publication",
+        "otherLibrariesRequestWindowMonths": 12
+      },
+      "unit": "rule",
+      "factId": "4.5",
+      "source": "https://www.bl.uk/services/legal-deposit",
+      "verifiedOn": "2026-10-03",
+      "status": "partial",
+      "note": "Duty and address confirmed (4.5); deadline from the Act (4.6, https://www.legislation.gov.uk/ukpga/2003/28/section/4); other five libraries (4.7). NOT FOUND (4.9): whether KDP print-on-demand books printed outside the UK trigger the duty. The publishing package only reminds the owner to send a copy or ask the BL Legal Deposit Office."
+    }
+  ]
+}

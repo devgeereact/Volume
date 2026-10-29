@@ -2,7 +2,7 @@
 
 Every KDP number Volume uses (royalties, printing cost, spine width, bleed, cover sizes, listing limits, title limits, review rules) comes from a dated JSON file in this folder. Code and prompts never carry KDP numbers from memory.
 
-Current file: `2026-10-17.json` (adds colour printing costs, colour page limits by trim, colour paper and colour spine width for picture books, read on 17 October 2026; see `docs/reference/reference-kdp-facts-2026-10-17.md`, entries 12.1 to 12.5). Earlier files: `2026-10-06.json` (updated trim, margin and cover facts; see `docs/reference/reference-kdp-facts-2026-10-06.md`) and `2026-10-03.json`, built from `docs/reference/reference-kdp-facts-2026-10-03.md` (official pages read on 3 October 2026). Human summary: `docs/book-production/KDP-RULES.md`.
+Current file: `2026-10-29.json` (all 16 KDP paperback trims with page ranges per ink and paper, the custom trim range and the hardcover trims, read on 29 October 2026; see `docs/book-production/KDP-RULES.md`, entries 13.1 to 13.6). Earlier files: `2026-10-17.json` (adds colour printing costs, colour page limits by trim, colour paper and colour spine width for picture books, read on 17 October 2026; see `docs/reference/reference-kdp-facts-2026-10-17.md`, entries 12.1 to 12.5), `2026-10-06.json` (updated trim, margin and cover facts; see `docs/reference/reference-kdp-facts-2026-10-06.md`) and `2026-10-03.json`, built from `docs/reference/reference-kdp-facts-2026-10-03.md` (official pages read on 3 October 2026). Human summary: `docs/book-production/KDP-RULES.md`.
 
 ## Rule fields
 
@@ -56,3 +56,7 @@ Trim sizes, interior margins and cover safe distances are confirmed. Barcode dim
 ## 17 October revision
 
 Colour rules for picture books (phase 7): `paperback.printingCost.uk.standardColour` (72 to 600 pages), `paperback.printingCost.uk.premiumColour` (24 to 828 pages), `paperback.trimAndPages.colour` (page limits by trim, white paper) and `paperback.spine.widthPerPage.colour` are confirmed from the official pages. `paperback.colour.paper` (white only) is partial: the trim table shows colour only with white paper but does not say so in prose. The facts are entries 12.1 to 12.5 in `docs/reference/reference-kdp-facts-2026-10-17.md`, and `factsFile` points at it. Top-level `verifiedOn` stays at 2026-10-03 (step 4), so `recheckDue` stays 2027-01-01. The 6 October file is retained.
+
+## 29 October revision
+
+Trim sizes for the studio redesign (stage 6), read on the official trim, print options and hardcover pages on 29 October 2026. `paperback.trimSizes.list` grows from 7 to 16 trims; `paperback.trimAndPages` and `paperback.trimAndPages.colour` gain a row for each new trim (and a groundwood maximum); 8.27 x 11.69 in has no standard colour (`standardColourNotAvailable`). New rules: `paperback.trimSizes.custom` and `hardcover.trimAndPages`. `paperback.colour.paper` is promoted from partial to confirmed, because the Print Options page now says it in prose. Bleed, margins and hardcover basics were re-read and are unchanged. The facts are entries 13.1 to 13.6 in `docs/book-production/KDP-RULES.md` (`factsFile`). Top-level `verifiedOn` stays at 2026-10-03, so `recheckDue` stays 2027-01-01. The 17 October file is retained.
