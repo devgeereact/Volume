@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
-import { Pause, Play } from "lucide-react";
-import { Button, ChapterBars, Cover, Figure, KeyValueList, LiveDot, StreamText, type ChapterSegment } from "../../components/ui";
+import { Link } from "react-router";
+import { ArrowUpRight, Pause, Play } from "lucide-react";
+import { Button, chipClasses, ChipDot, Cover, ModelName, Segbar, type SegState } from "../../components/ui";
 import { getBook } from "../../demo/books";
 import { getPenName } from "../../demo/penNames";
 import { formatNumber, formatTime, formatUsd } from "../../lib/format";
@@ -9,16 +9,26 @@ import { useWritingJob } from "../../lib/job";
 import { bookStepPath } from "../../screens";
 
 const ANNOUNCE_MS = 15_000;
+/** How much of the newest text the card shows: about four lines. */
+const TAIL_CHARS = 190;
+
+/** The last `max` characters of the text, cut at a word, with an ellipsis in front when cut. */
+function tail(text: string, max: number): string {
+  const t = text.trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(-max);
+  const space = cut.indexOf(" ");
+  return `…${space > 0 && space < 20 ? cut.slice(space + 1) : cut}`;
+}
 
 /**
- * The one live panel at the top of the Library while a job runs (board: "Writing now"). Cover, the
- * chapter being written, the last lines of streamed text with the gilt caret, chapter segments,
- * figures, Pause and Open live view. The stream is aria-live="off"; a polite line announces progress
- * at most every 15 seconds, because the job bar (which normally does that) is hidden on the Library.
+ * The one live card at the top of the Library while a job runs (the approved design's "Writing now" hero). Cover, the
+ * chapter being written, the newest lines of text with the caret, one segment per chapter, then the words written,
+ * time left, model and cost so far, with Pause and Open live view. There is no book budget (D-057), so the cost is
+ * "so far" only. The text is aria-live="off"; a polite line announces progress at most every 15 seconds.
  */
 export function LivePanel() {
-  const navigate = useNavigate();
-  const { job, paused, chunksShown, wordsWritten, costSpent, chapterProgress, pause, resume } = useWritingJob();
+  const { job, paused, chunksShown, wordsWritten, costSpent, pause, resume } = useWritingJob();
   const book = getBook(job.bookId);
   const pen = book ? getPenName(book.penNameId) : undefined;
 
@@ -36,69 +46,88 @@ export function LivePanel() {
   if (!book) return null;
 
   const chapters = job.sections.filter((s) => s.number !== null);
-  const segments: ChapterSegment[] = chapters.map((s) =>
-    s.status === "writing" ? { state: "current", progress: chapterProgress } : s.status === "queued" ? { state: "queued" } : { state: "done" },
-  );
+  const segments: SegState[] = chapters.map((s) => (s.status === "writing" ? "half" : s.status === "queued" ? "off" : "on"));
   const doneCount = chapters.filter((s) => s.status === "done" || s.status === "attention").length;
-  const chunks = job.current.streamingChunks.slice(0, chunksShown);
-  const lastBlock = [...job.current.blocks].reverse().find((b) => b.kind === "p");
+  const written = job.current.blocks
+    .filter((b) => b.kind === "p")
+    .map((b) => b.text)
+    .join(" ");
+  const text = tail(`${written} ${job.current.streamingChunks.slice(0, chunksShown).join("")}`, TAIL_CHARS);
+  const livePath = bookStepPath(book.id, "writing");
 
   return (
     <article
       aria-label={`${paused ? "Paused" : "Writing now"}: ${book.title}`}
-      className="relative grid grid-cols-[72px_minmax(0,1fr)] gap-x-5 gap-y-5 overflow-hidden rounded-lg border border-border bg-sheet py-5 pr-5 pl-[22px] shadow-sheet sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-x-7 sm:py-[22px] sm:pr-6 xl:grid-cols-[112px_minmax(0,1fr)_300px]"
+      className="vol-glass grid min-w-0 items-center gap-5 rounded-card border-l-4 border-l-btn p-4.5 max-[560px]:p-3.75 min-[561px]:grid-cols-[auto_minmax(0,1fr)] min-[1201px]:grid-cols-[auto_minmax(0,1fr)_250px]"
     >
-      <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-accent" />
-      <Cover
-        title={book.title}
-        subtitle={book.subtitle}
-        author={pen?.name ?? ""}
-        design={book.cover}
-        image={book.coverImage?.src}
-        className="w-full self-start"
-        decorative
-      />
+      <span className="w-23 max-[560px]:hidden">
+        <Cover
+          title={book.title}
+          subtitle={book.subtitle}
+          author={pen?.name ?? ""}
+          design={book.cover}
+          image={book.coverImage?.src}
+          className="w-full"
+          decorative
+        />
+      </span>
 
-      <div className="min-w-0">
-        <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] leading-4 font-semibold text-accent-text">
-          {paused ? <Pause size={14} strokeWidth={2} aria-hidden /> : <LiveDot />}
-          {paused ? "Paused" : "Writing now"}
-          <span className="font-medium text-ink-tertiary">
+      <div className="grid min-w-0 gap-2">
+        <p className="flex flex-wrap items-center gap-2.5 text-[13px]">
+          {paused ? (
+            <span className={chipClasses("warn")}>
+              <Pause size={12} strokeWidth={2.25} aria-hidden />
+              Paused
+            </span>
+          ) : (
+            <span className={chipClasses("run")}>
+              <ChipDot pulse />
+              Writing now
+            </span>
+          )}
+          <span className="text-ink-2">
             {pen?.name}, started {formatTime(job.startedAt)}
           </span>
         </p>
-        <h2 className="mt-2.5 mb-0.5 font-book text-heading text-ink">
-          {book.title}{" "}
-          <small className="ml-1 block font-book text-[18px] leading-6 font-normal text-ink-secondary italic sm:inline">
+        <h2 className="font-book text-[20px] leading-snug font-semibold text-ink">
+          <Link to={livePath} className="rounded-xs hover:text-mint-ink hover:underline">
+            {book.title}
+          </Link>{" "}
+          <em className="text-[16px] font-normal text-ink-2">
             Chapter {job.current.chapterNumber}, {job.current.chapterTitle}
-          </small>
+          </em>
         </h2>
-        <div className="mt-3 mb-4 flex h-[52px] max-w-[66ch] flex-col justify-end overflow-hidden max-sm:hidden">
-          {lastBlock && <p className="font-book text-prose-sm text-ink">{lastBlock.text}</p>}
-          <StreamText chunks={chunks} live={!paused} size="prose-sm" />
-        </div>
-        <ChapterBars segments={segments} className="mt-3 sm:mt-0" />
-        <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-small text-ink-secondary">
+        <p aria-live="off" className="min-h-[3.2em] font-book text-[14.5px] leading-[1.6] text-ink-2">
+          {text}
+          {!paused && <span className="vol-caret" aria-hidden />}
+        </p>
+        <Segbar segments={segments} className="[&>i]:h-1.5" />
+        <p className="flex flex-wrap justify-between gap-2.5 text-caption text-ink-2">
           <span>{doneCount} chapters written and checked</span>
           <span>
             Chapter {job.current.chapterNumber} of {chapters.length}
           </span>
-        </div>
+        </p>
       </div>
 
-      <div className="col-span-2 flex flex-col border-t border-border pt-5 xl:col-span-1 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-6">
-        <Figure value={formatNumber(wordsWritten)} unit={`of ${formatNumber(job.words.target)} words`} />
-        <KeyValueList
-          className="mt-3"
-          items={[
-            { label: "Time left", value: paused ? "Paused" : `About ${job.minutesLeft} minutes` },
-            { label: "Model", value: job.model, mono: true },
-            { label: "Cost so far", value: `${formatUsd(costSpent)} so far` },
-          ]}
-        />
-        <div className="mt-auto flex flex-wrap gap-2 pt-3.5">
+      <div className="grid gap-2 border-line max-[1200px]:col-span-full max-[1200px]:border-t max-[1200px]:pt-3.5 min-[1201px]:border-l min-[1201px]:pl-5">
+        <p className="mb-2 text-[28px] leading-[1.1] font-bold tracking-[-0.02em] text-ink">
+          <span className="num">{formatNumber(wordsWritten)}</span>{" "}
+          <small className="text-[13px] font-medium tracking-normal text-ink-2">of {formatNumber(job.words.target)} words</small>
+        </p>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-2 text-[13px]">
+          <dt className="text-ink-3">Time left</dt>
+          <dd className="text-right font-medium text-ink">{paused ? "Paused" : `About ${job.minutesLeft} minutes`}</dd>
+          <dt className="text-ink-3">Model</dt>
+          <dd className="text-right font-medium text-ink">
+            <ModelName slug={job.model} />
+          </dd>
+          <dt className="text-ink-3">Cost so far</dt>
+          <dd className="num text-right font-medium text-ink">{formatUsd(costSpent)}</dd>
+        </dl>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {paused ? (
-            <Button icon={Play} onClick={resume}>
+            <Button variant="primary" icon={Play} onClick={resume}>
               Resume
             </Button>
           ) : (
@@ -106,9 +135,10 @@ export function LivePanel() {
               Pause
             </Button>
           )}
-          <Button variant="ghost" onClick={() => void navigate(bookStepPath(book.id, "writing"))}>
+          <Link to={livePath} className="hit-44 inline-flex items-center gap-1 rounded-xs px-1.5 text-[13px] font-semibold text-mint-ink hover:underline">
             Open live view
-          </Button>
+            <ArrowUpRight size={14} strokeWidth={1.8} aria-hidden />
+          </Link>
         </div>
       </div>
       <p className="sr-only" aria-live="polite">

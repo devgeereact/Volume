@@ -30,23 +30,32 @@ export function TodayStrip({
   const items: TodayItem[] = given ?? activity.filter((a) => a.at.slice(0, 10) === today && bookIds.has(a.bookId)).slice(0, 4);
   if (layout === "column")
     return (
-      <section aria-labelledby="today-heading" className="vol-glass grid gap-3 rounded-card p-4">
-        <h2 id="today-heading" className="font-book text-[18px] leading-6 font-medium text-ink">
+      <section aria-labelledby="today-heading" className="vol-glass min-w-0 rounded-card p-4.5 max-[560px]:p-3.75">
+        <h2 id="today-heading" className="mb-3.5 text-[15px] font-semibold text-ink">
           Today
         </h2>
         {items.length === 0 ? (
-          <p className="text-small text-ink-secondary">Nothing has happened today for these books.</p>
+          <p className="text-small text-ink-2">Nothing has happened today for these books.</p>
         ) : (
-          <ol className="grid gap-3">
+          <ol className="grid">
             {items.map((a) => (
-              <li key={a.id} className="grid gap-0.5 border-t border-line pt-3 text-small first:border-t-0 first:pt-0">
-                <time dateTime={a.at} className={cn("num text-[12.5px] leading-4 font-semibold", a.live ? "text-accent-text" : "text-ink-tertiary")}>
-                  {formatTime(a.at)}
-                </time>
-                <Link to={`/books/${a.bookId}`} className="rounded-xs font-semibold text-ink hover:text-select">
-                  {a.title}
+              <li key={a.id}>
+                <Link
+                  to={`/books/${a.bookId}`}
+                  className="flex w-full gap-3 rounded-[10px] px-1.5 py-2.5 text-left transition-colors duration-(--vol-dur-fast) hover:bg-soft"
+                >
+                  <i
+                    aria-hidden
+                    className={cn("mt-1.5 size-[9px] shrink-0 rounded-full", a.live ? "bg-mint shadow-[0_0_0_4px_var(--vol-mint-wash)]" : "bg-line-2")}
+                  />
+                  <span className="grid min-w-0 gap-0.5">
+                    <b className="text-[13px] font-semibold text-ink">{a.title}</b>
+                    <small className="text-caption text-ink-2">{a.detail}</small>
+                    <time dateTime={a.at} className="num text-[11px] text-ink-3">
+                      {formatTime(a.at)}
+                    </time>
+                  </span>
                 </Link>
-                <p className="text-ink-secondary">{a.detail}</p>
               </li>
             ))}
           </ol>

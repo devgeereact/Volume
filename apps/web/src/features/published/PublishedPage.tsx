@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
 import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
 import { Link } from "react-router";
-import { Banner, Button, buttonClasses, Cover, EmptyState, FilterField, PageHeader, Skeleton } from "../../components/ui";
+import { BookOpen, Image, Megaphone, Tablet } from "lucide-react";
+import { Banner, Button, buttonClasses, Card, Cover, EmptyState, FilterField, PageHeader, Skeleton } from "../../components/ui";
 import type { ApiBook, ApiListPrices } from "../../api/types";
 import { usePenNames, useWiredBooks, useWireMode } from "../../api/wire-a";
 import { InlineStatus } from "../settings/PanelHeader";
 import { PublishedDetailsDialog } from "./PublishedDetailsDialog";
-import { getBookType, penNames, publishedBooks, type Book, type PenName } from "../../demo";
-import { cn } from "../../lib/cn";
-import { formatDate, formatGbp, formatMonthYear, formatNumber } from "../../lib/format";
+import { getBookType, penNames, publishedBooks, type Book, type PenName, type PublishedFormat } from "../../demo";
+import { formatDate, formatDayMonth, formatGbp, formatMonthYear, formatNumber } from "../../lib/format";
 import { usePenNameFilter } from "../../lib/penName";
 import { bookStepPath } from "../../screens";
 import { libraryCover } from "../library/draftCover";
@@ -22,14 +22,57 @@ function matches(book: Book, q: string, getPenName: PenLookup): boolean {
   return `${book.title} ${book.subtitle} ${pen} ${type} ${book.series?.name ?? ""}`.toLowerCase().includes(q);
 }
 
-/** One book standing on the shelf: cover on a ledge, then what went live and when. */
-const PRICE_LABELS: { key: keyof ApiListPrices; label: string }[] = [
+const PRICE_LABELS: { key: keyof ApiListPrices; label: PublishedFormat["format"] }[] = [
   { key: "ebook", label: "Kindle eBook" },
   { key: "paperback", label: "Paperback" },
   { key: "hardcover", label: "Hardcover" },
 ];
 
-function ShelfBook({
+/** A row per format (.fmt): icon, the format with its live date and pages, and the list price on the right. */
+function FormatRow({ format, liveOn, pages, price }: { format: PublishedFormat["format"]; liveOn: string; pages: number | null; price: number | null }) {
+  const Icon = format === "Kindle eBook" ? Tablet : BookOpen;
+  return (
+    <li className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 rounded-[13px] border border-edge bg-soft px-3 py-2.25 text-[13px]">
+      <Icon size={16} strokeWidth={1.8} aria-hidden className="text-ink-2" />
+      <span className="min-w-0 text-ink">
+        {format}
+        <small className="block text-caption text-ink-3">
+          Live since {formatDate(liveOn)}
+          {pages ? `, ${formatNumber(pages)} pages` : ""}
+        </small>
+      </span>
+      <b className="num font-bold text-ink">{price === null ? <span className="font-medium text-ink-3">No price yet</span> : formatGbp(price)}</b>
+    </li>
+  );
+}
+
+type ServerPrices = Pick<ApiBook, "listPrices" | "marketplace">;
+
+/**
+ * The book's formats: those in its export pack, then any format the owner priced with Set prices that the pack does
+ * not hold. Server formats carry no date of their own, so they show the day the book was marked published.
+ */
+function formatRows(
+  book: Book,
+  server: ServerPrices | undefined,
+): { format: PublishedFormat["format"]; liveOn: string; pages: number | null; price: number | null }[] {
+  const pub = book.published;
+  if (!pub) return [];
+  const rows = pub.formats.map((f) => ({ format: f.format, liveOn: f.liveOn ?? pub.publishedOn, pages: f.pages, price: f.listPriceGbp }));
+  if (!server) return rows;
+  const priced = PRICE_LABELS.filter((p) => server.listPrices[p.key] !== null && !rows.some((r) => r.format === p.label)).map((p) => ({
+    format: p.label,
+    liveOn: pub.publishedOn,
+    pages: null,
+    price: server.listPrices[p.key],
+  }));
+  return [...rows, ...priced];
+}
+
+const pillClasses = "rounded-pill border border-edge bg-soft px-2.5 py-1 text-[11.5px] font-semibold text-ink-2";
+
+/** One published book (.pubc): cover, title, author, a row per format, the facts in pills and the actions. */
+function PublishedCard({
   book,
   getPenName,
   server,
@@ -37,7 +80,7 @@ function ShelfBook({
 }: {
   book: Book;
   getPenName: PenLookup;
-  server?: Pick<ApiBook, "listPrices" | "marketplace"> | undefined;
+  server?: ServerPrices | undefined;
   onSaved?: ((m: string) => void) | undefined;
 }) {
   const [editing, setEditing] = useState(false);
@@ -47,80 +90,65 @@ function ShelfBook({
   const pub = book.published;
   if (!pub) return null;
   const headingId = `published-${book.id}`;
+  const cover = libraryCover(book);
+  const rows = formatRows(book, server);
+  const marketplace = server?.marketplace || pub.marketplace;
   return (
-    <li className="grid min-w-0 content-start" aria-labelledby={headingId}>
-      <Link to={bookStepPath(book.id, "export")} className="group relative block rounded-sm px-6 pt-2" aria-label={`${book.title}, open the export pack`}>
-        <Cover
-          title={book.title}
-          subtitle={book.subtitle}
-          author={pen?.name ?? ""}
-          design={book.cover ?? libraryCover(book).design}
-          image={libraryCover(book).image}
-          lift
-          decorative
-          className="mx-auto w-full max-w-[168px]"
-        />
-        {/* The shelf ledge the cover stands on. */}
-        <span aria-hidden className="absolute inset-x-0 -bottom-2 h-2 rounded-xs border-t border-border-strong bg-sunken shadow-sheet" />
-      </Link>
-      <div className="mt-6 grid gap-3">
+    <li
+      aria-labelledby={headingId}
+      className="vol-glass grid min-w-0 grid-cols-[132px_minmax(0,1fr)] gap-5 rounded-card p-4.5 max-[560px]:grid-cols-[90px_minmax(0,1fr)] max-[560px]:gap-3.5"
+    >
+      <Cover
+        title={book.title}
+        subtitle={book.subtitle}
+        author={pen?.name ?? ""}
+        design={book.cover ?? cover.design}
+        image={cover.image}
+        lift
+        decorative
+        className="w-full self-start"
+      />
+      <div className="grid min-w-0 content-start gap-2.5">
         <div>
-          <h3 id={headingId} className="font-book text-[19px] leading-6 font-medium text-ink">
+          <h3 id={headingId} className="font-book text-[18px] leading-[1.25] font-semibold text-ink">
             {book.title}
           </h3>
-          {book.subtitle && <p className="mt-1 line-clamp-2 text-small text-ink-secondary">{book.subtitle}</p>}
-          <p className="mt-1.5 text-small text-ink-secondary">
+          <p className="mt-1 text-[13px] text-ink-2">
             {pen?.name}
             {book.series ? `, ${book.series.name} book ${book.series.number}` : type ? `, ${type.name.toLowerCase()}` : ""}
           </p>
         </div>
-        <dl className="grid gap-1.5 border-t border-border pt-3 text-small">
-          <div className="flex justify-between gap-3">
-            <dt className="text-ink-secondary">Live since</dt>
-            <dd className="text-right text-ink">{formatDate(pub.publishedOn)}</dd>
-          </div>
-          {pub.formats.map((f) => (
-            <div key={f.format} className="flex justify-between gap-3">
-              <dt className="text-ink-secondary">{f.format}</dt>
-              <dd className="num text-right text-ink">
-                {f.listPriceGbp === null ? <span className="text-ink-secondary">No price yet</span> : formatGbp(f.listPriceGbp)}
-                {f.pages ? <span className="text-ink-secondary">, {formatNumber(f.pages)} pages</span> : null}
-              </dd>
-            </div>
+        <ul className="grid gap-1.5" aria-label={`Formats of ${book.title}`}>
+          {rows.map((r) => (
+            <FormatRow key={r.format} {...r} />
           ))}
-          {server &&
-            PRICE_LABELS.filter((p) => server.listPrices[p.key] !== null && !pub.formats.some((f) => f.format === p.label)).map((p) => (
-              <div key={p.key} className="flex justify-between gap-3">
-                <dt className="text-ink-secondary">{p.label}</dt>
-                <dd className="num text-right text-ink">{formatGbp(server.listPrices[p.key] ?? 0)}</dd>
-              </div>
-            ))}
-          {server && pub.formats.length === 0 && PRICE_LABELS.every((p) => server.listPrices[p.key] === null) && (
-            <div className="flex justify-between gap-3">
-              <dt className="text-ink-secondary">Formats and prices</dt>
-              <dd className="text-right text-ink-secondary">Not set yet</dd>
-            </div>
+          {rows.length === 0 && (
+            <li className="rounded-[13px] border border-edge bg-soft px-3 py-2.25 text-[13px] text-ink">
+              Live since {formatDate(pub.publishedOn)}
+              <small className="block text-caption text-ink-3">Formats show once an export pack is built.</small>
+            </li>
           )}
-          {server && (
-            <div className="flex justify-between gap-3">
-              <dt className="text-ink-secondary">Store</dt>
-              <dd className="text-right text-ink">{server.marketplace ?? "amazon.co.uk"}</dd>
-            </div>
-          )}
-          <div className="flex justify-between gap-3">
-            <dt className="text-ink-secondary">AI disclosure</dt>
-            <dd className="text-right text-ink">{pub.aiDisclosure}</dd>
-          </div>
-        </dl>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link to={bookStepPath(book.id, "export")} className={buttonClasses("secondary", "sm")}>
+        </ul>
+        <p className="flex flex-wrap gap-1.5">
+          <span className={pillClasses}>{pub.aiDisclosure}</span>
+          <Link to={bookStepPath(book.id, "export")} className={`${pillClasses} hover:text-ink`}>
             {pub.packVersion > 0 ? `Export pack v${pub.packVersion}` : "Export pack"}
+            <span className="sr-only"> of {book.title}</span>
           </Link>
-          <Link to={bookStepPath(book.id, "cover")} className={buttonClasses("ghost", "sm")}>
+          {marketplace && <span className={pillClasses}>{marketplace}</span>}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link to={`/books/${book.id}`} className={buttonClasses("secondary", "sm")}>
+            <BookOpen size={14} strokeWidth={1.8} aria-hidden />
+            Open<span className="sr-only"> {book.title}</span>
+          </Link>
+          <Link to={bookStepPath(book.id, "cover")} className={buttonClasses("secondary", "sm")}>
+            <Image size={14} strokeWidth={1.8} aria-hidden />
             Change cover<span className="sr-only"> of {book.title}</span>
           </Link>
-          <Link to={bookStepPath(book.id, "marketing")} className={buttonClasses("ghost", "sm")}>
-            Marketing
+          <Link to={bookStepPath(book.id, "marketing")} className={buttonClasses("secondary", "sm")}>
+            <Megaphone size={14} strokeWidth={1.8} aria-hidden />
+            Marketing<span className="sr-only"> for {book.title}</span>
           </Link>
           {server && canWrite && (
             <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
@@ -144,12 +172,22 @@ function ShelfBook({
   );
 }
 
+/** A figure in the head card (.statpill). */
+function StatPill({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="grid min-w-30 gap-0.5 rounded-lg border border-edge bg-soft px-4 py-3 max-[560px]:min-w-0">
+      <dt className="order-2 text-caption text-ink-3">{label}</dt>
+      <dd className="num order-1 text-[24px] leading-[1.1] font-light tracking-[-0.02em] text-ink">{value}</dd>
+    </div>
+  );
+}
+
 /**
- * The Published shelf (D-016): every book that is live on Amazon, newest first, grouped by month. Each
- * book stands on a ledge with its formats, list prices, live date and the AI disclosure given to KDP.
- * The spine's pen name switcher narrows the shelf; the filter narrows it further. With the server running
- * the shelf holds the books marked published there; the server keeps the date and the AI disclosure, not
- * formats or prices, so those rows are left out rather than made up.
+ * The Published shelf (D-016), as the approved design: a head card with the figures (books live, formats, the latest
+ * release, and sales, which Volume does not track) and a filter, then every live book grouped by month, newest first.
+ * Each card shows the formats with their live dates and list prices, the AI disclosure given to KDP, the export pack
+ * and the store, with Open, Change cover and Marketing. The profile chosen in the Library (or the side menu) narrows
+ * the shelf. With the server running, formats come from the export pack and prices from Set prices; nothing is made up.
  */
 export default function PublishedPage() {
   const mode = useWireMode();
@@ -157,7 +195,7 @@ export default function PublishedPage() {
   const wired = useWiredBooks(mode, publishedBooks(), { status: "published" });
   const getPenName = pens.get;
   const state = wired.state === "error" || pens.state === "error" ? "error" : wired.state === "loading" || pens.state === "loading" ? "loading" : "ready";
-  const { selectedId: chosen } = usePenNameFilter();
+  const { selectedId: chosen, setSelectedId } = usePenNameFilter();
   const selectedId = chosen && getPenName(chosen) ? chosen : null;
   const [filter, setFilter] = useState("");
   const [savedNote, setSavedNote] = useState<string | null>(null);
@@ -167,7 +205,8 @@ export default function PublishedPage() {
     () => (mode === "api" ? [...wired.books].sort((a, b) => (b.published?.publishedOn ?? "").localeCompare(a.published?.publishedOn ?? "")) : wired.books),
     [mode, wired.books],
   );
-  const shown = useMemo(() => all.filter((b) => (!selectedId || b.penNameId === selectedId) && matches(b, q, getPenName)), [all, selectedId, q, getPenName]);
+  const byPen = useMemo(() => all.filter((b) => !selectedId || b.penNameId === selectedId), [all, selectedId]);
+  const shown = useMemo(() => byPen.filter((b) => matches(b, q, getPenName)), [byPen, q, getPenName]);
   const months = useMemo(() => {
     const map = new Map<string, Book[]>();
     for (const b of shown) {
@@ -177,64 +216,65 @@ export default function PublishedPage() {
     return [...map.entries()];
   }, [shown]);
   const pen = selectedId ? getPenName(selectedId) : undefined;
-  const formats = shown.reduce((n, b) => n + (b.published?.formats.length ?? 0), 0);
-  const marketplaces = [...new Set(shown.map((b) => b.published?.marketplace).filter((m): m is string => Boolean(m)))];
-  const marketplace = marketplaces.length === 1 ? (marketplaces[0] ?? "") : "";
+  const formats = byPen.reduce((n, b) => n + formatRows(b, serverBooks.get(b.id)).length, 0);
+  const latest = byPen.map((b) => b.published?.publishedOn ?? "").reduce((a, b) => (b > a ? b : a), "");
 
   return (
-    <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
-      <PageHeader
-        title="Published"
-        summary={
-          state !== "ready"
-            ? undefined
-            : all.length === 0
-              ? "Nothing live yet."
-              : mode === "api" && formats === 0
-                ? `${shown.length} ${shown.length === 1 ? "book" : "books"} marked published${marketplace ? ` on ${marketplace}` : ""}${pen ? `, by ${pen.name}` : ""}.`
-                : `${shown.length} ${shown.length === 1 ? "book" : "books"} live on ${marketplace || "amazon.co.uk"} in ${formats} ${formats === 1 ? "format" : "formats"}${pen ? `, by ${pen.name}` : ""}.`
-        }
-        actions={
-          state === "ready" && all.length > 0 ? (
-            <FilterField
-              value={filter}
-              onChange={setFilter}
-              label="Filter published books"
-              placeholder="Filter by title, profile or series"
-              count={shown.length}
-              className="w-full sm:w-[300px]"
-            />
-          ) : undefined
-        }
-      />
+    <div className="grid content-start gap-4.5 px-4 pt-1 pb-6 min-[861px]:px-6">
+      <PageHeader title="Published" titleHidden />
       <ReadOnlyBanner />
+
       {state === "ready" && all.length > 0 && (
-        <p className="mt-2 text-small text-ink-tertiary">
-          {mode === "api" && formats === 0
-            ? "Formats show once an export pack is built. Set the list prices you entered in KDP with Set prices. Royalties and sales are not tracked here."
-            : "List prices as entered in KDP. Royalties and sales are not tracked here."}
+        <Card as="section" aria-label="Published at a glance" className="flex flex-wrap items-center justify-between gap-3.5 p-5 max-[560px]:p-3.75">
+          <dl className="grid grid-cols-2 gap-2.5 min-[561px]:flex min-[561px]:flex-wrap max-[560px]:w-full">
+            <StatPill value={String(byPen.length)} label={byPen.length === 1 ? "Book live" : "Books live"} />
+            <StatPill value={String(formats)} label={formats === 1 ? "Format" : "Formats"} />
+            <StatPill value={latest ? formatDayMonth(latest) : "None"} label="Latest release" />
+            <StatPill value="Not tracked" label="Sales and royalties" />
+          </dl>
+          <FilterField
+            value={filter}
+            onChange={setFilter}
+            label="Filter published books"
+            placeholder="Filter published books"
+            count={shown.length}
+            className="w-full min-[561px]:w-65"
+          />
+        </Card>
+      )}
+
+      {state === "ready" && pen && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-ink-2">
+          <span>
+            Showing books by <b className="font-semibold text-ink">{pen.name}</b> only.
+          </span>
+          <button
+            type="button"
+            onClick={() => setSelectedId(null)}
+            className="hit-44 relative rounded-xs font-semibold text-mint-ink underline underline-offset-2"
+          >
+            Show all profiles
+          </button>
         </p>
       )}
 
-      {savedNote && (
-        <div className="mt-3">
-          <InlineStatus>{savedNote}</InlineStatus>
-        </div>
-      )}
+      {savedNote && <InlineStatus>{savedNote}</InlineStatus>}
 
       {state === "loading" ? (
-        <ul role="status" aria-label="Loading published books" className="mt-10 grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <ul role="status" aria-label="Loading published books" className="grid grid-cols-[repeat(auto-fill,minmax(min(500px,100%),1fr))] gap-4.5">
           {Array.from({ length: 4 }, (_, i) => (
-            <li key={i} className="grid gap-3 px-6">
+            <li key={i} className="vol-glass grid grid-cols-[132px_minmax(0,1fr)] gap-5 rounded-card p-4.5 max-[560px]:grid-cols-[90px_minmax(0,1fr)]">
               <Skeleton variant="cover" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
+              <div className="grid content-start gap-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton variant="block" className="h-12 rounded-[13px]" />
+              </div>
             </li>
           ))}
         </ul>
       ) : state === "error" ? (
         <Banner
-          className="mt-8"
           tone="error"
           title="Could not load the published books"
           action={
@@ -252,51 +292,62 @@ export default function PublishedPage() {
           {wired.error ?? pens.error}
         </Banner>
       ) : all.length === 0 ? (
-        <EmptyState
-          className="mt-10"
-          title="Nothing published yet"
-          body="When a book goes live on Amazon, mark it published in Export and it moves to this shelf."
-          drawing="books"
-          action={
-            <Link to="/library" className={buttonClasses("primary", "md")}>
-              Open the Library
-            </Link>
-          }
-        />
+        <Card>
+          <EmptyState
+            title="Nothing published yet"
+            body="When a book goes live on Amazon, mark it published in Export and it moves to this shelf."
+            drawing="books"
+            action={
+              <Link to="/library" className={buttonClasses("primary", "md")}>
+                Open the Library
+              </Link>
+            }
+          />
+        </Card>
       ) : shown.length === 0 ? (
-        <EmptyState
-          className="mt-10"
-          title="No published books match"
-          body={
-            pen && !q
-              ? `${pen.name} has nothing live yet. Choose All profiles in the menu to see the whole shelf.`
-              : "Try a shorter filter, or clear it to see the whole shelf."
-          }
-          drawing="search"
-          action={
-            q ? (
-              <button type="button" onClick={() => setFilter("")} className={buttonClasses("secondary", "md")}>
-                Clear filter
-              </button>
-            ) : undefined
-          }
-        />
+        <Card>
+          <EmptyState
+            title="No published books match"
+            body={
+              pen && !q
+                ? `${pen.name} has nothing live yet. Show all profiles to see the whole shelf.`
+                : "Try a shorter filter, or clear it to see the whole shelf."
+            }
+            drawing="search"
+            action={
+              q ? (
+                <Button onClick={() => setFilter("")}>Clear filter</Button>
+              ) : pen ? (
+                <Button onClick={() => setSelectedId(null)}>Show all profiles</Button>
+              ) : undefined
+            }
+          />
+        </Card>
       ) : (
-        months.map(([month, list], i) => (
-          <section key={month} aria-label={month} className={cn("mt-10", i > 0 && "border-t border-border pt-8")}>
-            <h2 className="mb-6 flex items-baseline gap-3 font-book text-heading text-ink">
+        months.map(([month, list]) => (
+          <section key={month} aria-label={month} className="grid gap-3">
+            <h2 className="mx-1 flex items-center gap-3 text-[13px] font-bold text-ink-2 after:h-px after:flex-1 after:bg-line-2">
               {month}
-              <span className="font-ui text-small font-normal text-ink-tertiary">
-                {list.length} {list.length === 1 ? "book" : "books"}
+              <span className="num rounded-pill bg-soft px-2 py-px text-caption font-semibold text-ink-2">
+                {list.length}
+                <span className="sr-only"> {list.length === 1 ? "book" : "books"}</span>
               </span>
             </h2>
-            <ul className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(500px,100%),1fr))] gap-4.5">
               {list.map((b) => (
-                <ShelfBook key={b.id} book={b} getPenName={getPenName} server={serverBooks.get(b.id)} onSaved={setSavedNote} />
+                <PublishedCard key={b.id} book={b} getPenName={getPenName} server={serverBooks.get(b.id)} onSaved={setSavedNote} />
               ))}
             </ul>
           </section>
         ))
+      )}
+
+      {state === "ready" && shown.length > 0 && (
+        <p className="text-caption text-ink-2">
+          {mode === "api"
+            ? "Formats come from the export pack and the list prices you set with Set prices, as entered in KDP. Royalties and sales are not tracked in Volume."
+            : "List prices as entered in KDP. Royalties and sales are not tracked in Volume."}
+        </p>
       )}
     </div>
   );

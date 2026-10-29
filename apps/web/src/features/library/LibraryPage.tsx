@@ -1,26 +1,34 @@
 import { ImportManuscriptDialog } from "./ImportManuscriptDialog";
 import { ImportProjectDialog } from "./ImportProjectDialog";
 import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { GalleryHorizontalEnd, LayoutGrid, Plus, Rows3 } from "lucide-react";
-import { Banner, Button, EmptyState, FilterField, PageHeader, SegmentedControl, Skeleton } from "../../components/ui";
+import { ChevronDown, GalleryHorizontalEnd, LayoutGrid, Plus, Rows3 } from "lucide-react";
+import { Banner, Button, Card, EmptyState, FilterField, PageHeader, SegmentedControl, Skeleton } from "../../components/ui";
+import { fieldBoxClasses } from "../../components/ui/FieldShell";
 import { useActivity } from "../../api/hooks";
-import { isoFromMs, isToday, usePenNames, useWiredBooks, useWireMode } from "../../api/wire-a";
+import { isoFromMs, isToday, useApiSettings, usePenNames, useRunningJobs, useWiredBooks, useWireMode } from "../../api/wire-a";
 import { books as allBooks } from "../../demo/books";
 import { penNames } from "../../demo/penNames";
+import { workspace } from "../../demo/workspace";
+import type { PenName } from "../../demo/types";
+import { cn } from "../../lib/cn";
 import { useWritingJob } from "../../lib/job";
 import { usePenNameFilter } from "../../lib/penName";
 import { groupOf, matchesQuery, type BookGroup } from "./bookStatus";
 import { readPref, useDemoState, writePref } from "./demoState";
 import { LedgerView } from "./LedgerView";
 import { LibraryGrid, LibraryGridSkeletonCards } from "./LibraryGrid";
-import { GroupFilter, LibrarySide } from "./LibrarySide";
+import { LibrarySide, NeedsYou, Releases } from "./LibrarySide";
+import { LibraryTiles, type SpendFigures } from "./LibraryTiles";
 import { LivePanel } from "./LivePanel";
 import { PipelineView } from "./PipelineView";
 import { TodayStrip, type TodayItem } from "./TodayStrip";
 
-/** grid: the 3 by 3 cover grid with the side column (default). covers: the Shelves lanes. ledger: the table. */
+/**
+ * grid: the 3 by 3 cover grid, labelled "Covers" as in the approved design (default). covers: the Shelves lanes (the
+ * name is kept so ?view=covers links and saved choices still open the Shelves). ledger: the table.
+ */
 type View = "grid" | "covers" | "ledger";
 /* A new key with the grid (studio redesign stage 3), so a choice saved before the grid existed does not hide it. */
 const VIEW_KEY = "volume.library.layout";
@@ -30,50 +38,70 @@ function readView(asked: string | null): View {
 }
 const demoActive = allBooks.filter((b) => !b.archived);
 
-function LibrarySkeleton({ view }: { view: View }) {
-  if (view === "grid")
-    return (
-      <div role="status" aria-label="Loading books" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <LibraryGridSkeletonCards />
-        <div className="hidden gap-4 xl:grid xl:content-start">
-          <Skeleton variant="block" className="h-64 rounded-card" />
-          <Skeleton variant="block" className="h-40 rounded-card" />
-        </div>
-      </div>
-    );
+function TilesSkeleton() {
   return (
-    <div role="status" aria-label="Loading books" className="grid gap-5.5">
-      <div className="grid grid-cols-[72px_1fr] gap-5 rounded-lg border border-border bg-sheet p-5 sm:grid-cols-[112px_1fr]">
-        <Skeleton variant="cover" />
-        <div className="grid content-start gap-3">
-          <Skeleton className="h-3 w-40" />
-          <Skeleton className="h-5 w-3/5" />
-          <Skeleton className="h-3 w-4/5" />
-          <Skeleton className="h-3 w-2/3" />
-          <Skeleton className="mt-2 h-1.5 w-full" />
+    <div className="grid grid-cols-2 gap-4 max-[560px]:gap-2.5 min-[1201px]:grid-cols-4" aria-hidden>
+      {Array.from({ length: 4 }, (_, i) => (
+        <div key={i} className="vol-glass grid gap-2.5 rounded-card p-4.5">
+          <Skeleton className="w-2/3" />
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="w-3/4" />
         </div>
-      </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-6">
-        {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="grid gap-2">
-            <Skeleton variant="cover" />
-            <Skeleton className="mt-1.5 h-3 w-4/5" />
-            <Skeleton className="h-3 w-3/5" />
-          </div>
-        ))}
-      </div>
+      ))}
     </div>
   );
 }
 
+function LibrarySkeleton({ view }: { view: View }) {
+  if (view === "grid") return <LibraryGridSkeletonCards />;
+  return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-6">
+      {Array.from({ length: 6 }, (_, i) => (
+        <div key={i} className="grid gap-2">
+          <Skeleton variant="cover" />
+          <Skeleton className="mt-1.5 h-3 w-4/5" />
+          <Skeleton className="h-3 w-3/5" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** "All profiles" or one profile: narrows the whole page. The same choice as the side menu's switcher (lib/penName). */
+function ProfileSelect({ pens, value, onChange }: { pens: readonly PenName[]; value: string | null; onChange: (id: string | null) => void }) {
+  const id = useId();
+  return (
+    <span className="relative flex min-w-0 flex-[0_1_180px] max-[560px]:flex-[1_1_100%]">
+      <label htmlFor={id} className="sr-only">
+        Profile
+      </label>
+      <select
+        id={id}
+        value={value ?? "all"}
+        onChange={(e) => onChange(e.target.value === "all" ? null : e.target.value)}
+        className={cn(fieldBoxClasses({ error: false, disabled: false }), "h-10 cursor-pointer appearance-none truncate pr-9")}
+      >
+        <option value="all">All profiles</option>
+        {pens.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+      <ChevronDown size={16} strokeWidth={1.8} aria-hidden className="pointer-events-none absolute top-3 right-3 text-ink-2" />
+    </span>
+  );
+}
+
 /**
- * Library (09-UX-FLOWS, M2, D-016). Header with a page filter, Grid, Shelves or Ledger and New book; the live
- * "Writing now" panel while a job runs; books in the 3 by 3 grid with a side column (stage filter and Today) that
- * stays in view, along the three shelves, or in the ledger, with the Today strip closing the page. The top bar shows
- * the page title, so the h1 here is for screen readers only. The spine's profile switcher narrows the page; there is no
- * second copy of it here. The top bar holds the one search. Demo states: ?state=loading, error or empty.
- * With the server running the books and profiles come from it (api/wire-a.ts); the live panel stays a
- * demo until the library has a server feed of running jobs.
+ * Library, the app's home (09-UX-FLOWS, M2, D-016), as the approved Volume Studio design: four stat tiles (In
+ * progress, Ready to publish and Published narrow the books to that stage; the month's AI spend), the live "Writing
+ * now" card while a job runs, then the All books panel with a filter, the profile select, Covers, Shelves or Ledger
+ * and New book. Beside it, from 1201 px, a column that stays in view: Needs you, Releases in the next 7 days and
+ * Today. The top bar shows the page title, so the h1 here is for screen readers only, and it holds the one search.
+ * The profile select and the side menu's switcher share one choice. Demo states: ?state=loading, error or empty.
+ * With the server running the books, profiles, spend and releases come from it (api/wire-a.ts); the live card stays
+ * a demo until the library has a server feed of running jobs, and Needs you waits for the server to report it.
  */
 export default function LibraryPage() {
   const navigate = useNavigate();
@@ -85,6 +113,8 @@ export default function LibraryPage() {
   const [projectOpen, setProjectOpen] = useState(false);
   const pens = usePenNames(mode, penNames);
   const wired = useWiredBooks(mode, demoActive);
+  const settings = useApiSettings(api);
+  const runningJobs = useRunningJobs(api);
   const apiState = pens.state === "error" || wired.state === "error" ? "error" : pens.state === "loading" || wired.state === "loading" ? "loading" : "ready";
   const state = mode === "mock" ? demo.state : apiState;
   const errorText = wired.error ?? pens.error;
@@ -96,7 +126,7 @@ export default function LibraryPage() {
           pens.retry();
         };
   const { selectedId: chosenPen, setSelectedId: setPenId } = usePenNameFilter();
-  // The spine's switcher may hold a demo id while the screen shows server profiles: ignore an id this list does not know.
+  // The side menu's switcher may hold a demo id while the screen shows server profiles: ignore an id this list does not know.
   const penId = chosenPen && pens.get(chosenPen) ? chosenPen : null;
   const demoJob = useWritingJob();
   const { job, wordsWritten, costSpent } = demoJob;
@@ -117,7 +147,7 @@ export default function LibraryPage() {
   const byPen = useMemo(() => (penId ? active.filter((b) => b.penNameId === penId) : active), [active, penId]);
   const getPen = pens.get;
   const shown = useMemo(() => byPen.filter((b) => matchesQuery(b, getPen(b.penNameId)?.name ?? "", query)), [byPen, query, getPen]);
-  // The grid's stage filter (side column). Shelves and Ledger already show every stage.
+  // The stage tiles narrow every view to one stage.
   const inGroup = useMemo(() => (group ? shown.filter((b) => groupOf(b) === group) : shown), [shown, group]);
   const activity = useActivity(40, { enabled: api });
   const today = useMemo<TodayItem[] | undefined>(() => {
@@ -139,13 +169,32 @@ export default function LibraryPage() {
   const liveInView = running && byPen.some((b) => b.id === job.bookId);
   const liveInfo = running ? { bookId: job.bookId, words: wordsWritten, costSpent, running: !paused } : null;
 
-  const summary =
-    state === "loading" || state === "error"
-      ? undefined
-      : `${byPen.length} ${byPen.length === 1 ? "book" : "books"}${liveInView ? (paused ? ", one paused" : ", one writing now") : ""}`;
+  /* Tile lines, each from what this mode really knows. */
+  const needYou = byPen.filter((b) => b.attentionSteps.length > 0).length;
+  const penBookIds = new Set(byPen.map((b) => b.id));
+  const jobsHere = runningJobs.filter((j) => penBookIds.has(j.bookId)).length;
+  const progressFoot = api
+    ? jobsHere > 0
+      ? `${jobsHere} ${jobsHere === 1 ? "job" : "jobs"} running now`
+      : "Nothing running now"
+    : `${needYou} need you, ${liveInView ? (paused ? "1 paused" : "1 writing now") : "none writing"}`;
+  const published = byPen.filter((b) => groupOf(b) === "published");
+  const formats = published.reduce((n, b) => n + (b.published?.formats.length ?? 0), 0);
+  const markets = [...new Set(published.map((b) => b.published?.marketplace).filter((m): m is string => Boolean(m)))];
+  const publishedFoot =
+    formats > 0 ? `${formats} ${formats === 1 ? "format" : "formats"}${markets.length === 1 ? ` on ${markets[0] ?? ""}` : ""}` : "Live on the shelf";
+  const month = new Intl.DateTimeFormat("en-GB", { month: "long" }).format(new Date());
+  const spend: SpendFigures | null | "none" =
+    mode === "mock"
+      ? { month: workspace.spend.monthLabel, spentUsd: workspace.spend.spentUsd, creditUsd: workspace.openRouter.creditUsd }
+      : mode === "checking" || settings.isPending
+        ? null
+        : settings.isError
+          ? "none"
+          : { month, spentUsd: settings.data.budgets.monthSpendUsd, creditUsd: settings.data.openRouterCredit?.limitRemainingUsd ?? null };
 
   const newBook = !canWrite ? null : (
-    <div className="flex flex-wrap gap-2">
+    <>
       {mode === "api" && (
         <Button variant="secondary" onClick={() => setImportOpen(true)}>
           Import manuscript
@@ -159,26 +208,16 @@ export default function LibraryPage() {
       <Button variant="primary" icon={Plus} onClick={() => void navigate("/books/new")}>
         New book
       </Button>
-    </div>
+    </>
   );
 
   function renderBooks() {
-    if (state === "loading") return <LibrarySkeleton view={view} />;
-    if (state === "error")
+    if (state === "loading")
       return (
-        <Banner
-          tone="error"
-          title="Could not load your books"
-          action={
-            <Button size="sm" onClick={retry}>
-              Retry
-            </Button>
-          }
-        >
-          {mode === "mock" ? "The local server did not answer. Your books are safe on disk. Try again in a moment." : errorText}
-        </Banner>
+        <div role="status" aria-label="Loading books">
+          <LibrarySkeleton view={view} />
+        </div>
       );
-    if (active.length === 0) return <EmptyState drawing="books" title="No books yet" body="Start one from an idea or a working title." action={newBook} />;
     if (byPen.length === 0)
       return (
         <EmptyState
@@ -204,12 +243,23 @@ export default function LibraryPage() {
           action={<Button onClick={() => setQuery("")}>Clear filter</Button>}
         />
       );
-    if (view === "grid") return renderGrid();
+    if (inGroup.length === 0) {
+      const groupTitle = group === "progress" ? "in progress" : group === "ready" ? "ready to publish" : "published";
+      return (
+        <EmptyState
+          drawing="books"
+          title={`No books ${groupTitle}`}
+          body="Pick another stage, or show every book."
+          action={<Button onClick={() => setGroup(null)}>Show all books</Button>}
+        />
+      );
+    }
+    if (view === "grid") return <LibraryGrid books={inGroup} group={group} live={liveInfo} penName={getPen} statusActions={api && canWrite} />;
     return view === "covers" ? (
-      <PipelineView books={shown} live={liveInfo} penName={getPen} statusActions={api && canWrite} />
+      <PipelineView books={inGroup} live={liveInfo} penName={getPen} statusActions={api && canWrite} />
     ) : (
       <LedgerView
-        books={shown}
+        books={inGroup}
         live={liveInfo}
         selectedId={selectedBook}
         onSelect={setSelectedBook}
@@ -219,81 +269,100 @@ export default function LibraryPage() {
     );
   }
 
-  /** Grid view: the 3 by 3 grid with the side column (stage filter and Today) that stays in view from 1280 px. */
-  function renderGrid() {
-    const groupTitle = group === "progress" ? "in progress" : group === "ready" ? "ready to publish" : "published";
-    return (
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        {inGroup.length === 0 ? (
-          <EmptyState
-            drawing="books"
-            title={`No books ${groupTitle}`}
-            body="Pick another stage, or show every book."
-            action={<Button onClick={() => setGroup(null)}>Show all books</Button>}
-          />
-        ) : (
-          <LibraryGrid books={inGroup} group={group} live={liveInfo} penName={getPen} statusActions={api && canWrite} />
-        )}
-        <LibrarySide>
-          <GroupFilter books={shown} value={group} onChange={setGroup} />
-          <TodayStrip layout="column" bookIds={new Set(byPen.map((b) => b.id))} items={today} />
-        </LibrarySide>
+  const ready = state === "ready";
+  const hasBooks = active.length > 0;
+  // The Shelves lanes need the full width; Covers and Ledger sit beside the side column from 1201 px.
+  const withSide = view !== "covers";
+
+  const panel = (
+    <Card as="section" aria-label="Books" className="min-w-0 p-5 max-[560px]:p-3.75">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <FilterField
+          label="Filter books"
+          placeholder="Filter by title or profile"
+          value={query}
+          onChange={setQuery}
+          count={shown.length}
+          className="min-w-0 flex-[1_1_220px]"
+        />
+        {pens.list.length > 0 && <ProfileSelect pens={pens.list} value={penId} onChange={setPenId} />}
+        <SegmentedControl<View>
+          label="View"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: "grid", label: "Covers", icon: LayoutGrid },
+            { value: "covers", label: "Shelves", icon: GalleryHorizontalEnd },
+            { value: "ledger", label: "Ledger", icon: Rows3 },
+          ]}
+        />
+        {newBook && <div className="flex flex-wrap gap-2 min-[1201px]:ml-auto">{newBook}</div>}
       </div>
-    );
-  }
+      {renderBooks()}
+    </Card>
+  );
+
+  const side = (
+    <LibrarySide>
+      <NeedsYou books={byPen} api={api} />
+      <Releases mode={mode} />
+      <TodayStrip layout="column" bookIds={new Set(byPen.map((b) => b.id))} items={today} />
+    </LibrarySide>
+  );
 
   return (
-    <div className="mx-auto flex w-full max-w-360 flex-col gap-5.5 px-4 pt-6 pb-10 sm:px-8 lg:px-10 lg:pt-7">
-      <PageHeader
-        title="Library"
-        titleHidden
-        summary={summary}
-        actions={
-          <>
-            {state === "ready" && byPen.length > 0 && (
-              <FilterField
-                label="Filter books"
-                placeholder="Filter by title or profile"
-                value={query}
-                onChange={setQuery}
-                count={shown.length}
-                className="w-full sm:w-70"
-              />
-            )}
-            <SegmentedControl<View>
-              label="View"
-              value={view}
-              onChange={setView}
-              options={[
-                { value: "grid", label: "Grid", icon: LayoutGrid },
-                { value: "covers", label: "Shelves", icon: GalleryHorizontalEnd },
-                { value: "ledger", label: "Ledger", icon: Rows3 },
-              ]}
-            />
-            {newBook}
-          </>
-        }
-      />
+    <div className="flex w-full flex-col gap-4 px-4 pt-1 pb-6 min-[861px]:px-6">
+      <PageHeader title="Library" titleHidden />
       <ReadOnlyBanner />
 
-      {state === "ready" && liveInView && <LivePanel />}
-
-      {state === "ready" && pen && byPen.length > 0 && (
-        <p className="-mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-ink-secondary">
-          <span>
-            Showing books by <b className="font-semibold text-ink">{pen.name}</b> only.
-          </span>
-          <button type="button" onClick={() => setPenId(null)} className="hit-44 relative rounded-xs font-semibold text-select underline underline-offset-2">
-            Show all profiles
-          </button>
-        </p>
+      {state === "error" ? (
+        <Banner
+          tone="error"
+          title="Could not load your books"
+          action={
+            <Button size="sm" onClick={retry}>
+              Retry
+            </Button>
+          }
+        >
+          {mode === "mock" ? "The local server did not answer. Your books are safe on disk. Try again in a moment." : errorText}
+        </Banner>
+      ) : ready && !hasBooks ? (
+        <Card>
+          <EmptyState
+            drawing="books"
+            title="No books yet"
+            body="Start one from an idea or a working title."
+            action={newBook && <div className="flex flex-wrap gap-2">{newBook}</div>}
+          />
+        </Card>
+      ) : (
+        <>
+          {ready ? (
+            <LibraryTiles books={byPen} group={group} onGroup={setGroup} progressFoot={progressFoot} publishedFoot={publishedFoot} spend={spend} />
+          ) : (
+            <TilesSkeleton />
+          )}
+          {withSide ? (
+            <div className="grid items-start gap-4 min-[1201px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+              <div className="grid min-w-0 content-start gap-4">
+                {ready && liveInView && <LivePanel />}
+                {panel}
+              </div>
+              {ready && side}
+            </div>
+          ) : (
+            <>
+              {ready && liveInView && <LivePanel />}
+              {panel}
+              {ready && byPen.length > 0 && <TodayStrip bookIds={new Set(byPen.map((b) => b.id))} items={today} />}
+            </>
+          )}
+        </>
       )}
 
-      {renderBooks()}
       {importOpen && <ImportManuscriptDialog profiles={pens.list} onClose={() => setImportOpen(false)} />}
       {projectOpen && canWrite && <ImportProjectDialog profiles={pens.list} filterId={penId} onClose={() => setProjectOpen(false)} />}
-
-      {state === "ready" && byPen.length > 0 && view !== "grid" && <TodayStrip bookIds={new Set(byPen.map((b) => b.id))} items={today} />}
     </div>
   );
 }
