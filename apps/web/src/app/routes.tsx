@@ -61,6 +61,8 @@ export const routes: RouteObject[] = [
           children: [
             screenErrors([
               { index: true, element: <BookIndexRedirect /> },
+              // The book's Overview, the first tab of the step bar (not a step; it draws its own step bar).
+              { path: "overview", lazy: async () => ({ Component: (await import("../features/overview/OverviewPage")).default }) },
               {
                 path: screens.research.path.replace("/books/:bookId/", ""),
                 lazy: async () => ({ Component: (await import("../features/research/ResearchPage")).default }),

@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useCanWrite } from "../../lib/access";
 import { useNavigate } from "react-router";
-import { ChevronDown, ListTree, RefreshCw, Sparkles } from "lucide-react";
-import { Banner, Button, EmptyState, KeyValueList, Modal, PageHeader, ProgressBar, Switch, Textarea } from "../../components/ui";
+import { BookOpen, ListTree, RefreshCw, Sparkles } from "lucide-react";
+import { Banner, Button, EmptyState, Input, KeyValueList, LiveDot, Modal, ModelName, PageHeader, ProgressBar, Switch, Textarea } from "../../components/ui";
 import { calmWardBlueprint, getModel, getPenName, type Blueprint, type Book, type ClaimToVerify } from "../../demo";
 import { DEMO_NOW } from "../../demo/books";
-import { cn } from "../../lib/cn";
 import { scrollBehavior } from "../../lib/motion";
 import { formatDuration, formatNumber, formatRelative, formatUsd } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
@@ -16,19 +15,20 @@ import { DemoStates, useScreenState } from "../research/DemoStates";
 import { RunModelModal } from "../research/RunModelModal";
 import { about, estimateFor, useSimulatedRun } from "../research/sim";
 import { BlueprintApi } from "./BlueprintApi";
-import { BlueprintInspector, type Totals } from "./BlueprintInspector";
-import { buildOutline, groupLabels, regenAlternates, type OutlinePart } from "./blueprintExtras";
-import { ChapterPlan, PlanCounts, VersionChip, type PlanChapter } from "./ChapterPlan";
+import type { Totals } from "./BlueprintInspector";
+import { buildOutline, groupLabels, insertedWords, regenAlternates, type OutlinePart } from "./blueprintExtras";
+import { CheckList, OutlineCard, PlanCounts, SideLabel, VersionChip, VersionList } from "./ChapterPlan";
 import { Galley, type Diff, type Note } from "./Galley";
 import { CATEGORIES_COUNT, DESCRIPTION_MAX, KEYWORDS_MAX } from "./ListingEditors";
 import { OutlineRail } from "./OutlineRail";
 import { TypeBlueprint } from "./TypeBlueprint";
 
-/* Blueprint screen (docs/03-design/UX-SPEC.md, M6; board: Blueprint frame). Owner: screen agent B.
-   Outline rail with every section of the book (switch on or off, reorder by drag or arrows), the
-   galley sheet with margin notes, and the inspector with targets, model, cost, claims, versions and
-   the two actions: Regenerate part (estimate, confirm, new version, blue pencil diff) and Approve
-   blueprint (confirm what writing will cost and take, then Writing). */
+/* Blueprint screen (docs/03-design/UX-SPEC.md, M6; approved Volume Studio design, stBlueprint).
+   Two columns: the Outline card (front matter, numbered chapters with editable titles and word-target
+   bars, back matter) and the right card (the chosen part with its plan, word target, claims and
+   Regenerate; the whole book with its checks; model and spend; tone; versions with Restore).
+   Arrange sections (switch parts on or off, reorder) and the full plan with the listing editors open
+   in dialogs. Approve blueprint is the step action: confirm what writing will cost and take, then Writing. */
 
 const bp = calmWardBlueprint;
 const RANGE = { min: 25000, max: 50000 };
@@ -66,8 +66,7 @@ function BlueprintScreen({ book }: { book: Book }) {
   const [screen, setScreen] = useScreenState("ready");
   const [parts, setParts] = useState<OutlinePart[]>(buildOutline);
   const [selectedId, setSelectedId] = useState("chapter-4");
-  // The chapter open in the chapter plan. It follows the selection when a chapter is chosen anywhere.
-  const [planId, setPlanId] = useState("chapter-4");
+  const [planOpen, setPlanOpen] = useState(false);
   const [version, setVersion] = useState(bp.version);
   const [versions, setVersions] = useState<Blueprint["versions"]>(bp.versions);
   const [blueprintCost, setBlueprintCost] = useState(0.11);
@@ -84,7 +83,6 @@ function BlueprintScreen({ book }: { book: Book }) {
   const [approving, setApproving] = useState(false);
   const [modelOpen, setModelOpen] = useState(false);
   const [regenTarget, setRegenTarget] = useState<{ id: string; label: string; est: number } | null>(null);
-  const canvasRef = useRef<HTMLDivElement>(null);
   const regenCancelRef = useRef<HTMLButtonElement>(null);
   const approveCancelRef = useRef<HTMLButtonElement>(null);
 
@@ -112,7 +110,7 @@ function BlueprintScreen({ book }: { book: Book }) {
     };
   }, [parts]);
 
-  const planChapters: PlanChapter[] = useMemo(
+  const planChapters: { key: string; number: number; title: string; wordTarget: number }[] = useMemo(
     () =>
       parts
         .filter((p) => p.group === "chapters" && p.on)
@@ -121,8 +119,6 @@ function BlueprintScreen({ book }: { book: Book }) {
           number: numbers[p.id] ?? 0,
           title: p.title,
           wordTarget: p.wordTarget ?? 0,
-          purpose: p.chapter?.summary ?? p.note,
-          sections: p.chapter?.subheadings ?? [],
         })),
     [parts, numbers],
   );
@@ -193,10 +189,16 @@ function BlueprintScreen({ book }: { book: Book }) {
   const failed = build.status === "failed" || (screen === "error" && build.status !== "running");
   const busy = building || regen.status === "running";
 
-  function select(id: string) {
-    setSelectedId(id);
-    if (id.startsWith("chapter-")) setPlanId(id);
-    requestAnimationFrame(() => document.getElementById(`bp-${id}`)?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
+  /** Opens the full plan, at a part when one is given. */
+  function showInPlan(id: string | null) {
+    if (id) setSelectedId(id);
+    setPlanOpen(true);
+    if (id) {
+      // Twice: the dialog draws first, then the part can be found and scrolled to.
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => document.getElementById(`bp-${id}`)?.scrollIntoView({ block: "start", behavior: scrollBehavior() })),
+      );
+    }
   }
 
   function toggle(id: string) {
@@ -341,13 +343,348 @@ function BlueprintScreen({ book }: { book: Book }) {
   // The one gilt button lives in the step footer (D-016); it opens the confirm dialog.
   useStepAction({ label: "Approve blueprint", onClick: () => setApproveOpen(true), disabledReason: approveReason });
 
+  const outlineFront = parts.filter((p) => p.group === "front" && p.on).map((p) => ({ key: p.id, label: p.title }));
+  const outlineBack = parts.filter((p) => p.group === "back" && p.on).map((p) => ({ key: p.id, label: p.title }));
+  const outlineChapters = planChapters.map((c) => ({ key: c.key, number: c.number, title: c.title, wordTarget: c.wordTarget, claims: claimCounts[c.key] }));
+  const selectedClaims = openClaims.filter((c) => `chapter-${c.chapter}` === selectedId);
+  const inRange = totals.total >= RANGE.min && totals.total <= RANGE.max;
+  const model = getModel(modelSlug);
+
   return (
-    <div className="grid grid-cols-1 lg:h-screen-fill lg:grid-cols-[minmax(0,1fr)_auto] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[272px_minmax(0,1fr)_auto]">
-      <div className="hidden min-h-0 overflow-y-auto border-r border-border xl:block">
+    <div className="grid gap-4 px-4 min-[861px]:px-6">
+      <PageHeader
+        title="Blueprint"
+        summary="The plan for every section. You approve it before any writing starts."
+        actions={
+          screen === "empty" ? undefined : (
+            <VersionChip
+              version={version}
+              total={versions.length}
+              approved={false}
+              items={versions.map((v) => ({ version: v.version, when: formatRelative(v.at), note: v.note, detail: formatUsd(v.cost) }))}
+              actionLabel="Restore"
+              onAction={restore}
+              actionDisabledReason={busy ? "Wait for the current run to finish." : undefined}
+            />
+          )
+        }
+      />
+
+      {result && (
+        <Banner
+          tone="success"
+          title={result.text}
+          action={
+            <div className="flex gap-2">
+              {result.undo && (
+                <Button size="sm" onClick={undo}>
+                  Undo
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" onClick={() => setResult(null)}>
+                Dismiss
+              </Button>
+            </div>
+          }
+        />
+      )}
+
+      {failed && !building && screen !== "empty" && (
+        <Banner
+          tone="error"
+          title="The plan came back incomplete"
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                icon={RefreshCw}
+                onClick={() => {
+                  setScreen("loading");
+                  build.start({ durationMs: 5200, costUsd: BUILD_COST, steps: ["Planning"] });
+                }}
+              >
+                Try again
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setModelOpen(true)}>
+                Pick another model
+              </Button>
+            </div>
+          }
+        >
+          Chapters 6 to 10 were missing, so nothing was saved and nothing was charged. Version {version} is still the current plan.
+        </Banner>
+      )}
+
+      {building && (
+        <section aria-label="Building the blueprint" className="vol-glass rounded-card px-[18px] py-4">
+          <p className="text-label font-semibold text-ink">Building the blueprint. Parts fill in as they arrive.</p>
+          <ProgressBar
+            className="mt-3"
+            value={Math.round(build.progress * 100)}
+            max={100}
+            live
+            label="Blueprint progress"
+            valueText={`${formatUsd(build.cost)} so far, ${about(BUILD_COST)} in all`}
+          />
+        </section>
+      )}
+
+      {screen === "empty" && !building ? (
+        <EmptyState
+          drawing="page"
+          title="Build the blueprint"
+          body="The planner writes the summary, audience, every chapter with its subheadings, the front and back matter and the listing, using the research and the chosen title."
+          action={
+            !canWrite ? undefined : (
+              <Button
+                icon={Sparkles}
+                estimate={about(BUILD_COST)}
+                onClick={() => {
+                  setScreen("loading");
+                  build.start({ durationMs: 5200, costUsd: BUILD_COST, steps: ["Planning"] });
+                }}
+              >
+                Build the blueprint
+              </Button>
+            )
+          }
+        />
+      ) : (
+        !building && (
+          <>
+            <PlanCounts
+              items={[
+                { label: "Chapters", value: totals.chapters },
+                { label: "Words planned", value: totals.total },
+                { label: "Front and back parts", value: frontBackParts },
+                { label: "Listing keywords", value: listing.keywords.length },
+              ]}
+            />
+            <div className="grid items-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_320px]">
+              <OutlineCard
+                front={outlineFront}
+                chapters={outlineChapters}
+                back={outlineBack}
+                selectedKey={selectedId}
+                onSelect={setSelectedId}
+                onTitle={canWrite && !busy ? (id, title) => setParts((ps) => ps.map((p) => (p.id === id ? { ...p, title } : p))) : undefined}
+                tools={
+                  <>
+                    {canWrite && (
+                      <Button size="sm" variant="ghost" icon={ListTree} onClick={() => setOutlineOpen(true)}>
+                        Arrange sections
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" icon={BookOpen} onClick={() => showInPlan(null)}>
+                      Read the full plan
+                    </Button>
+                  </>
+                }
+              />
+
+              <aside
+                aria-label="Blueprint details"
+                className="vol-glass grid min-w-0 content-start rounded-card p-[18px] min-[1180px]:sticky min-[1180px]:top-(--shell-sticky-top)"
+              >
+                <div aria-live="polite">
+                  <SideLabel>{selectedPart?.group === "chapters" ? selectedLabel : selectedPart ? groupLabels[selectedPart.group] : "The book"}</SideLabel>
+                  <h3 className="mt-0.5 mb-1.5 font-book text-[17px] leading-[1.3] font-semibold text-ink [overflow-wrap:anywhere]">
+                    {selectedPart?.title ?? bp.title}
+                  </h3>
+                  {regen.status === "running" && regenTarget?.id === selectedId && (
+                    <p role="status" className="mb-1.5 flex items-center gap-2 text-small font-semibold text-mint-ink">
+                      <LiveDot /> Rewriting, {formatUsd(regen.cost)} so far.
+                    </p>
+                  )}
+                  <p className="text-[13.5px] leading-[1.55] text-ink-2">
+                    {selectedPart ? <PlanText text={selectedPart.note} prev={diff?.partId === selectedId ? diff.prev : null} /> : bp.summary}
+                  </p>
+                  {selectedPart?.chapter && selectedPart.chapter.subheadings.length > 0 && (
+                    <>
+                      <SideLabel>Subheadings</SideLabel>
+                      <ol className="grid list-decimal gap-1.5 pl-[18px] text-[13px] text-ink-2 marker:text-ink-3">
+                        {selectedPart.chapter.subheadings.map((s) => (
+                          <li key={s}>{s}</li>
+                        ))}
+                      </ol>
+                    </>
+                  )}
+                  {selectedPart && !selectedPart.on && <p className="mt-2 text-small text-amber">This part is off. Switch it on in Arrange sections.</p>}
+                  {selectedPart && selectedPart.wordTarget !== null && (
+                    <div className="mt-3">
+                      {canWrite ? (
+                        <Input
+                          key={`${selectedId}-${selectedPart.wordTarget}`}
+                          label="Word target"
+                          inputMode="numeric"
+                          defaultValue={String(selectedPart.wordTarget)}
+                          onBlur={(e) => {
+                            const n = Number(e.target.value.replace(/[^\d]/g, ""));
+                            if (n > 0) setParts((ps) => ps.map((p) => (p.id === selectedId ? { ...p, wordTarget: n } : p)));
+                          }}
+                          hint={selectedPart.group === "chapters" ? "Chapters run 2,000 to 4,000 words. Each is written within 15% of its target." : undefined}
+                        />
+                      ) : (
+                        <p className="flex justify-between text-[13px]">
+                          <span className="text-ink-3">Word target</span>
+                          <span className="num font-medium text-ink">{formatNumber(selectedPart.wordTarget)}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {selectedClaims.length > 0 && (
+                    <ul className="mt-3 grid gap-1.5">
+                      {selectedClaims.map((c) => (
+                        <li key={c.id} className="rounded-control bg-claim-wash px-2.5 py-2 text-small text-ink">
+                          <b className="block font-semibold">Claim to verify</b>
+                          {c.text} <span className="text-ink-2">{c.reason}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {canWrite && (
+                      <Button
+                        size="sm"
+                        icon={RefreshCw}
+                        estimate={regenEstimate}
+                        loading={regen.status === "running"}
+                        loadingLabel="Rewriting"
+                        disabledReason={busy && regen.status !== "running" ? "Wait for the blueprint to finish." : undefined}
+                        onClick={openRegen}
+                      >
+                        Regenerate {selectedPart?.group === "chapters" ? "chapter" : "part"}
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" onClick={() => showInPlan(selectedId)}>
+                      Show in the full plan
+                    </Button>
+                  </div>
+                </div>
+
+                <hr className="mt-4 border-line" />
+                <SideLabel>The whole book</SideLabel>
+                <p className="text-[13.5px] leading-[1.55] text-ink-2">{bp.summary}</p>
+                <CheckList
+                  items={[
+                    { key: "chapters", ok: totals.chapters >= 6, label: `${totals.chapters} chapters with summaries` },
+                    { key: "matter", ok: !parts.some((p) => p.required && !p.on), label: "Front and back matter set" },
+                    { key: "listing", ok: listing.keywords.length === KEYWORDS_MAX, label: `Listing drafted, ${listing.keywords.length} keywords` },
+                    {
+                      key: "range",
+                      ok: inRange,
+                      label: `${formatNumber(totals.total)} words, template range ${formatNumber(RANGE.min)} to ${formatNumber(RANGE.max)}`,
+                    },
+                  ]}
+                />
+                {missing.length > 0 && (
+                  <div className="rounded-control bg-amber-wash px-3 py-2.5">
+                    <p className="text-small font-semibold text-ink">Before you approve</p>
+                    <ul className="mt-1 grid gap-1">
+                      {missing.map((m) => (
+                        <li key={m.text} className="text-small text-ink">
+                          {m.partId ? (
+                            <button type="button" onClick={() => showInPlan(m.partId)} className="text-left underline underline-offset-2">
+                              {m.text}
+                            </button>
+                          ) : (
+                            m.text
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {openClaims.length > 0 && (
+                  <>
+                    <SideLabel>Claims to verify, {openClaims.length}</SideLabel>
+                    <ul className="grid gap-1">
+                      {openClaims.map((c) => (
+                        <li key={c.id}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedId(`chapter-${c.chapter}`)}
+                            className="w-full rounded-sm py-1 text-left text-[13px] text-ink hover:text-mint-ink"
+                          >
+                            {c.location}
+                            <span className="block text-small text-ink-2">{c.reason}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-1.5 text-small text-ink-3">Claims stay open into writing. You resolve them in the Editor.</p>
+                  </>
+                )}
+
+                <SideLabel>Model and spend</SideLabel>
+                <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 text-[13px]">
+                  <dt className="text-ink-3">Model</dt>
+                  <dd className="text-right font-medium text-ink">
+                    <ModelName slug={modelSlug} />
+                    {model ? `, ${model.provider}` : ""}
+                  </dd>
+                  {costRows.map((r) => (
+                    <Fragment key={r.label}>
+                      <dt className="text-ink-3">{r.label}</dt>
+                      <dd className="num text-right font-medium text-ink">{formatUsd(r.usd)}</dd>
+                    </Fragment>
+                  ))}
+                  <dt className="font-semibold text-ink">Spent so far</dt>
+                  <dd className="num text-right font-semibold text-ink">{formatUsd(spent)}</dd>
+                </dl>
+                {canWrite && (
+                  <Button size="sm" variant="ghost" className="mt-2 justify-self-start" onClick={() => setModelOpen(true)}>
+                    Change model
+                  </Button>
+                )}
+
+                <SideLabel>Tone</SideLabel>
+                <ul className="grid gap-1">
+                  {bp.toneNotes.map((t) => (
+                    <li key={t} className="font-book text-[13.5px] text-ink-2 italic">
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+
+                <SideLabel>Versions</SideLabel>
+                <VersionList
+                  items={versions.map((v) => ({ version: v.version, note: v.note, detail: formatUsd(v.cost) }))}
+                  current={version}
+                  actionLabel="Restore"
+                  onAction={restore}
+                  disabledReason={busy ? "Wait for the current run to finish." : undefined}
+                />
+              </aside>
+            </div>
+          </>
+        )
+      )}
+
+      <DemoStates
+        value={screen}
+        onChange={(s) => {
+          build.reset();
+          setScreen(s);
+          if (s === "loading") build.start({ durationMs: 5200, costUsd: BUILD_COST, steps: ["Planning"] });
+        }}
+      />
+
+      <Modal
+        open={outlineOpen}
+        onClose={() => setOutlineOpen(false)}
+        title="Arrange sections"
+        description="Switch parts on or off and change their order. Required parts stay on."
+        footer={
+          <Button variant="ghost" onClick={() => setOutlineOpen(false)}>
+            Done
+          </Button>
+        }
+      >
         <OutlineRail
           parts={parts}
           selectedId={selectedId}
-          onSelect={select}
+          onSelect={setSelectedId}
           onToggle={toggle}
           onMove={move}
           onDrop={dropBefore}
@@ -355,216 +692,39 @@ function BlueprintScreen({ book }: { book: Book }) {
           numbers={numbers}
           locked={false}
         />
-      </div>
+      </Modal>
 
-      <div ref={canvasRef} className="min-h-0 min-w-0 lg:overflow-y-auto">
-        <PageHeader
-          title="Blueprint"
-          titleHidden
-          actions={
-            screen === "empty" ? undefined : (
-              <VersionChip
-                version={version}
-                total={versions.length}
-                approved={false}
-                items={versions.map((v) => ({ version: v.version, when: formatRelative(v.at), note: v.note, detail: formatUsd(v.cost) }))}
-                actionLabel="Restore"
-                onAction={restore}
-                actionDisabledReason={busy ? "Wait for the current run to finish." : undefined}
-              />
-            )
-          }
+      <Modal
+        open={planOpen}
+        onClose={() => setPlanOpen(false)}
+        size="lg"
+        title={`Full plan, version ${version}`}
+        description="Every part of the blueprint as the writer will read it, with the listing you can edit."
+        footer={
+          <Button variant="ghost" onClick={() => setPlanOpen(false)}>
+            Close
+          </Button>
+        }
+      >
+        <Galley
+          parts={parts}
+          numbers={numbers}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          penName={pen?.name ?? ""}
+          shortBio={pen?.shortBio ?? ""}
+          claims={openClaims}
+          version={version}
+          versionCount={versions.length}
+          notes={notes}
+          diff={diff}
+          regenerating={regen.status === "running" && regenTarget ? { partId: regenTarget.id, cost: regen.cost } : null}
+          building={null}
+          locked={!canWrite}
+          listing={listing}
+          onListing={setListing}
         />
-        <div className="px-4 pt-4 sm:px-6 xl:hidden">
-          <button
-            type="button"
-            aria-expanded={outlineOpen}
-            onClick={() => setOutlineOpen((o) => !o)}
-            className="flex h-11 w-full items-center gap-2 rounded-md border border-border bg-sheet px-4 text-label text-ink hover:bg-sunken"
-          >
-            <ListTree size={16} aria-hidden />
-            Outline
-            <span className="text-small text-ink-tertiary">
-              {parts.filter((p) => p.on).length + 1} sections on. Selected: {selectedLabel}
-            </span>
-            <ChevronDown size={16} aria-hidden className={cn("ml-auto transition-transform duration-(--vol-dur-fast)", outlineOpen && "rotate-180")} />
-          </button>
-          {outlineOpen && (
-            <div className="mt-2 rounded-md border border-border bg-canvas">
-              <OutlineRail
-                parts={parts}
-                selectedId={selectedId}
-                onSelect={select}
-                onToggle={toggle}
-                onMove={move}
-                onDrop={dropBefore}
-                claimCounts={claimCounts}
-                numbers={numbers}
-                locked={false}
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="grid gap-4 px-3 pt-4 pb-8 sm:px-6 xl:pt-5">
-          {result && (
-            <Banner
-              tone="success"
-              title={result.text}
-              action={
-                <div className="flex gap-2">
-                  {result.undo && (
-                    <Button size="sm" onClick={undo}>
-                      Undo
-                    </Button>
-                  )}
-                  <Button size="sm" variant="ghost" onClick={() => setResult(null)}>
-                    Dismiss
-                  </Button>
-                </div>
-              }
-            />
-          )}
-
-          {failed && !building && screen !== "empty" && (
-            <Banner
-              tone="error"
-              title="The plan came back incomplete"
-              action={
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    icon={RefreshCw}
-                    onClick={() => {
-                      setScreen("loading");
-                      build.start({ durationMs: 5200, costUsd: BUILD_COST, steps: ["Planning"] });
-                    }}
-                  >
-                    Try again
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setModelOpen(true)}>
-                    Pick another model
-                  </Button>
-                </div>
-              }
-            >
-              Chapters 6 to 10 were missing, so nothing was saved and nothing was charged. Version {version} is still the current plan.
-            </Banner>
-          )}
-
-          {building && (
-            <section aria-label="Building the blueprint" className="relative overflow-hidden rounded-lg border border-border bg-sheet px-5 py-4 shadow-sheet">
-              <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-accent" />
-              <p className="text-label font-semibold text-ink">Building the blueprint. Parts fill in as they arrive.</p>
-              <ProgressBar
-                className="mt-3"
-                value={Math.round(build.progress * 100)}
-                max={100}
-                live
-                label="Blueprint progress"
-                valueText={`${formatUsd(build.cost)} so far, ${about(BUILD_COST)} in all`}
-              />
-            </section>
-          )}
-
-          {screen === "empty" && !building ? (
-            <EmptyState
-              drawing="page"
-              title="Build the blueprint"
-              body="The planner writes the summary, audience, every chapter with its subheadings, the front and back matter and the listing, using the research and the chosen title."
-              action={
-                !canWrite ? undefined : (
-                  <Button
-                    icon={Sparkles}
-                    estimate={about(BUILD_COST)}
-                    onClick={() => {
-                      setScreen("loading");
-                      build.start({ durationMs: 5200, costUsd: BUILD_COST, steps: ["Planning"] });
-                    }}
-                  >
-                    Build the blueprint
-                  </Button>
-                )
-              }
-            />
-          ) : (
-            <>
-              {!building && (
-                <>
-                  <PlanCounts
-                    items={[
-                      { label: "Chapters", value: totals.chapters },
-                      { label: "Words planned", value: totals.total },
-                      { label: "Front and back parts", value: frontBackParts },
-                      { label: "Listing keywords", value: listing.keywords.length },
-                    ]}
-                  />
-                  <ChapterPlan
-                    chapters={planChapters}
-                    selectedKey={planId}
-                    onSelect={(id) => {
-                      setPlanId(id);
-                      setSelectedId(id);
-                    }}
-                    onShow={select}
-                  />
-                </>
-              )}
-              <Galley
-                parts={parts}
-                numbers={numbers}
-                selectedId={selectedId}
-                onSelect={select}
-                penName={pen?.name ?? ""}
-                shortBio={pen?.shortBio ?? ""}
-                claims={openClaims}
-                version={version}
-                versionCount={versions.length}
-                notes={notes}
-                diff={diff}
-                regenerating={regen.status === "running" && regenTarget ? { partId: regenTarget.id, cost: regen.cost } : null}
-                building={building ? build.progress : null}
-                locked={false}
-                listing={listing}
-                onListing={setListing}
-              />
-            </>
-          )}
-
-          <DemoStates
-            value={screen}
-            onChange={(s) => {
-              build.reset();
-              setScreen(s);
-              if (s === "loading") build.start({ durationMs: 5200, costUsd: BUILD_COST, steps: ["Planning"] });
-            }}
-          />
-        </div>
-      </div>
-
-      <BlueprintInspector
-        version={version}
-        versions={versions}
-        totals={totals}
-        range={RANGE}
-        toneNotes={bp.toneNotes}
-        modelSlug={modelSlug}
-        onChangeModel={() => setModelOpen(true)}
-        costRows={costRows}
-        spent={spent}
-        regenerating={regen.status === "running" && regenTarget ? { label: regenTarget.label, cost: regen.cost } : null}
-        claims={openClaims}
-        onClaim={(c) => select(`chapter-${c.chapter}`)}
-        selected={{ id: selectedId, label: selectedLabel, part: selectedPart ?? null }}
-        onWordTarget={(id, n) => setParts((ps) => ps.map((p) => (p.id === id ? { ...p, wordTarget: n } : p)))}
-        missing={missing}
-        onFix={select}
-        onRestore={restore}
-        regenerateEstimate={regenEstimate}
-        onRegenerate={openRegen}
-        busy={busy || screen === "empty"}
-      />
-
+      </Modal>
       <Modal
         open={regenOpen}
         onClose={() => setRegenOpen(false)}
@@ -671,4 +831,26 @@ function BlueprintScreen({ book }: { book: Book }) {
 function replaceGroup(all: OutlinePart[], group: OutlinePart["group"], ordered: OutlinePart[]): OutlinePart[] {
   let k = 0;
   return all.map((p) => (p.group === group ? (ordered[k++] as OutlinePart) : p));
+}
+
+/** A part's plan text; after a regeneration the new words are marked in blue pencil. */
+function PlanText({ text, prev }: { text: string; prev: string | null }) {
+  if (prev === null) return <>{text}</>;
+  return (
+    <>
+      {insertedWords(prev, text).map((w, i) =>
+        w.added ? (
+          <Fragment key={i}>
+            {i > 0 && " "}
+            <mark className="rounded-xs bg-select-wash text-select">{w.word}</mark>
+          </Fragment>
+        ) : (
+          <Fragment key={i}>
+            {i > 0 && " "}
+            {w.word}
+          </Fragment>
+        ),
+      )}
+    </>
+  );
 }

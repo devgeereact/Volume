@@ -1,32 +1,35 @@
 import { useLayoutEffect, useRef } from "react";
 import { Link } from "react-router";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, House } from "lucide-react";
 import { BookSteps } from "../components/ui/BookSteps";
 import { Tooltip } from "../components/ui/Tooltip";
 import { bookSteps } from "../demo/books";
 import type { Book, BookStepId } from "../demo/types";
 import type { StepAction } from "../lib/stepAction";
 import { bookStepPath } from "../screens";
+import { cn } from "../lib/cn";
 import { StepActionButton } from "./StepActionButton";
 
 interface StepRailProps {
   book: Book;
   /** Pen name (kept for callers; the approved step bar shows no cover). */
   author: string;
-  current: BookStepId;
+  /** The step on screen, or "overview" for the book's Overview page. */
+  current: BookStepId | "overview";
   runningBookId: string | null;
   /** The screen's main action, shown here only on full-height steps (they have no step head). */
   action: StepAction | null;
 }
 
-/** Where Previous and Next go: the step order, with the Library before the first step and after the last. */
-export function railTargets(book: Book, current: BookStepId) {
-  const i = bookSteps.findIndex((s) => s.id === current);
+/** Where Previous and Next go: Overview, then the steps in order, with the Library before Overview and after the last step. */
+export function railTargets(book: Book, current: BookStepId | "overview") {
+  const i = current === "overview" ? -1 : bookSteps.findIndex((s) => s.id === current);
   const prev = i > 0 ? bookSteps[i - 1] : undefined;
-  const next = i >= 0 && i < bookSteps.length - 1 ? bookSteps[i + 1] : undefined;
+  const next = i < bookSteps.length - 1 ? bookSteps[i + 1] : undefined;
+  const toOverview = i === 0;
   return {
-    prevTo: prev ? bookStepPath(book.id, prev.id) : "/library",
-    prevLabel: prev ? `Previous step: ${prev.label}` : "Back to the Library",
+    prevTo: prev ? bookStepPath(book.id, prev.id) : toOverview ? `/books/${book.id}/overview` : "/library",
+    prevLabel: prev ? `Previous step: ${prev.label}` : toOverview ? "Back to the book overview" : "Back to the Library",
     nextTo: next ? bookStepPath(book.id, next.id) : book.published ? "/published" : "/library",
     nextName: next ? next.label : book.published ? "Published" : "Library",
   };
@@ -72,7 +75,19 @@ export function StepRail({ book, current, runningBookId, action }: StepRailProps
             <ChevronLeft size={18} strokeWidth={1.8} aria-hidden />
           </Link>
         </Tooltip>
-        <BookSteps book={book} current={current} runningBookId={runningBookId} className="flex-1 basis-0" />
+        <Link
+          to={`/books/${book.id}/overview`}
+          aria-current={current === "overview" ? "page" : undefined}
+          className={cn(
+            "flex h-9 shrink-0 items-center gap-1.5 rounded-[11px] px-[9px] text-[13px] font-medium whitespace-nowrap transition-colors duration-(--vol-dur-fast) ease-out",
+            current === "overview" ? "bg-btn text-on-btn" : "text-ink-2 hover:bg-soft hover:text-ink",
+          )}
+        >
+          <House size={15} strokeWidth={1.8} aria-hidden />
+          <span className={cn(current !== "overview" && "max-[760px]:sr-only")}>Overview</span>
+        </Link>
+        <span aria-hidden className="h-[22px] w-px shrink-0 bg-line-2" />
+        <BookSteps book={book} current={current === "overview" ? null : current} runningBookId={runningBookId} className="flex-1 basis-0" />
         {action && <StepActionButton action={action} compact className="max-w-[40%] max-[760px]:order-last max-[760px]:max-w-none max-[760px]:basis-full" />}
         <Link
           to={t.nextTo}

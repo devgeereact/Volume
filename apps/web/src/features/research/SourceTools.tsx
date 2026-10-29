@@ -39,14 +39,11 @@ export function sourceMatches(f: Pick<SourceFilterState, "query" | "show">, used
 /** A row of figures over the dossier. Each value is counted from the loaded run. */
 export function ResearchCounts({ items, className }: { items: { label: string; value: number }[]; className?: string | undefined }) {
   return (
-    <dl
-      aria-label="Research in numbers"
-      className={cn("grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-3 xl:grid-cols-5", className)}
-    >
+    <dl aria-label="Research in numbers" className={cn("grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5", className)}>
       {items.map((it) => (
-        <div key={it.label} className="grid content-start gap-0.5 bg-sheet px-4 py-3">
-          <dt className="order-2 text-small text-ink-secondary">{it.label}</dt>
-          <dd className="num order-1 font-book text-heading text-ink">{it.value}</dd>
+        <div key={it.label} className="vol-glass grid content-start rounded-[16px] px-3.5 py-3">
+          <dt className="order-2 text-[12px] text-ink-2">{it.label}</dt>
+          <dd className="num order-1 text-[20px] leading-tight font-bold tracking-[-0.01em] text-ink">{it.value}</dd>
         </div>
       ))}
     </dl>

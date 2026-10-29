@@ -278,14 +278,10 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
     await expect(stepButton("Continue to blueprint")).toBeEnabled({ timeout: JOB_WAIT });
     await expect(main.getByRole("button", { name: "Use this title" }).first()).toBeVisible();
 
-    const use = main.getByRole("button", { name: "Use this title" }).first();
-    const option = use.locator("xpath=ancestor::li[1]");
-    const chosenTitle = (
-      (await option
-        .locator("h3 > span")
-        .first()
-        .evaluate((el) => el.childNodes[0]?.textContent ?? "")) ?? ""
-    ).trim();
+    // The right card shows the first option until another row is pressed; Use this title chooses it.
+    const option = main.locator('[data-title-option][data-previewing="true"]').first();
+    const chosenTitle = ((await option.locator("[data-title-text]").first().textContent()) ?? "").trim();
+    const use = page.getByRole("complementary", { name: "Titles details" }).getByRole("button", { name: "Use this title" });
     expect(chosenTitle.length).toBeGreaterThan(0);
     await use.click();
     await expect(page.getByRole("complementary", { name: "Titles details" }).getByText(chosenTitle, { exact: true }).first()).toBeVisible();
