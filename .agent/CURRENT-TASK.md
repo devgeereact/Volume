@@ -1,5 +1,14 @@
 # Current task
 
+## State on 28 October 2026 (studio redesign, stages 0 to 2)
+
+- Plan: `docs/08-change-management/plans/2026-10-28-studio-redesign.md` (owner approved, stage by stage, one PR each, every deploy needs the owner's yes).
+- Stage 0 merged: PR #76 (6fe89a2 on main). Not deployed.
+- Stage 1 (frost and glass shell, D-065): PR #77 from `feat/studio-shell`, open. Gate PASS: typecheck, lint, format, docs, web 240, e2e 20.
+- Stage 2 (StepRail, StepHead, Up next): committed on `feat/studio-steps`, cut from `feat/studio-shell`; PR open, merge after #77.
+- Open owner questions: deploy timing (stage 0 alone or with stage 1); bring back the stop-time handoff hook (commit 5ef1177, made by another session)?
+- Later: stage 3 library, 4 step pages (also drop budget lines, D-057), 5 cover studio, 6 trims from KDP help (verify each value against the raw page), 7 deploy.
+
 ## State on 28 October 2026 (prompt caching, local only, nothing committed)
 
 - Anthropic reported a low prompt cache hit rate. Cause: direct Anthropic calls (D-058) sent no `cache_control`. Built (D-063): system part marked `ephemeral` in `packages/ai/src/provider/anthropic.ts`, Fable 5.1 cache read price fixed ($0.25), guard test `packages/ai/test/prompt-caching.test.ts`. Gate: typecheck, lint, format, docs PASS; ai 261 and server 559 tests PASS. Not tested live (needs `LIVE_AI=1` and a budget).
