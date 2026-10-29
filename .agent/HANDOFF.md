@@ -790,3 +790,13 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Checks PASS: deploy script (health 200, sign-in enforced, `/assets/index-D5bnQAbG.js`); `/api/health` `{"status":"ok"}`; `/api/v1/books` 401 signed out; `/`, `/library`, `/robots.txt` 200. Not checked: signed-in pages in a browser. Deploy SSH agent stopped afterwards.
 - Note: #80 was merged while its macOS check was still pending; main CI on `ec9e603` passed before the deploy.
 - Stage 4b (Blueprint chapter plan and version history, Writing live counts) built on `feat/studio-blueprint-writing`, uncommitted. Agent gate: typecheck, lint, format PASS, web 244, e2e 20 (twice). Screenshots in `../reports/volume/studio-redesign/stage4b/`.
+
+## 29 October 2026, Claude Code (Opus 5.5): the approved Volume Studio design, every screen
+
+- Owner: what was live "is totally different from what's in the approved artifacts"; build it, commit, push and deploy it all. Owner approved `@fontsource-variable/manrope` 5.3.0.
+- Source of truth: the "Volume Studio" artifact (claude.ai, frost edition). Approved screenshots: scratchpad `approved-shots/`.
+- Branch `feat/studio-approved-design` (from stage 4b): foundation (tokens, scene, side card with status box, top bar, step bar; bottom job bar removed) then five page branches merged: `feat/approved-library`, `feat/approved-steps-a` (new Overview page and tab), `feat/approved-steps-b`, `feat/approved-cover`, `feat/approved-admin`. Writing and Editor now get the step head; the side-card profile switcher is removed (Library has All profiles).
+- Docs: D-066 (supersedes D-065), DESIGN-SYSTEM studio shell, UX-SPEC, CHANGELOG.
+- Checks PASS: typecheck, lint, format:check, docs:check; unit tests core 185, ai 265, export 206, server 559, web 257; e2e 20/20. Screenshots in `../reports/volume/studio-approved/`.
+- Not built: cover gradient, image and shape layers (need cover spec and print parity; list in the cover agent's report); editor bold, italic and lists (manuscript stores plain text). `BlueprintInspector.tsx` and the Schibsted Grotesk package are unused; removing them needs the owner's OK.
+- Next: owner merges the PR, unlocks the deploy key, deploy.
