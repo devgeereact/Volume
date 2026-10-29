@@ -89,10 +89,10 @@ function ebook(epub: ApiExportRecord | undefined, price: number | null): Part {
 function Block({ title, part }: { title: string; part: Part }) {
   return (
     <div className="grid content-start gap-2">
-      <h3 className="text-label font-semibold text-ink">{title}</h3>
+      <h3 className="text-[13.5px] leading-5 font-semibold text-ink">{title}</h3>
       {part.lines.length > 0 && <KeyValueList items={part.lines} />}
       {part.notes.map((n) => (
-        <p key={n} className="text-small text-ink-secondary">
+        <p key={n} className="text-[12.5px] text-ink-3">
           {n}
         </p>
       ))}
@@ -114,19 +114,19 @@ export function ApiRoyalties({
   const pages = pdf && pdf.status === "done" ? pdf.pageCount : null;
   const noPrices = !listPrices || (listPrices.paperback === null && listPrices.ebook === null);
   return (
-    <section aria-labelledby="royalties-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="royalties-title" className="font-book text-heading text-ink">
-          Royalties and printing cost
+    <section aria-labelledby="royalties-title" className="vol-glass min-w-0 rounded-card p-[18px] max-[560px]:p-[15px]">
+      <div className="grid gap-0.5">
+        <h2 id="royalties-title" className="text-[15px] leading-5 font-semibold text-ink">
+          Royalty calculator
         </h2>
-        <p className="text-small text-ink-secondary">amazon.co.uk, KDP rules {rules.version}</p>
+        <p className="text-[12.5px] text-ink-3">Royalties and printing cost on amazon.co.uk, KDP rules {rules.version}.</p>
       </div>
-      <div className="mt-4 grid gap-6 sm:grid-cols-2">
+      <div className="mt-4 grid gap-5">
         <Block title="Paperback" part={paperback(pages, listPrices?.paperback ?? null, trim)} />
         <Block title="Kindle eBook" part={ebook(epub && epub.status === "done" ? epub : undefined, listPrices?.ebook ?? null)} />
       </div>
       {noPrices && (
-        <p className="mt-4 text-small text-ink-secondary">Royalties need a list price. Add the prices on the Published shelf once the book is published.</p>
+        <p className="mt-4 text-[12.5px] text-ink-3">Royalties need a list price. Add the prices on the Published shelf once the book is published.</p>
       )}
     </section>
   );

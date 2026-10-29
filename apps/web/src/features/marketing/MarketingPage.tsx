@@ -1,7 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCanWrite } from "../../lib/access";
-import { Archive, Check, Copy, RotateCcw, RotateCw, ShieldCheck, Sparkles } from "lucide-react";
-import { Button, Card, EmptyState, Inspector, InspectorSection, PageHeader, Skeleton, StatusChip, Tabs, tabPanelProps } from "../../components/ui";
+import { Archive, Check, Copy, RotateCcw, RotateCw, Sparkles } from "lucide-react";
+import { Button, EmptyState, InspectorSection, PageHeader, Skeleton, tabPanelProps } from "../../components/ui";
+import { buttonClasses } from "../../components/ui/Button";
+import { cardTitle, stepBody } from "../writing/studio";
+import {
+  BusyPreview,
+  ChannelTabs,
+  channelLabel,
+  GalleryItem,
+  galleryGrid,
+  Guardrails,
+  kitCard,
+  kitColours,
+  KitEmpty,
+  LaunchHero,
+  PostPreview,
+  type Channel,
+} from "./LaunchKit";
+import { PostDetail } from "./PostDetail";
 import { Link } from "react-router";
 import type { Book } from "../../demo";
 import { cn } from "../../lib/cn";
@@ -17,7 +34,7 @@ import { initialArchive, initialItems, itemText, nextItem, spokenSeconds, type A
 /* Marketing (docs/03-design/UX-SPEC.md, M12): TikTok scripts, Instagram captions and a launch email per book.
    Regenerate and Generate are mock jobs with timers; copy uses the clipboard and confirms with a toast. */
 
-type Tab = ItemKind | "archive";
+type Tab = Channel;
 const GEN_MS = 1200;
 const DEMO_NOW = "2026-10-04T14:40:00+01:00";
 const kindLabel: Record<ItemKind, string> = { tiktok: "TikTok script", instagram: "Instagram caption", email: "Launch email" };
@@ -38,18 +55,18 @@ export default function MarketingPage() {
   if (!book) return <NotFound what="book" />;
   if (from === "api")
     return (
-      <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
+      <div className={cn(stepBody, "grid gap-4")}>
         <ApiMarketing key={book.id} book={book} />
       </div>
     );
   return (
-    <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
-      {state === "loading" && <LoadingBlock label="Loading marketing" rows={6} />}
+    <div className={cn(stepBody, "grid gap-4")}>
+      {state === "loading" && <LoadingBlock label="Loading marketing" rows={6} className="vol-glass rounded-card p-6" />}
       {state === "error" && (
         <>
           <PageHeader title="Marketing" />
           <ErrorPanel
-            className="mt-5 max-w-[720px]"
+            className="max-w-[720px]"
             title="Could not load the launch content"
             body="The server did not answer. Nothing was lost. Retry to load the scripts again."
             onRetry={retry}
@@ -74,21 +91,15 @@ export function LockedNotice({ book }: { book: Book }) {
   const writing = book.stage === "writing";
   const { tiktok, instagram } = book.marketingCounts;
   return (
-    <section
-      aria-labelledby="not-yet"
-      className="mt-5 grid max-w-[860px] gap-5 rounded-md border border-border bg-sheet p-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-8 sm:p-6"
-    >
+    <section aria-labelledby="not-yet" className="vol-glass grid gap-5 rounded-card p-[18px] sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-8 sm:p-[22px]">
       <div>
-        <h2 id="not-yet" className="font-book text-heading text-ink">
+        <h2 id="not-yet" className="text-[15px] leading-5 font-semibold text-ink">
           Opens when writing is finished
         </h2>
-        <p className="mt-2 text-body text-ink-secondary">
+        <p className="mt-1.5 text-[14px] leading-[1.5] text-ink-2">
           {MARKETING_LOCKED} Volume then drafts the launch content from the finished text, so every line can point to a real chapter.
         </p>
-        <Link
-          to={`/books/${book.id}/writing`}
-          className="mt-4 inline-flex h-10 items-center rounded-sm border border-border-strong bg-sheet px-4 text-label font-semibold text-ink hover:bg-sunken"
-        >
+        <Link to={`/books/${book.id}/writing`} className={cn(buttonClasses("secondary", "md"), "mt-4")}>
           {writing ? "Watch the writer" : "Open Writing"}
         </Link>
       </div>
@@ -115,6 +126,7 @@ export function LockedNotice({ book }: { book: Book }) {
 
 function MarketingBody({ book, empty }: { book: Book; empty: boolean }) {
   const canWrite = useCanWrite();
+  const author = useBook().penName?.name ?? "";
   const locked = book.writingComplete ? undefined : MARKETING_LOCKED;
   const toast = useToast();
   const [items, setItems] = useState<MarketingItem[]>(() => (empty ? [] : initialItems(book)));
@@ -192,16 +204,6 @@ function MarketingBody({ book, empty }: { book: Book; empty: boolean }) {
     setItems((list) => list.map((i) => (i.data.id === item.data.id ? { ...i, status: i.status === "used" ? "draft" : "used" } : i)));
   }
 
-  const tabItems = useMemo(() => {
-    const count = (k: MarketingItem["kind"]) => items.filter((i) => i.kind === k).length;
-    return [
-      { id: "tiktok", label: "TikTok", count: count("tiktok") },
-      { id: "instagram", label: "Instagram", count: count("instagram") },
-      { id: "email", label: "Email", count: count("email") },
-      { id: "archive", label: "Archive", count: archive.length },
-    ];
-  }, [items, archive]);
-
   useStepAction(
     tab === "archive"
       ? null
@@ -213,97 +215,166 @@ function MarketingBody({ book, empty }: { book: Book; empty: boolean }) {
         },
   );
 
+  const counts: Record<Channel, number> = {
+    tiktok: byKind("tiktok").length,
+    instagram: byKind("instagram").length,
+    email: byKind("email").length,
+    archive: archive.length,
+  };
+  const hashtags = new Set(items.flatMap((i) => (i.kind === "email" ? [] : i.data.hashtags))).size;
+  const nothingYet = items.length === 0 && archive.length === 0 && generating === null;
+  const selectedIndex = selected ? list.findIndex((i) => i.data.id === selected.data.id) : -1;
+
   return (
     <>
-      <PageHeader title="Marketing" summary="Launch content for this book. Copy what you need, regenerate what you do not." />
+      <PageHeader title="Marketing" summary="Launch scripts and posts written from the book. Change them before you post." />
+      <LaunchHero
+        book={book}
+        author={author}
+        live={items.length > 0}
+        counts={{
+          tiktok: items.length > 0 ? counts.tiktok : book.marketingCounts.tiktok,
+          instagram: items.length > 0 ? counts.instagram : book.marketingCounts.instagram,
+          email: items.length > 0 ? counts.email : 1,
+          hashtags,
+        }}
+      />
       {locked && <LockedNotice book={book} />}
-      <Tabs idBase="mk" label="Content type" className="mt-5" value={tab} onChange={(t) => setTab(t as Tab)} items={tabItems} />
-
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_var(--vol-inspector)]">
-        <div {...tabPanelProps("mk", tab)} className="grid min-w-0 content-start gap-4 focus-visible:outline-offset-4">
-          {tab === "archive" ? (
-            archive.length === 0 ? (
-              <EmptyState drawing="archive" title="Nothing archived" body="Archived and replaced items land here, so nothing is lost." />
-            ) : (
-              <ul className="grid gap-3">
-                {archive.map((a) => (
-                  <li key={a.item.data.id}>
-                    <Card padding="md" className="flex flex-wrap items-start gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-small text-ink-secondary">
-                          {kindLabel[a.item.kind]}, {a.reason.toLowerCase()}, {formatRelative(a.archivedAt)}
-                        </p>
-                        <p className="mt-1 font-book text-prose-sm text-ink">{headline(a.item)}</p>
-                      </div>
-                      {canWrite && (
-                        <Button size="sm" icon={RotateCcw} onClick={() => restore(a.item.data.id)}>
-                          Restore
-                        </Button>
-                      )}
-                    </Card>
-                  </li>
-                ))}
-              </ul>
-            )
-          ) : (
-            <>
-              {generating === tab && (
-                <div role="status" aria-label="Generating" className="grid gap-3 rounded-md border border-border bg-sheet p-5">
-                  <Skeleton className="h-6 w-3/5" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-4/5" />
-                </div>
+      {nothingYet ? (
+        locked ? null : (
+          <KitEmpty book={book} label={generateLabel.tiktok.label} />
+        )
+      ) : (
+        <>
+          <ChannelTabs value={tab} onChange={setTab} counts={counts} />
+          <div className="grid grid-cols-1 items-start gap-4 min-[1025px]:grid-cols-[minmax(0,1fr)_320px]">
+            <section
+              {...tabPanelProps("mk", tab)}
+              aria-label={tab === "archive" ? "Archive" : `${channelLabel[tab]} previews`}
+              className={cn(kitCard, "min-w-0 focus-visible:outline-offset-4")}
+              style={kitColours(book)}
+            >
+              <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className={cardTitle}>{tab === "archive" ? "Archive" : `${channelLabel[tab]} previews`}</h2>
+                <small className="text-[12px] text-ink-3">
+                  {tab === "archive" ? "Replaced and archived items. Restore any of them." : "Pick one to read it in full"}
+                </small>
+              </div>
+              {tab === "archive" ? (
+                archive.length === 0 ? (
+                  <EmptyState
+                    drawing="archive"
+                    title="Nothing archived"
+                    body="Archived and replaced items land here, so nothing is lost."
+                    className="shadow-none"
+                  />
+                ) : (
+                  <ul className="grid gap-2.5">
+                    {archive.map((a) => (
+                      <li key={a.item.data.id} className="flex flex-wrap items-start gap-3 rounded-[14px] border border-line bg-panel-2 p-3.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[12px] text-ink-3">
+                            {kindLabel[a.item.kind]}, {a.reason.toLowerCase()}, {formatRelative(a.archivedAt)}
+                          </p>
+                          <p className="mt-1 font-book text-prose-sm text-ink">{headline(a.item)}</p>
+                        </div>
+                        {canWrite && (
+                          <Button size="sm" icon={RotateCcw} onClick={() => restore(a.item.data.id)}>
+                            Restore
+                          </Button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )
+              ) : (
+                <>
+                  {generating === tab && (
+                    <div role="status" aria-label="Generating" className="mb-4 grid gap-3 rounded-[14px] border border-line bg-panel-2 p-4">
+                      <Skeleton className="h-6 w-3/5" />
+                      <Skeleton className="h-4 w-full" />
+                    </div>
+                  )}
+                  {list.length === 0 && generating !== tab ? (
+                    <EmptyState
+                      drawing="pen"
+                      title={emptyCopy[tab]}
+                      className="shadow-none"
+                      body={
+                        locked ??
+                        `The writer drafts these from the finished chapters in the profile's voice. No reviews, rankings or numbers are invented. ${generateLabel[tab].label} makes the first ones.`
+                      }
+                    />
+                  ) : (
+                    <ul className={galleryGrid(tab)}>
+                      {list.map((item, i) => (
+                        <li key={item.data.id} className="min-w-0">
+                          <GalleryItem
+                            label={`${kindLabel[item.kind]}: ${headline(item)}`}
+                            n={i + 1}
+                            selected={selected?.data.id === item.data.id}
+                            busy={Boolean(busy[item.data.id])}
+                            onSelect={() => setSelectedId(item.data.id)}
+                          >
+                            {busy[item.data.id] ? <BusyPreview /> : <PostPreview book={book} author={author} item={item} />}
+                          </GalleryItem>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
               )}
-              {list.length === 0 && generating !== tab ? (
-                <EmptyState
-                  drawing="pen"
-                  title={emptyCopy[tab]}
-                  body={
-                    locked ??
-                    `The writer drafts these from the finished chapters in the profile's voice. No reviews, rankings or numbers are invented. ${generateLabel[tab].label}, at the foot of the page, makes the first ones.`
+            </section>
+
+            <aside aria-label="Selected item" className={cn(kitCard, "min-[1025px]:sticky min-[1025px]:top-[calc(var(--shell-sticky-top)+16px)]")}>
+              {selected && tab !== "archive" ? (
+                <PostDetail
+                  item={selected}
+                  index={Math.max(0, selectedIndex)}
+                  subjectIndex={subjectIdx[selected.data.id] ?? 0}
+                  onSubject={(i) => setSubjectIdx((m) => ({ ...m, [selected.data.id]: i }))}
+                  onCopy={() => void copy(itemText(selected, subjectIdx[selected.data.id] ?? 0), kindLabel[selected.kind])}
+                  busy={busy[selected.data.id] ? <BusyPreview /> : undefined}
+                  actions={
+                    canWrite ? (
+                      <>
+                        <Button
+                          size="sm"
+                          icon={RotateCw}
+                          estimate="about $0.01"
+                          loading={Boolean(busy[selected.data.id])}
+                          loadingLabel="Regenerating"
+                          disabledReason={locked}
+                          onClick={() => regenerate(selected)}
+                        >
+                          Regenerate
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={Check}
+                          onClick={() => toggleUsed(selected)}
+                          disabled={Boolean(busy[selected.data.id])}
+                          aria-pressed={selected.status === "used"}
+                        >
+                          {selected.status === "used" ? "Mark as draft" : "Mark as used"}
+                        </Button>
+                        <Button size="sm" variant="ghost" icon={Archive} onClick={() => archiveItem(selected)} disabled={Boolean(busy[selected.data.id])}>
+                          Archive
+                        </Button>
+                      </>
+                    ) : undefined
                   }
+                  parts={<SelectedPanel item={selected} subjectIndex={subjectIdx[selected.data.id] ?? 0} onCopy={(text, what) => void copy(text, what)} />}
                 />
               ) : (
-                <ul className="grid gap-4">
-                  {list.map((item) => (
-                    <li key={item.data.id}>
-                      <ItemCard
-                        item={item}
-                        selected={selected?.data.id === item.data.id}
-                        busy={Boolean(busy[item.data.id])}
-                        subjectIndex={subjectIdx[item.data.id] ?? 0}
-                        onSubject={(i) => setSubjectIdx((m) => ({ ...m, [item.data.id]: i }))}
-                        onSelect={() => setSelectedId(item.data.id)}
-                        onCopy={() => void copy(itemText(item, subjectIdx[item.data.id] ?? 0), kindLabel[item.kind])}
-                        onRegenerate={() => regenerate(item)}
-                        regenerateLocked={locked}
-                        onArchive={() => archiveItem(item)}
-                        onToggleUsed={() => toggleUsed(item)}
-                      />
-                    </li>
-                  ))}
-                </ul>
+                <p className="text-[13px] text-ink-2">{tab === "archive" ? "Restore an item to edit or copy it." : "Pick an item to read and copy it."}</p>
               )}
-            </>
-          )}
-        </div>
-
-        <Inspector label="Selected item" width="100%" className="self-start rounded-md border xl:sticky xl:top-[calc(var(--shell-topbar)+16px)]">
-          {selected && tab !== "archive" ? (
-            <SelectedPanel item={selected} subjectIndex={subjectIdx[selected.data.id] ?? 0} onCopy={(text, what) => void copy(text, what)} />
-          ) : (
-            <InspectorSection title="Selected item">
-              <p className="text-small text-ink-secondary">{tab === "archive" ? "Restore an item to edit or copy it." : "Pick an item to copy its parts."}</p>
-            </InspectorSection>
-          )}
-          <InspectorSection title="Guardrails" icon={ShieldCheck}>
-            <p className="text-small text-ink-secondary">
-              No invented reviews, testimonials, rankings or awards. Review requests ask for an honest review and offer nothing in return (KDP rules 10.6 and
-              10.7).
-            </p>
-          </InspectorSection>
-        </Inspector>
-      </div>
+              <Guardrails />
+            </aside>
+          </div>
+        </>
+      )}
       <span className="sr-only" role="status" aria-live="polite">
         {announce}
       </span>
@@ -315,79 +386,6 @@ export function headline(item: MarketingItem): string {
   if (item.kind === "tiktok") return item.data.hook;
   if (item.kind === "instagram") return item.data.caption;
   return item.data.subject;
-}
-
-interface ItemCardProps {
-  item: MarketingItem;
-  selected: boolean;
-  busy: boolean;
-  subjectIndex: number;
-  onSubject: (i: number) => void;
-  onSelect: () => void;
-  onCopy: () => void;
-  onRegenerate: () => void;
-  /** Why Regenerate is off (writing not complete), else undefined. */
-  regenerateLocked?: string | undefined;
-  onArchive: () => void;
-  onToggleUsed: () => void;
-}
-
-function ItemCard({ item, selected, busy, subjectIndex, onSubject, onSelect, onCopy, onRegenerate, regenerateLocked, onArchive, onToggleUsed }: ItemCardProps) {
-  const canWrite = useCanWrite();
-  return (
-    <article
-      aria-label={`${kindLabel[item.kind]}: ${headline(item)}`}
-      aria-busy={busy || undefined}
-      onFocusCapture={onSelect}
-      onClick={onSelect}
-      className={cn("rounded-md border bg-sheet p-5", selected ? "vol-pencil-edge border-select" : "border-border")}
-    >
-      {busy ? (
-        <div role="status" aria-label="Regenerating" className="grid gap-3">
-          <Skeleton className="h-6 w-3/5" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-4/5" />
-        </div>
-      ) : (
-        <>
-          <div className="flex flex-wrap items-center gap-2">
-            {item.status === "used" ? <StatusChip status="passed">Used</StatusChip> : <StatusChip status="queued">Draft</StatusChip>}
-            <span className="num text-small text-ink-secondary">{meta(item)}</span>
-          </div>
-          {item.kind === "tiktok" && <TikTokBody item={item} />}
-          {item.kind === "instagram" && <InstagramBody item={item} />}
-          {item.kind === "email" && <EmailBody item={item} subjectIndex={subjectIndex} onSubject={onSubject} />}
-        </>
-      )}
-      <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
-        <Button size="sm" icon={Copy} onClick={onCopy} disabled={busy}>
-          Copy
-        </Button>
-        {canWrite && (
-          <>
-            <Button
-              size="sm"
-              variant="ghost"
-              icon={RotateCw}
-              estimate="about $0.01"
-              loading={busy}
-              loadingLabel="Regenerating"
-              disabledReason={regenerateLocked}
-              onClick={onRegenerate}
-            >
-              Regenerate
-            </Button>
-            <Button size="sm" variant="ghost" icon={Check} onClick={onToggleUsed} disabled={busy} aria-pressed={item.status === "used"}>
-              {item.status === "used" ? "Mark as draft" : "Mark as used"}
-            </Button>
-            <Button size="sm" variant="ghost" icon={Archive} onClick={onArchive} disabled={busy} className="sm:ml-auto">
-              Archive
-            </Button>
-          </>
-        )}
-      </div>
-    </article>
-  );
 }
 
 export function meta(item: MarketingItem): string {

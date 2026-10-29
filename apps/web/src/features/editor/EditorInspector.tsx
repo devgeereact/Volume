@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { ArrowRight, Check, Flag, MessageSquarePlus, Sparkles, Undo2, X } from "lucide-react";
-import { Button, Checkbox, Figure, Input, Inspector, InspectorSection, Loader, modKey, Skeleton, Tabs, tabPanelProps, Textarea } from "../../components/ui";
+import { Button, Checkbox, Figure, Input, InspectorSection, Loader, modKey, Skeleton, tabPanelProps, Textarea } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { formatNumber } from "../../lib/format";
 import type { ClaimStatus, MsClaim, MsNote, MsSection, MsSuggestion, NoteStatus, SuggestionPass } from "./manuscript";
 import type { SuggestionState } from "./useManuscript";
 import { DiffText } from "./DiffText";
+import { SegTabs } from "./SegTabs";
 import type { Issue } from "./textTools";
 
-export type InspectorTab = "fix" | "suggestions" | "notes";
+/** Style holds the house-style checks and the AI edit passes; "suggestions" is kept as another name for it. */
+export type InspectorTab = "style" | "claims" | "suggestions" | "notes";
 
 const passLabels: Record<SuggestionPass, string> = { structure: "Structure", line: "Line edit (UK)", voice: "Voice" };
 /** Short name of an AI edit pass, for buttons and messages. */
@@ -65,28 +67,28 @@ interface EditorInspectorProps {
   focusClaimId?: string | null | undefined;
   /** What the AI is doing for this book right now, shown above everything else (null: nothing). */
   aiBusy?: string | null | undefined;
+  className?: string | undefined;
 }
 
-/** Inspector for the Editor: what to do next, then three tabs (To fix, AI edits, Notes). */
+/** The Editor's side card: what to do next, then three tabs (Style with the AI edits, Claims, Notes). */
 export function EditorInspector(props: EditorInspectorProps) {
   const { tab, onTab, claims, suggestions, suggestionState, section, issues } = props;
   // Claim tiers: claims listed for the record keep their underline but do not ask for a check.
   const sectionClaims = claims.filter((c) => c.status === "open" && c.sectionId === section.id && c.needsCheck !== false).length;
   const pending = suggestions.filter((s) => (suggestionState[s.id] ?? "pending") === "pending").length;
   const openNotes = props.notes.filter((n) => n.status === "draft" || n.status === "working" || n.status === "ready").length;
-  const toFix = sectionClaims + issues.length;
+  const shownTab: "style" | "claims" | "notes" = tab === "suggestions" ? "style" : tab;
   return (
-    <Inspector label="Editor inspector" width="100%" className="xl:h-full">
-      <Tabs
+    <aside aria-label="Editor inspector" className={cn("vol-glass min-w-0 rounded-card p-[18px] max-[560px]:p-[15px]", props.className)}>
+      <SegTabs
         idBase="ed-insp"
-        label="Inspector"
-        className="-mx-6 -mt-5 mb-4 px-1"
-        value={tab}
-        onChange={(t) => onTab(t as InspectorTab)}
+        label="Editor panel"
+        value={shownTab}
+        onChange={onTab}
         items={[
-          { id: "fix", label: "To fix", count: toFix || undefined, countTone: sectionClaims > 0 ? "claim" : undefined },
-          { id: "suggestions", label: "AI edits", count: pending || undefined },
-          { id: "notes", label: "Notes", count: openNotes || undefined },
+          { id: "style", label: "Style", count: issues.length + pending, tone: issues.length > 0 ? "warn" : pending > 0 ? "info" : "good" },
+          { id: "claims", label: "Claims", count: sectionClaims || undefined, tone: "bad" },
+          { id: "notes", label: "Notes", count: openNotes || undefined, tone: "info" },
         ]}
       />
       {props.aiBusy && (
@@ -100,17 +102,19 @@ export function EditorInspector(props: EditorInspectorProps) {
       )}
       {!props.readOnly && <NextStep {...props} sectionClaims={sectionClaims} pending={pending} />}
       {props.notice}
-      <div {...tabPanelProps("ed-insp", tab)} className="relative focus-visible:outline-offset-4">
-        {tab === "fix" && (
+      <div {...tabPanelProps("ed-insp", shownTab)} className="relative focus-visible:outline-offset-4">
+        {shownTab === "style" && (
           <>
-            <ClaimsPanel {...props} />
             <ChecksPanel {...props} />
+            <div className="mt-2 border-t border-line pt-4">
+              <SuggestionsPanel {...props} />
+            </div>
           </>
         )}
-        {tab === "suggestions" && <SuggestionsPanel {...props} />}
-        {tab === "notes" && <NotesPanel {...props} />}
+        {shownTab === "claims" && <ClaimsPanel {...props} />}
+        {shownTab === "notes" && <NotesPanel {...props} />}
       </div>
-    </Inspector>
+    </aside>
   );
 }
 
@@ -122,16 +126,16 @@ function NextStep({ bookId, issues, onTab, tab, sectionClaims, pending }: Editor
   let go: { tab: InspectorTab; label: string } | null = null;
   if (sectionClaims > 0) {
     text = `Check ${sectionClaims} ${sectionClaims === 1 ? "claim" : "claims"} underlined in red. Mark each one checked, soften it or remove it.`;
-    go = { tab: "fix", label: "Show claims" };
+    go = { tab: "claims", label: "Show claims" };
   } else if (fixable > 0) {
     text = `Fix ${fixable} house style ${fixable === 1 ? "problem" : "problems"} (em dashes or US spelling). One click each.`;
-    go = { tab: "fix", label: "Show fixes" };
+    go = { tab: "style", label: "Show fixes" };
   } else if (rewrite > 0) {
     text = `Rewrite ${rewrite} banned ${rewrite === 1 ? "phrase" : "phrases"} in your own words.`;
-    go = { tab: "fix", label: "Show phrases" };
+    go = { tab: "style", label: "Show phrases" };
   } else if (pending > 0) {
     text = `${pending} AI ${pending === 1 ? "edit is" : "edits are"} waiting. Accept or reject each one.`;
-    go = { tab: "suggestions", label: "Show AI edits" };
+    go = { tab: "style", label: "Show AI edits" };
   } else {
     text = "This section is clear. Go to the next section, or ask the AI for edits first if you want them.";
   }
@@ -150,8 +154,8 @@ function NextStep({ bookId, issues, onTab, tab, sectionClaims, pending }: Editor
         <b className="font-semibold">{done ? "Done here. " : "Next: "}</b>
         {text}
       </span>
-      {go && go.tab !== tab && (
-        <Button size="sm" variant="ghost" className="-my-1" onClick={() => onTab(go.tab)}>
+      {go && go.tab !== (tab === "suggestions" ? "style" : tab) && (
+        <Button size="sm" variant="ghost" className="-my-1 -ml-2.5 basis-full justify-start" onClick={() => onTab(go.tab)}>
           {go.label}
         </Button>
       )}

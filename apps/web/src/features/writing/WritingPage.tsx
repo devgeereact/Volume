@@ -1,12 +1,15 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, Modal, Skeleton, type ChapterSegment } from "../../components/ui";
+import { Button, Modal, PageHeader, Skeleton } from "../../components/ui";
+import { cn } from "../../lib/cn";
 import { NotFound } from "../../shell/NotFound";
 import { useBook } from "../../lib/useBook";
 import { useWritingJob } from "../../lib/job";
 import { useStepAction } from "../../lib/stepAction";
 import { formatDuration, formatNumber, formatUsd } from "../../lib/format";
 import { DEMO_NOW } from "../../demo";
-import { LiveCanvas, type JobState } from "./LiveCanvas";
+import { JobControls, LiveCanvas, type JobState } from "./LiveCanvas";
+import { LiveCounts } from "./LiveCounts";
+import { glassCard, stepBody, studioGrid, studioSide } from "./studio";
 import { RetryDialog } from "./RetryDialog";
 import { SectionList, type RowStatus, type SectionRow } from "./SectionList";
 import { WritingApi } from "./WritingApi";
@@ -41,10 +44,10 @@ export default function WritingPage() {
   if (state === "loading") return <WritingSkeleton />;
   if (state === "error")
     return (
-      <div className="px-4 py-6 sm:px-8 lg:px-10">
-        <h1 className="font-book text-title text-ink">Writing</h1>
+      <div className={cn(stepBody, "grid gap-4")}>
+        <PageHeader title="Writing" />
         <ErrorPanel
-          className="mt-5 max-w-[720px]"
+          className="max-w-[720px]"
           title="Could not reach the writing job"
           body="The server did not answer. Your book is safe: every finished section was saved. Retry to reconnect to the live view."
           onRetry={retry}
@@ -57,7 +60,7 @@ export default function WritingPage() {
 
 function LiveWriting() {
   const { book } = useBook();
-  const { job, running, paused, chunksShown, chapterWords, wordsWritten, costSpent, chapterProgress, pause, resume, cancel } = useWritingJob();
+  const { job, running, paused, chunksShown, chapterWords, wordsWritten, costSpent, pause, resume, cancel } = useWritingJob();
   const [follow, setFollow] = useState(true);
   const [viewing, setViewing] = useState(job.current.sectionId);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -105,9 +108,6 @@ function LiveWriting() {
 
   const doneCount = rows.filter((r) => r.status === "done" || r.status === "attention").length;
   const chapterRows = rows.filter((r) => r.section.number !== null);
-  const segments: ChapterSegment[] = chapterRows.map((r) =>
-    r.status === "queued" ? { state: "queued" } : r.section.id === job.current.sectionId ? { state: "current", progress: chapterProgress } : { state: "done" },
-  );
   const attention = rows
     .filter((r) => r.status === "attention")
     .map((r) => ({
@@ -165,20 +165,40 @@ function LiveWriting() {
   if (!book) return null;
 
   return (
-    <div className="grid grid-cols-1 xl:h-screen-fill xl:grid-cols-[340px_minmax(0,1fr)_var(--vol-inspector)] xl:grid-rows-[minmax(0,1fr)]">
-      <div className="order-3 min-h-0 xl:order-none">
+    <div className={cn(stepBody, "grid gap-4")}>
+      <PageHeader
+        title="Writing"
+        summary="Volume writes each section in order and checks it against the house style before the next one starts."
+        actions={
+          <JobControls
+            jobState={jobState}
+            onPause={onPause}
+            onResume={onResume}
+            onCancel={() => setConfirmCancel(true)}
+            chapterNumber={job.current.chapterNumber}
+          />
+        }
+      />
+      <LiveCounts
+        items={[
+          { label: `of ${formatNumber(job.words.target)} words`, value: formatNumber(wordsWritten) },
+          { label: "Sections written", value: `${doneCount} of ${rows.length}` },
+          { label: "Time running", value: formatDuration(job.runningMinutes + extraMinutes) },
+          {
+            label: "Time left",
+            value: jobState === "running" ? `About ${formatDuration(minutesLeft)}` : jobState === "paused" ? "Paused" : "Stopped",
+          },
+          { label: "Spent so far", value: formatUsd(costSpent) },
+        ]}
+      />
+      <div className={studioGrid}>
         <SectionList
-          book={book}
           rows={rows}
           doneCount={doneCount}
-          segments={segments}
-          chapterProgress={chapterProgress}
           viewing={viewing}
           onView={onView}
           summary={`${jobState === "running" ? "Writing" : jobState === "paused" ? "Paused at" : "Stopped at"} chapter ${job.current.chapterNumber} of ${chapterRows.length}`}
         />
-      </div>
-      <div className="order-1 min-h-0 border-border xl:order-none">
         <LiveCanvas
           job={job}
           jobState={jobState}
@@ -186,33 +206,16 @@ function LiveWriting() {
           chapterWords={chapterWords}
           follow={follow}
           onFollow={setFollow}
-          onPause={onPause}
-          onResume={onResume}
-          onCancel={() => setConfirmCancel(true)}
           viewing={viewing}
           rows={rows}
           retried={Object.fromEntries(Object.entries(retries).map(([k, v]) => [k, { finishedAt: v.finishedAt }]))}
           onRetry={setRetryFor}
-          counts={[
-            { label: `of ${formatNumber(job.words.target)} words written`, value: formatNumber(wordsWritten) },
-            { label: "Sections written", value: `${doneCount} of ${rows.length}` },
-            { label: "Time running", value: formatDuration(job.runningMinutes + extraMinutes) },
-            {
-              label: "Time left",
-              value: jobState === "running" ? `About ${formatDuration(minutesLeft)}` : jobState === "paused" ? "Paused" : "Stopped",
-            },
-            { label: "Spent so far", value: formatUsd(costSpent) },
-          ]}
         />
-      </div>
-      <div className="order-2 min-h-0 border-t border-border xl:order-none xl:border-t-0">
         <WritingInspector
+          className={studioSide}
           job={job}
           wordsWritten={wordsWritten}
           costSpent={costSpent}
-          runningMinutes={job.runningMinutes + extraMinutes}
-          minutesLeft={minutesLeft}
-          stateWord={jobState}
           lastChecks={lastChecks}
           attention={attention}
           onRetry={setRetryFor}
@@ -266,29 +269,30 @@ function LiveWriting() {
 
 function WritingSkeleton() {
   return (
-    <div
-      role="status"
-      aria-label="Loading the writing job"
-      className="grid grid-cols-1 xl:h-screen-fill xl:grid-cols-[340px_minmax(0,1fr)_var(--vol-inspector)]"
-    >
-      <div className="hidden gap-3 border-r border-border p-6 xl:grid xl:content-start">
-        <Skeleton className="h-6 w-1/2" />
-        <Skeleton className="h-2 w-full" />
-        {Array.from({ length: 10 }, (_, i) => (
-          <Skeleton key={i} className="h-5 w-full" />
+    <div role="status" aria-label="Loading the writing job" className={cn(stepBody, "grid gap-4")}>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2.5">
+        {Array.from({ length: 5 }, (_, i) => (
+          <Skeleton key={i} className="h-[62px] rounded-[16px]" />
         ))}
       </div>
-      <div className="grid content-start gap-4 px-4 py-8 sm:px-8">
-        <Skeleton className="h-4 w-40" />
-        <Skeleton className="h-9 w-3/5" />
-        {Array.from({ length: 6 }, (_, i) => (
-          <Skeleton key={i} className={i === 5 ? "h-4 w-2/5" : "h-4 w-full"} />
-        ))}
-      </div>
-      <div className="hidden gap-3 border-l border-border p-6 xl:grid xl:content-start">
-        <Skeleton className="h-8 w-3/5" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
+      <div className={studioGrid}>
+        <div className={cn(glassCard, "hidden gap-3 p-4 min-[861px]:grid")}>
+          {Array.from({ length: 10 }, (_, i) => (
+            <Skeleton key={i} className="h-5 w-full" />
+          ))}
+        </div>
+        <div className={cn(glassCard, "grid content-start gap-4 px-7 py-8")}>
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-8 w-3/5" />
+          {Array.from({ length: 6 }, (_, i) => (
+            <Skeleton key={i} className={i === 5 ? "h-4 w-2/5" : "h-4 w-full"} />
+          ))}
+        </div>
+        <div className={cn(glassCard, studioSide, "hidden gap-3 p-[18px] min-[861px]:grid")}>
+          <Skeleton className="h-5 w-3/5" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+        </div>
       </div>
     </div>
   );

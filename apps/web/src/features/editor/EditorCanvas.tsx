@@ -1,4 +1,4 @@
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import { Extension, type JSONContent } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import { Plugin } from "@tiptap/pm/state";
@@ -17,6 +17,7 @@ import { findRanges, mockRewrite, rewriteLabels, type RewriteKind } from "./text
 import { exerciseKindLabels, newBlockMarkdown, type ExerciseKind, type InsertKind } from "../../lib/workbookMarkdown";
 import { SceneBreak, WorkbookBlock } from "./WorkbookBlock";
 import { GeneratedPagePreview, OwnerPagePrompt } from "./GeneratedPagePreview";
+import { pageKicker, pageTitle } from "../writing/studio";
 
 interface Selection {
   blockId: string;
@@ -235,13 +236,10 @@ export function EditorCanvas(props: EditorCanvasProps) {
         label={section.generated || section.isPart ? `${section.title}, read-only preview` : `${section.title}, editable`}
         metaLeft={label}
         metaRight={metaRight}
-        className="px-5! sm:px-14!"
+        className="rounded-none! border-0! bg-transparent! px-[clamp(16px,4vw,56px)]! pt-6! pb-8! shadow-none! max-[760px]:pt-[18px]!"
       >
-        <p className="mt-6 text-label text-ink-secondary">{section.number !== null ? `Chapter ${section.number}` : sectionKind(section)}</p>
-        <h2
-          className="opsz-title mt-1 font-book text-[28px] leading-[34px] font-medium tracking-[-0.015em] text-ink sm:text-title sm:leading-[42px]"
-          style={look.heading}
-        >
+        <h2 className={cn(pageTitle, "mt-5")} style={look.heading}>
+          <span className={cn(pageKicker, "mb-1.5 font-ui")}>{section.number !== null ? `Chapter ${section.number}` : sectionKind(section)}</span>
           {section.title}
         </h2>
 
@@ -629,6 +627,20 @@ interface EditableBlockProps {
   onClaimClick?: ((claimId: string) => void) | undefined;
 }
 
+/** The paragraph editor the writer was last in, for the toolbar's Undo and Redo. */
+let lastEditor: Editor | null = null;
+
+/**
+ * Undo or Redo in the paragraph the writer was last in (TipTap's own history, from StarterKit). Returns
+ * false when no paragraph has been edited yet, so the toolbar can say so.
+ */
+export function runHistory(command: "undo" | "redo"): boolean {
+  const ed = lastEditor;
+  if (!ed || ed.isDestroyed || !ed.isEditable) return false;
+  const chain = ed.chain().focus();
+  return command === "undo" ? chain.undo().run() : chain.redo().run();
+}
+
 /** TipTap owns text and undo history; existing block callbacks preserve the manuscript and note layout. */
 function EditableBlock(props: EditableBlockProps) {
   const { block, indent, heading, claims, findRe, currentIndex } = props;
@@ -663,7 +675,7 @@ function EditableBlock(props: EditableBlockProps) {
                     if (end > start)
                       decorations.push(
                         Decoration.inline(start + 1, end + 1, {
-                          class: index === value.currentIndex ? "bg-select-wash outline-2 outline-select rounded-xs" : "bg-select-wash rounded-xs",
+                          class: index === value.currentIndex ? "bg-amber/50 outline-2 outline-amber rounded-xs" : "bg-amber/25 rounded-xs",
                           ...(index === value.currentIndex ? { "data-find-current": "true" } : {}),
                         }),
                       );
@@ -749,8 +761,17 @@ function EditableBlock(props: EditableBlockProps) {
         const value = binding.read();
         value.onCommit(value.block.id, current.getText());
       },
+      onFocus({ editor: current }) {
+        lastEditor = current;
+      },
     },
     [block.id, props.readOnly],
+  );
+  useEffect(
+    () => () => {
+      if (lastEditor === editor) lastEditor = null;
+    },
+    [editor],
   );
   useEffect(() => {
     if (editor && editor.getText() !== block.text && !editor.isFocused) editor.commands.setContent(blockDocument(block), { emitUpdate: false });

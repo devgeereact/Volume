@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { History, MessageSquarePlus, PanelRightClose, PanelRightOpen, RotateCw, Save, Undo2 } from "lucide-react";
-import { Banner, Button, EmptyState, IconButton, Modal, modKey } from "../../components/ui";
+import { History, MessageSquarePlus, RotateCw, Save, Undo2 } from "lucide-react";
+import { Banner, Button, EmptyState, Modal, modKey, PageHeader } from "../../components/ui";
+import { buttonClasses } from "../../components/ui/Button";
+import { stepBody } from "../writing/studio";
+import { EditorFrame, EditorPageCard, EditorStatus, EditorToolbar, ToolButton } from "./EditorFrame";
 import type { Book, PenName } from "../../demo";
 import { isApiError } from "../../api/client";
 import {
@@ -206,15 +209,15 @@ export function ApiEditor({ book, apiBook, penName }: { book: Book; apiBook: Api
   const tree = useSectionTree(book.id);
   if (tree.isPending)
     return (
-      <div className="px-4 py-6 sm:px-8 lg:px-10">
-        <LoadingBlock label="Loading the manuscript" rows={8} className="mx-auto max-w-[760px]" />
+      <div className={stepBody}>
+        <LoadingBlock label="Loading the manuscript" rows={8} className="vol-glass mx-auto max-w-[760px] rounded-card p-6" />
       </div>
     );
   if (tree.isError)
     return (
-      <div className="px-4 py-6 sm:px-8 lg:px-10">
-        <h1 className="font-book text-title text-ink">Editor</h1>
-        <ErrorPanel className="mt-5 max-w-[720px]" title="Could not open the manuscript" body={errorText(tree.error)} onRetry={() => void tree.refetch()} />
+      <div className={cn(stepBody, "grid gap-4")}>
+        <PageHeader title="Editor" />
+        <ErrorPanel className="max-w-[720px]" title="Could not open the manuscript" body={errorText(tree.error)} onRetry={() => void tree.refetch()} />
       </div>
     );
   // Part dividers stay in the list: the exported book prints them, so the Editor shows them (as a preview, not as empty text).
@@ -222,10 +225,9 @@ export function ApiEditor({ book, apiBook, penName }: { book: Book; apiBook: Api
   const chapters = sections.filter((s) => s.kind !== "part");
   if (chapters.length === 0 || tree.data.totals.words === 0)
     return (
-      <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
-        <h1 className="font-book text-title text-ink">Editor</h1>
+      <div className={cn(stepBody, "grid gap-4")}>
+        <PageHeader title="Editor" summary="Read and change every chapter. House style and claims are checked as you type." />
         <EmptyState
-          className="mt-6 max-w-[640px]"
           drawing="page"
           title="Nothing to edit yet"
           body={
@@ -234,10 +236,7 @@ export function ApiEditor({ book, apiBook, penName }: { book: Book; apiBook: Api
               : "No section has text yet. Write the book first, or open a section and write it on its own."
           }
           action={
-            <Link
-              to={`/books/${book.id}/${chapters.length === 0 ? "blueprint" : "writing"}`}
-              className="inline-flex h-10 items-center rounded-sm border border-border-strong bg-sheet px-4 text-label font-semibold text-ink hover:bg-sunken"
-            >
+            <Link to={`/books/${book.id}/${chapters.length === 0 ? "blueprint" : "writing"}`} className={buttonClasses("secondary", "md")}>
               {chapters.length === 0 ? "Open Blueprint" : "Open Writing"}
             </Link>
           }
@@ -289,7 +288,7 @@ function Body({
 
   const [doc, setDoc] = useState<Doc | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<InspectorTab>("fix");
+  const [tab, setTab] = useState<InspectorTab>("style");
   const [pass, setPass] = useState<SuggestionPass>("line");
   const [passJob, setPassJob] = useState<{ jobId: string; sectionId: string; pass: SuggestionPass } | null>(null);
   const [passesRun, setPassesRun] = useState<Record<string, SuggestionPass[]>>({});
@@ -304,12 +303,12 @@ function Body({
   const [problem, setProblem] = useState<{ text: string; conflict: boolean } | null>(null);
   const [pendingFocus, setPendingFocus] = useState<string | null>(null);
   const [announce, setAnnounce] = useState("");
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
   const [focusNote, setFocusNote] = useState<string | null>(null);
   const [focusClaim, setFocusClaim] = useState<string | null>(null);
   const showClaim = (id: string) => {
-    setTab("fix");
-    setPanelOpen(true);
+    setTab("claims");
+    setFocusMode(false);
     setFocusClaim(id);
   };
   const [doneOpen, setDoneOpen] = useState(false);
@@ -811,7 +810,7 @@ function Body({
 
   /* ---------- Find in this section ---------- */
   const findRe = useMemo(
-    () => (findOpen ? findRegex({ query: find.query, matchCase: find.matchCase, wholeWord: find.wholeWord }) : null),
+    () => (findOpen || find.query ? findRegex({ query: find.query, matchCase: find.matchCase, wholeWord: find.wholeWord }) : null),
     [findOpen, find.query, find.matchCase, find.wholeWord],
   );
   const matches = useMemo(
@@ -934,7 +933,7 @@ function Body({
             if (done.sectionId !== sectionId) void navigate(`/books/${bookId}/editor/${done.sectionId}`);
             setPass(done.pass);
             setTab("suggestions");
-            setPanelOpen(true);
+            setFocusMode(false);
           },
         },
       });
@@ -1273,7 +1272,7 @@ function Body({
     }
   }
 
-  const claimEstimate = useEstimate(bookId, "claim_fix", { enabled: canWrite && tab === "fix" && sectionClaims.length > 0 });
+  const claimEstimate = useEstimate(bookId, "claim_fix", { enabled: canWrite && tab === "claims" && sectionClaims.length > 0 });
 
   useStepAction({ label: "Mark edit done", onClick: () => setDoneOpen(true) });
 
@@ -1300,257 +1299,24 @@ function Body({
   );
 
   return (
-    <div
-      className={cn(
-        "grid grid-cols-1 xl:h-screen-fill xl:grid-rows-[minmax(0,1fr)]",
-        panelOpen ? "xl:grid-cols-[256px_minmax(0,1fr)_352px]" : "xl:grid-cols-[256px_minmax(0,1fr)]",
-      )}
-    >
-      <ManuscriptTree
-        bookId={bookId}
-        sections={treeSections}
-        current={sectionId}
-        wordsFor={wordsFor}
-        claimsFor={(id) => claims.filter((c) => c.sectionId === id && c.status === "open").length}
-        dirty={(id) => id === sectionId && dirty}
-        totalWords={totalWords}
-        targetWords={target}
-      />
-
-      <div className="relative min-h-0 xl:overflow-y-auto">
-        <div className="px-4 pt-4 pb-16 sm:px-6 xl:px-8">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <h1 className="text-[18px] leading-6 font-semibold text-ink">Editor</h1>
-            <p className={cn("num text-small", auto.kind === "error" || auto.kind === "conflict" ? "text-claim" : "text-ink-secondary")} role="status">
-              {statusLine}
-            </p>
-            {auto.kind === "error" && (
-              <Button size="sm" variant="ghost" icon={RotateCw} className="-ml-2" title={auto.message} onClick={() => void autosave.retry()}>
-                Retry
-              </Button>
-            )}
-            <div className="ml-auto flex flex-wrap items-center gap-1.5">
-              {canWrite && !section.generated && (
-                <Button
-                  variant="ghost"
-                  icon={MessageSquarePlus}
-                  onClick={() => addNote()}
-                  title={`Add a note after the paragraph you are in (${modKey()} Enter)`}
-                  disabledReason={blocks.length === 0 ? "Write or paste some text first." : undefined}
-                >
-                  Add note
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                icon={Undo2}
-                onClick={() => setPrevOpen(true)}
-                disabledReason={prevId ? undefined : "No earlier version of this section yet."}
-              >
-                Previous version
-              </Button>
-              <Button
-                variant="ghost"
-                icon={History}
-                onClick={() => setDrawer({ open: true, left: null })}
-                disabledReason={versions.length === 0 ? "No versions yet." : undefined}
-              >
-                Versions
-              </Button>
-              {canWrite && !section.generated && (
-                <Button
-                  icon={Save}
-                  onClick={() => void saveNow()}
-                  loading={save.isPending}
-                  loadingLabel="Saving"
-                  aria-keyshortcuts="Meta+S Control+S"
-                  title={`Save version (${modKey()} S)`}
-                >
-                  Save version
-                </Button>
-              )}
-              <span className="hidden xl:inline-flex">
-                <IconButton
-                  icon={panelOpen ? PanelRightClose : PanelRightOpen}
-                  label={panelOpen ? "Hide the side panel" : "Show the side panel"}
-                  pressed={!panelOpen}
-                  onClick={() => setPanelOpen((o) => !o)}
-                />
-              </span>
-            </div>
-          </div>
-          {findOpen && (
-            <div className="mt-4">
-              <FindReplace
-                state={find}
-                onChange={(p) => {
-                  setFind((f) => ({ ...f, ...p }));
-                  setReplaceResult(null);
-                }}
-                onClose={() => setFindOpen(false)}
-                countInSection={matches.length}
-                countInBook={bookFind.data?.total ?? 0}
-                sectionsWithMatches={bookFind.data?.sections.length ?? 0}
-                current={Math.min(matchIdx, Math.max(0, matches.length - 1))}
-                onStep={(d) => setMatchIdx((i) => (matches.length ? (i + d + matches.length) % matches.length : 0))}
-                onReplaceOne={replaceOne}
-                onReplaceAll={() => (find.scope === "book" ? void replaceInBook() : replaceAll())}
-                result={replaceResult}
-                onUndo={null}
-              />
-              {find.scope === "book" && find.query && (
-                <BookMatches
-                  bookId={bookId}
-                  loading={bookFind.isFetching || replacing}
-                  error={bookFind.isError ? errorText(bookFind.error) : null}
-                  sections={bookFind.data?.sections ?? []}
-                  current={sectionId}
-                  label={(id) => sectionLabel(id)}
-                />
-              )}
-            </div>
-          )}
-          <div className="mt-4">
-            {auto.kind === "conflict" && (
-              <Banner
-                tone="attention"
-                title="This section changed somewhere else"
-                className="mb-4"
-                action={
-                  <span className="flex flex-wrap gap-1.5">
-                    <Button size="sm" variant="primary" loading={keeping} loadingLabel="Saving" onClick={() => void keepMine()}>
-                      Keep mine as a new version
-                    </Button>
-                    <Button size="sm" icon={RotateCw} onClick={() => void reloadSection()}>
-                      Load theirs
-                    </Button>
-                  </span>
-                }
-              >
-                Your typing was not saved over the newer text, and it is still on screen. Keep yours as a new version (the newer text stays in the version
-                list), or load the newer text and drop yours.
-              </Banner>
-            )}
-            {choosing && (
-              <Banner
-                tone="attention"
-                title="Unsaved text from this browser"
-                className="mb-4"
-                action={
-                  <span className="flex flex-wrap gap-1.5">
-                    {recoveredBehind ? (
-                      <Button size="sm" variant="primary" onClick={() => setCompareDraft(true)}>
-                        Compare and choose
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="primary" onClick={() => void restoreLocal()}>
-                        Restore my text
-                      </Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={discardLocal}>
-                      Keep the saved text
-                    </Button>
-                  </span>
-                }
-              >
-                {`You typed this at ${formatTime(new Date(recovered.at).toISOString())} and it did not reach the server.`}
-                {recoveredBehind ? " The section has newer text since then, so compare the two before you choose." : ""} The page is read only until you choose.
-              </Banner>
-            )}
-            {(() => {
-              // An AI job paused for provider credit (D-057): say so and offer to continue, instead of a spinner that never ends.
-              const paused =
-                passJob && passPaused
-                  ? { jobId: passJob.jobId, message: passWatch.error }
-                  : review?.jobId && weaveWatch.status === "paused_budget"
-                    ? { jobId: review.jobId, message: weaveWatch.error }
-                    : writeJob && writeWatch.status === "paused_budget"
-                      ? { jobId: writeJob, message: writeWatch.error }
-                      : null;
-              return paused ? <BudgetPausedBanner className="mb-4" jobId={paused.jobId} message={paused.message} /> : null;
-            })()}
-            {modelFix && (
-              <ModelFallbackBanner
-                bookId={bookId}
-                className="mb-4"
-                problem={modelFix.problem}
-                onDismiss={() => setModelFix(null)}
-                onRetry={() => modelFix.retry?.()}
-              />
-            )}
-            {notice}
-            {detail?.section.id === sectionId && (
-              <>
-                <SummaryMissingNotice key={sectionId} bookId={bookId} sectionId={sectionId} checks={detail.checks} className="mb-4" />
-                <TemplateRulesNotice checks={detail.checks} template={template} className="mb-4" />
-              </>
-            )}
-            {!ready ? (
-              sectionQ.isError ? (
-                <ErrorPanel title="Could not open this section" body={errorText(sectionQ.error)} onRetry={() => void sectionQ.refetch()} />
-              ) : (
-                <LoadingBlock label="Loading the section" rows={8} />
-              )
-            ) : (
-              <div
-                onBlur={(e) => {
-                  if (!(e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget))) void autosave.flush();
-                }}
-              >
-                <EditorCanvas
-                  bookId={bookId}
-                  penNameId={book.penNameId}
-                  section={{ ...section, blocks: shownBlocks }}
-                  readOnly={!canWrite || choosing}
-                  insertKinds={insertKinds}
-                  onInsert={onInsert}
-                  onRemoveBlock={onRemoveBlock}
-                  label={`${look.name} interior`}
-                  metaRight={metaRight}
-                  look={look}
-                  notes={sectionNotes}
-                  voiceOf={voiceOf}
-                  focusNoteId={focusNote}
-                  onNoteFocused={onNoteFocused}
-                  onAddNote={(id) => addNote(id)}
-                  onNoteText={(id, text) => {
-                    if (id.startsWith("local-")) setLocalNotes((l) => l.map((n) => (n.id === id ? { ...n, text } : n)));
-                    else setNoteText((m) => ({ ...m, [id]: text }));
-                  }}
-                  onNoteRun={(id, mode) => void runNote(id, mode)}
-                  onNoteDiscard={(id) => void discardNote(id)}
-                  onNoteAccept={acceptNote}
-                  onNoteReject={() => void rejectNote()}
-                  claims={sectionClaims}
-                  findRe={findRe}
-                  currentMatch={current ? { blockId: current.blockId, index: current.index } : null}
-                  pendingFocus={pendingFocus}
-                  onFocused={onFocused}
-                  onDraft={onDraft}
-                  onCommit={onCommit}
-                  onSplit={onSplit}
-                  onAcceptRewrite={() => void acceptRewrite()}
-                  onRewrite={askRewrite}
-                  onWriteSection={() => void writeThis()}
-                  writing={writeSection.isPending || writeWatch.running}
-                  writeDisabledReason={undefined}
-                  onPasteOwn={pasteOwn}
-                  onClaimClick={showClaim}
-                />
-              </div>
-            )}
-            {review && !proposal && weaveWatch.running && (
-              <p role="status" className="mt-3 text-small text-ink-secondary">
-                {review.mode === "expand" ? "Writing a new section from your note" : `Weaving your note in, in ${voiceOf}'s voice`}
-                {weaveWatch.message ? `: ${weaveWatch.message}` : "."}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className={cn("min-h-0 border-t border-border xl:border-t-0", !panelOpen && "xl:hidden")}>
+    <EditorFrame
+      focus={focusMode}
+      head={<PageHeader title="Editor" summary="Read and change every chapter. House style and claims are checked as you type." />}
+      tree={
+        <ManuscriptTree
+          bookId={bookId}
+          sections={treeSections}
+          current={sectionId}
+          wordsFor={wordsFor}
+          claimsFor={(id) => claims.filter((c) => c.sectionId === id && c.status === "open").length}
+          dirty={(id) => id === sectionId && dirty}
+          totalWords={totalWords}
+          targetWords={target}
+        />
+      }
+      side={
         <EditorInspector
+          className="min-w-0"
           focusClaimId={focusClaim}
           aiBusy={
             passJob && !passWatch.finished
@@ -1617,7 +1383,241 @@ function Body({
           softenEditable
           readOnly={!canWrite}
         />
-      </div>
+      }
+    >
+      <EditorPageCard
+        toolbar={
+          <EditorToolbar
+            readOnly={!canWrite || !!section.generated}
+            query={find.query}
+            onQuery={(q) => {
+              setFind((f) => ({ ...f, query: q, scope: "section" }));
+              setReplaceResult(null);
+            }}
+            matchText={find.query ? (matches.length ? `${Math.min(matchIdx, matches.length - 1) + 1} of ${matches.length}` : "None") : null}
+            onStep={(d) => setMatchIdx((i) => (matches.length ? (i + d + matches.length) % matches.length : 0))}
+            onReplace={() => setFindOpen((o) => !o)}
+            replaceOpen={findOpen}
+            focus={focusMode}
+            onFocus={() => setFocusMode((f) => !f)}
+          >
+            {canWrite && !section.generated && (
+              <ToolButton
+                icon={MessageSquarePlus}
+                label="Add note"
+                showLabel
+                keys={`${modKey()} Enter`}
+                disabledReason={blocks.length === 0 ? "Write or paste some text first." : undefined}
+                onClick={() => addNote()}
+              />
+            )}
+            <ToolButton
+              icon={Undo2}
+              label="Previous version"
+              showLabel
+              disabledReason={prevId ? undefined : "No earlier version of this section yet."}
+              onClick={() => setPrevOpen(true)}
+            />
+            <ToolButton
+              icon={History}
+              label="Versions"
+              showLabel
+              disabledReason={versions.length === 0 ? "No versions yet." : undefined}
+              onClick={() => setDrawer({ open: true, left: null })}
+            />
+            {canWrite && !section.generated && (
+              <ToolButton
+                icon={Save}
+                label="Save version"
+                showLabel
+                keys={`${modKey()} S`}
+                disabledReason={save.isPending ? "Saving." : undefined}
+                onClick={() => void saveNow()}
+              />
+            )}
+          </EditorToolbar>
+        }
+        status={
+          <EditorStatus words={section.generated ? section.generated.words : words}>
+            <span className={cn("num", auto.kind === "error" || auto.kind === "conflict" ? "text-red" : undefined)} role="status">
+              {statusLine}
+            </span>
+            {auto.kind === "error" && (
+              <Button size="sm" variant="ghost" icon={RotateCw} className="-my-1" title={auto.message} onClick={() => void autosave.retry()}>
+                Retry
+              </Button>
+            )}
+          </EditorStatus>
+        }
+      >
+        {findOpen && (
+          <div className="px-4 pt-4">
+            <FindReplace
+              state={find}
+              onChange={(p) => {
+                setFind((f) => ({ ...f, ...p }));
+                setReplaceResult(null);
+              }}
+              onClose={() => setFindOpen(false)}
+              countInSection={matches.length}
+              countInBook={bookFind.data?.total ?? 0}
+              sectionsWithMatches={bookFind.data?.sections.length ?? 0}
+              current={Math.min(matchIdx, Math.max(0, matches.length - 1))}
+              onStep={(d) => setMatchIdx((i) => (matches.length ? (i + d + matches.length) % matches.length : 0))}
+              onReplaceOne={replaceOne}
+              onReplaceAll={() => (find.scope === "book" ? void replaceInBook() : replaceAll())}
+              result={replaceResult}
+              onUndo={null}
+            />
+            {find.scope === "book" && find.query && (
+              <BookMatches
+                bookId={bookId}
+                loading={bookFind.isFetching || replacing}
+                error={bookFind.isError ? errorText(bookFind.error) : null}
+                sections={bookFind.data?.sections ?? []}
+                current={sectionId}
+                label={(id) => sectionLabel(id)}
+              />
+            )}
+          </div>
+        )}
+        <div className="px-2 pt-3">
+          {auto.kind === "conflict" && (
+            <Banner
+              tone="attention"
+              title="This section changed somewhere else"
+              className="mb-4"
+              action={
+                <span className="flex flex-wrap gap-1.5">
+                  <Button size="sm" variant="primary" loading={keeping} loadingLabel="Saving" onClick={() => void keepMine()}>
+                    Keep mine as a new version
+                  </Button>
+                  <Button size="sm" icon={RotateCw} onClick={() => void reloadSection()}>
+                    Load theirs
+                  </Button>
+                </span>
+              }
+            >
+              Your typing was not saved over the newer text, and it is still on screen. Keep yours as a new version (the newer text stays in the version list),
+              or load the newer text and drop yours.
+            </Banner>
+          )}
+          {choosing && (
+            <Banner
+              tone="attention"
+              title="Unsaved text from this browser"
+              className="mb-4"
+              action={
+                <span className="flex flex-wrap gap-1.5">
+                  {recoveredBehind ? (
+                    <Button size="sm" variant="primary" onClick={() => setCompareDraft(true)}>
+                      Compare and choose
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="primary" onClick={() => void restoreLocal()}>
+                      Restore my text
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={discardLocal}>
+                    Keep the saved text
+                  </Button>
+                </span>
+              }
+            >
+              {`You typed this at ${formatTime(new Date(recovered.at).toISOString())} and it did not reach the server.`}
+              {recoveredBehind ? " The section has newer text since then, so compare the two before you choose." : ""} The page is read only until you choose.
+            </Banner>
+          )}
+          {(() => {
+            // An AI job paused for provider credit (D-057): say so and offer to continue, instead of a spinner that never ends.
+            const paused =
+              passJob && passPaused
+                ? { jobId: passJob.jobId, message: passWatch.error }
+                : review?.jobId && weaveWatch.status === "paused_budget"
+                  ? { jobId: review.jobId, message: weaveWatch.error }
+                  : writeJob && writeWatch.status === "paused_budget"
+                    ? { jobId: writeJob, message: writeWatch.error }
+                    : null;
+            return paused ? <BudgetPausedBanner className="mb-4" jobId={paused.jobId} message={paused.message} /> : null;
+          })()}
+          {modelFix && (
+            <ModelFallbackBanner
+              bookId={bookId}
+              className="mb-4"
+              problem={modelFix.problem}
+              onDismiss={() => setModelFix(null)}
+              onRetry={() => modelFix.retry?.()}
+            />
+          )}
+          {notice}
+          {detail?.section.id === sectionId && (
+            <>
+              <SummaryMissingNotice key={sectionId} bookId={bookId} sectionId={sectionId} checks={detail.checks} className="mb-4" />
+              <TemplateRulesNotice checks={detail.checks} template={template} className="mb-4" />
+            </>
+          )}
+          {!ready ? (
+            sectionQ.isError ? (
+              <ErrorPanel title="Could not open this section" body={errorText(sectionQ.error)} onRetry={() => void sectionQ.refetch()} />
+            ) : (
+              <LoadingBlock label="Loading the section" rows={8} />
+            )
+          ) : (
+            <div
+              onBlur={(e) => {
+                if (!(e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget))) void autosave.flush();
+              }}
+            >
+              <EditorCanvas
+                bookId={bookId}
+                penNameId={book.penNameId}
+                section={{ ...section, blocks: shownBlocks }}
+                readOnly={!canWrite || choosing}
+                insertKinds={insertKinds}
+                onInsert={onInsert}
+                onRemoveBlock={onRemoveBlock}
+                label={`${look.name} interior`}
+                metaRight={metaRight}
+                look={look}
+                notes={sectionNotes}
+                voiceOf={voiceOf}
+                focusNoteId={focusNote}
+                onNoteFocused={onNoteFocused}
+                onAddNote={(id) => addNote(id)}
+                onNoteText={(id, text) => {
+                  if (id.startsWith("local-")) setLocalNotes((l) => l.map((n) => (n.id === id ? { ...n, text } : n)));
+                  else setNoteText((m) => ({ ...m, [id]: text }));
+                }}
+                onNoteRun={(id, mode) => void runNote(id, mode)}
+                onNoteDiscard={(id) => void discardNote(id)}
+                onNoteAccept={acceptNote}
+                onNoteReject={() => void rejectNote()}
+                claims={sectionClaims}
+                findRe={findRe}
+                currentMatch={current ? { blockId: current.blockId, index: current.index } : null}
+                pendingFocus={pendingFocus}
+                onFocused={onFocused}
+                onDraft={onDraft}
+                onCommit={onCommit}
+                onSplit={onSplit}
+                onAcceptRewrite={() => void acceptRewrite()}
+                onRewrite={askRewrite}
+                onWriteSection={() => void writeThis()}
+                writing={writeSection.isPending || writeWatch.running}
+                writeDisabledReason={undefined}
+                onPasteOwn={pasteOwn}
+                onClaimClick={showClaim}
+              />
+            </div>
+          )}
+          {review && !proposal && weaveWatch.running && (
+            <p role="status" className="mt-3 text-small text-ink-secondary">
+              {review.mode === "expand" ? "Writing a new section from your note" : `Weaving your note in, in ${voiceOf}'s voice`}
+              {weaveWatch.message ? `: ${weaveWatch.message}` : "."}
+            </p>
+          )}
+        </div>
+      </EditorPageCard>
 
       <Modal
         open={doneOpen}
@@ -1724,7 +1724,7 @@ function Body({
         {announce}
       </span>
       {param && !apiSections.some((s) => s.id === param) && <RedirectTo to={`/books/${bookId}/editor/${sectionId}`} />}
-    </div>
+    </EditorFrame>
   );
 }
 
