@@ -21,10 +21,30 @@ import { NotConnectedBanner } from "./NotConnectedBanner";
 import { TopBar } from "./TopBar";
 import { useKeyChanged } from "../lib/useKeyChanged";
 
+/** The frost sky and hills behind the whole app (navy at night). Decorative, fixed, drawn once. */
+function Scene() {
+  return (
+    <div aria-hidden className="vol-scene">
+      <svg viewBox="0 0 1440 600" preserveAspectRatio="xMidYMax slice" focusable="false">
+        <path
+          className="vol-hill-back"
+          d="M0 330 L120 250 L210 290 L330 170 L450 260 L560 200 L700 120 L820 230 L930 180 L1060 260 L1180 150 L1300 240 L1440 190 L1440 600 L0 600Z"
+        />
+        <path
+          className="vol-hill-mid"
+          d="M0 400 L140 320 L260 380 L400 290 L520 360 L660 300 L780 380 L900 320 L1040 390 L1180 310 L1320 370 L1440 330 L1440 600 L0 600Z"
+        />
+        <path className="vol-hill-front" d="M0 470 L180 420 L340 470 L520 430 L700 480 L880 440 L1060 490 L1240 440 L1440 480 L1440 600 L0 600Z" />
+      </svg>
+    </div>
+  );
+}
+
 /**
- * App shell from docs/03-design/DESIGN-SYSTEM.md: the spine on the left (240 px, or 64 px inside a book and on
- * tablets, a drawer on phones), a top bar, the screen, and the job bar while a job runs elsewhere.
- * The document scrolls; the spine, top bar and job bar stay put. Screens with their own panes can use
+ * App shell from docs/03-design/DESIGN-SYSTEM.md, in the frost and glass look (studio redesign, stage 1):
+ * a frosted side menu that floats 16 px from the window edges (240 px, or 64 px inside a book and on
+ * tablets, a drawer on phones), a glass top bar, the screen, and the job bar while a job runs elsewhere.
+ * The document scrolls; the side menu, top bar and job bar stay put. Screens with their own panes can use
  * the h-screen-fill utility for the space between the top bar and the job bar.
  */
 export function AppShell() {
@@ -80,7 +100,8 @@ export function AppShell() {
   }, [drawerOpen]);
 
   return (
-    <div className={cn("grid min-h-dvh", phone ? "grid-cols-1" : "grid-cols-[auto_minmax(0,1fr)]")}>
+    <div className={cn("isolate grid min-h-dvh", phone ? "grid-cols-1" : "grid-cols-[auto_minmax(0,1fr)]")}>
+      <Scene />
       <a
         href="#main"
         className="fixed top-2 left-2 z-[80] -translate-y-20 rounded-sm bg-raised px-4 py-2 text-label font-semibold text-ink shadow-pop focus:translate-y-0"
@@ -89,7 +110,7 @@ export function AppShell() {
       </a>
 
       {!phone && (
-        <div className="sticky top-0 h-dvh">
+        <div className="sticky top-0 h-dvh py-(--vol-shell-inset) pl-(--vol-shell-inset)">
           <Spine collapsed={collapsed} book={book} />
         </div>
       )}
@@ -140,8 +161,8 @@ export function AppShell() {
               animate={reduce ? { opacity: 1 } : { x: 0, transition: { duration: dur.slow, ease: ease.out } }}
               exit={reduce ? { opacity: 0 } : { x: "-100%", transition: { duration: dur.base, ease: ease.in } }}
             >
-              <Spine collapsed={false} book={book} onNavigate={() => setDrawerOpen(false)} />
-              <IconButton icon={X} label="Close menu" variant="secondary" onClick={() => setDrawerOpen(false)} className="mt-3 ml-3" />
+              <Spine collapsed={false} book={book} variant="drawer" onNavigate={() => setDrawerOpen(false)} />
+              <IconButton icon={X} label="Close menu" variant="glass" onClick={() => setDrawerOpen(false)} className="mt-3 ml-3" />
             </motion.div>
           </div>
         )}

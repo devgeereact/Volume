@@ -1,0 +1,220 @@
+/* Frost and glass tokens for the app shell (studio redesign, stage 1). Hand written, not generated:
+   docs/08-change-management/plans/2026-10-28-studio-redesign.md. Import after tokens.css and theme.css.
+
+   Light is a pale frost sky with soft mountains; dark is deep navy. Glass layers are translucent so the
+   scene shows through, and every value was checked so body text stays at 4.5:1 or more on the darkest
+   backdrop it can sit on (the scene behind the menu, any book cover behind the top bar, the scrim behind
+   the phone menu). The scene colours are light (or dark) enough for ink-tertiary text placed straight on them.
+   Blur is only for the side menu, the top bar, the job bar and cards. Without backdrop-filter, or when the
+   system asks for less transparency, every glass layer turns solid. */
+
+:root,
+[data-theme="light"] {
+  --vol-frost-sky-1: #f1f5f9;
+  --vol-frost-sky-2: #e3eaf2;
+  --vol-frost-hill-back: #d8e2ec;
+  --vol-frost-hill-mid: #dbe4ee;
+  --vol-frost-hill-front: #e0e8f1;
+  --vol-frost-mist: rgba(255, 255, 255, 0.7);
+
+  --vol-glass: rgba(255, 255, 255, 0.62);
+  --vol-glass-strong: rgba(255, 255, 255, 0.86);
+  --vol-glass-soft: rgba(255, 255, 255, 0.55);
+  --vol-glass-bar: rgba(238, 243, 248, 0.93);
+  --vol-glass-drawer: rgba(255, 255, 255, 0.94);
+  --vol-glass-solid: #f6f8fb;
+  --vol-glass-edge: rgba(255, 255, 255, 0.85);
+  --vol-glass-line: rgba(28, 40, 64, 0.08);
+
+  --vol-nav-active: #1f2d4a;
+  --vol-on-nav-active: #ffffff;
+  --vol-nav-count: rgba(255, 255, 255, 0.2);
+
+  --vol-shadow-glass: 0 1px 1px rgba(28, 40, 64, 0.03), 0 12px 32px -14px rgba(28, 40, 64, 0.22);
+  --vol-shadow-glass-sm: 0 1px 2px rgba(28, 40, 64, 0.06);
+  --vol-shadow-nav-active: 0 8px 18px -8px rgba(31, 45, 74, 0.6);
+}
+
+[data-theme="dark"] {
+  --vol-frost-sky-1: #0e1626;
+  --vol-frost-sky-2: #16223a;
+  --vol-frost-hill-back: #22324e;
+  --vol-frost-hill-mid: #1f2e48;
+  --vol-frost-hill-front: #1b2840;
+  --vol-frost-mist: rgba(120, 150, 200, 0.05);
+
+  --vol-glass: rgba(22, 31, 52, 0.62);
+  --vol-glass-strong: rgba(30, 43, 68, 0.88);
+  --vol-glass-soft: rgba(255, 255, 255, 0.035);
+  --vol-glass-bar: rgba(14, 22, 38, 0.88);
+  --vol-glass-drawer: rgba(30, 43, 68, 0.94);
+  --vol-glass-solid: #18233a;
+  --vol-glass-edge: rgba(255, 255, 255, 0.09);
+  --vol-glass-line: rgba(255, 255, 255, 0.08);
+
+  --vol-nav-active: #dfe8f7;
+  --vol-on-nav-active: #15203a;
+  --vol-nav-count: rgba(21, 32, 58, 0.12);
+
+  --vol-shadow-glass: 0 1px 1px rgba(0, 0, 0, 0.2), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
+  --vol-shadow-glass-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --vol-shadow-nav-active: 0 8px 18px -10px rgba(0, 0, 0, 0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --vol-frost-sky-1: #0e1626;
+    --vol-frost-sky-2: #16223a;
+    --vol-frost-hill-back: #22324e;
+    --vol-frost-hill-mid: #1f2e48;
+    --vol-frost-hill-front: #1b2840;
+    --vol-frost-mist: rgba(120, 150, 200, 0.05);
+
+    --vol-glass: rgba(22, 31, 52, 0.62);
+    --vol-glass-strong: rgba(30, 43, 68, 0.88);
+    --vol-glass-soft: rgba(255, 255, 255, 0.035);
+    --vol-glass-bar: rgba(14, 22, 38, 0.88);
+    --vol-glass-drawer: rgba(30, 43, 68, 0.94);
+    --vol-glass-solid: #18233a;
+    --vol-glass-edge: rgba(255, 255, 255, 0.09);
+    --vol-glass-line: rgba(255, 255, 255, 0.08);
+
+    --vol-nav-active: #dfe8f7;
+    --vol-on-nav-active: #15203a;
+    --vol-nav-count: rgba(21, 32, 58, 0.12);
+
+    --vol-shadow-glass: 0 1px 1px rgba(0, 0, 0, 0.2), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
+    --vol-shadow-glass-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --vol-shadow-nav-active: 0 8px 18px -10px rgba(0, 0, 0, 0.7);
+  }
+}
+
+:root {
+  /* Blur strengths. Phones get a lighter blur, which is cheaper to draw while scrolling. */
+  --vol-blur-glass: blur(22px) saturate(1.4);
+  --vol-blur-bar: blur(12px) saturate(1.2);
+  --vol-blur-scene: blur(1.5px);
+
+  /* Shell geometry: the floating side menu sits this far from the window edges. */
+  --vol-shell-inset: 16px;
+  --vol-radius-panel: 24px;
+  --vol-radius-card: 20px;
+  --vol-radius-control: 12px;
+
+  /* Page title in the top bar. */
+  --vol-type-bar-title-size: 20px;
+  --vol-type-bar-title-line: 26px;
+  --vol-type-bar-title-weight: 600;
+  --vol-type-bar-title-tracking: -0.01em;
+}
+
+@media (max-width: 639px) {
+  :root {
+    --vol-blur-glass: blur(14px) saturate(1.3);
+  }
+}
+
+@theme inline {
+  --color-glass: var(--vol-glass);
+  --color-glass-strong: var(--vol-glass-strong);
+  --color-glass-soft: var(--vol-glass-soft);
+  --color-glass-bar: var(--vol-glass-bar);
+  --color-glass-drawer: var(--vol-glass-drawer);
+  --color-glass-solid: var(--vol-glass-solid);
+  --color-glass-edge: var(--vol-glass-edge);
+  --color-glass-line: var(--vol-glass-line);
+  --color-nav-active: var(--vol-nav-active);
+  --color-on-nav-active: var(--vol-on-nav-active);
+  --color-nav-count: var(--vol-nav-count);
+
+  --shadow-glass: var(--vol-shadow-glass);
+  --shadow-glass-sm: var(--vol-shadow-glass-sm);
+  --shadow-nav-active: var(--vol-shadow-nav-active);
+
+  --radius-panel: var(--vol-radius-panel);
+  --radius-card: var(--vol-radius-card);
+  --radius-control: var(--vol-radius-control);
+
+  --text-bar-title: var(--vol-type-bar-title-size);
+  --text-bar-title--line-height: var(--vol-type-bar-title-line);
+  --text-bar-title--font-weight: var(--vol-type-bar-title-weight);
+  --text-bar-title--letter-spacing: var(--vol-type-bar-title-tracking);
+}
+
+@layer components {
+  /* The canvas behind the app: a frost sky with three soft hills (navy at night). Fixed and decorative. */
+  .vol-scene {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--vol-frost-sky-1) 0%, var(--vol-frost-sky-2) 70%, var(--vol-frost-sky-1) 100%);
+  }
+  .vol-scene > svg {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 72%;
+    filter: var(--vol-blur-scene);
+  }
+  .vol-scene .vol-hill-back {
+    fill: var(--vol-frost-hill-back);
+  }
+  .vol-scene .vol-hill-mid {
+    fill: var(--vol-frost-hill-mid);
+  }
+  .vol-scene .vol-hill-front {
+    fill: var(--vol-frost-hill-front);
+  }
+  .vol-scene::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(70% 40% at 50% 62%, var(--vol-frost-mist), transparent 70%), radial-gradient(60% 30% at 15% 85%, var(--vol-frost-mist), transparent 70%),
+      radial-gradient(50% 30% at 90% 80%, var(--vol-frost-mist), transparent 70%);
+  }
+
+  /* Glass surfaces. The solid colour is the fallback; the translucent one applies where blur works. */
+  .vol-glass,
+  .vol-glass-bar,
+  .vol-glass-drawer {
+    background-color: var(--vol-glass-solid);
+  }
+  .vol-glass {
+    border: 1px solid var(--vol-glass-edge);
+    box-shadow: var(--vol-shadow-glass);
+  }
+  @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .vol-glass {
+      background-color: var(--vol-glass);
+      -webkit-backdrop-filter: var(--vol-blur-glass);
+      backdrop-filter: var(--vol-blur-glass);
+    }
+    .vol-glass-bar {
+      background-color: var(--vol-glass-bar);
+      -webkit-backdrop-filter: var(--vol-blur-bar);
+      backdrop-filter: var(--vol-blur-bar);
+    }
+    .vol-glass-drawer {
+      background-color: var(--vol-glass-drawer);
+      -webkit-backdrop-filter: var(--vol-blur-bar);
+      backdrop-filter: var(--vol-blur-bar);
+    }
+  }
+}
+
+/* Less transparency asked for: solid surfaces, no blur. In the components layer so utilities still win. */
+@layer components {
+  @media (prefers-reduced-transparency: reduce) {
+    .vol-glass,
+    .vol-glass-bar,
+    .vol-glass-drawer {
+      background-color: var(--vol-glass-solid);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+}

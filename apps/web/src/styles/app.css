@@ -4,16 +4,23 @@
 @import "tailwindcss";
 @import "@volume/ui/tokens.css";
 @import "@volume/ui/theme.css";
+@import "@volume/ui/glass.css";
 @import "./fonts.css";
 @import "./book-fonts.css";
 
 /* Shell measurements that screens can read (set by the shell). */
 :root {
-  --shell-topbar: 56px;
+  /* The top bar holds the breadcrumb and the page title on two lines (64 px on phones). */
+  --shell-topbar: 64px;
   --shell-jobbar: 0px;
   /* Book screens (D-016): the step bar above the screen and Back and Next below it (shell/BookLayout). */
   --shell-bookbar: 0px;
   --shell-stepfooter: 0px;
+}
+@media (min-width: 640px) {
+  :root {
+    --shell-topbar: 72px;
+  }
 }
 :root[data-book="on"] {
   --shell-bookbar: 56px;

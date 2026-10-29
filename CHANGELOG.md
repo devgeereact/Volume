@@ -5,6 +5,7 @@ User-visible changes, newest first. Dates in British format.
 ## 28 October 2026
 
 #### Changed
+- New look for the app shell (D-065): a frosted side menu with your library count and the book being written, a glass top bar with the page trail, a search pill, a one-click theme switch and New book, and a soft mountain backdrop in light and a navy one in dark.
 - Calls that go straight to Anthropic now ask Anthropic to cache the instructions part of each prompt (D-063), so repeated instructions within a book cost a fraction of the normal price.
 - Chapter and extend-section prompts now send the book-wide material (blueprint, research sources, template, story bible) first and this chapter's details last (D-064): writing.chapter v10, chapter-fiction v2, chapter-workbook v3, chapter-reference v2, extend-section v7, extend-section-fiction v2. On direct Anthropic calls that material is cached from one chapter to the next. The rules are unchanged.
 

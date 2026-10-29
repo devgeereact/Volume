@@ -216,7 +216,7 @@ Type rules:
 
 | Level | Light | Dark | Use |
 |---|---|---|---|
-| 0 Flat | no shadow | no shadow | Canvas, cards, panels: borders do the work |
+| 0 Flat | no shadow | no shadow | Panels and book content: borders do the work. Shell glass and cards use `--vol-shadow-glass` (D-065) |
 | 1 Button | inset top highlight plus faint ring | same, stronger | Primary gilt button only |
 | 2 Sheet | soft 1 px plus long low shadow | hairline plus deep shadow | Galley sheet and live panel |
 | 3 Pop | `shadow-pop` | `shadow-pop` | Menus, popovers, toasts |
@@ -294,7 +294,7 @@ Everyday motion: buttons press 1 px down in 150 ms; menus and popovers fade and 
 
 - Covers are the only pictures in the app. They keep a 2:3 shape, a 3 px radius, a soft spine shade on the left edge and `shadow-cover`, so they read as objects on a table. Never crop or recolour a cover.
 - Books without a cover show a dashed frame with the title in Literata italic and "No cover yet".
-- The interface never sits text on top of a cover. No stock photos, no gradients as decoration, no illustrations except the simple line drawings in empty states.
+- The interface never sits text on top of a cover. No stock photos, no gradients as decoration, no illustrations except the simple line drawings in empty states. The one exception is the frost scene behind the app shell (D-065).
 - The board's sample covers use OFL display fonts (DM Serif Display, Libre Franklin, Big Shoulders Display, Bodoni Moda, Young Serif). They are book content; the interface never uses them.
 
 ### Do and don't
@@ -371,3 +371,13 @@ Other checks that apply to this direction:
 - Every colour signal also has an icon or a word: status chips, stage markers (check, dot, ring), claim flags, success checks.
 - The live stream sits in a region with `aria-live="off"`. Progress is announced through the job bar's polite status at most every 10 seconds, so screen reader users are not flooded with words.
 - The theme follows the system setting until the owner picks one in Settings. Both themes pass the same checks.
+
+## Studio shell: frost and glass (D-065)
+
+The app shell sits on a scene: a pale frost sky with soft mountains in light, deep navy in dark. The side menu floats 16 px from the edge, and the top bar (72 px, 64 px on phones), the job bar and cards are glass over that scene.
+
+- Tokens: `packages/ui/glass.css` (`--vol-frost-*` for the scene, `--vol-glass*` for layers, `--vol-nav-active` for the current menu item, `--vol-shadow-glass*`). Hand written; import it after `tokens.css` and `theme.css`.
+- Blur only on the side menu, top bar, job bar and cards. Never on book content, sheets or covers.
+- Without `backdrop-filter`, or with `prefers-reduced-transparency`, every glass layer is solid (`--vol-glass-solid`).
+- Contrast: body text 4.5:1 or more on the darkest backdrop a layer can sit on, in both themes. The light hills stay faint for that reason.
+- Everything inside the shell keeps the D-014 rules above.

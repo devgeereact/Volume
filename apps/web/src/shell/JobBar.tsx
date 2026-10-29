@@ -13,7 +13,7 @@ import { isSummaryOnlyJob } from "../api/wire-b";
 import { apiErrorText, dismissFailure, JOB_LABELS, stepForJob, type RunningJob } from "../api/wire-a";
 
 /**
- * "Writing now" bar, 56 px, fixed to the bottom of the main column while a job runs elsewhere.
+ * "Writing now" bar, 56 px, glass, fixed to the bottom of the main column while a job runs elsewhere.
  * Content above gets matching bottom padding (--shell-jobbar), so it never covers an action.
  * It announces pause and resume politely; word counts are not announced on every chunk.
  */
@@ -36,7 +36,7 @@ export function JobBar() {
     <div
       role="region"
       aria-label="Running job"
-      className="sticky bottom-0 z-30 flex h-(--vol-jobbar) items-center gap-3 border-t border-border bg-sheet px-4 text-[13.5px] sm:gap-4 sm:px-6"
+      className="vol-glass-bar sticky bottom-0 z-30 flex h-(--vol-jobbar) items-center gap-3 border-t border-glass-line px-4 text-[13.5px] sm:gap-4 sm:px-6"
     >
       {paused ? <span aria-hidden className="size-2 shrink-0 rounded-full border-[1.5px] border-accent-text" /> : <LiveDot />}
       <p className="min-w-0 truncate">
@@ -118,7 +118,7 @@ export function ApiJobBar({ job, more }: { job: RunningJob; more: number }) {
     <div
       role="region"
       aria-label="Running job"
-      className="sticky bottom-0 z-30 flex h-(--vol-jobbar) items-center gap-3 border-t border-border bg-sheet px-4 text-[13.5px] sm:gap-4 sm:px-6"
+      className="vol-glass-bar sticky bottom-0 z-30 flex h-(--vol-jobbar) items-center gap-3 border-t border-glass-line px-4 text-[13.5px] sm:gap-4 sm:px-6"
     >
       {failed || job.stalledMinutes !== null ? (
         <CircleAlert size={16} strokeWidth={2} aria-hidden className="shrink-0 text-claim" />
