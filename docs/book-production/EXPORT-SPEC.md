@@ -265,6 +265,25 @@ height_in = 0.125 + trim_h + 0.125
 - Back cover: blurb, short bio, and an empty area for KDP's barcode (size/clearance recorded, automatic placement still partial, `KNOWN-ISSUES.md`).
 - Phase 4 check: sizes match KDP's cover calculator (FACTS 3.8) for 3 page counts on white and cream.
 
+## Cover layers (studio redesign stage 5)
+
+Optional fields of the cover spec (`CoverStyle` in `packages/core/src/theme.ts`, types and drawing in `packages/core/src/cover-layers.ts`). The studio sends them as keys of the cover typography (`POST /cover/choose`, `POST /cover/preview`; zod in `apps/server/src/routes/body-schemas.ts`), stored in the existing `covers.typography` JSON column, so no migration. `applyCoverTypography` reads them through `normaliseCoverLayers`, which drops anything not valid. A cover without them renders byte for byte as before (hashes in `packages/export/test/golden/covers/legacy-html.sha256.json`).
+
+| Key | Fields | Default when missing |
+|---|---|---|
+| `background` | `mode` solid, gradient or image; `span` wrap or front; `gradient` { `type` linear or radial, `from`, `to`, `angle` 0 to 360, `centreX`, `centreY` 0 to 100 }; `image` { `assetId` or `texture`, `opacity` 0 to 1, `blend`, `scale` 1 to 3, `focusX`, `focusY` 0 to 100, `blur` 0 to 40 thousandths of the front width, `greyscale`, `tint` { `colour`, `strength` 0 to 0.9 } } | the palette's background colour |
+| `artwork` | `opacity` 0 to 1, `rotation` -180 to 180, `box` { `x`, `y`, `w`, `h` } in front-width percent | the concept art fills the front |
+| `shapes` | up to 24 of { `id`, `kind`, `surface` front or back, `x`, `y`, `w`, `h` in panel-width percent, `rotation`, `colour`, `opacity`, `layer` behind or over } | none |
+| `spine` | `colour`, `textColour`, `showBackground` (whole-wrap background shows on the spine) | band colour, background colour |
+| `showBarcodeBox` | false leaves the barcode area unpainted on the wrap | white box |
+
+- Fixed lists: blends normal, multiply, screen, overlay, soft light, colour burn, luminosity; shapes circle, ring, blob, arc, triangle, square, star, burst, wave, line, stripes, dots, grid (plain SVG paths, no tiling patterns); textures paper grain, soft clouds, marble, halftone, sunburst (drawn by code as SVG, no image files).
+- Pictures: an asset of kind `cover_background` (uploaded with the existing `POST /assets`) or a `cover_concept` of the same book. Anything else is refused on save (400) and left out of a build, which then uses the background colour and says so.
+- Whole-wrap backgrounds sit under the back, spine and front. On the eBook they show as the front's share of the wrap, from the book's trim and real spine; without a page count the eBook uses its own front.
+- Print parity: the wrap PDF is rasterised at the rules file's cover DPI (`layersNeedRaster`) when a picture uses a blend, blur, greyscale or a filtered texture, so it is the same Chromium picture as the preview and the JPEG. A background picture below that DPI gets the KDP warning.
+- Contrast: plain and gradient backgrounds are measured from the spec (a gradient at its weakest point), shapes behind the type as if under it; pictures, textures, shapes over the type and art with its own settings are flagged as needing a look. A build with layers also measures each line against the real pixels behind it (the cover drawn again with the text hidden, weakest tenth of the area) and stores what falls short in `wrapSpec.warnings`.
+- Tests: `packages/export/test/cover-layers.test.ts` (exact layer markup goldens, eBook and wrap render goldens per mode, preview-versus-build parity), `apps/server/test/cover-layers.test.ts`, `apps/web/src/features/cover/layers.test.tsx`.
+
 ## Own cover (owner upload)
 
 The owner can skip the AI cover and upload their own (live acceptance 18 October 2026): a front cover image for the eBook (JPEG or TIFF, rule `ebook.cover` `fileTypes`) and a full paperback wrap PDF (back, spine and front with bleed). They go into the pack's `cover/` folder as uploaded (a TIFF keeps `.tif`); Volume never redraws them. On the server they are assets of kind `own_ebook_cover` and `own_wrap_pdf` (`POST /api/v1/assets` with the book's `projectId`; the first bytes must be a JPEG, TIFF or PDF signature or the upload is refused and removed), put in place with `POST /api/v1/books/:id/cover/own` (`ebookAssetId`, `wrapAssetId`, or `null` to take one out; `wrapSpec.ownEbook` and `ownWrap` record them). The Cover screen has a "Use my own cover" panel for both. Preflight checks them with `ownCovers` set, against `config/kdp-rules` only:

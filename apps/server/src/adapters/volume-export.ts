@@ -22,6 +22,8 @@ import {
   type Section,
   type SectionSubtype,
   curlQuotesDeep,
+  parseTrimKey,
+  wrapSizeIn,
 } from '@volume/core';
 import { loadBookTemplate, loadCoverStyles, loadHouseStyle, loadInteriorThemes, loadKdpRules } from '@volume/core/node';
 import {
@@ -606,28 +608,63 @@ export class VolumeExportAdapter implements ExportPort {
     return this.file(book, 'interior_pdf', 'pdf', MIME.pdf, r.buffer, r.pageCount);
   }
 
+  /** The paperback's sizes for the eBook, so a background spanning the wrap shows as the front's share of it. */
+  private ebookWrap(input: CoverInput & { ink?: WrapCoverInput['ink'] }): { trimWidthIn: number; spineIn: number; bleedIn: number } | undefined {
+    if (!input.pageCount) return undefined;
+    const { rules } = this.config();
+    try {
+      const trim = parseTrimKey(input.book.trim);
+      const ink = input.ink;
+      const size = wrapSizeIn(
+        rules,
+        ink ? { trim, pages: input.pageCount, paper: paperOf(input.book), ink } : { trim, pages: input.pageCount, paper: paperOf(input.book) },
+      );
+      return { trimWidthIn: trim.widthIn, spineIn: size.spineIn, bleedIn: size.bleedIn };
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** eBook cover options shared by the build and the preview: art, background picture and the wrap's sizes. */
+  private ebookOpts(
+    input: CoverInput & { ink?: WrapCoverInput['ink'] },
+    o: NonNullable<Parameters<typeof exportEbookCover>[2]>,
+  ): NonNullable<Parameters<typeof exportEbookCover>[2]> {
+    if (input.artwork) o.background = buf(input.artwork.data);
+    if (input.backgroundImage) o.backgroundImage = buf(input.backgroundImage.data);
+    const wrap = this.ebookWrap(input);
+    if (wrap) o.wrap = wrap;
+    return o;
+  }
+
+  /** Wrap options shared by the build and the preview. */
+  private wrapOpts(input: WrapCoverInput, o: Parameters<typeof exportPaperbackWrap>[2]): Parameters<typeof exportPaperbackWrap>[2] {
+    if (input.backBlurb) o.blurb = input.backBlurb;
+    if (input.ink) o.ink = input.ink;
+    if (input.book.author.shortBio) o.shortBio = input.book.author.shortBio;
+    if (input.artwork) o.background = buf(input.artwork.data);
+    if (input.backgroundImage) o.backgroundImage = buf(input.backgroundImage.data);
+    if (input.typography['showBarcodeBox'] === false) o.showBarcodeBox = false;
+    return o;
+  }
+
   async buildEbookCover(input: CoverInput, opts: ExportOptions = {}): Promise<ExportFile> {
     throwIfAborted(opts.signal);
     const { rules, fonts } = this.config();
     const browser = await this.getBrowser();
-    const o: Parameters<typeof exportEbookCover>[2] = { browser, rules, fonts };
-    if (input.artwork) o.background = buf(input.artwork.data);
+    const o = this.ebookOpts(input, { browser, rules, fonts });
     const r = await exportEbookCover(this.coverMeta(input), this.styleForCover(input.book, input.coverStyleId, input.typography), o);
-    return this.file(input.book, 'ebook_cover', 'jpg', MIME.jpeg, r.jpeg);
+    return { ...this.file(input.book, 'ebook_cover', 'jpg', MIME.jpeg, r.jpeg), ...(r.warnings.length ? { warnings: r.warnings } : {}) };
   }
 
   async buildWrapCover(input: WrapCoverInput, opts: ExportOptions = {}): Promise<ExportFile> {
     throwIfAborted(opts.signal);
     const { rules, fonts } = this.config();
     const browser = await this.getBrowser();
-    const o: Parameters<typeof exportPaperbackWrap>[2] = { rules, pages: input.pageCount, paper: paperOf(input.book), trim: input.book.trim, browser, fonts };
-    if (input.backBlurb) o.blurb = input.backBlurb;
-    if (input.ink) o.ink = input.ink;
-    if (input.book.author.shortBio) o.shortBio = input.book.author.shortBio;
-    if (input.artwork) o.background = buf(input.artwork.data);
+    const o = this.wrapOpts(input, { rules, pages: input.pageCount, paper: paperOf(input.book), trim: input.book.trim, browser, fonts });
     const r = await exportPaperbackWrap(this.coverMeta(input), this.styleForCover(input.book, input.coverStyleId, input.typography), o);
     const f = this.file(input.book, 'wrap_pdf', 'pdf', MIME.pdf, r.pdf, 1);
-    return { ...f, filename: f.filename.replace(/\.pdf$/, `-${input.pageCount}p.pdf`) };
+    return { ...f, filename: f.filename.replace(/\.pdf$/, `-${input.pageCount}p.pdf`), ...(r.warnings.length ? { warnings: r.warnings } : {}) };
   }
 
   async coverPreviewHtml(input: WrapCoverInput, kind: 'ebook' | 'wrap'): Promise<CoverPreviewHtml> {
@@ -635,23 +672,10 @@ export class VolumeExportAdapter implements ExportPort {
     const style = this.styleForCover(input.book, input.coverStyleId, input.typography);
     const meta = this.coverMeta(input);
     if (kind === 'ebook') {
-      const o: Parameters<typeof exportEbookCover>[2] = { rules, fonts, htmlOnly: true };
-      if (input.artwork) o.background = buf(input.artwork.data);
-      const r = await exportEbookCover(meta, style, o);
+      const r = await exportEbookCover(meta, style, this.ebookOpts(input, { rules, fonts, htmlOnly: true }));
       return { html: r.html ?? '', widthPx: r.widthPx, heightPx: r.heightPx, warnings: r.warnings };
     }
-    const o: Parameters<typeof exportPaperbackWrap>[2] = {
-      rules,
-      pages: input.pageCount,
-      paper: paperOf(input.book),
-      trim: input.book.trim,
-      fonts,
-      htmlOnly: true,
-    };
-    if (input.backBlurb) o.blurb = input.backBlurb;
-    if (input.ink) o.ink = input.ink;
-    if (input.book.author.shortBio) o.shortBio = input.book.author.shortBio;
-    if (input.artwork) o.background = buf(input.artwork.data);
+    const o = this.wrapOpts(input, { rules, pages: input.pageCount, paper: paperOf(input.book), trim: input.book.trim, fonts, htmlOnly: true });
     const r = await exportPaperbackWrap(meta, style, o);
     return { html: r.html ?? '', widthPx: Math.ceil(r.size.widthIn * 96), heightPx: Math.ceil(r.size.heightIn * 96), warnings: r.warnings };
   }

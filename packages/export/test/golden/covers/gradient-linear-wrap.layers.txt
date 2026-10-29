@@ -1,0 +1,1 @@
+<div class="bgl"><i class="bgl-c" style="background: linear-gradient(120deg, #0B1F4D, #7A2E5E);"></i></div>

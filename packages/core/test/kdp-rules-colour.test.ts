@@ -6,8 +6,10 @@ import { getRule } from '../src/index.ts';
 import { findRepoRoot, loadBookTemplate, loadKdpRules } from '../src/node/index.ts';
 
 // P7-1: colour and picture-book rules in a new dated file (2026-10-17). The 6 October file is never edited.
+// The 17 October file is pinned here; later files (2026-10-29 onwards) have their own tests.
 const root = findRepoRoot();
-const latest = loadKdpRules(root);
+const latest = loadKdpRules(root, '2026-10-17');
+const newest = loadKdpRules(root);
 const previous = loadKdpRules(root, '2026-10-06');
 const NEW_IDS = [
   'paperback.printingCost.uk.standardColour',
@@ -18,7 +20,7 @@ const NEW_IDS = [
 ];
 
 describe('KDP rules 2026-10-17 (colour)', () => {
-  it('is the newest file and keeps every 6 October rule unchanged', () => {
+  it('keeps every 6 October rule unchanged', () => {
     expect(latest.version).toBe('2026-10-17');
     for (const r of previous.rules) expect(getRule(latest, r.id)).toEqual(r);
     expect(latest.rules.map((r) => r.id).sort()).toEqual([...previous.rules.map((r) => r.id), ...NEW_IDS].sort());
@@ -72,7 +74,7 @@ describe('picture-book template (conflict 7)', () => {
   it('cites rule ids that exist in the newest rules file', () => {
     const ids = tpl.print['kdpRuleIds'] as string[];
     expect(ids).toEqual(expect.arrayContaining(['print.bleed', 'paperback.trimAndPages.colour', 'paperback.printingCost.uk.premiumColour']));
-    for (const id of ids) expect(() => getRule(latest, id)).not.toThrow();
+    for (const id of ids) expect(() => getRule(newest, id)).not.toThrow();
   });
 
   it('carries no KDP page numbers or fact numbers in its print notes', () => {

@@ -349,10 +349,26 @@ export interface MemoryPatch {
 /** Book stepper stages (server D-016). The prototype's StageId differs; see adapters.ts. */
 export type ApiStage = "idea" | "research" | "titles" | "blueprint" | "writing" | "editor" | "cover" | "export" | "marketing";
 export type ApiBookStatus = "active" | "published" | "archived";
-export type Trim = "5x8" | "5.25x8" | "5.5x8.5" | "6x9" | "7x10" | "8.5x11" | "8x10" | "8.5x8.5";
-
-/** Trim sizes the server takes (apps/server/src/repos/books.ts TRIMS). */
-export const TRIMS: readonly Trim[] = ["5x8", "5.25x8", "5.5x8.5", "6x9", "7x10", "8.5x11", "8x10", "8.5x8.5"];
+/** Trim sizes the server takes (apps/server/src/repos/books.ts TRIMS, from config/kdp-rules paperback.trimSizes.list). */
+export const TRIMS = [
+  "5x8",
+  "5.25x8",
+  "5.5x8.5",
+  "6x9",
+  "7x10",
+  "8.5x11",
+  "8x10",
+  "8.5x8.5",
+  "5.06x7.81",
+  "6.14x9.21",
+  "6.69x9.61",
+  "7.44x9.69",
+  "7.5x9.25",
+  "8.25x6",
+  "8.25x8.25",
+  "8.27x11.69",
+] as const;
+export type Trim = (typeof TRIMS)[number];
 export type DisclosureLevel = "ai_generated" | "ai_assisted" | "none";
 
 export interface AiDisclosure {
@@ -1472,7 +1488,8 @@ export interface ApiJobDetail extends ApiJob {
 
 /* ---------- Assets ---------- */
 
-export type AssetKind = "author_photo" | "import" | "logo" | "interior_image" | "cover_concept" | "own_ebook_cover" | "own_wrap_pdf" | "other";
+export type AssetKind =
+  "author_photo" | "import" | "logo" | "interior_image" | "cover_concept" | "cover_background" | "own_ebook_cover" | "own_wrap_pdf" | "other";
 
 export interface ApiAssetMeta {
   id: string;

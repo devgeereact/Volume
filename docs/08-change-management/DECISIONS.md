@@ -494,3 +494,11 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
 - **Options considered:** keep the D-065 shell and restyle pages only (rejected by the owner); load Manrope from Google Fonts (rejected: no runtime calls to other services).
 - **Consequences:** most screens change look at once. The design contrast script under `design/` has not been updated for the translucent colours; contrast is sampled by hand. The Schibsted Grotesk package is no longer used and can be removed with the owner's OK.
 
+## D-067, 29 October 2026: cover layers with print parity
+
+- **Status:** Accepted (owner said "go ahead", 29 October 2026, after the approved design went live).
+- **Context:** the approved Volume Studio cover studio has gradient and picture backgrounds, a tint, shapes and spine colours. A cover that looks right on screen but prints differently is a defect.
+- **Decision:** the new settings are optional cover spec fields stored in the existing `covers.typography` JSON, so no migration. One set of drawing helpers in `packages/core/src/cover-layers.ts` is used by the build, and the studio shows the build's own page. Patterns and the five textures are plain SVG paths drawn by code. A wrap that uses a blend, blur, greyscale or a filtered texture is drawn as one image at the rules file's cover DPI, and the build says so. Background pictures are assets of kind `cover_background` through the existing `POST /assets`. Contrast is measured from the spec where it can be, flagged otherwise, and measured on the real pixels at build time.
+- **Options considered:** CSS patterns (printed wrongly in the PDF); a separate cover table (needs a migration).
+- **Consequences:** old covers render byte for byte as before (hash test). Golden files cover each mode for the eBook JPEG and the wrap PDF. Not built: per-line typeface and spacing, dragging shapes on the canvas.
+

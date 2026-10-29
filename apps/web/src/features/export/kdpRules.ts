@@ -1,6 +1,6 @@
-import rulesFile from "@config/kdp-rules/2026-10-06.json";
+import { kdpRulesFile as rulesFile } from "../../lib/kdpRulesFile";
 
-/* KDP numbers for the Cover studio and Export, read from config/kdp-rules/2026-10-06.json at build time
+/* KDP numbers for the Cover studio and Export, read from the newest config/kdp-rules file at build time (lib/kdpRulesFile.ts)
    (AGENTS.md rule 7: never from memory). Every figure the screens show carries its rule id. A missing or
    malformed rule throws, so a bad rules file fails loudly instead of printing a wrong number. */
 

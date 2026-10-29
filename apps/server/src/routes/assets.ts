@@ -32,7 +32,7 @@ type OwnCoverKind = keyof typeof OWN_COVER_KINDS;
 const isOwnCoverKind = (k: string): k is OwnCoverKind => k in OWN_COVER_KINDS;
 
 const UploadQuery = z.object({
-  kind: z.enum(['import', 'logo', 'interior_image', 'author_photo', 'cover_concept', 'own_ebook_cover', 'own_wrap_pdf', 'other']),
+  kind: z.enum(['import', 'logo', 'interior_image', 'author_photo', 'cover_concept', 'cover_background', 'own_ebook_cover', 'own_wrap_pdf', 'other']),
   filename: z.string().trim().min(1).max(255),
   mime: z.string().max(100).optional(),
   projectId: z.string().max(64).optional(),

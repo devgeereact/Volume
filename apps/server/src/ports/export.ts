@@ -105,6 +105,8 @@ export interface ExportFile {
   mock: boolean;
   /** What the file is, so the pack can place it. Adapters set it on the files they build. */
   role?: ExportFileRole;
+  /** What the build noticed (covers: text contrast measured on the real pixels, picture DPI). */
+  warnings?: string[];
 }
 
 export type ExportFileRole = 'interior_pdf' | 'docx' | 'epub' | 'txt' | 'md' | 'ebook_cover' | 'wrap_pdf' | 'pack';
@@ -115,6 +117,10 @@ export interface CoverInput {
   artwork: { mime: string; data: Uint8Array } | null;
   typography: Record<string, unknown>;
   coverStyleId: string | null;
+  /** The picture an image background layer names (typography.background.image.assetId), already checked to be this book's. */
+  backgroundImage?: { mime: string; data: Uint8Array } | null;
+  /** The interior page count, when known: a background spanning the wrap then shows on the eBook as the front's share of it. */
+  pageCount?: number;
 }
 
 export interface WrapCoverInput extends CoverInput {

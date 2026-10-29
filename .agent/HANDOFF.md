@@ -806,3 +806,12 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - PR #81 merged (CI passed), main `f8703c0` deployed as `releases/20261029T142955Z` (was `20261029T115250Z`, now the rollback target). No migrations. Pruned `20261024T153751Z`.
 - Checks PASS: deploy script (health 200, sign-in enforced, `/assets/index-BKzEto7U.js`); `/api/health` 200; `/api/v1/books` 401 signed out; `/`, `/library`, `/robots.txt` 200. Not checked: signed-in pages in a browser. Deploy SSH agent stopped.
 - Next: owner checks the signed-in app. Later: cover gradient, image and shape layers with print parity; KDP trims from official pages (needs the owner's OK for the network reads).
+
+## 29 October 2026, Claude Code (Opus 5.5): cover layers (stage 5) and KDP trims (stage 6)
+
+- Owner said "go ahead". Two agents in worktrees, merged on `feat/cover-layers-and-trims`:
+  - `feat/kdp-trims`: `config/kdp-rules/2026-10-29.json` with all 16 paperback trims, page ranges per ink and paper, custom trim limits and hardcover, checked against raw pages saved in `../reports/volume/kdp-trims/raw/` (I re-checked the 8.27 x 11.69 row and the custom limits). The web reads the newest file through `apps/web/src/lib/kdpRulesFile.ts`. Open: KDP's US page gives 24 to 590 pages for 8.27 x 11.69 premium colour while the Japan page gives 780; 590 kept.
+  - `feat/cover-layers` (D-067): background modes, tint, shapes, artwork settings, spine colours, barcode box, with golden files and preview-against-build pixel tests. No migration.
+- Checks PASS: typecheck, lint, format:check; unit tests core 190, ai 265, export 244, server 566, web 265; e2e 20/20.
+- Known bugs, not fixed: books with no subtitle show the cover as out of date after every build (`apps/web/src/api/adapters.ts:249` maps null to ""); the wrap preview is empty for books under 24 pages.
+- Next: PR, merge, deploy with the owner's key unlock.
