@@ -5,6 +5,8 @@ User-visible changes, newest first. Dates in British format.
 ## 29 October 2026
 
 #### Changed
+- Cover studio: gradient, picture and texture backgrounds with tint, shapes on the front or back, artwork opacity, rotation and box, spine and spine text colours, and a barcode white box switch. The eBook cover and paperback wrap print exactly what the studio shows.
+- Paperbacks can use all 16 KDP trim sizes, with page ranges per ink and paper, from KDP's help pages checked on 29 October 2026 (`config/kdp-rules/2026-10-29.json`).
 - Volume now looks like the approved Volume Studio design on every screen: a labelled side menu with a Writing now and spend box, a misty mountain background, navy buttons and the Manrope font. The bottom job bar is gone; its controls are in the side menu.
 - Each book has an Overview page. Library, Blueprint, Writing, Editor, Cover, Marketing, Export, Volume mode, Profiles, New book and Settings use the approved layouts. The cover studio has palettes, undo, a fitted canvas and a paperback check.
 - Research shows counts of sources, reader pains, angles and keyword ideas, with a filter and search over its sources. Titles shows a store listing preview and a length bar against the KDP limit of 199 characters.
