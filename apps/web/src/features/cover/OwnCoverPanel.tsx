@@ -67,9 +67,9 @@ export function OwnCoverPanel({
 
   const types = ebookCoverTypes.filter((t) => t === "jpeg" || t === "tiff").map((t) => t.toUpperCase());
   const row = (slot: OwnCoverSlot, title: string, help: string, accept: string, input: RefObject<HTMLInputElement | null>) => (
-    <div className="grid gap-2 rounded-md border border-border p-4">
-      <p className="text-label font-semibold text-ink">{title}</p>
-      <p className="text-small text-ink-secondary">{help}</p>
+    <div className="grid gap-2 rounded-[11px] border border-line bg-panel-2 p-3">
+      <p className="text-[13px] font-semibold text-ink">{title}</p>
+      <p className="text-[12px] leading-[1.45] text-ink-2">{help}</p>
       {has[slot] && (
         <p className="flex items-center gap-1.5 text-small text-success">
           <Check size={14} strokeWidth={2} aria-hidden />
@@ -105,20 +105,20 @@ export function OwnCoverPanel({
   );
 
   return (
-    <section aria-labelledby="own-cover-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
-      <h2 id="own-cover-title" className="font-book text-heading text-ink">
+    <section aria-labelledby="own-cover-title" className="grid min-w-0 gap-2.5 border-t border-line py-3.5">
+      <h3 id="own-cover-title" className="text-[10.5px] font-bold tracking-[.09em] text-ink-3 uppercase">
         Use my own cover
-      </h2>
-      <p className="mt-1 text-small text-ink-secondary">
+      </h3>
+      <p className="text-[12.5px] leading-[1.45] text-ink-2">
         Made your cover elsewhere? Upload it here instead of making concepts. The upload pack uses your files as they are, and the export preflight checks them
         against KDP's rules.
       </p>
       {problem && (
-        <Banner tone="error" title="That file was not used" className="mt-3">
+        <Banner tone="error" title="That file was not used">
           {problem}
         </Banner>
       )}
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-2.5">
         {row(
           "ebook",
           "eBook cover",
