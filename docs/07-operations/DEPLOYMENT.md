@@ -6,8 +6,8 @@ Volume runs on the owner's cPanel account as one CloudLinux Passenger Node.js ap
 
 | Item | Value (29 October 2026) |
 | --- | --- |
-| Live release | `20261029T115250Z`, built from main `ec9e603` (studio redesign stages 0 to 4a), deployed from the Ubuntu computer with its own host key |
-| Rollback target | `20261029T075300Z` (`npm run deploy -- --rollback`) |
+| Live release | `20261029T142955Z`, built from main `f8703c0` (approved Volume Studio design, D-066), deployed from the Ubuntu computer with its own host key |
+| Rollback target | `20261029T115250Z` (`npm run deploy -- --rollback`) |
 | Migrations applied in production | `0001` to `0011`. `0006`, `0008` and `0009` on 18 October 2026, `0010_listing_source` on 19 October 2026, `0011_version_author` on 19 October 2026 (evening) |
 | CI | GitHub Actions has created no runs since 18 October 2026 because GitHub's spam filter flagged the owner's account (run #38 annotation "owner marked spammy"; profile and repo 404 when signed out). Only GitHub can lift it; see KNOWN-ISSUES.md. Deploys therefore use `--no-ci-check` with the owner's OK; local evidence stands in (typecheck, lint, format, Vitest 1,176 passed and 4 skipped, e2e 17 of 17). |
 

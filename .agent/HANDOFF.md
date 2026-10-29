@@ -800,3 +800,9 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Checks PASS: typecheck, lint, format:check, docs:check; unit tests core 185, ai 265, export 206, server 559, web 257; e2e 20/20. Screenshots in `../reports/volume/studio-approved/`.
 - Not built: cover gradient, image and shape layers (need cover spec and print parity; list in the cover agent's report); editor bold, italic and lists (manuscript stores plain text). `BlueprintInspector.tsx` and the Schibsted Grotesk package are unused; removing them needs the owner's OK.
 - Next: owner merges the PR, unlocks the deploy key, deploy.
+
+## 29 October 2026, Claude Code (Opus 5.5): deploy of the approved Volume Studio design
+
+- PR #81 merged (CI passed), main `f8703c0` deployed as `releases/20261029T142955Z` (was `20261029T115250Z`, now the rollback target). No migrations. Pruned `20261024T153751Z`.
+- Checks PASS: deploy script (health 200, sign-in enforced, `/assets/index-BKzEto7U.js`); `/api/health` 200; `/api/v1/books` 401 signed out; `/`, `/library`, `/robots.txt` 200. Not checked: signed-in pages in a browser. Deploy SSH agent stopped.
+- Next: owner checks the signed-in app. Later: cover gradient, image and shape layers with print parity; KDP trims from official pages (needs the owner's OK for the network reads).
