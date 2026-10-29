@@ -111,7 +111,8 @@ test("a crowded Library row scrolls sideways with buttons, and the wheel scrolls
   const author = await post(request, "/profiles", { penName: `Shelf author ${Date.now()}`, bioThirdPerson: "This author writes test books." });
   for (let n = 1; n <= 9; n++) await post(request, "/books", { profileId: author["id"], idea: `Shelf idea ${n}`, title: `Shelf book ${n}` });
   await page.setViewportSize({ width: 1100, height: 900 });
-  await page.goto("/library");
+  // The Shelves view (?view=covers) holds the sideways rows; the default Grid view wraps instead.
+  await page.goto("/library?view=covers");
   const more = page.getByRole("button", { name: /^More books in / }).first();
   await expect(more).toBeVisible();
   const row = page.locator("section", { has: more }).locator("ul").first();
@@ -137,7 +138,7 @@ test("a crowded Library row scrolls sideways with buttons, and the wheel scrolls
 
 test("Library rows scroll the page, not themselves", async ({ page }) => {
   await page.setViewportSize({ width: 1100, height: 900 });
-  await page.goto("/library");
+  await page.goto("/library?view=covers");
   const rows = page.locator("section ul");
   await expect(rows.first()).toBeVisible();
   const overflowY = await rows.evaluateAll((els) => els.map((el) => getComputedStyle(el).overflowY));

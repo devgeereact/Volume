@@ -3,7 +3,7 @@ import { ImportProjectDialog } from "./ImportProjectDialog";
 import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { LayoutGrid, Plus, Rows3 } from "lucide-react";
+import { GalleryHorizontalEnd, LayoutGrid, Plus, Rows3 } from "lucide-react";
 import { Banner, Button, EmptyState, FilterField, PageHeader, SegmentedControl, Skeleton } from "../../components/ui";
 import { useActivity } from "../../api/hooks";
 import { isoFromMs, isToday, usePenNames, useWiredBooks, useWireMode } from "../../api/wire-a";
@@ -11,18 +11,36 @@ import { books as allBooks } from "../../demo/books";
 import { penNames } from "../../demo/penNames";
 import { useWritingJob } from "../../lib/job";
 import { usePenNameFilter } from "../../lib/penName";
-import { matchesQuery } from "./bookStatus";
+import { groupOf, matchesQuery, type BookGroup } from "./bookStatus";
 import { readPref, useDemoState, writePref } from "./demoState";
 import { LedgerView } from "./LedgerView";
+import { LibraryGrid, LibraryGridSkeletonCards } from "./LibraryGrid";
+import { GroupFilter, LibrarySide } from "./LibrarySide";
 import { LivePanel } from "./LivePanel";
 import { PipelineView } from "./PipelineView";
 import { TodayStrip, type TodayItem } from "./TodayStrip";
 
-type View = "covers" | "ledger";
-const VIEW_KEY = "volume.library.view";
+/** grid: the 3 by 3 cover grid with the side column (default). covers: the Shelves lanes. ledger: the table. */
+type View = "grid" | "covers" | "ledger";
+/* A new key with the grid (studio redesign stage 3), so a choice saved before the grid existed does not hide it. */
+const VIEW_KEY = "volume.library.layout";
+
+function readView(asked: string | null): View {
+  return asked === "ledger" || asked === "covers" ? asked : "grid";
+}
 const demoActive = allBooks.filter((b) => !b.archived);
 
-function LibrarySkeleton() {
+function LibrarySkeleton({ view }: { view: View }) {
+  if (view === "grid")
+    return (
+      <div role="status" aria-label="Loading books" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <LibraryGridSkeletonCards />
+        <div className="hidden gap-4 xl:grid xl:content-start">
+          <Skeleton variant="block" className="h-64 rounded-card" />
+          <Skeleton variant="block" className="h-40 rounded-card" />
+        </div>
+      </div>
+    );
   return (
     <div role="status" aria-label="Loading books" className="grid gap-5.5">
       <div className="grid grid-cols-[72px_1fr] gap-5 rounded-lg border border-border bg-sheet p-5 sm:grid-cols-[112px_1fr]">
@@ -49,9 +67,10 @@ function LibrarySkeleton() {
 }
 
 /**
- * Library (09-UX-FLOWS, M2, D-016). Header with a page filter, Covers or Ledger and New book; the live
- * "Writing now" panel while a job runs; books along the pipeline (the stage columns are the stage
- * filter) or in the ledger; the Today strip. The spine's profile switcher narrows the page; there is no
+ * Library (09-UX-FLOWS, M2, D-016). Header with a page filter, Grid, Shelves or Ledger and New book; the live
+ * "Writing now" panel while a job runs; books in the 3 by 3 grid with a side column (stage filter and Today) that
+ * stays in view, along the three shelves, or in the ledger, with the Today strip closing the page. The top bar shows
+ * the page title, so the h1 here is for screen readers only. The spine's profile switcher narrows the page; there is no
  * second copy of it here. The top bar holds the one search. Demo states: ?state=loading, error or empty.
  * With the server running the books and profiles come from it (api/wire-a.ts); the live panel stays a
  * demo until the library has a server feed of running jobs.
@@ -84,11 +103,9 @@ export default function LibraryPage() {
   const running = demoJob.running && !api;
   const paused = demoJob.paused;
   const [params] = useSearchParams();
-  const [view, setViewState] = useState<View>(() => {
-    const asked = params.get("view") ?? readPref(VIEW_KEY);
-    return asked === "ledger" ? "ledger" : "covers";
-  });
+  const [view, setViewState] = useState<View>(() => readView(params.get("view") ?? readPref(VIEW_KEY)));
   const [query, setQuery] = useState("");
+  const [group, setGroup] = useState<BookGroup | null>(null);
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
 
   function setView(v: View) {
@@ -100,6 +117,8 @@ export default function LibraryPage() {
   const byPen = useMemo(() => (penId ? active.filter((b) => b.penNameId === penId) : active), [active, penId]);
   const getPen = pens.get;
   const shown = useMemo(() => byPen.filter((b) => matchesQuery(b, getPen(b.penNameId)?.name ?? "", query)), [byPen, query, getPen]);
+  // The grid's stage filter (side column). Shelves and Ledger already show every stage.
+  const inGroup = useMemo(() => (group ? shown.filter((b) => groupOf(b) === group) : shown), [shown, group]);
   const activity = useActivity(40, { enabled: api });
   const today = useMemo<TodayItem[] | undefined>(() => {
     if (!api) return undefined;
@@ -144,7 +163,7 @@ export default function LibraryPage() {
   );
 
   function renderBooks() {
-    if (state === "loading") return <LibrarySkeleton />;
+    if (state === "loading") return <LibrarySkeleton view={view} />;
     if (state === "error")
       return (
         <Banner
@@ -185,6 +204,7 @@ export default function LibraryPage() {
           action={<Button onClick={() => setQuery("")}>Clear filter</Button>}
         />
       );
+    if (view === "grid") return renderGrid();
     return view === "covers" ? (
       <PipelineView books={shown} live={liveInfo} penName={getPen} statusActions={api && canWrite} />
     ) : (
@@ -199,10 +219,34 @@ export default function LibraryPage() {
     );
   }
 
+  /** Grid view: the 3 by 3 grid with the side column (stage filter and Today) that stays in view from 1280 px. */
+  function renderGrid() {
+    const groupTitle = group === "progress" ? "in progress" : group === "ready" ? "ready to publish" : "published";
+    return (
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        {inGroup.length === 0 ? (
+          <EmptyState
+            drawing="books"
+            title={`No books ${groupTitle}`}
+            body="Pick another stage, or show every book."
+            action={<Button onClick={() => setGroup(null)}>Show all books</Button>}
+          />
+        ) : (
+          <LibraryGrid books={inGroup} group={group} live={liveInfo} penName={getPen} statusActions={api && canWrite} />
+        )}
+        <LibrarySide>
+          <GroupFilter books={shown} value={group} onChange={setGroup} />
+          <TodayStrip layout="column" bookIds={new Set(byPen.map((b) => b.id))} items={today} />
+        </LibrarySide>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-360 flex-col gap-5.5 px-4 pt-6 pb-10 sm:px-8 lg:px-10 lg:pt-7">
       <PageHeader
         title="Library"
+        titleHidden
         summary={summary}
         actions={
           <>
@@ -221,7 +265,8 @@ export default function LibraryPage() {
               value={view}
               onChange={setView}
               options={[
-                { value: "covers", label: "Covers", icon: LayoutGrid },
+                { value: "grid", label: "Grid", icon: LayoutGrid },
+                { value: "covers", label: "Shelves", icon: GalleryHorizontalEnd },
                 { value: "ledger", label: "Ledger", icon: Rows3 },
               ]}
             />
@@ -248,7 +293,7 @@ export default function LibraryPage() {
       {importOpen && <ImportManuscriptDialog profiles={pens.list} onClose={() => setImportOpen(false)} />}
       {projectOpen && canWrite && <ImportProjectDialog profiles={pens.list} filterId={penId} onClose={() => setProjectOpen(false)} />}
 
-      {state === "ready" && byPen.length > 0 && <TodayStrip bookIds={new Set(byPen.map((b) => b.id))} items={today} />}
+      {state === "ready" && byPen.length > 0 && view !== "grid" && <TodayStrip bookIds={new Set(byPen.map((b) => b.id))} items={today} />}
     </div>
   );
 }

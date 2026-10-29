@@ -50,11 +50,11 @@ const LANES = [
 ] as const;
 
 /** Eight small bars, one per stage; every stage up to the book's own is filled. */
-function StageMeter({ book, live }: { book: Book; live: boolean }) {
+export function StageMeter({ book, live, className = "mt-2" }: { book: Book; live: boolean; className?: string | undefined }) {
   const at = columnIndex(book);
   const label = `Step ${at + 1} of ${libraryColumns.length}, ${stageLabels[columnFor(book)]}`;
   return (
-    <span className="mt-2 block" role="img" aria-label={label}>
+    <span className={cn("block", className)} role="img" aria-label={label}>
       <span aria-hidden className="flex gap-0.5">
         {libraryColumns.map((stage, i) => (
           <span key={stage} className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-sunken">
@@ -67,7 +67,7 @@ function StageMeter({ book, live }: { book: Book; live: boolean }) {
           </span>
         ))}
       </span>
-      <span aria-hidden className="mt-1 block text-[12px] leading-4 text-ink-tertiary">
+      <span aria-hidden className="mt-1 block truncate text-[12px] leading-4 text-ink-tertiary">
         Step <b className="num font-semibold text-ink-secondary">{at + 1}</b> of {libraryColumns.length}: {stageLabels[columnFor(book)]}
       </span>
     </span>
