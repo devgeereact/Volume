@@ -73,6 +73,8 @@ import {
   type PaperbackState,
 } from "./StudioParts";
 import { WrapPreview } from "./WrapPreview";
+import { ArtworkControls, BackgroundControls, BarcodeControls, ShapeControls, SpineControls } from "./LayerControls";
+import { LAYER_KEYS, layerChecks, layersFromSaved, layersToTypography, type StudioLayers } from "./layers";
 import { ModelFallbackBanner, modelProblemOf, type ModelProblem } from "../settings/ModelFallback";
 
 /* Cover studio on the Volume server (API mode), in the approved Volume Studio layout: the brief is saved with
@@ -128,7 +130,7 @@ const TITLE_FONTS = [
 ] as const;
 
 /** The studio's look on the server: the shared look plus the cover design (style) it is set in. */
-type ApiLook = Look & { styleId: string };
+type ApiLook = Look & { styleId: string; layers: StudioLayers };
 
 export function ApiCover({ book, apiBook, penName }: { book: Book; apiBook: ApiBookDetail | undefined; penName?: PenName | undefined }) {
   const coverQ = useCover(book.id);
@@ -190,6 +192,7 @@ function Studio({ book, apiBook, cover, author }: { book: Book; apiBook: ApiBook
       position,
       showSubtitle,
       edits: editsFromSaved(savedType, layoutCover(own.base, { subtitle, size, position }).titleTop),
+      layers: layersFromSaved(savedType),
     };
   });
   const look = history.value;
@@ -237,9 +240,10 @@ function Studio({ book, apiBook, cover, author }: { book: Book; apiBook: ApiBook
     ...(look.size !== 100 ? { titleSize: Math.round(own.base.titleSize * look.size) / 100 } : {}),
     sizePct: look.size,
     ...editsToTypography(look.edits),
+    ...layersToTypography(look.layers),
   };
   // Compare every key we send, plus the edit keys and the colours, so taking one away also counts as a change.
-  const typeKeys = [...new Set([...Object.keys(typography), ...EDIT_KEYS, "colours"])];
+  const typeKeys = [...new Set([...Object.keys(typography), ...EDIT_KEYS, ...LAYER_KEYS, "colours"])];
   const typeChanged = JSON.stringify(typeKeys.map((k) => typography[k])) !== JSON.stringify(typeKeys.map((k) => savedType[k]));
 
   const concepts: CoverConcept[] = cover?.concepts ?? [];
@@ -257,7 +261,7 @@ function Studio({ book, apiBook, cover, author }: { book: Book; apiBook: ApiBook
   const conceptLook = (i: number): ApiLook => {
     const lk = looks[i % looks.length]!;
     const style = getCoverStyle(lk.styleId);
-    return { ...plainLook(Math.max(0, style?.palettes.findIndex((p) => p.id === lk.paletteId) ?? 0)), styleId: lk.styleId };
+    return { ...plainLook(Math.max(0, style?.palettes.findIndex((p) => p.id === lk.paletteId) ?? 0)), styleId: lk.styleId, layers: {} };
   };
   function pickConcept(c: CoverConcept, i: number) {
     setPicked(c.assetId);
@@ -489,6 +493,11 @@ function Studio({ book, apiBook, cover, author }: { book: Book; apiBook: ApiBook
 
   /* ---------- checks ---------- */
 
+  // The colours the type is set in (the look's palette), for the layer contrast checks.
+  const inkColours = { background: design.palette.background, title: design.palette.title, subtitle: design.palette.subtitle, author: design.palette.author };
+  const setLayers = (layers: StudioLayers, group?: string) => editLook((l) => ({ ...l, layers }), group);
+  const layerColours = { background: design.palette.background, band: design.bandColour ?? design.palette.motifAlt };
+
   const checks = coverChecks({
     author: author,
     // The art sits behind the type and the build picks the ink from it.
@@ -500,6 +509,16 @@ function Studio({ book, apiBook, cover, author }: { book: Book; apiBook: ApiBook
     blurb,
     built: built ? { stale: typeChanged || stalePages || styleStale } : null,
     show: (id) => select(id),
+    layerChecks: layerChecks({
+      layers: look.layers,
+      colours: inkColours,
+      // The concept art sits behind the type in every preview and build from a concept.
+      art: true,
+      showSubtitle: look.showSubtitle && Boolean(book.subtitle),
+      built: Array.isArray(cover?.wrapSpec["warnings"]) ? cover.wrapSpec["warnings"].filter((w): w is string => typeof w === "string") : [],
+      page: [...(ebookPage.data?.warnings ?? []), ...(frame.view === "wrap" ? (wrapPage.data?.warnings ?? []) : [])],
+      show: (p) => select(p),
+    }),
   });
   const score = checkScore(checks);
 
@@ -663,23 +682,28 @@ function Studio({ book, apiBook, cover, author }: { book: Book; apiBook: ApiBook
             )}
           </>
         ) : (
-          <FixedLayerInfo id={selected} blurb={blurb} author={author} spineText={size.spineText} spineIn={wrap.spine}>
-            <Section title="Artwork">
-              <p className="text-[13px] leading-normal font-semibold text-ink">{front.name}</p>
-              {front.why && <p className="text-[12.5px] leading-[1.45] text-ink-2">{front.why}</p>}
-              <p className="text-[12px] leading-[1.45] text-ink-2">Background art from the image model, marked AI-generated. Volume sets the type over it.</p>
-              {front.mock && <p className="text-[12px] text-accent-text">Placeholder image from the test image model.</p>}
-              <a
-                href={assetsApi.downloadUrl(front.assetId)}
-                download
-                className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-select underline-offset-2 hover:underline"
-              >
-                <Download size={14} aria-hidden />
-                Download art
-              </a>
-              <p className="text-[12px] leading-[1.45] text-ink-2">Making new concepts replaces these, so download any you want to keep first.</p>
-            </Section>
-          </FixedLayerInfo>
+          <>
+            <FixedLayerInfo id={selected} blurb={blurb} author={author} spineText={size.spineText} spineIn={wrap.spine}>
+              <Section title="Artwork">
+                <p className="text-[13px] leading-normal font-semibold text-ink">{front.name}</p>
+                {front.why && <p className="text-[12.5px] leading-[1.45] text-ink-2">{front.why}</p>}
+                <p className="text-[12px] leading-[1.45] text-ink-2">Background art from the image model, marked AI-generated. Volume sets the type over it.</p>
+                {front.mock && <p className="text-[12px] text-accent-text">Placeholder image from the test image model.</p>}
+                <a
+                  href={assetsApi.downloadUrl(front.assetId)}
+                  download
+                  className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-select underline-offset-2 hover:underline"
+                >
+                  <Download size={14} aria-hidden />
+                  Download art
+                </a>
+                <p className="text-[12px] leading-[1.45] text-ink-2">Making new concepts replaces these, so download any you want to keep first.</p>
+              </Section>
+              <ArtworkControls layers={look.layers} onChange={setLayers} disabled={!canWrite} />
+            </FixedLayerInfo>
+            {selected === "spine" && <SpineControls layers={look.layers} onChange={setLayers} colours={layerColours} disabled={!canWrite} />}
+            {selected === "barcode" && <BarcodeControls layers={look.layers} onChange={setLayers} disabled={!canWrite} />}
+          </>
         )}
       </>
     );
@@ -798,7 +822,7 @@ function Studio({ book, apiBook, cover, author }: { book: Book; apiBook: ApiBook
                   id="cover-design"
                   value={own.style.id}
                   disabled={!canWrite}
-                  onChange={(e) => history.set({ ...plainLook(0), styleId: e.target.value })}
+                  onChange={(e) => history.set({ ...plainLook(0), styleId: e.target.value, layers: look.layers })}
                   className={fieldInput}
                 >
                   {coverStyles.map((s) => (
@@ -851,6 +875,15 @@ function Studio({ book, apiBook, cover, author }: { book: Book; apiBook: ApiBook
                 />
               )}
             </Section>
+            <BackgroundControls
+              layers={look.layers}
+              onChange={setLayers}
+              bookId={bookId}
+              colours={layerColours}
+              disabled={!canWrite}
+              onAnnounce={setAnnounce}
+            />
+            <ShapeControls layers={look.layers} onChange={setLayers} colour={currentColours?.accent ?? design.palette.motif} disabled={!canWrite} />
           </>
         )}
         <PaperbackPanel

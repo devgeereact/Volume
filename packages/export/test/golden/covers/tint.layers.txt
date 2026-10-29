@@ -1,0 +1,1 @@
+<div class="bgl"><i class="bgl-c" style="background: #0B1F4D;"></i><img class="bgl-i" src="data:PIC" alt="" style="object-position: 50% 50%; transform-origin: 50% 50%; transform: scale(1); opacity: 1; mix-blend-mode: normal; filter: blur(calc(6 * 1.6px)) grayscale(1);"><i class="bgl-t" style="background: #1B1035; opacity: 0.55;"></i></div>

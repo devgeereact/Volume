@@ -1,0 +1,1 @@
+<div class="bgl"><i class="bgl-c" style="background: radial-gradient(circle at 30% 25%, #13909B, #072A3F);"></i></div>
