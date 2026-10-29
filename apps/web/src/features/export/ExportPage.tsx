@@ -1,7 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Check, Download, FileArchive, FileImage, FileText, FileType, Package, Sparkles } from "lucide-react";
-import { Banner, Button, EmptyState, Inspector, InspectorSection, KeyValueList, Loader, Modal, PageHeader, ProgressBar } from "../../components/ui";
+import { Banner, Button, EmptyState, KeyValueList, Loader, Modal, PageHeader, ProgressBar, StatusChip } from "../../components/ui";
+import { buttonClasses } from "../../components/ui/Button";
+import { stepBody } from "../writing/studio";
+import { exportCard, exportTitle } from "./exportUi";
 import { sourdoughExport, stageOrder, type Book, type ExportFormat, type PreflightItem } from "../../demo";
 import { cn } from "../../lib/cn";
 import { formatDate, formatRelative } from "../../lib/format";
@@ -40,18 +43,18 @@ export default function ExportPage() {
     );
   if (from === "api")
     return (
-      <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
+      <div className={cn(stepBody, "grid gap-4")}>
         <ApiExport key={book.id} book={book} apiBook={apiBook} />
       </div>
     );
   return (
-    <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
-      {state === "loading" && <LoadingBlock label="Loading the export" rows={8} />}
+    <div className={cn(stepBody, "grid gap-4")}>
+      {state === "loading" && <LoadingBlock label="Loading the export" rows={8} className="vol-glass rounded-card p-6" />}
       {state === "error" && (
         <>
           <PageHeader title="Export" />
           <ErrorPanel
-            className="mt-5 max-w-[720px]"
+            className="max-w-[720px]"
             title="Preflight could not run"
             body="The export service did not answer. Your files and settings are unchanged. Retry to run preflight again."
             onRetry={retry}
@@ -68,22 +71,18 @@ function NothingBuilt({ book }: { book: Book }) {
   const ready = stageOrder.indexOf(book.stage) >= stageOrder.indexOf("export");
   return (
     <>
-      <PageHeader title="Export" summary="Check, build and download the KDP upload pack." />
+      <PageHeader title="Export" summary="Every KDP check, the upload files and the marketing pack in one place." />
       <EmptyState
-        className="mt-6 max-w-[640px]"
         drawing="box"
         title="Nothing built yet"
         body={
           ready
             ? "This book's pack lives with the published files. The demo's export state is on Sourdough on a Weeknight."
-            : "Export opens once the manuscript is edited and the covers are built. Preflight then checks every KDP rule."
+            : "Export is the last step. It checks every KDP rule, builds the files and the marketing pack, then you download it."
         }
         action={
-          <Link
-            to={ready ? "/books/sourdough-on-a-weeknight/export" : `/books/${book.id}/cover`}
-            className="inline-flex h-10 items-center rounded-sm border border-border-strong bg-sheet px-4 text-label font-semibold text-ink hover:bg-sunken"
-          >
-            {ready ? "Open Sourdough on a Weeknight" : "Open the cover studio"}
+          <Link to="/books/sourdough-on-a-weeknight/export" className={buttonClasses("secondary", "md")}>
+            {ready ? "Open Sourdough on a Weeknight" : "See an example: Sourdough on a Weeknight"}
           </Link>
         }
       />
@@ -318,23 +317,23 @@ function ExportReady({ book }: { book: Book }) {
 
   return (
     <>
-      <PageHeader title="Export" summary="Check, build and download the KDP upload pack." />
+      <PageHeader title="Export" summary="Every KDP check, the upload files and the marketing pack in one place." />
       {disabledReason && !build && (
-        <p className="mt-2 text-small text-ink-secondary" role="status">
+        <p className="text-[13px] text-ink-2" role="status">
           {disabledReason}
         </p>
       )}
       {blocks.length > 0 && (
-        <Banner tone="error" title="The pack is blocked" className="mt-4 max-w-[860px]">
+        <Banner tone="error" title="The pack is blocked">
           {blocks.map((b) => b.label).join(", ")} must pass before Volume builds the pack.
         </Banner>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_var(--vol-inspector)]">
-        <div className="grid min-w-0 content-start gap-6">
+      <div className="grid grid-cols-1 items-start gap-4 min-[1025px]:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid min-w-0 content-start gap-4">
           {build && (
-            <section aria-labelledby="build-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
-              <h2 id="build-title" className="font-book text-heading text-ink">
+            <section aria-labelledby="build-title" className={exportCard}>
+              <h2 id="build-title" className={exportTitle}>
                 {build.done ? "Pack ready" : "Building the pack"}
               </h2>
               <ProgressBar
@@ -345,11 +344,11 @@ function ExportReady({ book }: { book: Book }) {
                 label="Pack build progress"
                 valueText={`${build.step} of ${buildSteps.length} steps`}
               />
-              <ol className="mt-3 grid grid-cols-1 gap-1.5 text-[14px] sm:grid-cols-2">
+              <ol className="mt-3 grid grid-cols-1 gap-1.5 text-[13.5px] sm:grid-cols-2">
                 {buildSteps.map((s, i) => (
-                  <li key={s} className={cn("flex min-w-0 items-center gap-2", i < build.step ? "text-ink" : "text-ink-tertiary")}>
+                  <li key={s} className={cn("flex min-w-0 items-center gap-2", i < build.step ? "text-ink" : "text-ink-3")}>
                     {i < build.step ? (
-                      <Check size={14} strokeWidth={2} className="shrink-0 text-success" aria-hidden />
+                      <Check size={14} strokeWidth={2} className="shrink-0 text-good" aria-hidden />
                     ) : i === build.step ? (
                       <Loader />
                     ) : (
@@ -360,11 +359,11 @@ function ExportReady({ book }: { book: Book }) {
                 ))}
               </ol>
               {build.done && (
-                <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-success-wash px-4 py-3">
-                  <FileArchive size={18} className="text-success" aria-hidden />
-                  <p className="min-w-0 flex-1 text-[14px] leading-5 text-ink">
+                <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] bg-good-wash px-4 py-3">
+                  <FileArchive size={18} className="text-good" aria-hidden />
+                  <p className="min-w-0 flex-1 text-[13.5px] leading-5 text-ink">
                     <b className="block font-semibold">{breakable(packName)}</b>
-                    <span className="text-small text-ink-secondary">{packFiles.length} files, about 24 MB. Demo download saves a list of the contents.</span>
+                    <span className="text-[12.5px] text-ink-2">{packFiles.length} files, about 24 MB. Demo download saves a list of the contents.</span>
                   </p>
                   <Button icon={Download} onClick={download}>
                     Download
@@ -376,18 +375,18 @@ function ExportReady({ book }: { book: Book }) {
 
           <Preflight rows={rows} ticked={ticked} onTick={(id, on) => setTicked((t) => ({ ...t, [id]: on }))} running={checking !== null} onRun={runPreflight} />
 
-          <Calculator defaultPages={data.pageCount} defaultPrice={9.99} defaultEbookPrice={3.99} defaultSizeMb={2.4} />
-
-          <section aria-labelledby="formats-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
-            <h2 id="formats-title" className="font-book text-heading text-ink">
-              Formats
+          <section aria-labelledby="formats-title" className={exportCard}>
+            <h2 id="formats-title" className={exportTitle}>
+              Files
             </h2>
-            <p className="mt-1 text-small text-ink-secondary">Build pack rebuilds anything stale or missing. Select a file to see its details.</p>
-            <div role="radiogroup" aria-label="Files" className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+            <p className="mt-1 text-[13px] text-ink-2">Build pack rebuilds anything stale or missing. Select a file to see its details.</p>
+            <div role="radiogroup" aria-label="Files" className="mt-3.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {formats.map((f) => {
                 const Icon = formatIcon[f.id] ?? FileText;
                 const built = build?.done === true;
-                const status = built
+                const tone = built ? "good" : f.lastBuilt === null ? "info" : f.stale ? "warn" : "good";
+                const word = built ? "Built" : f.lastBuilt === null ? "Not built" : f.stale ? "Stale" : "Built";
+                const when = built
                   ? "Built today"
                   : f.lastBuilt === null
                     ? "Not built"
@@ -395,97 +394,97 @@ function ExportReady({ book }: { book: Book }) {
                       ? "Stale, older than the latest change"
                       : `Built ${formatRelative(f.lastBuilt)}`;
                 const checked = selected === f.id;
+                const cover = f.id === "ebook-cover" || f.id === "wrap";
                 return (
                   <label
                     key={f.id}
                     className={cn(
-                      "relative flex cursor-pointer items-start gap-3 rounded-md border p-3.5",
+                      "relative flex min-w-0 cursor-pointer items-center gap-2.5 rounded-[12px] border p-2.5",
                       "has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-select",
-                      checked ? "vol-pencil-edge border-select bg-select-wash" : "border-border hover:bg-sunken",
+                      checked ? "border-mint bg-select-wash shadow-[0_0_0_3px_var(--vol-mint-wash)]" : "border-line hover:border-mint-2",
                     )}
                   >
                     <input type="radio" name="format" className="sr-only" checked={checked} onChange={() => setSelected(f.id)} />
-                    <Icon size={20} className={cn("mt-0.5 shrink-0", checked ? "text-select" : "text-ink-secondary")} aria-hidden />
-                    <span className="grid min-w-0 gap-0.5">
-                      <span className={cn("text-label font-semibold", checked ? "text-select" : "text-ink")}>{formatLabel[f.id] ?? f.label}</span>
-                      <span className="text-small text-ink-secondary">{breakable(fileName(f))}</span>
-                      <span
-                        className={cn(
-                          "num text-small",
-                          !built && f.stale ? "text-accent-text" : !built && f.lastBuilt === null ? "text-ink-tertiary" : "text-success",
-                        )}
-                      >
-                        {status}
-                        {f.sizeLabel && !(f.lastBuilt === null && !built) ? `, ${f.sizeLabel}` : ""}
-                      </span>
+                    <span
+                      aria-hidden
+                      className={cn("grid size-9 shrink-0 place-items-center rounded-[10px]", cover ? "bg-amber-wash text-amber" : "bg-blue-wash text-blue")}
+                    >
+                      <Icon size={18} strokeWidth={1.8} />
                     </span>
+                    <span className="grid min-w-0 flex-1 gap-px">
+                      <b className="text-[13px] leading-[18px] font-semibold text-ink">{formatLabel[f.id] ?? f.label}</b>
+                      <small className="truncate font-mono text-[11.5px] text-ink-3" title={fileName(f)}>
+                        {fileName(f)}
+                        {f.sizeLabel && !(f.lastBuilt === null && !built) ? `, ${f.sizeLabel}` : ""}
+                      </small>
+                      <span className="sr-only">{when}</span>
+                    </span>
+                    <StatusChip tone={tone}>{word}</StatusChip>
                   </label>
                 );
               })}
             </div>
+            {sel && (
+              <div className="mt-3.5 grid gap-4 rounded-[14px] bg-soft p-3.5 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="min-w-0">
+                  <h3 className="text-[13.5px] font-semibold text-ink">{formatLabel[sel.id]}</h3>
+                  <p className="mt-0.5 text-[12.5px] text-ink-3">{breakable(fileName(sel))}</p>
+                  <KeyValueList
+                    className="mt-3"
+                    items={[
+                      { label: "Last built", value: build?.done ? "Today" : sel.lastBuilt ? formatRelative(sel.lastBuilt) : "Never" },
+                      { label: "Size", value: sel.sizeLabel ?? "Not built" },
+                      { label: "Up to date", value: build?.done ? "Yes" : sel.lastBuilt === null ? "No file yet" : sel.stale ? "No, rebuild" : "Yes" },
+                    ]}
+                  />
+                  <p className="mt-3 text-[12.5px] text-ink-2">{formatUse[sel.id]}</p>
+                </div>
+                {sel.id === "ebook-cover" || sel.id === "wrap" ? (
+                  <figure className="grid justify-items-start gap-2">
+                    <Cover title={book.title} subtitle={book.subtitle} author={getPenName(book.penNameId)?.name ?? ""} design={book.cover} width={120} />
+                    <figcaption className="max-w-[160px] text-[12px] text-ink-3">The book's own cover style, as built in the cover studio.</figcaption>
+                  </figure>
+                ) : (
+                  <InteriorPreview book={book} paper={data.paper} width={160} />
+                )}
+              </div>
+            )}
           </section>
 
-          <section aria-labelledby="pack-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
-            <h2 id="pack-title" className="font-book text-heading text-ink">
-              Upload pack
+          <section aria-labelledby="pack-title" className={exportCard}>
+            <h2 id="pack-title" className={exportTitle}>
+              KDP upload pack
             </h2>
-            <p className="mt-1 text-small text-ink-secondary">{breakable(packName)}</p>
-            <ul className="mt-4 grid gap-1.5">
+            <p className="mt-1 font-mono text-[12px] text-ink-3">{breakable(packName)}</p>
+            <ul className="mt-3 grid gap-0.5">
               {packFiles.map(([path, desc]) => (
-                <li
-                  key={path}
-                  className="grid grid-cols-1 gap-x-4 border-t border-border pt-1.5 first:border-t-0 first:pt-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
-                >
-                  <span className="text-[14px] text-ink">{breakable(path)}</span>
-                  <span className="text-small text-ink-secondary">{desc}</span>
+                <li key={path} className="grid grid-cols-1 gap-x-4 rounded-[10px] px-2.5 py-1.5 odd:bg-soft md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                  <span className="font-mono text-[12px] text-ink">{breakable(path)}</span>
+                  <span className="text-[12.5px] text-ink-3">{desc}</span>
                 </li>
               ))}
             </ul>
           </section>
 
-          <section aria-labelledby="ai-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
-            <h2 id="ai-title" className="flex items-center gap-2 font-book text-heading text-ink">
-              <Sparkles size={18} aria-hidden className="text-ink-secondary" />
+          <section aria-labelledby="ai-title" className={exportCard}>
+            <h2 id="ai-title" className={cn(exportTitle, "flex items-center gap-2")}>
+              <Sparkles size={16} aria-hidden className="text-ink-3" />
               AI disclosure
             </h2>
-            <p className="mt-2 max-w-[68ch] text-body text-ink">
+            <p className="mt-2 max-w-[68ch] text-[13.5px] leading-[1.55] text-ink">
               Set to <b className="font-semibold">AI-generated</b> for text and for images. The writer drafted the text and the image model made the cover art,
               so KDP counts both as AI-generated even after your edits. Declare both when you publish.
             </p>
-            <p className="mt-2 text-small text-ink-secondary">Saved as listing/ai-disclosure.txt in the pack. Rule: {ruleLabel("ai.disclosure")}.</p>
+            <p className="mt-2 text-[12.5px] text-ink-3">Saved as listing/ai-disclosure.txt in the pack. Rule: {ruleLabel("ai.disclosure")}.</p>
           </section>
         </div>
 
-        <Inspector label="File details" width="100%" className="self-start rounded-md border xl:sticky xl:top-[calc(var(--shell-topbar)+16px)]">
-          {sel && (
-            <InspectorSection title="Selected file">
-              <p className="text-label font-semibold text-ink">{formatLabel[sel.id]}</p>
-              <p className="mt-0.5 text-small text-ink-secondary">{breakable(fileName(sel))}</p>
-              <KeyValueList
-                className="mt-3"
-                items={[
-                  { label: "Last built", value: build?.done ? "Today" : sel.lastBuilt ? formatRelative(sel.lastBuilt) : "Never" },
-                  { label: "Size", value: sel.sizeLabel ?? "Not built" },
-                  { label: "Up to date", value: build?.done ? "Yes" : sel.lastBuilt === null ? "No file yet" : sel.stale ? "No, rebuild" : "Yes" },
-                ]}
-              />
-              <p className="mt-3 text-small text-ink-secondary">{formatUse[sel.id]}</p>
-            </InspectorSection>
-          )}
-          {sel && (
-            <InspectorSection title="Preview">
-              {sel.id === "ebook-cover" || sel.id === "wrap" ? (
-                <figure className="grid justify-items-start gap-2">
-                  <Cover title={book.title} subtitle={book.subtitle} author={getPenName(book.penNameId)?.name ?? ""} design={book.cover} width={170} />
-                  <figcaption className="text-small text-ink-secondary">The book's own cover style, as built in the cover studio.</figcaption>
-                </figure>
-              ) : (
-                <InteriorPreview book={book} paper={data.paper} width={220} />
-              )}
-            </InspectorSection>
-          )}
-          <InspectorSection title="Book">
+        <div className="grid min-w-0 content-start gap-4 min-[1025px]:sticky min-[1025px]:top-[calc(var(--shell-sticky-top)+16px)]">
+          <Calculator defaultPages={data.pageCount} defaultPrice={9.99} defaultEbookPrice={3.99} defaultSizeMb={2.4} />
+          <aside aria-label="Book details" className={exportCard}>
+            <h2 className={exportTitle}>Book</h2>
             <KeyValueList
+              className="mt-2.5"
               items={[
                 { label: "Trim", value: data.trim },
                 { label: "Pages", value: String(data.pageCount) },
@@ -493,12 +492,10 @@ function ExportReady({ book }: { book: Book }) {
                 { label: "Ink", value: "Black" },
               ]}
             />
-          </InspectorSection>
-          <InspectorSection title="KDP rules">
-            <p className="text-[14px] text-ink">Version {rulesVersion}</p>
-            <p className="text-small text-ink-secondary">Recheck due {formatDate(`${rulesRecheckDue}T12:00:00+00:00`)}.</p>
-          </InspectorSection>
-        </Inspector>
+            <p className="mt-3 text-[13px] text-ink">KDP rules version {rulesVersion}</p>
+            <p className="text-[12.5px] text-ink-3">Recheck due {formatDate(`${rulesRecheckDue}T12:00:00+00:00`)}.</p>
+          </aside>
+        </div>
       </div>
 
       <Modal

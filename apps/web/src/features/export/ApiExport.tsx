@@ -4,19 +4,7 @@ import { canMarkPublished } from "../published/publishDate";
 import { useCanWrite } from "../../lib/access";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { ArrowRightLeft, Check, Download, FileArchive, FileImage, FileText, FileType, Package, RotateCw, Sparkles } from "lucide-react";
-import {
-  Banner,
-  Button,
-  buttonClasses,
-  EmptyState,
-  Inspector,
-  InspectorSection,
-  KeyValueList,
-  Loader,
-  Modal,
-  PageHeader,
-  ProgressBar,
-} from "../../components/ui";
+import { Banner, Button, buttonClasses, EmptyState, StatusChip, KeyValueList, Loader, Modal, PageHeader, ProgressBar } from "../../components/ui";
 import type { Book, PreflightItem } from "../../demo";
 import { assetsApi } from "../../api/assets";
 import { sizeLabel, toPreflightItem } from "../../api/adapters";
@@ -32,6 +20,7 @@ import { useStepAction } from "../../lib/stepAction";
 import { ErrorPanel, LoadingBlock } from "../writing/screenState";
 import { InteriorPreview } from "./InteriorPreview";
 import { Preflight, type PreflightRow } from "./Preflight";
+import { exportCard, exportTitle } from "./exportUi";
 import { fixAction } from "./preflightFix";
 import { RerunChecks } from "./RerunChecks";
 import type { Paper } from "./kdpRules";
@@ -191,10 +180,10 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
 
   return (
     <>
-      <PageHeader title="Export" summary="Check, build and download the KDP upload pack." />
-      {origin && <p className="mt-2 text-small text-ink-secondary">{origin}</p>}
+      <PageHeader title="Export" summary="Every KDP check, the upload files and the marketing pack in one place." />
+      {origin && <p className="text-[13px] text-ink-2">{origin}</p>}
       {pack?.status === "done" && (
-        <p role="status" className={`mt-2 flex items-center gap-1.5 text-small font-medium ${pack.stale ? "text-accent-text" : "text-success"}`}>
+        <p role="status" className={`flex items-center gap-1.5 text-[13px] font-medium ${pack.stale ? "text-amber" : "text-good"}`}>
           {pack.stale ? (
             <>Changed since export. Something in the book, its covers, listing or marketing is newer than the pack: build the pack again.</>
           ) : (
@@ -206,7 +195,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
         </p>
       )}
       {canWrite && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" onClick={() => setPricing(true)}>
             Set list prices
           </Button>
@@ -225,17 +214,17 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
         />
       )}
       {disabledReason && !building && (
-        <p className="mt-2 text-small text-ink-secondary" role="status">
+        <p className="text-[13px] text-ink-2" role="status">
           {disabledReason}
         </p>
       )}
       {blocks.length > 0 && (
-        <Banner tone="error" title="The pack is blocked" className="mt-4 max-w-[860px]">
+        <Banner tone="error" title="The pack is blocked">
           {blocks.map((b) => b.label).join(", ")} must pass before Volume builds the pack.
         </Banner>
       )}
       {coverBlocks.length > 0 && (
-        <Banner tone="attention" title="The pack needs a cover" className="mt-4 max-w-[860px]">
+        <Banner tone="attention" title="The pack needs a cover">
           {coverBlocks.map((b) => b.label.replace(/\.$/, "")).join(", ")}. Build the eBook cover and paperback wrap in the cover studio. The single files still
           build without them.
         </Banner>
@@ -244,7 +233,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
         <Banner
           tone="error"
           title="That did not work"
-          className="mt-4 max-w-[860px]"
+
           action={
             <Button size="sm" variant="ghost" onClick={() => setProblem(null)}>
               Dismiss
@@ -256,17 +245,17 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
       )}
 
       {packBlocked && !building && (
-        <Banner tone="error" title="The final preflight blocked the upload pack" className="mt-4 max-w-[860px]">
+        <Banner tone="error" title="The final preflight blocked the upload pack">
           {packBlocked.error ?? "The built files did not pass the final checks, so no pack was made. The single files below are built and ready to download."}{" "}
           Fix the cause, then build again.
         </Banner>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_var(--vol-inspector)]">
-        <div className="grid min-w-0 content-start gap-6">
+      <div className="grid grid-cols-1 items-start gap-4 min-[1025px]:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid min-w-0 content-start gap-4">
           {(building || (finished && pack?.status === "done")) && (
-            <section aria-labelledby="build-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
-              <h2 id="build-title" className="font-book text-heading text-ink">
+            <section aria-labelledby="build-title" className={exportCard}>
+              <h2 id="build-title" className={exportTitle}>
                 {building ? "Building the pack" : "Pack ready"}
               </h2>
               {building ? (
@@ -286,7 +275,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
                 </>
               ) : (
                 pack?.assetId && (
-                  <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-success-wash px-4 py-3">
+                  <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] bg-good-wash px-4 py-3">
                     <FileArchive size={18} className="text-success" aria-hidden />
                     <p className="min-w-0 flex-1 text-[14px] leading-5 text-ink">
                       <b className="block font-semibold">{KIND_LABEL.pack}</b>
@@ -308,7 +297,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
           {preflightQ.isError ? (
             <ErrorPanel title="Preflight could not run" body={errorText(preflightQ.error)} onRetry={() => void preflightQ.refetch()} />
           ) : preflightQ.isPending ? (
-            <LoadingBlock label="Running preflight" rows={6} />
+            <LoadingBlock label="Running preflight" rows={6} className="vol-glass rounded-card p-6" />
           ) : (
             <Preflight
               rows={rows}
@@ -324,27 +313,19 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
             />
           )}
 
-          <section aria-labelledby="formats-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
-            <h2 id="formats-title" className="font-book text-heading text-ink">
+          <section aria-labelledby="formats-title" className={exportCard}>
+            <h2 id="formats-title" className={exportTitle}>
               Files
             </h2>
-            <p className="mt-1 text-small text-ink-secondary">
-              Build pack rebuilds every format and zips them with the covers. Select a file to see its details.
-            </p>
+            <p className="mt-1 text-[13px] text-ink-2">Build pack rebuilds every format and zips them with the covers. Select a file to see its details.</p>
             {exportsQ.isError ? (
               <ErrorPanel className="mt-4" title="Could not list the files" body={errorText(exportsQ.error)} onRetry={() => void exportsQ.refetch()} />
             ) : exportsQ.isPending ? (
               <LoadingBlock className="mt-4" label="Loading the files" rows={3} />
             ) : latest.size === 0 ? (
-              <EmptyState
-                className="mt-4"
-                drawing="box"
-                headingLevel={3}
-                title="Nothing built yet"
-                body="Build pack, at the foot of the page, makes every format and the upload pack."
-              />
+              <EmptyState className="mt-4" drawing="box" headingLevel={3} title="Nothing built yet" body="Build pack makes every format and the upload pack." />
             ) : (
-              <div role="radiogroup" aria-label="Files" className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+              <div role="radiogroup" aria-label="Files" className="mt-3.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {KIND_ORDER.map((kind) => {
                   const r = latest.get(kind);
                   const Icon = KIND_ICON[kind] ?? FileText;
@@ -353,21 +334,24 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
                     <label
                       key={kind}
                       className={cn(
-                        "relative flex cursor-pointer items-start gap-3 rounded-md border p-3.5",
+                        "relative flex min-w-0 cursor-pointer items-center gap-2.5 rounded-[12px] border p-2.5",
                         "has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-select",
-                        checked ? "vol-pencil-edge border-select bg-select-wash" : "border-border hover:bg-sunken",
+                        checked ? "border-mint bg-select-wash shadow-[0_0_0_3px_var(--vol-mint-wash)]" : "border-line hover:border-mint-2",
                       )}
                     >
                       <input type="radio" name="format" className="sr-only" checked={checked} onChange={() => setSelected(kind)} />
-                      <Icon size={20} className={cn("mt-0.5 shrink-0", checked ? "text-select" : "text-ink-secondary")} aria-hidden />
-                      <span className="grid min-w-0 gap-0.5">
-                        <span className={cn("text-label font-semibold", checked ? "text-select" : "text-ink")}>{KIND_LABEL[kind]}</span>
-                        <span
-                          className={cn(
-                            "num text-small",
-                            !r ? "text-ink-tertiary" : r.status !== "done" ? "text-claim" : r.stale ? "text-accent-text" : "text-success",
-                          )}
-                        >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "grid size-9 shrink-0 place-items-center rounded-[10px]",
+                          kind === "pack" ? "bg-mint-wash text-mint-ink" : "bg-blue-wash text-blue",
+                        )}
+                      >
+                        <Icon size={18} strokeWidth={1.8} />
+                      </span>
+                      <span className="grid min-w-0 flex-1 gap-px">
+                        <b className="text-[13px] leading-[18px] font-semibold text-ink">{KIND_LABEL[kind]}</b>
+                        <span className="num text-[12px] text-ink-3">
                           {fileStatus(r)}
                           {r?.bytes ? `, ${sizeLabel(r.bytes)}` : ""}
                         </span>
@@ -377,13 +361,16 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
                           </a>
                         )}
                       </span>
+                      <StatusChip tone={!r ? "info" : r.status !== "done" ? "bad" : r.stale ? "warn" : "good"}>
+                        {!r ? "Not built" : r.status !== "done" ? "Failed" : r.stale ? "Stale" : "Built"}
+                      </StatusChip>
                     </label>
                   );
                 })}
               </div>
             )}
             {canWrite && staleFiles > 0 && !building && (
-              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md bg-accent-wash px-4 py-3">
+              <div className="mt-3.5 flex flex-wrap items-center gap-3 rounded-[14px] bg-amber-wash px-4 py-3">
                 <p className="min-w-0 flex-1 text-small text-ink">
                   {staleFiles === 1 ? "One file is" : `${staleFiles} files are`} older than the latest change. Rebuild them so the downloads match the book.
                 </p>
@@ -393,7 +380,7 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
               </div>
             )}
             {cover && (cover.ebookAssetId || cover.wrapAssetId) && (
-              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3">
+              <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-3">
                 <FileImage size={18} className="text-ink-secondary" aria-hidden />
                 <span className="text-small text-ink-secondary">Covers from the cover studio:</span>
                 {cover.ebookAssetId && (
@@ -410,12 +397,12 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
             )}
           </section>
 
-          <section aria-labelledby="ai-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
-            <h2 id="ai-title" className="flex items-center gap-2 font-book text-heading text-ink">
+          <section aria-labelledby="ai-title" className={exportCard}>
+            <h2 id="ai-title" className={cn(exportTitle, "flex items-center gap-2")}>
               <Sparkles size={18} aria-hidden className="text-ink-secondary" />
               AI disclosure
             </h2>
-            <p className="mt-2 max-w-[68ch] text-body text-ink">
+            <p className="mt-2 max-w-[68ch] text-[13.5px] leading-[1.55] text-ink">
               Text: <b className="font-semibold">{disclosure(apiBook?.aiDisclosure.text)}</b>. Images:{" "}
               <b className="font-semibold">{disclosure(apiBook?.aiDisclosure.images)}</b>. Declare these when you publish.
             </p>
@@ -423,12 +410,12 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
           </section>
 
           {canWrite && (
-            <section aria-labelledby="move-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
-              <h2 id="move-title" className="flex items-center gap-2 font-book text-heading text-ink">
+            <section aria-labelledby="move-title" className={exportCard}>
+              <h2 id="move-title" className={cn(exportTitle, "flex items-center gap-2")}>
                 <ArrowRightLeft size={18} aria-hidden className="text-ink-secondary" />
                 Move this book
               </h2>
-              <p className="mt-2 max-w-[68ch] text-body text-ink">{MOVE_EXPLAINER}</p>
+              <p className="mt-2 max-w-[68ch] text-[13.5px] leading-[1.55] text-ink">{MOVE_EXPLAINER}</p>
               <p className="mt-1 text-small text-ink-secondary">Then use Import project in the other Volume&rsquo;s library.</p>
               <Button className="mt-4" variant="secondary" icon={FileArchive} loading={moving} loadingLabel="Preparing" onClick={() => void downloadProject()}>
                 Download project (to move this book)
@@ -440,47 +427,51 @@ export function ApiExport({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
               )}
             </section>
           )}
+        </div>
 
+        <div className="grid min-w-0 content-start gap-4 min-[1025px]:sticky min-[1025px]:top-[calc(var(--shell-sticky-top)+16px)]">
           <Suspense fallback={null}>
             <ApiRoyalties trim={apiBook?.trim} listPrices={apiBook?.listPrices} pdf={pdf} epub={latest.get("epub")} />
           </Suspense>
+          <aside aria-label="File details" className={exportCard}>
+            <section aria-label="Selected file">
+              <h2 className={exportTitle}>Selected file</h2>
+              <p className="mt-1 text-[13.5px] font-semibold text-ink">{KIND_LABEL[selected]}</p>
+              <KeyValueList
+                className="mt-3"
+                items={[
+                  {
+                    label: sel && sel.status !== "done" ? "Last tried" : "Last built",
+                    value: sel ? formatRelative(new Date(sel.createdAt).toISOString(), now) : "Never",
+                  },
+                  { label: "Size", value: sizeLabel(sel?.bytes ?? null) ?? "Not built" },
+                  { label: "Up to date", value: !sel ? "No file yet" : sel.status !== "done" ? "Not built" : sel.stale ? "No, rebuild" : "Yes" },
+                  ...(sel?.pageCount ? [{ label: "Pages", value: String(sel.pageCount) }] : []),
+                ]}
+              />
+              <p className="mt-3 text-[12.5px] text-ink-2">{KIND_USE[selected]}</p>
+            </section>
+            {selected !== "pack" && (
+              <section aria-label="Preview" className="mt-4 border-t border-line pt-4">
+                <InteriorPreview book={book} paper={paper} width={200} />
+              </section>
+            )}
+            <section aria-label="Book" className="mt-4 border-t border-line pt-4">
+              <h2 className={exportTitle}>Book</h2>
+              <KeyValueList
+                className="mt-2.5"
+                items={[
+                  { label: "Trim", value: book.trim },
+                  { label: "Pages", value: pdf?.pageCount ? String(pdf.pageCount) : "Not built yet" },
+                  { label: "Paper", value: paper === "white" ? "White" : "Cream" },
+                ]}
+              />
+            </section>
+            <section aria-label="KDP rules" className="mt-3">
+              <p className="text-[14px] text-ink">{preflightQ.data?.rulesVersion ? `Version ${preflightQ.data.rulesVersion}` : "Version not reported"}</p>
+            </section>
+          </aside>
         </div>
-
-        <Inspector label="File details" width="100%" className="self-start rounded-md border xl:sticky xl:top-[calc(var(--shell-topbar)+16px)]">
-          <InspectorSection title="Selected file">
-            <p className="text-label font-semibold text-ink">{KIND_LABEL[selected]}</p>
-            <KeyValueList
-              className="mt-3"
-              items={[
-                {
-                  label: sel && sel.status !== "done" ? "Last tried" : "Last built",
-                  value: sel ? formatRelative(new Date(sel.createdAt).toISOString(), now) : "Never",
-                },
-                { label: "Size", value: sizeLabel(sel?.bytes ?? null) ?? "Not built" },
-                { label: "Up to date", value: !sel ? "No file yet" : sel.status !== "done" ? "Not built" : sel.stale ? "No, rebuild" : "Yes" },
-                ...(sel?.pageCount ? [{ label: "Pages", value: String(sel.pageCount) }] : []),
-              ]}
-            />
-            <p className="mt-3 text-small text-ink-secondary">{KIND_USE[selected]}</p>
-          </InspectorSection>
-          {selected !== "pack" && (
-            <InspectorSection title="Preview">
-              <InteriorPreview book={book} paper={paper} width={220} />
-            </InspectorSection>
-          )}
-          <InspectorSection title="Book">
-            <KeyValueList
-              items={[
-                { label: "Trim", value: book.trim },
-                { label: "Pages", value: pdf?.pageCount ? String(pdf.pageCount) : "Not built yet" },
-                { label: "Paper", value: paper === "white" ? "White" : "Cream" },
-              ]}
-            />
-          </InspectorSection>
-          <InspectorSection title="KDP rules">
-            <p className="text-[14px] text-ink">{preflightQ.data?.rulesVersion ? `Version ${preflightQ.data.rulesVersion}` : "Version not reported"}</p>
-          </InspectorSection>
-        </Inspector>
       </div>
 
       <Modal

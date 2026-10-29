@@ -3,7 +3,8 @@ import { Link } from "react-router";
 import { useReducedMotion } from "motion/react";
 import { ChevronDown, CircleStop, FileText, Pause, Play, RotateCw } from "lucide-react";
 import { Button, LiveDot, StatusChip, StreamText, Switch } from "../../components/ui";
-import { JobStateChip, LiveCounts, type LiveCount } from "./LiveCounts";
+import { buttonClasses } from "../../components/ui/Button";
+import { JobStateChip } from "./LiveCounts";
 import { getBook, type WritingJob } from "../../demo";
 import { interiorLook } from "../../lib/interiorLook";
 import { cn } from "../../lib/cn";
@@ -11,6 +12,7 @@ import { formatNumber, formatTime, formatUsd } from "../../lib/format";
 import type { SectionRow } from "./SectionList";
 import { CheckIcon } from "./WritingInspector";
 import { checksFor, logFor, type ChapterCheck } from "./writingData";
+import { glassCard, pageColumn, pageKicker, pageTitle } from "./studio";
 
 export type JobState = "running" | "paused" | "stopped";
 
@@ -21,55 +23,67 @@ interface LiveCanvasProps {
   chapterWords: number;
   follow: boolean;
   onFollow: (on: boolean) => void;
-  onPause: () => void;
-  onResume: () => void;
-  onCancel: () => void;
   viewing: string;
   rows: SectionRow[];
   retried: Record<string, { finishedAt: string | null }>;
   onRetry: (sectionId: string) => void;
-  /** Live figures over the page: words, sections, time and spend, all from the job. */
-  counts?: LiveCount[] | undefined;
 }
 
-/** The live page: header controls, the chapter being written with the gilt caret, and the log of finished sections. */
+/** The job's controls for the step head: its state, Pause or Resume, and Stop writing. */
+export function JobControls({
+  jobState,
+  onPause,
+  onResume,
+  onCancel,
+  chapterNumber,
+}: {
+  jobState: JobState;
+  onPause: () => void;
+  onResume: () => void;
+  onCancel: () => void;
+  chapterNumber: number | null;
+}) {
+  return (
+    <>
+      <JobStateChip tone={jobState}>{jobState === "running" && chapterNumber !== null ? `Writing chapter ${chapterNumber}` : undefined}</JobStateChip>
+      {jobState === "running" && (
+        <Button size="sm" icon={Pause} onClick={onPause}>
+          Pause
+        </Button>
+      )}
+      {jobState === "paused" && (
+        <Button size="sm" variant="primary" icon={Play} onClick={onResume}>
+          Resume
+        </Button>
+      )}
+      {jobState !== "stopped" && (
+        <Button size="sm" variant="ghost" icon={CircleStop} onClick={onCancel}>
+          Stop writing
+        </Button>
+      )}
+    </>
+  );
+}
+
+/** The page card: the chapter being written with the caret, or a finished section, then the log of finished sections. */
 export function LiveCanvas(props: LiveCanvasProps) {
-  const { job, jobState, follow, onFollow, onPause, onResume, onCancel, viewing, rows } = props;
+  const { job, jobState, follow, onFollow, viewing, rows } = props;
   const viewingRow = rows.find((r) => r.section.id === viewing);
   const isLive = viewing === job.current.sectionId;
 
   return (
-    <div className="flex min-h-0 flex-col xl:h-full">
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-4 py-3 sm:px-8 xl:min-h-[76px]">
-        <h1 className="text-[18px] leading-6 font-semibold text-ink">Writing</h1>
-        <JobStateChip tone={jobState} />
-        <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1">
-          <Switch nowrap label="Follow the writer" checked={follow} onChange={onFollow} disabled={jobState === "stopped"} />
-          {jobState === "running" && (
-            <Button icon={Pause} onClick={onPause}>
-              Pause
-            </Button>
-          )}
-          {jobState === "paused" && (
-            <Button icon={Play} onClick={onResume}>
-              Resume
-            </Button>
-          )}
-          {jobState !== "stopped" && (
-            <Button variant="ghost" icon={CircleStop} onClick={onCancel}>
-              Stop writing
-            </Button>
-          )}
+    <section aria-label="The page" className={cn(glassCard, "relative overflow-clip")}>
+      {jobState !== "stopped" && (
+        <div className="flex justify-end px-4 pt-3 min-[761px]:absolute min-[761px]:top-0 min-[761px]:right-0">
+          <Switch nowrap label="Follow the writer" checked={follow} onChange={onFollow} />
         </div>
-      </header>
-
-      <div className="relative min-h-0 flex-1 overflow-y-auto px-4 pt-7 pb-12 sm:px-8 xl:px-10">
-        {props.counts && <LiveCounts items={props.counts} className="mx-auto mb-8 max-w-[760px]" />}
+      )}
+      <div className={pageColumn}>
         {jobState === "stopped" && (
-          <div role="status" className="mx-auto mb-7 flex max-w-[640px] flex-wrap items-center gap-3 rounded-md bg-accent-wash px-4 py-3">
-            <p className="min-w-0 flex-1 text-[14px] leading-5 text-ink">
-              <b className="block font-semibold text-accent-text">Writing stopped at chapter {job.current.chapterNumber}</b>
-              Everything written so far is saved. Resume writing, at the foot of the page, picks up where the writer stopped.
+          <div role="status" className="mx-[clamp(0px,2vw,28px)] mt-5 rounded-lg bg-amber-wash px-4 py-3">
+            <p className="text-[13.5px] leading-5 text-ink">
+              <b className="block font-semibold text-amber">Writing stopped at chapter {job.current.chapterNumber}</b>
+              Everything written so far is saved. Resume writing picks up where the writer stopped.
             </p>
           </div>
         )}
@@ -88,7 +102,7 @@ export function LiveCanvas(props: LiveCanvasProps) {
 
         <FinishedLog job={job} rows={rows} retried={props.retried} onRetry={props.onRetry} />
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -118,21 +132,25 @@ function LivePage({ job, jobState, chunksShown, chapterWords, follow }: LiveCanv
   const book = getBook(job.bookId);
   const look = book ? interiorLook(book) : null;
   return (
-    <article aria-labelledby="live-title" className="mx-auto max-w-[680px]">
-      <p className={cn("flex items-center gap-2 text-label font-semibold", live ? "text-accent-text" : "text-ink-secondary")}>
-        {live ? <LiveDot /> : <Pause size={14} strokeWidth={2} aria-hidden />}
-        Chapter {cur.chapterNumber}, {live ? "writing now" : jobState === "paused" ? "paused" : "stopped"}
-      </p>
-      <h2 id="live-title" className="opsz-title mt-2 font-book text-title text-ink" style={look?.heading}>
+    <article aria-labelledby="live-title" className="px-[clamp(0px,2vw,28px)] pt-[22px] pb-4 max-[760px]:pt-[18px]">
+      <h2 id="live-title" className={pageTitle} style={look?.heading}>
+        <span className={cn(pageKicker, "mb-1.5 flex items-center gap-2 font-ui")}>
+          {live ? <LiveDot /> : <Pause size={12} strokeWidth={2.2} aria-hidden />}
+          Chapter {cur.chapterNumber}, {live ? "writing now" : jobState === "paused" ? "paused" : "stopped"}
+        </span>
         {cur.chapterTitle}
       </h2>
-      <p className="num mt-1 text-small text-ink-secondary">
+      <p className="num mt-1.5 text-[13px] leading-5 text-ink-2">
         {formatNumber(chapterWords)} of about {formatNumber(cur.wordTarget)} words. Checks run when the chapter ends.
       </p>
-      <div className="print-indent mt-6 font-book text-prose text-ink" style={look?.body} title={look ? `Set in the ${look.name} interior theme` : undefined}>
+      <div
+        className="mt-5 font-book text-prose-sm text-ink [&>p]:mb-3.5"
+        style={look?.body}
+        title={look ? `Set in the ${look.name} interior theme` : undefined}
+      >
         {cur.blocks.map((b, i) =>
           b.kind === "h" ? (
-            <h3 key={i} className="mt-6 mb-2 font-ui text-subhead text-ink" style={look?.heading}>
+            <h3 key={i} className="mt-6 mb-2 font-book text-[18px] leading-[1.35] font-semibold text-ink" style={look?.heading}>
               {b.text}
             </h3>
           ) : (
@@ -141,6 +159,7 @@ function LivePage({ job, jobState, chunksShown, chapterWords, follow }: LiveCanv
         )}
         {/* Earlier chunks sit as plain text so the line wraps naturally; only the newest chunk inks in. */}
         <StreamText
+          size="prose-sm"
           lead={cur.streamingChunks.slice(0, Math.max(0, chunksShown - 1)).join("")}
           chunks={cur.streamingChunks.slice(Math.max(0, chunksShown - 1), chunksShown)}
           live={live}
@@ -171,13 +190,13 @@ function SectionView({
   const working = status === "rewriting" || status === "checking";
 
   return (
-    <article aria-labelledby="section-title" className="mx-auto max-w-[640px]">
+    <article aria-labelledby="section-title" className="px-[clamp(0px,2vw,28px)] pt-5 pb-4">
       <button type="button" onClick={onBack} className="inline-flex h-8 items-center gap-2 rounded-sm text-label font-semibold text-select hit-44">
         <LiveDot />
         Back to the writer
       </button>
-      <p className="mt-4 text-label text-ink-secondary">{label}</p>
-      <h2 id="section-title" className="opsz-title mt-1 font-book text-title text-ink">
+      <p className={cn(pageKicker, "mt-4")}>{label}</p>
+      <h2 id="section-title" className={cn(pageTitle, "mt-1")}>
         {section.title}
       </h2>
 
@@ -194,7 +213,7 @@ function SectionView({
                 : "Running checks on the new version."
               : `${formatNumber(row.words)} of about ${formatNumber(section.wordTarget)} words. Finished at ${formatTime(retriedAt ?? log?.finishedAt ?? job.startedAt)}${log ? `, ${log.minutes} min, ${formatUsd(log.costUsd)}` : ""}.`}
           </p>
-          {log && <p className="mt-6 font-book text-prose text-ink">{log.opening}</p>}
+          {log && <p className="mt-5 font-book text-prose-sm text-ink">{log.opening}</p>}
           {checks && <ChecksList checks={checks} className="mt-6" />}
           {retriedAt && (
             <p role="status" className="mt-4 text-small text-success">
@@ -202,10 +221,7 @@ function SectionView({
             </p>
           )}
           <div className="mt-6 flex flex-wrap gap-2">
-            <Link
-              to={`/books/${job.bookId}/editor/${section.id}`}
-              className="inline-flex h-10 items-center gap-2 rounded-sm border border-border-strong bg-sheet px-4 text-label font-semibold text-ink hover:bg-sunken"
-            >
+            <Link to={`/books/${job.bookId}/editor/${section.id}`} className={buttonClasses("secondary", "md")}>
               <FileText size={16} aria-hidden />
               Open in editor
             </Link>
@@ -226,7 +242,7 @@ function SectionView({
 
 function ChecksList({ checks, className }: { checks: ChapterCheck[]; className?: string }) {
   return (
-    <ul className={cn("grid gap-2 rounded-md border border-border bg-sheet p-4", className)}>
+    <ul className={cn("grid gap-2 rounded-lg border border-line bg-panel-2 p-4", className)}>
       {checks.map((c) => (
         <li key={c.id} className="grid grid-cols-[18px_minmax(0,1fr)] gap-x-2 text-[14px] leading-5">
           <CheckIcon result={c.result} />
@@ -254,8 +270,8 @@ function FinishedLog({
 }) {
   const finished = rows.filter((r) => logFor(r.section.id)).reverse();
   return (
-    <section aria-labelledby="log-title" className="mx-auto mt-12 max-w-[640px] border-t border-border pt-6">
-      <h2 id="log-title" className="text-subhead text-ink">
+    <section aria-labelledby="log-title" className="mx-[clamp(0px,2vw,28px)] mt-6 mb-4 border-t border-line pt-6">
+      <h2 id="log-title" className="text-[15px] leading-5 font-semibold text-ink">
         Finished sections
       </h2>
       <p className="mt-0.5 text-small text-ink-secondary">Newest first. Each one was checked and saved as a version.</p>
@@ -279,7 +295,7 @@ function LogRow({ row, job, retriedAt, onRetry }: { row: SectionRow; job: Writin
   const panelId = `log-${row.section.id}`;
 
   return (
-    <li className={cn("rounded-md border px-3 py-2.5 sm:px-4", attention ? "border-transparent bg-accent-wash" : "border-border bg-sheet")}>
+    <li className={cn("rounded-lg border px-3 py-2.5 sm:px-4", attention ? "border-transparent bg-amber-wash" : "border-line bg-panel-2")}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="num hidden w-11 shrink-0 text-small text-ink-tertiary sm:inline">{formatTime(retriedAt ?? log.finishedAt)}</span>
         <span className="min-w-0 flex-1 text-[14px] leading-5">
@@ -315,10 +331,7 @@ function LogRow({ row, job, retriedAt, onRetry }: { row: SectionRow; job: Writin
           {retriedAt && <p className="text-small text-success">Retried. Checks passed on version 2.</p>}
           {attention && (
             <div className="flex flex-wrap gap-2">
-              <Link
-                to={`/books/${job.bookId}/editor/${row.section.id}`}
-                className="inline-flex h-10 items-center gap-2 rounded-sm border border-border-strong bg-sheet px-4 text-label font-semibold text-ink hover:bg-sunken"
-              >
+              <Link to={`/books/${job.bookId}/editor/${row.section.id}`} className={buttonClasses("secondary", "md")}>
                 <FileText size={16} aria-hidden />
                 Open in editor
               </Link>

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { Check, CircleAlert, Pause, Square } from "lucide-react";
-import { LiveDot, Loader } from "../../components/ui";
+import { Loader, StatusChip, type ChipTone as ChipToneName } from "../../components/ui";
 import { cn } from "../../lib/cn";
 
 /* Live counts over the writing page (studio redesign stage 4b). Each figure comes from the job and its
@@ -14,12 +13,12 @@ export interface LiveCount {
 export function LiveCounts({ items, className }: { items: LiveCount[]; className?: string | undefined }) {
   if (items.length === 0) return null;
   return (
-    <dl aria-label="Writing in numbers" className={cn("flex flex-wrap gap-px overflow-hidden rounded-md border border-border bg-border", className)}>
-      {/* Each figure grows to fill its row, so a short last row never leaves an empty cell. */}
+    <dl aria-label="Writing in numbers" className={cn("grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2.5", className)}>
+      {/* One tile per figure (.kp in the approved design): the figure, then what it counts. */}
       {items.map((it) => (
-        <div key={it.label} className="grid flex-[1_1_11rem] content-start gap-0.5 bg-sheet px-4 py-3">
-          <dt className="order-2 text-small text-ink-secondary">{it.label}</dt>
-          <dd className="num order-1 font-book text-heading text-ink">{it.value}</dd>
+        <div key={it.label} className="vol-glass grid min-w-0 content-start rounded-[16px] px-3.5 py-3">
+          <dt className="order-2 text-[12px] leading-4 text-ink-2">{it.label}</dt>
+          <dd className="num order-1 text-[20px] leading-[1.2] font-bold tracking-[-0.01em] text-ink">{it.value}</dd>
         </div>
       ))}
     </dl>
@@ -38,37 +37,29 @@ const words: Record<ChipTone, string> = {
   idle: "Not started",
 };
 
-/** The job's state beside the Writing heading: icon plus word, so colour never works alone. */
-export function JobStateChip({ tone }: { tone: ChipTone }) {
-  const icon =
-    tone === "running" ? (
-      <LiveDot />
-    ) : tone === "pausing" ? (
-      <Loader />
-    ) : tone === "paused" ? (
-      <Pause size={14} strokeWidth={2} aria-hidden />
-    ) : tone === "failed" ? (
-      <CircleAlert size={14} strokeWidth={2} aria-hidden />
-    ) : tone === "finished" ? (
-      <Check size={14} strokeWidth={2} aria-hidden />
-    ) : (
-      <Square size={12} strokeWidth={2} aria-hidden />
-    );
+const tones: Record<ChipTone, ChipToneName> = {
+  running: "run",
+  pausing: "run",
+  paused: "warn",
+  stopped: "info",
+  failed: "bad",
+  finished: "good",
+  idle: "info",
+};
+
+/** The job's state in the step head: a dot plus a word, so colour never works alone. `children` overrides the word. */
+export function JobStateChip({ tone, children }: { tone: ChipTone; children?: string | undefined }) {
+  const word = children ?? words[tone];
   return (
-    <span
-      className={cn(
-        "inline-flex h-7 items-center gap-2 rounded-pill px-3 text-small font-semibold whitespace-nowrap",
-        tone === "running" || tone === "pausing"
-          ? "bg-accent-wash text-accent-text"
-          : tone === "failed"
-            ? "bg-claim-wash text-claim"
-            : tone === "finished"
-              ? "bg-success-wash text-success"
-              : "bg-sunken text-ink-secondary",
+    <StatusChip tone={tones[tone]}>
+      {tone === "pausing" ? (
+        <span className="inline-flex items-center gap-1.5">
+          <Loader />
+          {word}
+        </span>
+      ) : (
+        word
       )}
-    >
-      {icon}
-      {words[tone]}
-    </span>
+    </StatusChip>
   );
 }

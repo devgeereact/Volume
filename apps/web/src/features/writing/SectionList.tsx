@@ -1,8 +1,9 @@
-import { Check, Clock, Flag, PauseCircle } from "lucide-react";
-import { ChapterBars, Loader, ProgressBar, type ChapterSegment } from "../../components/ui";
-import type { Book, WritingSection } from "../../demo";
+import { PauseCircle } from "lucide-react";
+import { Loader } from "../../components/ui";
+import type { WritingSection } from "../../demo";
 import { cn } from "../../lib/cn";
 import { formatNumber } from "../../lib/format";
+import { cardTitle, Count, glassCard, RowDot, RowNumber, rowClasses } from "./studio";
 
 export type RowStatus = "done" | "attention" | "writing" | "paused" | "stopped" | "rewriting" | "checking" | "queued";
 
@@ -14,35 +15,29 @@ export interface SectionRow {
 }
 
 interface SectionListProps {
-  book: Book;
   rows: SectionRow[];
   doneCount: number;
-  segments: ChapterSegment[];
-  chapterProgress: number;
   viewing: string;
   onView: (sectionId: string) => void;
   summary: string;
 }
 
-/** Section list (340 px on wide screens): number, title, status with an icon and words. */
-export function SectionList({ book, rows, doneCount, segments, chapterProgress, viewing, onView, summary }: SectionListProps) {
+/** Section list card (.sec-list): number, title and a status dot or word. "N of M" beside the heading. */
+export function SectionList({ rows, doneCount, viewing, onView, summary }: SectionListProps) {
   return (
-    <nav aria-label="Sections" className="flex min-h-0 flex-col xl:h-full border-border bg-canvas xl:border-r">
-      <div className="px-5 pt-5 pb-4 sm:px-6">
-        <h2 className="flex items-baseline justify-between gap-3 text-subhead text-ink">
-          Sections
-          <span className="num rounded-pill bg-sunken px-2.5 py-0.5 text-small font-semibold text-ink-secondary">
-            {doneCount} of {rows.length}
-            <span className="sr-only"> done</span>
-          </span>
-        </h2>
-        <p className="mt-0.5 text-small text-ink-secondary">{summary}</p>
-        <ChapterBars className="mt-3" segments={segments} label={`${book.title}, chapters written`} />
-      </div>
-      <ol className="relative min-h-0 flex-1 overflow-y-auto border-t border-border px-3 py-3">
+    <nav aria-label="Sections" className={cn(glassCard, "grid content-start gap-0.5 p-2.5")}>
+      <h2 className={cn(cardTitle, "mx-2 mt-1.5 mb-0.5")}>
+        Sections
+        <Count>
+          {doneCount} of {rows.length}
+          <span className="sr-only"> done</span>
+        </Count>
+      </h2>
+      <p className="mx-2 mb-2 text-[12px] leading-4 text-ink-3">{summary}</p>
+      <ol className="grid gap-0.5">
         {rows.map((row) => (
-          <li key={row.section.id}>
-            <SectionButton row={row} selected={viewing === row.section.id} chapterProgress={chapterProgress} onView={onView} />
+          <li key={row.section.id} className="min-w-0">
+            <SectionButton row={row} selected={viewing === row.section.id} onView={onView} />
           </li>
         ))}
       </ol>
@@ -50,103 +45,53 @@ export function SectionList({ book, rows, doneCount, segments, chapterProgress, 
   );
 }
 
-function SectionButton({
-  row,
-  selected,
-  chapterProgress,
-  onView,
-}: {
-  row: SectionRow;
-  selected: boolean;
-  chapterProgress: number;
-  onView: (id: string) => void;
-}) {
+function SectionButton({ row, selected, onView }: { row: SectionRow; selected: boolean; onView: (id: string) => void }) {
   const { section, status } = row;
   const live = status === "writing" || status === "paused" || status === "stopped";
   return (
-    <button
-      type="button"
-      onClick={() => onView(section.id)}
-      aria-current={selected ? "true" : undefined}
-      className={cn(
-        "group relative grid min-h-11 w-full grid-cols-[24px_minmax(0,1fr)_auto] items-start gap-x-2 rounded-sm px-2 py-2.5 text-left",
-        live ? "bg-accent-wash" : selected ? "bg-select-wash" : "hover:bg-sunken",
-        selected && !live && "vol-pencil-edge",
-      )}
-    >
-      <span className="num pt-px text-right text-small text-ink-tertiary">{section.number ?? ""}</span>
-      <span
-        title={section.title}
-        className={cn("text-[14px] leading-5 break-words", selected ? "font-semibold text-ink" : status === "queued" ? "text-ink-secondary" : "text-ink")}
-      >
+    <button type="button" onClick={() => onView(section.id)} aria-current={selected ? "true" : undefined} className={rowClasses(live || selected)}>
+      <RowNumber n={section.number} />
+      <span title={section.title} className="min-w-0 flex-1 truncate">
         {section.title}
       </span>
       <StatusWord row={row} />
-      {live && (
-        <ProgressBar
-          className="col-start-2 col-end-4 mt-2"
-          size="thin"
-          value={Math.min(100, chapterProgress * 100)}
-          max={100}
-          live={status === "writing"}
-          label={`${section.title} progress`}
-          valueText={`${formatNumber(row.words)} of about ${formatNumber(section.wordTarget)} words`}
-        />
-      )}
     </button>
   );
 }
 
 function StatusWord({ row }: { row: SectionRow }) {
-  const base = "num inline-flex items-center gap-1 text-small whitespace-nowrap";
+  const word = "num inline-flex shrink-0 items-center gap-1 text-[11.5px] leading-4 whitespace-nowrap";
   switch (row.status) {
     case "done":
-      return (
-        <span className={cn(base, "text-success")}>
-          <Check size={14} strokeWidth={2} aria-hidden />
-          {row.section.number === null ? "Done" : formatNumber(row.words)}
-          <span className="sr-only">words, checks passed</span>
-        </span>
-      );
+      return <RowDot tone="ok" label={row.section.number === null ? "Done, checks passed" : `${formatNumber(row.words)} words, checks passed`} />;
     case "attention":
-      return (
-        <span className={cn(base, "text-claim")}>
-          <Flag size={14} strokeWidth={2} aria-hidden />
-          {row.claims} claim
-          <span className="sr-only">to verify, needs attention</span>
-        </span>
-      );
+      return <RowDot tone="warn" label={`${row.claims} ${row.claims === 1 ? "claim" : "claims"} to verify, needs attention`} />;
     case "writing":
-      return <span className={cn(base, "font-semibold text-accent-text")}>Writing</span>;
+      return <span className={cn(word, "font-semibold")}>Writing</span>;
     case "paused":
       return (
-        <span className={cn(base, "font-semibold text-accent-text")}>
-          <PauseCircle size={14} strokeWidth={2} aria-hidden />
+        <span className={cn(word, "font-semibold")}>
+          <PauseCircle size={13} strokeWidth={2} aria-hidden />
           Paused
         </span>
       );
     case "stopped":
-      return <span className={cn(base, "font-semibold text-accent-text")}>Stopped</span>;
+      return <span className={cn(word, "font-semibold")}>Stopped</span>;
     case "rewriting":
       return (
-        <span className={cn(base, "text-accent-text")}>
+        <span className={word}>
           <Loader />
           Rewriting
         </span>
       );
     case "checking":
       return (
-        <span className={cn(base, "text-accent-text")}>
+        <span className={word}>
           <Loader />
           Checking
         </span>
       );
     case "queued":
-      return (
-        <span className={cn(base, "text-ink-tertiary")}>
-          <Clock size={14} strokeWidth={2} aria-hidden className="hidden sm:inline" />
-          Queued
-        </span>
-      );
+      return <span className={cn(word, "font-normal text-ink-3")}>Queued</span>;
   }
 }
