@@ -135,7 +135,7 @@ function Studio({ book, apiBook, cover }: { book: Book; apiBook: ApiBookDetail |
       : "style",
   );
   const [preview, setPreview] = useState<Preview>("ebook");
-  // A job still open from before a reload (queued, running or stopped at the budget) is watched again.
+  // A job still open from before a reload (queued, running or paused for credit) is watched again.
   const openJob = (kind: string) => apiBook?.recentJobs.find((j) => j.kind === kind && !isTerminalJob(j.status))?.id ?? null;
   const [conceptJob, setConceptJob] = useState<string | null>(() => openJob("cover_concepts"));
   const [buildJob, setBuildJob] = useState<string | null>(() => openJob("cover_build"));
@@ -390,7 +390,7 @@ function Studio({ book, apiBook, cover }: { book: Book; apiBook: ApiBookDetail |
           label: making ? "Making concepts" : "Make concepts",
           estimate: "about $0.16",
           onClick: () => void startConcepts(),
-          disabledReason: making ? "Making the concepts now." : conceptsPaused ? "Raise the book's budget above to carry on." : undefined,
+          disabledReason: making ? "Making the concepts now." : conceptsPaused ? "Paused. See the notice above." : undefined,
         }
       : !chosen || (pick && pick.assetId !== chosen.assetId)
         ? {
@@ -482,26 +482,8 @@ function Studio({ book, apiBook, cover }: { book: Book; apiBook: ApiBookDetail |
         status={status}
         action={canWrite ? action : null}
       />
-      {conceptsPaused && conceptJob && (
-        <BudgetPausedBanner
-          className="mt-4 max-w-215"
-          bookId={bookId}
-          jobId={conceptJob}
-          message={conceptWatch.error}
-          budgetUsd={book.cost.budget}
-          spentUsd={book.cost.spent}
-        />
-      )}
-      {buildPaused && buildJob && (
-        <BudgetPausedBanner
-          className="mt-4 max-w-215"
-          bookId={bookId}
-          jobId={buildJob}
-          message={buildWatch.error}
-          budgetUsd={book.cost.budget}
-          spentUsd={book.cost.spent}
-        />
-      )}
+      {conceptsPaused && conceptJob && <BudgetPausedBanner className="mt-4 max-w-215" jobId={conceptJob} message={conceptWatch.error} />}
+      {buildPaused && buildJob && <BudgetPausedBanner className="mt-4 max-w-215" jobId={buildJob} message={buildWatch.error} />}
       {modelFix && (
         <ModelFallbackBanner
           bookId={bookId}

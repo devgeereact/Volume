@@ -71,7 +71,7 @@ export function WritingIdle({ book, forcedEmpty }: { book: Book; forcedEmpty: bo
           </div>
           <div>
             <p className="text-small text-ink-secondary">AI spend on this book</p>
-            <Figure value={formatUsd(book.cost.spent)} unit={`of ${formatUsd(book.cost.budget)}`} />
+            <Figure value={formatUsd(book.cost.spent)} unit="so far" />
           </div>
         </div>
       </section>

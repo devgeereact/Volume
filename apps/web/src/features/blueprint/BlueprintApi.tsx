@@ -42,7 +42,7 @@ import { GuardrailNote } from "../research/GuardrailNote";
 import { RebuildBook } from "../rebuild/RebuildBook";
 import type { Book } from "../../demo";
 import { cn } from "../../lib/cn";
-import { formatNumber } from "../../lib/format";
+import { formatNumber, formatUsd } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
 import { useCanWrite } from "../../lib/access";
@@ -999,7 +999,7 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
             items={[
               { label: "Chapters", value: String(totals.chapters) },
               { label: "Words planned", value: formatNumber(totals.chapterWords + totals.front + totals.back) },
-              { label: "Budget", value: `$${apiBook.budgetUsd.toFixed(2)}, $${apiBook.costToDateUsd.toFixed(2)} spent` },
+              { label: "Spent so far", value: formatUsd(apiBook.costToDateUsd) },
             ]}
           />
           <p className="text-small text-ink-tertiary">

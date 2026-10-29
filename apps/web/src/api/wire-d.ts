@@ -21,7 +21,7 @@ export function canWrite(role: Role | null | undefined): boolean {
   return role === "owner" || role === "editor";
 }
 
-/** Only the owner manages members, invitations, settings and budgets. */
+/** Only the owner manages members, invitations, settings and spending. */
 export function canManage(role: Role | null | undefined): boolean {
   return role === "owner";
 }
@@ -36,7 +36,7 @@ export const roleLabels: Record<Role, string> = { owner: "Owner", editor: "Edito
 /** One line on what each role can do, for the invite form and the members list. */
 export const roleHints: Record<Role, string> = {
   owner: "A separate self-publisher with a workspace of their own.",
-  editor: "Writes and edits books, batches and releases. No settings, budgets or members.",
+  editor: "Writes and edits books, batches and releases. No settings, spending or members.",
   viewer: "Reads everything. Cannot change anything.",
 };
 

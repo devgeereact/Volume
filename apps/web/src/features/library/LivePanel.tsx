@@ -93,7 +93,7 @@ export function LivePanel() {
           items={[
             { label: "Time left", value: paused ? "Paused" : `About ${job.minutesLeft} minutes` },
             { label: "Model", value: job.model, mono: true },
-            { label: "Cost so far", value: `${formatUsd(costSpent)} of ${formatUsd(job.cost.budget)}` },
+            { label: "Cost so far", value: `${formatUsd(costSpent)} so far` },
           ]}
         />
         <div className="mt-auto flex flex-wrap gap-2 pt-3.5">

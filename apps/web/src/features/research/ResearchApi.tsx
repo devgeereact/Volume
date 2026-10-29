@@ -35,6 +35,7 @@ import {
   type StageJob,
 } from "../../api/wire-b";
 import { GuardrailNote } from "./GuardrailNote";
+import { NoSourceMatch, ResearchCounts, SourceFilterBar, sourceMatches, useSourceFilter } from "./SourceTools";
 import type { Book } from "../../demo";
 import { cn } from "../../lib/cn";
 import { formatUsd } from "../../lib/format";
@@ -159,6 +160,11 @@ export function ResearchApi({ book, apiBook }: { book: Book; apiBook: ApiBookDet
 
   const sources = (run?.sources ?? []).map(toSourceView);
   const usedCount = sources.filter((x) => x.useInBook).length;
+  const filter = useSourceFilter();
+  // Numbers stay those of the full list, so a filtered card keeps the number the dossier uses.
+  const numbered = sources.map((src, i) => ({ src, number: i + 1 }));
+  const shownSources = numbered.filter(({ src }) => sourceMatches(filter, src.useInBook, [src.title, src.domain, src.excerpt]));
+  const dossier = run && state === "done" ? dossierOf(run) : null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto]">
@@ -260,7 +266,19 @@ export function ResearchApi({ book, apiBook }: { book: Book; apiBook: ApiBookDet
 
         {run && state === "done" && guard && guard.needsAttention.length > 0 && <GuardrailNote items={guard.needsAttention} />}
 
-        {run && state === "done" && <DossierView dossier={dossierOf(run)} />}
+        {dossier && (
+          <ResearchCounts
+            items={[
+              { label: "Sources read", value: sources.length },
+              { label: "Used in the book", value: usedCount },
+              { label: "Reader pains", value: dossier.problems.length },
+              { label: "Angles", value: dossier.angles.length },
+              { label: "Keyword ideas", value: dossier.keywords.length },
+            ]}
+          />
+        )}
+
+        {dossier && <DossierView dossier={dossier} />}
       </div>
 
       <Inspector label="Sources" className="lg:sticky lg:top-(--shell-sticky-top) lg:h-screen-fill">
@@ -289,11 +307,18 @@ export function ResearchApi({ book, apiBook }: { book: Book; apiBook: ApiBookDet
               {state === "done" ? "This run cited no sources. The writer will not add references for it." : "This run kept no sources."}
             </p>
           ) : (
-            <ul className="grid gap-3">
-              {sources.map((src, i) => (
-                <ApiSourceCard key={src.id} bookId={bookId} source={src} number={i + 1} />
-              ))}
-            </ul>
+            <div className="grid gap-3">
+              <SourceFilterBar filter={filter} total={sources.length} used={usedCount} shown={shownSources.length} />
+              {shownSources.length === 0 ? (
+                <NoSourceMatch filter={filter} />
+              ) : (
+                <ul className="grid gap-3">
+                  {shownSources.map(({ src, number }) => (
+                    <ApiSourceCard key={src.id} bookId={bookId} source={src} number={number} />
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
         </InspectorSection>
         <InspectorSection title="How sources work">

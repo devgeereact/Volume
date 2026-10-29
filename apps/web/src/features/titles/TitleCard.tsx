@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useCanWrite } from "../../lib/access";
-import { Check, CircleAlert, Flag, Pencil, Star } from "lucide-react";
+import { Check, CircleAlert, Eye, Flag, Pencil, Star } from "lucide-react";
 import { Button, IconButton, Input } from "../../components/ui";
 import { TITLE_SUBTITLE_MAX, titleLength, type TitleOption } from "../../demo";
 import { cn } from "../../lib/cn";
@@ -19,6 +19,10 @@ interface TitleCardProps {
   saving?: boolean | undefined;
   /** Another option is being saved, so this one waits. */
   busy?: boolean | undefined;
+  /** Shows this option in the store preview beside the list. */
+  onPreview?: (() => void) | undefined;
+  /** This option is the one in the store preview. */
+  previewing?: boolean | undefined;
 }
 
 /** Why the choose button is held, or undefined when it can be pressed. */
@@ -66,7 +70,19 @@ export function CharCounter({ length, className }: { length: number; className?:
 }
 
 /** One title option: title and subtitle, counter, checks, favourite, inline edit and choose. */
-export function TitleCard({ option, directionName, favourite, onFavourite, onChoose, onSave, fresh, saving = false, busy = false }: TitleCardProps) {
+export function TitleCard({
+  option,
+  directionName,
+  favourite,
+  onFavourite,
+  onChoose,
+  onSave,
+  fresh,
+  saving = false,
+  busy = false,
+  onPreview,
+  previewing = false,
+}: TitleCardProps) {
   const canWrite = useCanWrite();
   const [editing, setEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState(option.title);
@@ -120,6 +136,15 @@ export function TitleCard({ option, directionName, favourite, onFavourite, onCho
         {/* The direction is the group heading above the card; screen readers still hear it here. */}
         <p className="sr-only">{directionName}</p>
         <div className="flex gap-1">
+          {onPreview && !editing && (
+            <IconButton
+              icon={Eye}
+              size="sm"
+              label={previewing ? "In the store preview" : "Show in the store preview"}
+              pressed={previewing}
+              onClick={onPreview}
+            />
+          )}
           {canWrite && (
             <>
               <IconButton icon={Star} size="sm" label={favourite ? "Remove from favourites" : "Add to favourites"} pressed={favourite} onClick={onFavourite} />
@@ -151,7 +176,7 @@ export function TitleCard({ option, directionName, favourite, onFavourite, onCho
         </div>
       ) : (
         <>
-          <h3 className={cn("pr-20 font-book", invalid && "text-ink-disabled")}>
+          <h3 className={cn(onPreview ? "pr-28" : "pr-20", "font-book", invalid && "text-ink-disabled")}>
             <span className={cn("block text-[21px] leading-[27px] font-medium", invalid ? "text-ink-secondary" : option.chosen ? "text-select" : "text-ink")}>
               {option.title}
               {option.subtitle && <span className="sr-only">:</span>}

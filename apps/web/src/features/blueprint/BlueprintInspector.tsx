@@ -1,5 +1,5 @@
 import { Check, Flag, History, RefreshCw, Sparkles } from "lucide-react";
-import { Button, Figure, Input, Inspector, InspectorSection, KeyValueList, ModelName, ProgressBar } from "../../components/ui";
+import { Button, Figure, Input, Inspector, InspectorSection, KeyValueList, ModelName } from "../../components/ui";
 import { getModel, type Blueprint, type ClaimToVerify } from "../../demo";
 import { cn } from "../../lib/cn";
 import { formatNumber, formatPerMillion, formatRelative, formatUsd } from "../../lib/format";
@@ -30,7 +30,6 @@ interface BlueprintInspectorProps {
   onChangeModel: () => void;
   costRows: { label: string; usd: number }[];
   spent: number;
-  budget: number;
   regenerating: { label: string; cost: number } | null;
   claims: ClaimToVerify[];
   onClaim: (claim: ClaimToVerify) => void;
@@ -57,7 +56,6 @@ export function BlueprintInspector(props: BlueprintInspectorProps) {
     onChangeModel,
     costRows,
     spent,
-    budget,
     regenerating,
     claims,
     onClaim,
@@ -146,15 +144,7 @@ export function BlueprintInspector(props: BlueprintInspectorProps) {
       </InspectorSection>
 
       <InspectorSection title="Cost so far">
-        <Figure value={formatUsd(spent)} unit={`of ${formatUsd(budget)} budget`} />
-        <ProgressBar
-          className="mt-2"
-          size="thin"
-          value={spent}
-          max={budget}
-          label="Book budget used"
-          valueText={`${Math.round((spent / budget) * 100)}% of the budget`}
-        />
+        <Figure value={formatUsd(spent)} unit="so far" />
         <KeyValueList
           className="mt-3"
           items={[

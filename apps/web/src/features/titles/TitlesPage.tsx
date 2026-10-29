@@ -15,7 +15,7 @@ import {
   ProgressBar,
   Skeleton,
 } from "../../components/ui";
-import { stageDefaults, titleOptions, topicDirections, type Book, type TitleOption } from "../../demo";
+import { stageDefaults, TITLE_SUBTITLE_MAX, titleOptions, topicDirections, type Book, type TitleOption } from "../../demo";
 import { formatUsd } from "../../lib/format";
 import { scrollBehavior } from "../../lib/motion";
 import { useStepAction } from "../../lib/stepAction";
@@ -25,6 +25,7 @@ import { NotFound } from "../../shell/NotFound";
 import { DemoStates, useScreenState } from "../research/DemoStates";
 import { RunModelModal } from "../research/RunModelModal";
 import { about, estimateFor, useSimulatedRun } from "../research/sim";
+import { StorePreview, TitleLengthBar } from "./StorePreview";
 import { TitleCard } from "./TitleCard";
 import { TitlesApi } from "./TitlesApi";
 import { alternates, checkTitle, directionDetails } from "./titlesExtras";
@@ -63,6 +64,7 @@ function Titles({ book }: { book: Book }) {
   const [model, setModel] = useState(TITLES_MODEL);
   const [spent, setSpent] = useState(RUN_COST);
   const [altIndex, setAltIndex] = useState(0);
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   const full = useSimulatedRun(() => {
     // Regenerate all: favourites stay, the rest are replaced by new options.
@@ -100,6 +102,8 @@ function Titles({ book }: { book: Book }) {
   const failed = full.status === "failed";
   const shown = running ? "loading" : failed ? "error" : screen;
   const chosen = options.find((o) => o.chosen) ?? null;
+  // The store preview shows the option the owner picked to preview, else the chosen one.
+  const previewed = options.find((o) => o.id === previewId) ?? chosen;
   const estimate = estimateFor(RUN_COST, TITLES_MODEL, model);
 
   function regenerateAll(slug: string) {
@@ -359,6 +363,8 @@ function Titles({ book }: { book: Book }) {
                           onChoose={() => choose(o.id)}
                           onSave={(t, s) => saveEdit(o.id, t, s)}
                           fresh={fresh.has(o.id)}
+                          onPreview={() => setPreviewId(o.id)}
+                          previewing={previewed?.id === o.id}
                         />
                       ))}
                     </ul>
@@ -386,6 +392,27 @@ function Titles({ book }: { book: Book }) {
       </div>
 
       <Inspector label="Titles details" className="lg:sticky lg:top-(--shell-sticky-top) lg:h-screen-fill">
+        {shown === "ready" && hasData && (
+          <InspectorSection title="Store preview">
+            {previewed ? (
+              <div className="grid gap-4">
+                <StorePreview book={book} title={previewed.title} subtitle={previewed.subtitle} />
+                <TitleLengthBar title={previewed.title} subtitle={previewed.subtitle} />
+                {previewed.id !== chosen?.id && <p className="text-small text-ink-secondary">Previewing an option. It is not the chosen title.</p>}
+              </div>
+            ) : (
+              <p className="text-small text-ink-secondary">Choose a title, or press the eye on an option, to see it here.</p>
+            )}
+          </InspectorSection>
+        )}
+        {shown === "empty" && !hasData && titleSet && (
+          <InspectorSection title="Store preview">
+            <div className="grid gap-4">
+              <StorePreview book={book} title={book.title} subtitle={book.subtitle} />
+              <TitleLengthBar title={book.title} subtitle={book.subtitle} />
+            </div>
+          </InspectorSection>
+        )}
         <InspectorSection title="Chosen title">
           {chosen && shown === "ready" ? (
             <div className="grid gap-3">
@@ -400,7 +427,9 @@ function Titles({ book }: { book: Book }) {
           ) : (
             <p className="text-small text-ink-secondary">No title chosen yet. Pick one with Use this title.</p>
           )}
-          <p className="mt-3 text-small text-ink-tertiary">KDP needs the title and subtitle together under 200 characters. Choosing sets the book's title.</p>
+          <p className="mt-3 text-small text-ink-tertiary">
+            KDP allows up to {TITLE_SUBTITLE_MAX} characters for the title and subtitle together. Choosing sets the book's title.
+          </p>
         </InspectorSection>
         <InspectorSection title="This run">
           <KeyValueList

@@ -120,7 +120,7 @@ export function runLabel(status: BatchStatus | null | undefined): { label: strin
     case "paused":
       return { label: "Paused", tone: "attention" };
     case "paused_budget":
-      return { label: "Paused at budget", tone: "attention" };
+      return { label: "Paused for AI credit", tone: "attention" };
     case "succeeded":
       return { label: "Finished", tone: "success" };
     case "needs_attention":

@@ -1,8 +1,7 @@
 import { Link } from "react-router";
 import { Check, Flag, RotateCw, Wrench } from "lucide-react";
-import { Button, Figure, Inspector, InspectorSection, KeyValueList, ModelName, ProgressBar } from "../../components/ui";
+import { Button, Figure, Inspector, InspectorSection, KeyValueList, ModelName } from "../../components/ui";
 import type { WritingJob } from "../../demo";
-import { cn } from "../../lib/cn";
 import { formatDuration, formatNumber, formatUsd } from "../../lib/format";
 import type { ChapterCheck } from "./writingData";
 
@@ -18,7 +17,7 @@ interface WritingInspectorProps {
   onRetry: (sectionId: string) => void;
 }
 
-/** Writing inspector: words, time, checks on the last chapter, cost against budget, model, needs attention. */
+/** Writing inspector: words, time, checks on the last chapter, cost so far, model, needs attention. */
 export function WritingInspector({
   job,
   wordsWritten,
@@ -34,8 +33,6 @@ export function WritingInspector({
   const perWord = costSpent / Math.max(1, wordsWritten);
   const low = remainingWords * perWord * 0.9;
   const high = remainingWords * perWord * 1.2;
-  const share = costSpent / job.cost.budget;
-  const nearBudget = share >= 0.8;
 
   return (
     <Inspector label="Writing details" className="xl:h-full">
@@ -71,19 +68,8 @@ export function WritingInspector({
         )}
 
         <InspectorSection title="Cost so far">
-          <Figure value={formatUsd(costSpent)} unit={`of ${formatUsd(job.cost.budget)} budget`} />
-          <ProgressBar
-            className="mt-2"
-            value={Math.min(100, share * 100)}
-            max={100}
-            label="Book budget used"
-            valueText={`${formatUsd(costSpent)} of ${formatUsd(job.cost.budget)}`}
-          />
-          <p className={cn("mt-2 text-small", nearBudget ? "text-accent-text" : "text-ink-secondary")}>
-            {nearBudget
-              ? "Over 80% of the budget guide. Writing carries on; it pauses only if the AI provider runs out of credit."
-              : `About ${formatUsd(low)} to ${formatUsd(high)} more to finish.`}
-          </p>
+          <Figure value={formatUsd(costSpent)} unit="so far" />
+          <p className="mt-2 text-small text-ink-secondary">{`About ${formatUsd(low)} to ${formatUsd(high)} more to finish.`}</p>
         </InspectorSection>
 
         <InspectorSection title="Model">

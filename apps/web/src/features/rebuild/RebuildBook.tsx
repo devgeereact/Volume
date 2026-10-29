@@ -145,7 +145,7 @@ export function RebuildBook({
         open={confirm}
         onClose={() => setConfirm(false)}
         title={titleChanged ? `Rebuild the book as "${wanted}"` : "Rebuild the book from the start"}
-        description="This runs the AI on the whole book, so it uses your budget. The book and monthly limits still apply."
+        description="This runs the AI on the whole book, so it costs about as much as writing it the first time. There is no spending cap. It pauses only if the AI provider runs out of credit."
         footer={
           <>
             <Button variant="ghost" onClick={() => setConfirm(false)}>

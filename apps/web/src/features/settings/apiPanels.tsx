@@ -3,20 +3,7 @@ import { useCanManage } from "../../lib/access";
 import { Link } from "react-router";
 import { HardDriveDownload, PlugZap, RefreshCw, Save, Upload } from "lucide-react";
 import { useNavigate } from "react-router";
-import {
-  Banner,
-  Button,
-  EmptyState,
-  Figure,
-  Input,
-  KeyValueList,
-  ProgressBar,
-  SegmentedControl,
-  Select,
-  Skeleton,
-  StatusChip,
-  Switch,
-} from "../../components/ui";
+import { Banner, Button, EmptyState, Figure, Input, KeyValueList, SegmentedControl, Select, Skeleton, StatusChip, Switch } from "../../components/ui";
 import { apiErrorText, fromServerTrim, isoFromMs, toServerTrim, useApiProfiles, useApiSettings } from "../../api/wire-a";
 import { useBackups, useHealth, useImportProject, useMakeBackup, usePatchSettings, useTestOpenRouter } from "../../api/hooks";
 import type { BookDefaultsSetting } from "../../api/types";
@@ -170,180 +157,85 @@ export function ApiKeyPanel() {
           </div>
         </div>
       </Block>
-      <Banner tone="info" title="Set a spending limit on the key too">
-        In your OpenRouter account you can cap what this key may spend. It is a second safety net under Volume’s own{" "}
+      <Banner tone="info" title="Set a spending limit on the key if you want one">
+        Volume has no spending cap of its own. In your OpenRouter account you can cap what this key may spend. See what the AI has cost on the{" "}
         <Link to="/settings/budgets" className="font-semibold text-select underline underline-offset-2">
-          budgets
-        </Link>
-        .
+          spending
+        </Link>{" "}
+        page.
       </Banner>
     </div>
   );
 }
 
-/* ---------- Budgets ---------- */
+/* ---------- Spending (D-057: no book or monthly cap) ---------- */
 
-function money(s: string): number | null {
-  const n = Number(s.replace(/[$,\s]/g, ""));
-  return Number.isFinite(n) && s.trim() !== "" ? n : null;
-}
-
-interface BudgetValues {
-  monthly: string;
-  book: string;
-  warn: string;
-  /** Instance owner only; empty for everyone else and never sent. */
-  guest: string;
-}
-
-function valuesOf(s: SettingsResponse): BudgetValues {
-  const guest = guestCapOf(s);
-  return {
-    guest: guest === null ? "" : String(guest),
-    monthly: s.budgets.monthlyCapUsd === null ? "" : String(s.budgets.monthlyCapUsd),
-    book: String(s.budgets.bookDefaultUsd),
-    warn: String(Math.round(s.budgets.warnRatio * 100)),
-  };
-}
-
-const WARN_OPTIONS = ["50", "70", "80", "90"];
+const SPENDING_BODY =
+  "Volume has no book or monthly spending cap. It records what the AI costs and pauses a job only when the AI provider runs out of credit, then tells you to top up.";
 
 export function ApiBudgetsPanel() {
   const q = useApiSettings(true);
-  const header = (actions?: ReactNode) => (
-    <PanelHeader
-      title="Budgets"
-      body="Spend guides, not limits. Volume no longer stops a book at a budget. It pauses only when the AI provider runs out of credits, and then tells you to top up."
-      actions={actions}
-    />
-  );
+  const header = (actions?: ReactNode) => <PanelHeader title="Spending" body={SPENDING_BODY} actions={actions} />;
   if (q.isPending)
     return (
       <div className="grid gap-6">
         {header()}
-        <Loading label="Loading budgets" />
+        <Loading label="Loading spending" />
       </div>
     );
   if (q.isError)
     return (
       <div className="grid gap-6">
         {header()}
-        <LoadError error={q.error} retry={() => void q.refetch()} what="your budgets" />
+        <LoadError error={q.error} retry={() => void q.refetch()} what="your spending" />
       </div>
     );
-  return <BudgetsForm settings={q.data} header={header} />;
+  return <SpendingForm settings={q.data} header={header} />;
 }
 
-function BudgetsForm({ settings, header }: { settings: SettingsResponse; header: (actions?: ReactNode) => ReactNode }) {
-  const saved = valuesOf(settings);
-  const [v, setV] = useState<BudgetValues>(saved);
+function SpendingForm({ settings, header }: { settings: SettingsResponse; header: (actions?: ReactNode) => ReactNode }) {
+  const savedCap = guestCapOf(settings);
+  const isInstanceOwner = savedCap !== null;
+  const saved = savedCap === null ? "" : String(savedCap);
+  const [guestValue, setGuestValue] = useState(saved);
   const [status, setStatus] = useState<string | null>(null);
   const patch = usePatchSettings();
   const spent = settings.budgets.monthSpendUsd;
-  const monthly = money(v.monthly);
-  const book = money(v.book);
-  const noCap = v.monthly.trim() === "";
-  const monthlyError = noCap
-    ? undefined
-    : monthly === null || monthly <= 0
-      ? "Enter a monthly cap above $0, for example 40, or leave it empty for no cap."
-      : undefined;
-  const bookError =
-    book === null || book <= 0
-      ? "Enter a book budget above $0, for example 15."
-      : !noCap && monthly !== null && book > monthly
-        ? "A book budget cannot be more than the monthly cap."
-        : undefined;
-  const isInstanceOwner = guestCapOf(settings) !== null;
-  const guestError = isInstanceOwner ? guestCapError(v.guest) : undefined;
-  const dirty = JSON.stringify(v) !== JSON.stringify(saved);
-  const cap = settings.budgets.monthlyCapUsd;
+  const guestError = isInstanceOwner ? guestCapError(guestValue) : undefined;
+  const dirty = guestValue !== saved;
   const monthLabel = new Intl.DateTimeFormat("en-GB", { month: "long" }).format(new Date());
-  const warnOptions = WARN_OPTIONS.includes(v.warn) ? WARN_OPTIONS : [...WARN_OPTIONS, v.warn].sort((a, b) => Number(a) - Number(b));
 
   function save() {
-    if ((!noCap && monthly === null) || book === null) return;
-    const guest = isInstanceOwner ? parseGuestCap(v.guest) : null;
-    if (isInstanceOwner && guest === null) return;
+    const guest = parseGuestCap(guestValue);
+    if (guest === null) return;
     setStatus(null);
-    patch.mutate(
-      {
-        // An empty cap is sent as null, which clears it on the server.
-        "budget.monthly_cap_usd": noCap ? null : monthly,
-        "budget.book_default_usd": book,
-        "budget.warn_ratio": Number(v.warn) / 100,
-        // Only the owner of this Volume may send this key; the server answers 403 to anyone else.
-        ...(guest !== null ? { "budget.guest_workspaces_monthly_cap_usd": guest } : {}),
-      },
-      { onSuccess: () => setStatus(`Saved at ${formatTime(new Date().toISOString())}.`) },
-    );
+    // Only the owner of this Volume may send this key; the server answers 403 to anyone else.
+    patch.mutate({ "budget.guest_workspaces_monthly_cap_usd": guest }, { onSuccess: () => setStatus(`Saved at ${formatTime(new Date().toISOString())}.`) });
   }
+
+  const action = !isInstanceOwner ? undefined : patch.isPending ? (
+    <Button variant="primary" icon={Save} loading loadingLabel="Saving">
+      Save
+    </Button>
+  ) : (
+    <SaveAction dirty={dirty} icon={Save} invalidReason={guestError ? "Fix the field marked in red first" : undefined} onSave={save}>
+      Save
+    </SaveAction>
+  );
 
   return (
     <div className="grid gap-6">
-      {header(
-        patch.isPending ? (
-          <Button variant="primary" icon={Save} loading loadingLabel="Saving">
-            Save budgets
-          </Button>
-        ) : (
-          <SaveAction
-            dirty={dirty}
-            icon={Save}
-            invalidReason={monthlyError || bookError || guestError ? "Fix the fields marked in red first" : undefined}
-            onSave={save}
-          >
-            Save budgets
-          </SaveAction>
-        ),
-      )}
+      {header(action)}
       {status && !dirty && <InlineStatus>{status}</InlineStatus>}
       {patch.isError && (
-        <Banner tone="error" title="Budgets not saved">
-          {apiErrorText(patch.error)} Your changes are still on this page.
+        <Banner tone="error" title="Not saved">
+          {apiErrorText(patch.error)} Your change is still on this page.
         </Banner>
       )}
       <Block title={`${monthLabel} so far`}>
-        {cap === null ? (
-          <>
-            <Figure value={formatUsd(spent)} unit="spent this month" />
-            <p className="text-small text-ink-secondary">No monthly cap set yet. Set one below and Volume stops new jobs when it is reached.</p>
-          </>
-        ) : (
-          <>
-            <Figure value={formatUsd(spent)} unit={`of ${formatUsd(cap)} this month`} />
-            <ProgressBar value={spent} max={cap} label={`${monthLabel} AI spend`} valueText={`${formatUsd(spent)} of ${formatUsd(cap)}`} />
-            <p className="text-small text-ink-secondary">
-              {cap > 0 ? Math.round((spent / cap) * 100) : 0}% used. Volume warns at {saved.warn}% and stops new jobs at the cap.
-            </p>
-          </>
-        )}
+        <Figure value={formatUsd(spent)} unit="spent this month" />
+        <p className="text-small text-ink-secondary">All books and profiles together, in dollars as the AI provider bills.</p>
       </Block>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Input
-          label="Monthly cap, US dollars"
-          inputMode="decimal"
-          value={v.monthly}
-          onChange={(e) => setV({ ...v, monthly: e.target.value })}
-          error={dirty ? monthlyError : undefined}
-          hint="All books and profiles together, in dollars as OpenRouter bills. Leave empty for no monthly cap."
-        />
-        <Input
-          label="Default budget per book, US dollars"
-          inputMode="decimal"
-          value={v.book}
-          onChange={(e) => setV({ ...v, book: e.target.value })}
-          error={dirty ? bookError : undefined}
-          hint="New books start with this. Each book can change it in the wizard."
-        />
-        <Select
-          label="Warn me at"
-          value={v.warn}
-          onChange={(warn) => setV({ ...v, warn })}
-          options={warnOptions.map((w) => ({ value: w, label: `${w}% of a budget`, hint: w === "80" ? "Default" : undefined }))}
-          hint="Applies to the monthly cap and to each book."
-        />
-      </div>
       {isInstanceOwner && (
         <Block title="Other workspaces">
           <p className="text-small text-ink-secondary">
@@ -352,14 +244,10 @@ function BudgetsForm({ settings, header }: { settings: SettingsResponse; header:
           <Input
             label="Monthly cap per workspace, US dollars"
             inputMode="decimal"
-            value={v.guest}
-            onChange={(e) => setV({ ...v, guest: e.target.value })}
+            value={guestValue}
+            onChange={(e) => setGuestValue(e.target.value)}
             error={dirty ? guestError : undefined}
-            hint={
-              saved.guest === "0"
-                ? "Now 0, so other workspaces cannot run AI. Their own caps still apply under this one."
-                : "Each workspace gets this much a month. Their own caps still apply under this one."
-            }
+            hint={saved === "0" ? "Now 0, so other workspaces cannot run AI." : "Each workspace gets this much a month."}
             className="max-w-xs"
           />
         </Block>

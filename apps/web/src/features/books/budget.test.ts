@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { neededUsd } from "./BudgetPausedBanner";
+import { isCreditsMessage } from "./BudgetPausedBanner";
 
-describe("neededUsd", () => {
-  it("reads the amount from the server's budget message", () => {
-    expect(neededUsd("This book needs about $0.49 more than its budget allows. Raise the budget or stop here.")).toBe(0.49);
-    expect(neededUsd("This book needs about $12 more than its budget allows.")).toBe(12);
-    expect(neededUsd(null)).toBeNull();
-    expect(neededUsd("Something else")).toBeNull();
+describe("isCreditsMessage", () => {
+  it("knows the provider out-of-credit pause from other pauses", () => {
+    expect(
+      isCreditsMessage(
+        "OpenRouter has run out of credits. Top up at https://openrouter.ai/settings/credits, then continue. Nothing was charged for this step and finished work is kept.",
+      ),
+    ).toBe(true);
+    expect(isCreditsMessage("This workspace has reached the monthly AI cap the owner of this Volume set. Ask them to raise it to continue.")).toBe(false);
+    expect(isCreditsMessage(null)).toBe(false);
   });
 });

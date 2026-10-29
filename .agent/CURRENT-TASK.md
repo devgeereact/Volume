@@ -7,6 +7,7 @@
 - Stage 1 (frost and glass shell, D-065): PR #77 from `feat/studio-shell`, open. Gate PASS: typecheck, lint, format, docs, web 240, e2e 20.
 - Stage 2 (StepRail, StepHead, Up next): committed on `feat/studio-steps`, cut from `feat/studio-shell`; PR open, merge after #77.
 - Stage 3 (library grid): committed on `feat/studio-library`, PR open.
+- Stage 4a (budget lines gone, Research counts and filter, Titles store preview and length bar): committed on `feat/studio-research-titles`, PR stacked on #79. Next: stage 4b (Blueprint and Writing).
 - Open owner question: bring back the stop-time handoff hook (commit 5ef1177, made by another session)?
 - Later: stage 3 library, 4 step pages (also drop budget lines, D-057), 5 cover studio, 6 trims from KDP help (verify each value against the raw page), 7 deploy.
 

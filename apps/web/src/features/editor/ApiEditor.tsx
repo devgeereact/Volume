@@ -1458,7 +1458,7 @@ function Body({
               </Banner>
             )}
             {(() => {
-              // An AI job stopped at the book's budget: say so and offer to raise it, instead of a spinner that never ends.
+              // An AI job paused for provider credit (D-057): say so and offer to continue, instead of a spinner that never ends.
               const paused =
                 passJob && passPaused
                   ? { jobId: passJob.jobId, message: passWatch.error }
@@ -1467,16 +1467,7 @@ function Body({
                     : writeJob && writeWatch.status === "paused_budget"
                       ? { jobId: writeJob, message: writeWatch.error }
                       : null;
-              return paused ? (
-                <BudgetPausedBanner
-                  className="mb-4"
-                  bookId={bookId}
-                  jobId={paused.jobId}
-                  message={paused.message}
-                  budgetUsd={book.cost.budget}
-                  spentUsd={book.cost.spent}
-                />
-              ) : null;
+              return paused ? <BudgetPausedBanner className="mb-4" jobId={paused.jobId} message={paused.message} /> : null;
             })()}
             {modelFix && (
               <ModelFallbackBanner

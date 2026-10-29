@@ -389,3 +389,11 @@ The app shell sits on a scene: a pale frost sky with soft mountains in light, de
 - **Up next:** a dashed glass card at the end of each step page with the next step, a short line, a status chip and "Open <step>". After Export it reads "Then publish on KDP".
 - **Status chips:** two new states, "In progress" and "Not started".
 
+### Step pages (stage 4a)
+
+- **Research counts:** a row of plain figures (sources read, used, reader pains, angles, keyword ideas) above the results. Figures come from the run, never estimated.
+- **Source filter:** All, Used and Not used chips with counts, plus a search box. An empty result says so and offers to clear the filter.
+- **Store preview:** a neutral listing card (cover, title, subtitle, author). No store name, logo, stars, ratings or reviews.
+- **Length meter:** a bar with "N of 199" and the characters to spare, against KDP fact 5.4 read from `config/kdp-rules/`.
+- **Spend:** plain figures only ("$1.92 so far", "about $0.04"). No budget bars or caps (D-057).
+

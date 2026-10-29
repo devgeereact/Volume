@@ -28,7 +28,7 @@ import {
 /* Settings (09-UX-FLOWS, M13). The optional :tab param picks the section; /settings opens OpenRouter.
    Demo states: ?state=loading, ?state=error, ?state=empty (no key). With the server running every
    section reads the server (apiPanels.tsx): key present yes or no, the connection test and credit,
-   models, budgets, book defaults, backups, the house style and KDP rules versions, and About.
+   models, spending, book defaults, backups, the house style and KDP rules versions, and About.
    Appearance is a per-browser choice in both modes. */
 /* Tab ids and labels live in screens.ts (settingsTabs); only the icons are chosen here. */
 const icons: Record<SettingsTab, LucideIcon> = {

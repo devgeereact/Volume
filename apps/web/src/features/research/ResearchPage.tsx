@@ -31,6 +31,7 @@ import { audienceChunks, citations, plainSource, runSteps, secondRun, type RunRe
 import { ResearchApi } from "./ResearchApi";
 import { RunModelModal } from "./RunModelModal";
 import { SourceCard } from "./SourceCard";
+import { NoSourceMatch, ResearchCounts, SourceFilterBar, sourceMatches, useSourceFilter, type SourceFilterState } from "./SourceTools";
 import { about, estimateFor, useSimulatedRun, type RunPlan } from "./sim";
 
 /* Research screen (docs/03-design/UX-SPEC.md, M4). Owner: screen agent B.
@@ -102,12 +103,17 @@ function Research({ book }: { book: Book }) {
   const gaps = later ? [...BASE.gaps, secondRun.extraGap] : BASE.gaps;
   const sourceNumber = useMemo(() => new Map(BASE.sources.map((s, i) => [s.id, i + 1])), []);
   const usedCount = Object.values(uses).filter(Boolean).length;
+  const filter = useSourceFilter();
 
   function showSource(id: string) {
     setHighlight(id);
-    const el = document.getElementById(`source-${id}`);
-    el?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
-    el?.focus({ preventScroll: true });
+    // A citation always leads to its source, so a filter that hides it is cleared first.
+    if (filter.active) filter.clear();
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`source-${id}`);
+      el?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
+      el?.focus({ preventScroll: true });
+    });
   }
   function showCitation(anchor: string) {
     setFlash(anchor);
@@ -212,6 +218,18 @@ function Research({ book }: { book: Book }) {
         {shownState === "running" && hasDossier && <StreamedFindings progress={sim.progress} />}
 
         {shownState === "ready" && hasDossier && (
+          <ResearchCounts
+            items={[
+              { label: "Sources read", value: BASE.sources.length },
+              { label: "Used in the book", value: usedCount },
+              { label: "Reader pains", value: BASE.problems.length },
+              { label: "Angles", value: BASE.angles.length },
+              { label: "Keyword ideas", value: keywordIdeas.length },
+            ]}
+          />
+        )}
+
+        {shownState === "ready" && hasDossier && (
           <Dossier keywordIdeas={keywordIdeas} gaps={gaps} sourceNumber={sourceNumber} onCite={showSource} flash={flash} />
         )}
 
@@ -256,6 +274,7 @@ function Research({ book }: { book: Book }) {
             onUse={(id, v) => setUses((u) => ({ ...u, [id]: v }))}
             highlight={highlight}
             onShowCitation={showCitation}
+            filter={filter}
           />
         </InspectorSection>
         <InspectorSection title="How sources work">
@@ -646,6 +665,7 @@ function SourcesPane({
   onUse,
   highlight,
   onShowCitation,
+  filter,
 }: {
   state: ScreenState | "running";
   hasDossier: boolean;
@@ -654,6 +674,7 @@ function SourcesPane({
   onUse: (id: string, v: boolean) => void;
   highlight: string | null;
   onShowCitation: (anchor: string) => void;
+  filter: SourceFilterState;
 }) {
   if (state === "loading") {
     return (
@@ -672,13 +693,20 @@ function SourcesPane({
   }
   const list: ResearchSource[] = BASE.sources;
   const shown = state === "running" ? Math.min(list.length, Math.floor(Math.max(0, progress - 0.25) / 0.05)) : list.length;
-  return (
+  const ready = state === "ready";
+  const used = list.filter((s) => uses[s.id]).length;
+  // Numbers stay those of the full list, so a filtered card keeps the number the dossier cites.
+  const visible = list
+    .slice(0, shown)
+    .map((s, i) => ({ s, number: i + 1 }))
+    .filter(({ s }) => !ready || sourceMatches(filter, uses[s.id] ?? false, Object.values(plainSource(s))));
+  const cards = (
     <ul className="grid gap-3">
-      {list.slice(0, shown).map((s, i) => (
+      {visible.map(({ s, number }) => (
         <SourceCard
           key={s.id}
           source={s}
-          number={i + 1}
+          number={number}
           useInBook={uses[s.id] ?? false}
           onUseChange={(v) => onUse(s.id, v)}
           highlighted={highlight === s.id}
@@ -692,5 +720,12 @@ function SourcesPane({
         </li>
       )}
     </ul>
+  );
+  if (!ready) return cards;
+  return (
+    <div className="grid gap-3">
+      <SourceFilterBar filter={filter} total={list.length} used={used} shown={visible.length} />
+      {visible.length === 0 ? <NoSourceMatch filter={filter} /> : cards}
+    </div>
   );
 }

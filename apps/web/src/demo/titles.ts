@@ -1,9 +1,14 @@
+import { listing, rule } from "../features/export/kdpRules";
 import type { TitleCheck, TitleOption, TopicDirection } from "./types";
 
 /* Five topic directions and ten title options for The Calm Ward. The KDP limit for title and
-   subtitle together is under 200 characters (config/kdp-rules, listing.titleSubtitle.maxChars). */
+   subtitle together is read from config/kdp-rules (listing.titleSubtitle.maxChars), never typed in. */
 
-export const TITLE_SUBTITLE_MAX = 199;
+const titleRule = rule("listing.titleSubtitle.maxChars");
+/** The most characters KDP allows for the title and subtitle together. */
+export const TITLE_SUBTITLE_MAX = listing.titleMax;
+/** The KDP facts file entry the limit comes from (for example "5.4"), or null. */
+export const TITLE_SUBTITLE_FACT: string | null = titleRule.factId;
 
 export const topicDirections: TopicDirection[] = [
   { id: "dir-skill", name: "Calm as a skill", pitch: "De-escalation as everyday craft a whole team can practise." },

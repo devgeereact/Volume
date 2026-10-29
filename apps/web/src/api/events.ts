@@ -50,7 +50,7 @@ export interface BookLiveState {
   jobs: Record<string, LiveJob>;
   /** Text streamed for each section since its last save (section.delta, never stored on the server). */
   deltas: Record<string, string>;
-  /** Set when a job stops at the budget limit; cleared when a job starts running again. */
+  /** Set when a job pauses for AI credit (D-057); cleared when a job starts running again. */
   budgetPaused: BudgetPausedEventData | null;
   lastEventId: string | null;
   lastEventAt: number | null;
