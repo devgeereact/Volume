@@ -52,17 +52,17 @@ export function Calculator({ defaultPages, defaultPrice, defaultEbookPrice, defa
   const eb = ebookOk && sizeOk ? ebookRoyalty(ebook, size) : null;
 
   return (
-    <section aria-labelledby="calc-title" className="rounded-md border border-border bg-sheet p-5 sm:p-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="calc-title" className="font-book text-heading text-ink">
-          Royalties and printing cost
+    <section aria-labelledby="calc-title" className="vol-glass min-w-0 rounded-card p-[18px] max-[560px]:p-[15px]">
+      <div className="grid gap-0.5">
+        <h2 id="calc-title" className="text-[15px] leading-5 font-semibold text-ink">
+          Royalty calculator
         </h2>
-        <p className="text-small text-ink-secondary">amazon.co.uk, KDP rules checked {formatDate(rulesVerifiedOn)}</p>
+        <p className="text-[12.5px] text-ink-3">Royalties and printing cost on amazon.co.uk, KDP rules checked {formatDate(rulesVerifiedOn)}.</p>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-6">
         <div className="grid content-start gap-3">
-          <h3 className="text-subhead text-ink">Paperback, black ink</h3>
+          <h3 className="text-[13.5px] leading-5 font-semibold text-ink">Paperback, black ink</h3>
           <div className="grid grid-cols-2 gap-3">
             <NumberField
               label="Pages"
@@ -124,7 +124,7 @@ export function Calculator({ defaultPages, defaultPrice, defaultEbookPrice, defa
         </div>
 
         <div className="grid content-start gap-3">
-          <h3 className="text-subhead text-ink">Kindle eBook</h3>
+          <h3 className="border-t border-line pt-4 text-[13.5px] leading-5 font-semibold text-ink">Kindle eBook</h3>
           <div className="grid grid-cols-2 gap-3">
             <NumberField label="List price" prefix="£" value={ebookText} onChange={setEbookText} decimal error={ebookOk ? null : "Enter a price in pounds."} />
             <NumberField label="File size" suffix="MB" value={sizeText} onChange={setSizeText} decimal error={sizeOk ? null : "Enter the EPUB size."} />
@@ -164,15 +164,20 @@ export function Calculator({ defaultPages, defaultPrice, defaultEbookPrice, defa
 
 function Maths({ rows, rules }: { rows: [string, string, string, boolean?][]; rules: string }) {
   return (
-    <div className="rounded-md bg-canvas px-4 py-3">
+    <div className="rounded-[12px] bg-soft px-3.5 py-3">
       <dl className="grid gap-2">
         {rows.map(([label, working, result, strong]) => (
           <div key={label} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
             <dt className="text-small text-ink-secondary">{label}</dt>
-            <dd className={cn("num row-span-2 self-center text-right", strong ? "font-book text-[22px] leading-7 text-ink" : "text-[14px] text-ink")}>
+            <dd
+              className={cn(
+                "num row-span-2 self-center text-right",
+                strong ? "text-[18px] leading-6 font-bold text-ink" : "text-[13.5px] font-semibold text-ink",
+              )}
+            >
               {result}
             </dd>
-            <dd className="num text-[13px] leading-[18px] text-ink">{working}</dd>
+            <dd className="num text-[12px] leading-4 text-ink-3">{working}</dd>
           </div>
         ))}
       </dl>
@@ -187,10 +192,7 @@ function Note({ children, tone = "attention" }: { children: ReactNode; tone?: "a
   return (
     <p
       role={tone === "claim" ? "alert" : undefined}
-      className={cn(
-        "flex items-start gap-1.5 rounded-sm px-3 py-2 text-small",
-        tone === "claim" ? "bg-claim-wash text-claim" : "bg-accent-wash text-accent-text",
-      )}
+      className={cn("flex items-start gap-1.5 rounded-[10px] px-3 py-2 text-[12.5px]", tone === "claim" ? "bg-red-wash text-red" : "bg-amber-wash text-amber")}
     >
       <Flag size={14} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden />
       {children}
@@ -218,13 +220,13 @@ function NumberField({
   const id = useId();
   return (
     <div className="grid min-w-0 content-start gap-1.5">
-      <label htmlFor={id} className="text-label text-ink">
+      <label htmlFor={id} className="text-[13px] font-medium text-ink-2">
         {label}
       </label>
       <div
         className={cn(
-          "flex h-11 items-center rounded-sm border bg-sheet px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-select",
-          error ? "border-claim" : "border-border-strong",
+          "flex h-10 items-center rounded-[10px] border bg-panel-2 px-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-select",
+          error ? "border-red" : "border-line-2",
         )}
       >
         {prefix && <span className="mr-1 text-body text-ink-secondary">{prefix}</span>}

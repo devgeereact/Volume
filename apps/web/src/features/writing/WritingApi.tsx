@@ -1,22 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCanWrite } from "../../lib/access";
-import { Check, CircleAlert, CircleStop, FileCog, Pause, Play, RotateCcw } from "lucide-react";
-import {
-  Banner,
-  Button,
-  EmptyState,
-  Inspector,
-  InspectorSection,
-  KeyValueList,
-  LiveDot,
-  Loader,
-  Modal,
-  ModelName,
-  ProgressBar,
-  Skeleton,
-  Switch,
-  Textarea,
-} from "../../components/ui";
+import { CircleAlert, CircleStop, Flag, Pause, Play, RotateCcw } from "lucide-react";
+import { Banner, Button, EmptyState, LiveDot, Loader, Modal, ModelName, PageHeader, Skeleton, Switch, Textarea } from "../../components/ui";
 import { flattenSections } from "../../api/adapters";
 import { useBookLive } from "../../api/events";
 import { useClaims, useEstimate, useJob, useJobControl, useSection, useSectionTree, useWriteBook, useWriteSection } from "../../api/hooks";
@@ -45,8 +30,10 @@ import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
 import { useKeyChanged } from "../../lib/useKeyChanged";
 import { AcknowledgementsNotice } from "./AcknowledgementsNotice";
+import { JobStateChip, LiveCounts, type LiveCount } from "./LiveCounts";
 import { SummaryMissingNotice } from "./SummaryMissingNotice";
 import { TemplateRulesNotice } from "./TemplateRulesNotice";
+import { cardTitle, Count, glassCard, pageColumn, pageKicker, RowDot, RowNumber, rowClasses, stepBody, studioGrid, studioSide } from "./studio";
 
 /* Writing for a book on the server (API mode). Write book starts one job per section in order; the
    text streams in over the event stream and is saved section by section. Pause, resume and stop act on
@@ -270,164 +257,175 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
   const budgetJob = parent?.status === "paused_budget" ? parent : (children.find((c) => c.status === "paused_budget") ?? null);
   const budget = live.data.budgetPaused ?? (budgetJob ? { jobId: budgetJob.id, message: budgetJob.error ?? "" } : null);
 
+  // Live figures: words and sections come from the section list and the event stream, time left from the
+  // server's estimate (left out until it knows), spend from the book.
+  const liveCounts: LiveCount[] =
+    written.length === 0
+      ? []
+      : [
+          { label: wordTarget > 0 ? `of ${formatNumber(wordTarget)} words written` : "Words written", value: formatNumber(wordsWritten) },
+          { label: "Sections written", value: `${doneCount} of ${written.length}` },
+          ...((jobState === "running" || jobState === "pausing") && parent?.etaMs
+            ? [{ label: "Time left", value: etaWords(parent.etaMs).replace(/^about/, "About") }]
+            : []),
+          { label: "Spent on this book", value: formatUsd(apiBook.costToDateUsd) },
+        ];
+
   if (tree.isPending) return <WritingSkeleton />;
 
-  return (
-    <div className="grid grid-cols-1 xl:h-screen-fill xl:grid-cols-[320px_minmax(0,1fr)_var(--vol-inspector)] xl:grid-rows-[minmax(0,1fr)]">
-      {/* Section list */}
-      <nav aria-label="Sections" className="order-3 min-h-0 overflow-y-auto border-border px-4 py-5 xl:order-none xl:border-r">
-        <div className="grid gap-2 px-1 pb-3">
-          <h2 className="text-[13px] font-semibold text-ink-secondary">Sections</h2>
-          {written.length > 0 && (
-            <>
-              <ProgressBar
-                value={doneCount}
-                max={written.length}
-                label="Sections written"
-                valueText={`${doneCount} of ${written.length} sections written`}
-                live={jobState === "running"}
-                size="thin"
-              />
-              <p className="num text-small text-ink-secondary">
-                {doneCount} of {written.length} sections written
-              </p>
-            </>
-          )}
-        </div>
-        {rows.length === 0 ? (
-          <p className="px-1 text-small text-ink-tertiary">No sections yet. Approving the blueprint creates them.</p>
-        ) : (
-          <ol className="grid gap-0.5">
-            {rows.map((r) => (
-              <li key={r.section.id} className="flex items-center gap-1">
-                <button
-                  type="button"
-                  aria-current={shown?.section.id === r.section.id ? "true" : undefined}
-                  onClick={() => {
-                    setViewing(r.section.id);
-                    setFollow(current?.section.id === r.section.id);
-                  }}
-                  className={cn(
-                    "flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-sm px-2 text-left",
-                    shown?.section.id === r.section.id ? "bg-select-wash" : "hover:bg-sunken",
-                  )}
-                >
-                  <StatusMark status={r.status} />
-                  <span className="grid min-w-0 flex-1">
-                    <span className="truncate text-label text-ink">
-                      {r.section.kind === "chapter" && r.section.title ? `${sectionName(r.section)}: ${r.section.title}` : sectionName(r.section)}
-                    </span>
-                    <span className="num text-caption text-ink-secondary">
-                      {writeStatusWords[r.status]}
-                      {r.words > 0 ? `, ${formatNumber(r.words)} words` : ""}
-                      {r.flags.length > 0 ? `, ${r.flags.length} to look at` : ""}
-                    </span>
-                  </span>
-                </button>
-                {r.status === "failed" && canWrite && (
-                  <Button size="sm" variant="ghost" icon={RotateCcw} onClick={() => setRetryFor(r.section)}>
-                    Retry
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ol>
-        )}
-      </nav>
-
-      {/* Live canvas */}
-      <div className="order-1 grid min-h-0 content-start gap-4 overflow-y-auto px-4 py-6 sm:px-8 xl:order-none">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="grid gap-1">
-            <h1 className="font-book text-title text-ink">Writing</h1>
-            <p className="flex items-center gap-2 text-small text-ink-secondary">
-              {jobState === "running" && (
-                <>
-                  <LiveDot /> Writing {current ? sectionName(current.section).toLowerCase() : "the book"}
-                </>
-              )}
-              {jobState === "pausing" && (
-                <>
-                  <Loader /> Pausing after the current step
-                </>
-              )}
-              {jobState === "paused" && "Paused. Resume to carry on from the next section."}
-              {jobState === "stopped" && "Stopped. Every finished section is saved."}
-              {jobState === "failed" && "The writer stopped at a section that failed. Retry it, then write the rest."}
-              {jobState === "finished" &&
-                (notDone.length === 0
+  const statusLine =
+    jobState === "running"
+      ? `Writing ${current ? sectionName(current.section).toLowerCase() : "the book"}`
+      : jobState === "pausing"
+        ? "Pausing after the current step"
+        : jobState === "paused"
+          ? "Paused. Resume to carry on from the next section."
+          : jobState === "stopped"
+            ? "Stopped. Every finished section is saved."
+            : jobState === "failed"
+              ? "The writer stopped at a section that failed. Retry it, then write the rest."
+              : jobState === "finished"
+                ? notDone.length === 0
                   ? ackNeedsNames
                     ? "Every section is written except Acknowledgements, which needs names before Marketing opens."
                     : "Every section is written."
-                  : `${notDone.length} ${notDone.length === 1 ? "section is" : "sections are"} not written yet.`)}
-              {jobState === "idle" && (rows.length > 0 ? "Not started. Write book writes every section in order." : "")}
-            </p>
-          </div>
-          {canWrite && (jobState === "running" || jobState === "pausing" || jobState === "paused") && (
-            <div className="flex flex-wrap gap-2">
-              {(jobState === "running" || jobState === "pausing") && (
-                <Button icon={Pause} onClick={pause} disabledReason={jobState === "pausing" ? "Pausing after the current step." : undefined}>
+                  : `${notDone.length} ${notDone.length === 1 ? "section is" : "sections are"} not written yet.`
+                : rows.length > 0
+                  ? "Not started. Write book writes every section in order."
+                  : "";
+
+  return (
+    <div className={cn(stepBody, "grid gap-4")}>
+      <PageHeader
+        title="Writing"
+        summary="Volume writes each section in order and checks it against the house style before the next one starts."
+        actions={
+          rows.length > 0 || (canWrite && (jobState === "running" || jobState === "pausing" || jobState === "paused")) ? (
+            <>
+              {rows.length > 0 && <JobStateChip tone={jobState} />}
+              {canWrite && (jobState === "running" || jobState === "pausing") && (
+                <Button size="sm" icon={Pause} onClick={pause} disabledReason={jobState === "pausing" ? "Pausing after the current step." : undefined}>
                   Pause
                 </Button>
               )}
-              <Button variant="ghost" icon={CircleStop} onClick={() => setConfirmStop(true)}>
-                Stop
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {error && (
-          <Banner tone="error" title="That did not work">
-            {plainError(error)}
-          </Banner>
-        )}
-        {budget && <BudgetPausedBanner jobId={budget.jobId} message={budget.message} />}
-        {tree.isError && (
-          <Banner
-            tone="error"
-            title="The sections could not be loaded"
-            action={
-              <Button size="sm" icon={RotateCcw} onClick={() => void tree.refetch()}>
-                Retry
-              </Button>
-            }
-          >
-            {plainError(tree.error)}
-          </Banner>
-        )}
-        {(failedRows.length > 0 || jobState === "failed") && (
-          <Banner
-            tone="error"
-            title={
-              jobState === "failed" && parent?.error
-                ? parent.error
-                : `${failedRows.length === 1 ? "One section" : `${failedRows.length} sections`} did not finish`
-            }
-            action={
-              failedRows[0] && canWrite ? (
-                <Button size="sm" icon={RotateCcw} onClick={() => failedRows[0] && setRetryFor(failedRows[0].section)}>
-                  Retry {sectionName(failedRows[0].section).toLowerCase()}
+              {canWrite && (jobState === "running" || jobState === "pausing" || jobState === "paused") && (
+                <Button size="sm" variant="ghost" icon={CircleStop} onClick={() => setConfirmStop(true)}>
+                  Stop
                 </Button>
-              ) : undefined
-            }
-          >
-            {failedRows[0]?.job?.error ?? "The writer stopped."} Every finished section is kept; Write the rest carries on with the sections not done.
-          </Banner>
-        )}
+              )}
+            </>
+          ) : undefined
+        }
+      />
 
-        {noSections ? (
-          <EmptyState
-            drawing="pen"
-            title={apiBook.approvedBlueprintId ? "Nothing to write" : "Approve the blueprint first"}
-            body={
-              apiBook.approvedBlueprintId
-                ? "The approved blueprint has no sections. Check it on the Blueprint step."
-                : "Writing follows the approved blueprint. Approve it on the Blueprint step and the sections appear here."
-            }
-          />
-        ) : (
-          shown && (
+      {liveCounts.length > 0 && <LiveCounts items={liveCounts} />}
+
+      {error && (
+        <Banner tone="error" title="That did not work">
+          {plainError(error)}
+        </Banner>
+      )}
+      {budget && <BudgetPausedBanner jobId={budget.jobId} message={budget.message} />}
+      {tree.isError && (
+        <Banner
+          tone="error"
+          title="The sections could not be loaded"
+          action={
+            <Button size="sm" icon={RotateCcw} onClick={() => void tree.refetch()}>
+              Retry
+            </Button>
+          }
+        >
+          {plainError(tree.error)}
+        </Banner>
+      )}
+      {(failedRows.length > 0 || jobState === "failed") && (
+        <Banner
+          tone="error"
+          title={
+            jobState === "failed" && parent?.error
+              ? parent.error
+              : `${failedRows.length === 1 ? "One section" : `${failedRows.length} sections`} did not finish`
+          }
+          action={
+            failedRows[0] && canWrite ? (
+              <Button size="sm" icon={RotateCcw} onClick={() => failedRows[0] && setRetryFor(failedRows[0].section)}>
+                Retry {sectionName(failedRows[0].section).toLowerCase()}
+              </Button>
+            ) : undefined
+          }
+        >
+          {failedRows[0]?.job?.error ?? "The writer stopped."} Every finished section is kept; Write the rest carries on with the sections not done.
+        </Banner>
+      )}
+
+      {noSections ? (
+        <EmptyState
+          drawing="pen"
+          title={apiBook.approvedBlueprintId ? "Nothing to write" : "Approve the blueprint first"}
+          body={
+            apiBook.approvedBlueprintId
+              ? "The approved blueprint has no sections. Check it on the Blueprint step."
+              : "Writing follows the approved blueprint. Approve it on the Blueprint step and the sections appear here."
+          }
+        />
+      ) : (
+        <div className={studioGrid}>
+          {/* Section list */}
+          <nav aria-label="Sections" className={cn(glassCard, "grid content-start gap-0.5 p-2.5")}>
+            <h2 className={cn(cardTitle, "mx-2 mt-1.5 mb-0.5")}>
+              Sections
+              {written.length > 0 && (
+                <Count>
+                  {doneCount} of {written.length}
+                  <span className="sr-only"> written</span>
+                </Count>
+              )}
+            </h2>
+            {statusLine && (
+              <p className="mx-2 mb-2 flex items-center gap-1.5 text-[12px] leading-4 text-ink-3">
+                {jobState === "running" && <LiveDot />}
+                {jobState === "pausing" && <Loader />}
+                {statusLine}
+              </p>
+            )}
+            {rows.length === 0 ? (
+              <p className="mx-2 mb-2 text-[13px] text-ink-3">No sections yet. Approving the blueprint creates them.</p>
+            ) : (
+              <ol className="grid gap-0.5">
+                {rows.map((r) => {
+                  const on = shown?.section.id === r.section.id || r.status === "writing" || r.status === "checking";
+                  return (
+                    <li key={r.section.id} className="flex min-w-0 items-center gap-1">
+                      <button
+                        type="button"
+                        aria-current={shown?.section.id === r.section.id ? "true" : undefined}
+                        onClick={() => {
+                          setViewing(r.section.id);
+                          setFollow(current?.section.id === r.section.id);
+                        }}
+                        className={rowClasses(on)}
+                      >
+                        <RowNumber n={r.section.kind === "chapter" ? r.section.number : null} />
+                        <span className="min-w-0 flex-1 truncate" title={rowTitle(r.section)}>
+                          {rowTitle(r.section)}
+                        </span>
+                        <RowStatus row={r} />
+                      </button>
+                      {r.status === "failed" && canWrite && (
+                        <Button size="sm" variant="ghost" icon={RotateCcw} onClick={() => setRetryFor(r.section)}>
+                          Retry
+                        </Button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </nav>
+
+          {/* The page */}
+          {shown ? (
             <SectionCanvas
               key={shown.section.id}
               bookId={bookId}
@@ -439,107 +437,129 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
               canFollow={!!current && current.section.id !== shown.section.id}
               onRetry={canWrite ? () => setRetryFor(shown.section) : undefined}
             />
-          )
-        )}
-      </div>
+          ) : (
+            <div className={cn(glassCard, "px-7 py-8 text-[13.5px] text-ink-2")}>Pick a section to read it.</div>
+          )}
 
-      {/* Inspector */}
-      <div className="order-2 min-h-0 border-t border-border xl:order-none xl:border-t-0">
-        <Inspector label="Writing details" width="100%" className="h-full xl:overflow-y-auto">
-          <InspectorSection title="This job">
-            <KeyValueList
-              items={[
-                {
-                  label: "State",
-                  value: {
-                    idle: "Not started",
-                    running: "Writing",
-                    pausing: "Pausing",
-                    paused: "Paused",
-                    failed: "Stopped at a failure",
-                    stopped: "Stopped",
-                    finished: "Finished",
-                  }[jobState],
-                },
-                { label: "Sections", value: `${doneCount} of ${written.length}` },
-                { label: "Words", value: wordTarget > 0 ? `${formatNumber(wordsWritten)} of ${formatNumber(wordTarget)}` : formatNumber(wordsWritten) },
-                { label: "Writer", value: writerModel ? <ModelName slug={writerModel} /> : "Not known yet" },
-                {
-                  label: "Time left",
-                  value:
-                    jobState === "running" || jobState === "pausing"
-                      ? parent?.etaMs
-                        ? etaWords(parent.etaMs)
-                        : "Worked out after the first section"
-                      : "None running",
-                },
-                {
-                  label: "Next run",
-                  value:
-                    jobState === "running" || jobState === "pausing" ? (
-                      "Shown when writing is not running"
-                    ) : writeEstimate.data ? (
-                      <span>
-                        {estimateWords(writeEstimate.data)}
-                        {writeEstimate.data.model && (
-                          <>
-                            {" with "}
-                            <ModelName slug={writeEstimate.data.model} />
-                          </>
-                        )}
-                      </span>
-                    ) : notDone.length === 0 ? (
-                      "Nothing left to write"
-                    ) : writeEstimate.isError ? (
-                      "Estimate not available"
-                    ) : (
-                      "Worked out when writing is not running"
-                    ),
-                },
-                { label: "Spent on this book", value: formatUsd(apiBook.costToDateUsd) },
-              ]}
-            />
-          </InspectorSection>
-          <InspectorSection title="Needs a look" tone={flagged.length > 0 ? "attention" : "default"}>
-            {flagged.length === 0 ? (
-              <p className="text-small text-ink-secondary">Nothing so far. The house-style guardrails check each section as it is saved.</p>
-            ) : (
-              <ul className="grid gap-2">
-                {flagged.map((r) => (
-                  <li key={r.section.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setViewing(r.section.id);
-                        setFollow(false);
-                      }}
-                      className="hit-44 text-left text-small text-ink underline decoration-border-strong underline-offset-2 hover:decoration-ink"
-                    >
-                      {sectionName(r.section)}: {r.flags.length} {r.flags.length === 1 ? "item" : "items"}
-                    </button>
-                  </li>
+          {/* Side card */}
+          <aside aria-label="Writing details" className={cn(glassCard, studioSide, "grid content-start gap-4 p-[18px] max-[560px]:p-[15px]")}>
+            <section aria-labelledby="writing-job">
+              <h3 id="writing-job" className={cardTitle}>
+                This job
+              </h3>
+              <dl className="mt-2.5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 text-[13px] leading-[18px]">
+                {[
+                  {
+                    label: "State",
+                    value: {
+                      idle: "Not started",
+                      running: "Writing",
+                      pausing: "Pausing",
+                      paused: "Paused",
+                      failed: "Stopped at a failure",
+                      stopped: "Stopped",
+                      finished: "Finished",
+                    }[jobState],
+                  },
+                  { label: "Sections", value: `${doneCount} of ${written.length}` },
+                  { label: "Words", value: wordTarget > 0 ? `${formatNumber(wordsWritten)} of ${formatNumber(wordTarget)}` : formatNumber(wordsWritten) },
+                  { label: "Writer", value: writerModel ? <ModelName slug={writerModel} /> : "Not known yet" },
+                  {
+                    label: "Time left",
+                    value:
+                      jobState === "running" || jobState === "pausing"
+                        ? parent?.etaMs
+                          ? etaWords(parent.etaMs)
+                          : "Worked out after the first section"
+                        : "None running",
+                  },
+                  {
+                    label: "Next run",
+                    value:
+                      jobState === "running" || jobState === "pausing" ? (
+                        "Shown when writing is not running"
+                      ) : writeEstimate.data ? (
+                        <span>
+                          {estimateWords(writeEstimate.data)}
+                          {writeEstimate.data.model && (
+                            <>
+                              {" with "}
+                              <ModelName slug={writeEstimate.data.model} />
+                            </>
+                          )}
+                        </span>
+                      ) : notDone.length === 0 ? (
+                        "Nothing left to write"
+                      ) : writeEstimate.isError ? (
+                        "Estimate not available"
+                      ) : (
+                        "Worked out when writing is not running"
+                      ),
+                  },
+                  { label: "Spent on this book", value: formatUsd(apiBook.costToDateUsd) },
+                ].map((item) => (
+                  <div key={item.label} className="contents">
+                    <dt className="text-ink-3">{item.label}</dt>
+                    <dd className="text-right font-medium text-ink [overflow-wrap:anywhere]">{item.value}</dd>
+                  </div>
                 ))}
-              </ul>
-            )}
-          </InspectorSection>
-          <InspectorSection title="Claims to verify" tone={claims.data && claims.data.length > 0 ? "claim" : "default"}>
-            {claims.isPending ? (
-              <Skeleton className="w-3/4" />
-            ) : !claims.data || claims.data.length === 0 ? (
-              <p className="text-small text-ink-secondary">None yet. Claims the checker finds appear here and in the Editor.</p>
-            ) : (
-              <p className="text-small text-ink">
-                {claims.data.length} open {claims.data.length === 1 ? "claim" : "claims"} to check in the Editor before export.
-              </p>
-            )}
-          </InspectorSection>
-          <InspectorSection title="How writing works">
-            <p className="text-small text-ink-secondary">
+              </dl>
+            </section>
+
+            <section aria-labelledby="writing-look" className={cn("rounded-lg px-3.5 py-3", flagged.length > 0 ? "bg-amber-wash" : "bg-soft")}>
+              <h3
+                id="writing-look"
+                className={cn("flex items-center gap-1.5 text-[13px] leading-5 font-semibold", flagged.length > 0 ? "text-amber" : "text-ink")}
+              >
+                {flagged.length > 0 && <Flag size={14} strokeWidth={2} aria-hidden />}
+                Needs a look{flagged.length > 0 ? `, ${flagged.length}` : ""}
+              </h3>
+              {flagged.length === 0 ? (
+                <p className="mt-1 text-[12.5px] leading-[18px] text-ink-2">Nothing so far. The house-style guardrails check each section as it is saved.</p>
+              ) : (
+                <ul className="mt-1.5 grid gap-1.5">
+                  {flagged.map((r) => (
+                    <li key={r.section.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setViewing(r.section.id);
+                          setFollow(false);
+                        }}
+                        className="hit-44 text-left text-[13px] text-ink underline decoration-line-2 underline-offset-2 hover:decoration-ink"
+                      >
+                        {sectionName(r.section)}: {r.flags.length} {r.flags.length === 1 ? "item" : "items"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section
+              aria-labelledby="writing-claims"
+              className={cn("rounded-lg px-3.5 py-3", claims.data && claims.data.length > 0 ? "bg-red-wash" : "bg-soft")}
+            >
+              <h3 id="writing-claims" className={cn("text-[13px] leading-5 font-semibold", claims.data && claims.data.length > 0 ? "text-red" : "text-ink")}>
+                Claims to verify
+              </h3>
+              {claims.isPending ? (
+                <Skeleton className="mt-1 w-3/4" />
+              ) : !claims.data || claims.data.length === 0 ? (
+                <p className="mt-1 text-[12.5px] leading-[18px] text-ink-2">None yet. Claims the checker finds appear here and in the Editor.</p>
+              ) : (
+                <p className="mt-1 text-[12.5px] leading-[18px] text-ink">
+                  {claims.data.length} open {claims.data.length === 1 ? "claim" : "claims"} to check in the Editor before export.
+                </p>
+              )}
+            </section>
+
+            <p className="text-[12px] leading-4 text-ink-3">
               Sections are written in order, each one checked as soon as it is saved. Pause stops after the current step; Stop keeps every finished section.
             </p>
-          </InspectorSection>
-        </Inspector>
-      </div>
+          </aside>
+        </div>
+      )}
 
       <Modal
         open={confirmSpend}
@@ -586,63 +606,52 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
   );
 }
 
-function StatusMark({ status }: { status: WriteRowStatus }) {
-  const base = "grid size-5 shrink-0 place-items-center rounded-full";
-  switch (status) {
-    case "done":
-      return (
-        <span aria-hidden className={cn(base, "bg-ink text-canvas")}>
-          <Check size={12} strokeWidth={2.75} />
-        </span>
-      );
-    case "writing":
-    case "checking":
-    case "summarising":
-      return (
-        <span aria-hidden className={cn(base, "border-[1.5px] border-accent")}>
-          <span className="size-2 rounded-full bg-accent" />
-        </span>
-      );
-    case "failed":
-    case "attention":
-      return (
-        <span aria-hidden className={cn(base, status === "failed" ? "text-claim" : "text-accent-text")}>
-          <CircleAlert size={16} strokeWidth={2} />
-        </span>
-      );
-    case "built":
-      return (
-        <span aria-hidden className={cn(base, "text-ink-tertiary")}>
-          <FileCog size={15} strokeWidth={2} />
-        </span>
-      );
-    case "paused":
-      return (
-        <span aria-hidden className={cn(base, "border-[1.5px] border-border-strong text-ink-secondary")}>
-          <Pause size={10} strokeWidth={2.5} />
-        </span>
-      );
-    default:
-      return <span aria-hidden className={cn(base, "border-[1.5px] border-border-strong")} />;
-  }
+/** A row's title: the chapter title, or the section's name for front and back matter. */
+function rowTitle(s: ApiSection): string {
+  return s.kind === "chapter" && s.title ? s.title : sectionName(s);
+}
+
+const shortWords: Partial<Record<WriteRowStatus, string>> = { built: "Built", "not-written": "Not written" };
+
+/** The row's status (.sl): a dot when done or flagged, else a short word. The full words are for screen readers. */
+function RowStatus({ row }: { row: Row }) {
+  const extra = `${row.words > 0 ? `, ${formatNumber(row.words)} words` : ""}${row.flags.length > 0 ? `, ${row.flags.length} to look at` : ""}`;
+  const detail = writeStatusWords[row.status] + extra;
+  if (row.status === "done") return <RowDot tone="ok" label={detail} />;
+  if (row.status === "attention") return <RowDot tone="warn" label={detail} />;
+  const word = shortWords[row.status] ?? writeStatusWords[row.status];
+  const live = row.status === "writing" || row.status === "checking" || row.status === "summarising";
+  return (
+    <span
+      className={cn(
+        "num inline-flex shrink-0 items-center gap-1 text-[11.5px] leading-4 whitespace-nowrap",
+        row.status === "failed" ? "font-semibold text-red" : live || row.status === "paused" ? "font-semibold" : "text-ink-3",
+      )}
+    >
+      {row.status === "paused" && <Pause size={11} strokeWidth={2.5} aria-hidden />}
+      {row.status === "failed" && <CircleAlert size={12} strokeWidth={2} aria-hidden />}
+      {word}
+      {extra && <span className="sr-only">{extra}</span>}
+    </span>
+  );
 }
 
 function Blocks({ blocks, live }: { blocks: TextBlock[]; live: boolean }) {
   return (
-    <div className="grid max-w-[68ch] gap-4 font-book text-prose text-ink">
+    <div className="grid gap-3.5 font-book text-prose-sm text-ink">
       {blocks.map((b, i) => {
         const last = live && i === blocks.length - 1;
-        const caret = last ? <span aria-hidden className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] animate-pulse bg-accent" /> : null;
+        const caret = last ? <span aria-hidden className="vol-caret" /> : null;
         if (b.kind === "h1")
           return (
-            <h2 key={i} className="text-[26px] leading-8 font-medium">
+            <h2 key={i} className="text-[22px] leading-[1.3] font-semibold">
               {b.text}
               {caret}
             </h2>
           );
         if (b.kind === "h2" || b.kind === "h3")
           return (
-            <h3 key={i} className="text-[19px] leading-7 font-medium">
+            <h3 key={i} className="mt-2 text-[18px] leading-[1.35] font-semibold">
               {b.text}
               {caret}
             </h3>
@@ -706,83 +715,89 @@ function SectionCanvas({
     if (streaming && following) bottomRef.current?.scrollIntoView({ block: "nearest" });
   }, [delta.length, streaming, following]);
 
+  const liveNow = streaming && row.status === "writing";
   const text = streaming ? delta : (detail.data?.current?.bodyMd ?? "");
   const blocks = markdownBlocks(text);
 
   return (
-    <article aria-label={sectionName(s)} className="rounded-t-lg border border-b-0 border-border bg-sheet px-5 py-7 shadow-sheet sm:px-10 sm:py-9">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-2 text-small text-ink-secondary">
-        <span className="flex items-center gap-2">
-          {row.status === "writing" && streaming && <LiveDot />}
-          <span>
-            {`${sectionName(s)}: ${writeStatusWords[row.status].toLowerCase()}`}
-            {row.status !== "built" && (row.words > 0 || s.wordTarget)
-              ? `, ${formatNumber(row.words)}${s.wordTarget ? ` of ${formatNumber(s.wordTarget)}` : ""} words`
-              : ""}
-          </span>
-        </span>
-        {canFollow && (
-          <Button size="sm" variant="ghost" onClick={onFollow}>
-            Follow the writer
-          </Button>
+    <article aria-label={sectionName(s)} className={cn(glassCard, "overflow-clip")}>
+      <div className={cn(pageColumn, "px-[clamp(16px,4vw,56px)] pt-[22px] pb-7")}>
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-2">
+          <div className="grid min-w-0 gap-1">
+            <p className={cn(pageKicker, "flex items-center gap-2")}>
+              {liveNow && <LiveDot />}
+              {liveNow ? `${sectionName(s)}, writing now` : `${sectionName(s)}: ${writeStatusWords[row.status].toLowerCase()}`}
+            </p>
+            {row.status !== "built" && (row.words > 0 || s.wordTarget) ? (
+              <p className="num text-[13px] leading-5 text-ink-2">
+                {formatNumber(row.words)}
+                {s.wordTarget ? ` of about ${formatNumber(s.wordTarget)}` : ""} words{liveNow ? ". Checks run when it is saved." : "."}
+              </p>
+            ) : null}
+          </div>
+          {canFollow && (
+            <Button size="sm" variant="ghost" onClick={onFollow}>
+              Follow the writer
+            </Button>
+          )}
+        </div>
+        {!streaming && row.status !== "writing" && row.status !== "checking" && (
+          <>
+            <SummaryMissingNotice bookId={bookId} sectionId={s.id} checks={detail.data?.checks} className="mb-5" />
+            <TemplateRulesNotice checks={detail.data?.checks} className="mb-5" />
+            {s.kind === "acknowledgements" && (
+              <AcknowledgementsNotice bookId={bookId} sectionId={s.id} settings={bookSettings} versionSource={detail.data?.current?.source} className="mb-5" />
+            )}
+          </>
         )}
+        {row.flags.length > 0 && row.status !== "writing" && (
+          <div className="mb-5 grid gap-1 rounded-lg bg-amber-wash px-4 py-3 text-[13px] leading-[18px] text-ink">
+            <p className="font-semibold text-amber">Needs a look before export</p>
+            <ul className="grid gap-0.5">
+              {row.flags.slice(0, 6).map((f, i) => (
+                <li key={`${i}-${f.rule}`}>
+                  {f.message}
+                  {f.match ? `: "${f.match}"` : ""}
+                </li>
+              ))}
+            </ul>
+            {row.flags.length > 6 && <p>And {row.flags.length - 6} more in the Editor.</p>}
+          </div>
+        )}
+        {row.status === "failed" ? (
+          <div className="grid gap-3">
+            <p className="text-body text-ink">{row.job?.error ?? "The writer stopped on this section."}</p>
+            {onRetry && (
+              <div>
+                <Button icon={RotateCcw} onClick={onRetry}>
+                  Retry {sectionName(s).toLowerCase()}
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : blocks.length > 0 ? (
+          <Blocks blocks={blocks} live={streaming && row.status === "writing"} />
+        ) : detail.isFetching ? (
+          <div role="status" aria-label="Loading the text" className="grid gap-2">
+            <Skeleton className="h-7 w-2/5" />
+            <Skeleton className="w-full" />
+            <Skeleton className="w-11/12" />
+          </div>
+        ) : row.status === "writing" ? (
+          <p className="flex items-center gap-2 text-body text-ink-secondary">
+            <Loader /> The writer is starting this section.
+          </p>
+        ) : (
+          <p className="text-body text-ink-secondary">
+            {row.status === "built"
+              ? "The app makes this page from the book details and the profile (About the author is the profile bio, word for word). The writer does not write it."
+              : row.status === "queued"
+                ? "Queued. It is written after the sections before it."
+                : "Not written yet."}
+          </p>
+        )}
+        <div ref={bottomRef} />
       </div>
-      {!streaming && row.status !== "writing" && row.status !== "checking" && (
-        <>
-          <SummaryMissingNotice bookId={bookId} sectionId={s.id} checks={detail.data?.checks} className="mb-5" />
-          <TemplateRulesNotice checks={detail.data?.checks} className="mb-5" />
-          {s.kind === "acknowledgements" && (
-            <AcknowledgementsNotice bookId={bookId} sectionId={s.id} settings={bookSettings} versionSource={detail.data?.current?.source} className="mb-5" />
-          )}
-        </>
-      )}
-      {row.flags.length > 0 && row.status !== "writing" && (
-        <div className="mb-5 grid gap-1 rounded-md bg-accent-wash px-4 py-3 text-small text-accent-text">
-          <p className="font-semibold">Needs a look before export</p>
-          <ul className="grid gap-0.5">
-            {row.flags.slice(0, 6).map((f, i) => (
-              <li key={`${i}-${f.rule}`}>
-                {f.message}
-                {f.match ? `: "${f.match}"` : ""}
-              </li>
-            ))}
-          </ul>
-          {row.flags.length > 6 && <p>And {row.flags.length - 6} more in the Editor.</p>}
-        </div>
-      )}
-      {row.status === "failed" ? (
-        <div className="grid gap-3">
-          <p className="text-body text-ink">{row.job?.error ?? "The writer stopped on this section."}</p>
-          {onRetry && (
-            <div>
-              <Button icon={RotateCcw} onClick={onRetry}>
-                Retry {sectionName(s).toLowerCase()}
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : blocks.length > 0 ? (
-        <Blocks blocks={blocks} live={streaming && row.status === "writing"} />
-      ) : detail.isFetching ? (
-        <div role="status" aria-label="Loading the text" className="grid gap-2">
-          <Skeleton className="h-7 w-2/5" />
-          <Skeleton className="w-full" />
-          <Skeleton className="w-11/12" />
-        </div>
-      ) : row.status === "writing" ? (
-        <p className="flex items-center gap-2 text-body text-ink-secondary">
-          <Loader /> The writer is starting this section.
-        </p>
-      ) : (
-        <p className="text-body text-ink-secondary">
-          {row.status === "built"
-            ? "The app makes this page from the book details and the profile (About the author is the profile bio, word for word). The writer does not write it."
-            : row.status === "queued"
-              ? "Queued. It is written after the sections before it."
-              : "Not written yet."}
-        </p>
-      )}
-      <div ref={bottomRef} />
     </article>
   );
 }
@@ -855,18 +870,20 @@ function RetryModal({
 
 function WritingSkeleton() {
   return (
-    <div role="status" aria-label="Loading the sections" className="grid grid-cols-1 xl:h-screen-fill xl:grid-cols-[320px_minmax(0,1fr)_var(--vol-inspector)]">
-      <div className="hidden gap-3 border-r border-border p-6 xl:grid xl:content-start">
-        <Skeleton className="h-6 w-1/2" />
-        {Array.from({ length: 8 }, (_, i) => (
-          <Skeleton key={i} className="h-5 w-full" />
-        ))}
-      </div>
-      <div className="grid content-start gap-4 px-4 py-8 sm:px-8">
-        <Skeleton className="h-9 w-3/5" />
-        {Array.from({ length: 5 }, (_, i) => (
-          <Skeleton key={i} className="h-4 w-full" />
-        ))}
+    <div role="status" aria-label="Loading the sections" className={cn(stepBody, "grid gap-4")}>
+      <div className={studioGrid}>
+        <div className={cn(glassCard, "hidden content-start gap-3 p-4 min-[861px]:grid")}>
+          <Skeleton className="h-5 w-1/2" />
+          {Array.from({ length: 8 }, (_, i) => (
+            <Skeleton key={i} className="h-5 w-full" />
+          ))}
+        </div>
+        <div className={cn(glassCard, "grid content-start gap-4 px-7 py-8")}>
+          <Skeleton className="h-8 w-3/5" />
+          {Array.from({ length: 5 }, (_, i) => (
+            <Skeleton key={i} className="h-4 w-full" />
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -63,7 +63,7 @@ export function FindReplace({
           onStep(e.shiftKey ? -1 : 1);
         }
       }}
-      className="rounded-md border border-border bg-sheet p-4"
+      className="rounded-lg border border-line bg-panel-2 p-4"
     >
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-subhead text-ink">Find and replace</h2>

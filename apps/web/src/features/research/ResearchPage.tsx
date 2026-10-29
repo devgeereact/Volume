@@ -6,13 +6,13 @@ import {
   Banner,
   Button,
   EmptyState,
-  Inspector,
-  InspectorSection,
+  Card,
   LiveDot,
   Loader,
   PageHeader,
   ModelName,
   ProgressBar,
+  StatusChip,
   Select,
   Skeleton,
   StreamText,
@@ -34,9 +34,10 @@ import { SourceCard } from "./SourceCard";
 import { NoSourceMatch, ResearchCounts, SourceFilterBar, sourceMatches, useSourceFilter, type SourceFilterState } from "./SourceTools";
 import { about, estimateFor, useSimulatedRun, type RunPlan } from "./sim";
 
-/* Research screen (docs/03-design/UX-SPEC.md, M4). Owner: screen agent B.
-   States: running (streamed status lines and findings, cost ticking), the dossier, empty, loading
-   and error with retry. Sources sit in the inspector with "use in book" ticks. */
+/* Research screen (docs/03-design/UX-SPEC.md, M4; approved Volume Studio design, stResearch).
+   States: running (the live card with its steps and the sources found so far beside it), the dossier
+   as cards (counts, audience and reader pains, angles, themes, gaps, keyword ideas), the Sources card
+   with "use in book" ticks, filter and search, empty, loading and error with retry. */
 
 export default function ResearchPage() {
   const { book, apiBook } = useBook();
@@ -141,131 +142,129 @@ function Research({ book }: { book: Book }) {
     ) : undefined;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto]">
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-7 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
-        <PageHeader
-          title="Research"
-          summary="Who the book is for, what they struggle with, and where it fits. Sources are cited, never invented."
-          actions={actions}
-        />
+    <div className="grid gap-4 px-4 min-[861px]:px-6">
+      <PageHeader
+        title="Research"
+        summary="Who the book is for, what they struggle with, and where it fits. Sources are cited, never invented."
+        actions={actions}
+      />
 
-        {shownState !== "empty" && shownState !== "loading" && (run || shownState === "running") && (
-          <RunHeader
-            runs={runs}
-            runId={runId}
-            onRunChange={setRunId}
-            running={shownState === "running"}
-            modelSlug={shownState === "running" ? pendingModel : (run?.model ?? BASE.model)}
-            cost={shownState === "running" ? sim.cost : (run?.costUsd ?? 0)}
-            at={shownState === "running" ? DEMO_NOW : (run?.at ?? DEMO_NOW)}
-          />
-        )}
+      {shownState !== "empty" && shownState !== "loading" && shownState !== "running" && run && (
+        <RunHeader runs={runs} runId={runId} onRunChange={setRunId} running={false} modelSlug={run.model} cost={run.costUsd} at={run.at} />
+      )}
 
-        {shownState === "loading" && <DossierSkeleton />}
+      {shownState === "loading" && <DossierSkeleton />}
 
-        {shownState === "empty" && (
-          <EmptyState
-            drawing="search"
-            title="Research has not run yet"
-            body={`The researcher searches the web, reads the sources it cites and writes up the audience, their problems and the gaps. It takes about a minute with ${model ? formatModel(model.slug) : "the research model"}.`}
-            action={
-              canWrite ? (
-                <Button icon={Search} estimate={about(BASE.costUsd)} onClick={() => startRun(BASE.model)}>
-                  Run research
-                </Button>
-              ) : undefined
-            }
-          />
-        )}
-
-        {shownState === "error" && (
-          <Banner
-            tone="error"
-            title="The research run stopped part way"
-            action={
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  icon={RotateCcw}
-                  onClick={() => {
-                    sim.reset();
-                    startRun(pendingModel);
-                  }}
-                >
-                  Retry
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setModalOpen(true)}>
-                  Pick another model
-                </Button>
-              </div>
-            }
-          >
-            OpenRouter did not answer in time. Nothing was charged, and the last finished run is kept.
-          </Banner>
-        )}
-
-        {shownState === "running" && (
-          <LivePanel
-            step={sim.step}
-            steps={isNightShift ? nightShiftResearchStatus : runSteps}
-            progress={sim.progress}
-            cost={sim.cost}
-            estimate={isNightShift ? 0.62 : estimateRef.current}
-            onCancel={isNightShift ? undefined : () => sim.cancel()}
-          />
-        )}
-
-        {shownState === "running" && hasDossier && <StreamedFindings progress={sim.progress} />}
-
-        {shownState === "ready" && hasDossier && (
-          <ResearchCounts
-            items={[
-              { label: "Sources read", value: BASE.sources.length },
-              { label: "Used in the book", value: usedCount },
-              { label: "Reader pains", value: BASE.problems.length },
-              { label: "Angles", value: BASE.angles.length },
-              { label: "Keyword ideas", value: keywordIdeas.length },
-            ]}
-          />
-        )}
-
-        {shownState === "ready" && hasDossier && (
-          <Dossier keywordIdeas={keywordIdeas} gaps={gaps} sourceNumber={sourceNumber} onCite={showSource} flash={flash} />
-        )}
-
-        {shownState === "ready" && !hasDossier && (
-          <Banner tone="success" title="Research finished">
-            The dossier for {book.title} is saved with this run. Run it again with another model at any time; earlier runs are kept.
-          </Banner>
-        )}
-
-        {hasDossier && (
-          <DemoStates
-            value={screen}
-            onChange={(s) => {
-              sim.reset();
-              if (s === "ready" && runs.length === 0) {
-                setRuns([firstRun]);
-                setRunId(firstRun.id);
-              }
-              setScreen(s);
-              if (s === "error") startRun(pendingModel, 0.4);
-            }}
-          />
-        )}
-      </div>
-
-      <Inspector label="Sources" className="lg:sticky lg:top-(--shell-sticky-top) lg:h-screen-fill">
-        <InspectorSection
-          title="Sources"
-          aside={
-            shownState === "ready" && hasDossier ? (
-              <span className="num text-small text-ink-secondary">
-                {usedCount} of {BASE.sources.length} in book
-              </span>
+      {shownState === "empty" && (
+        <EmptyState
+          drawing="search"
+          title="Research has not run yet"
+          body={`The researcher searches the web, reads the sources it cites and writes up the audience, their problems and the gaps. It takes about a minute with ${model ? formatModel(model.slug) : "the research model"}.`}
+          action={
+            canWrite ? (
+              <Button icon={Search} estimate={about(BASE.costUsd)} onClick={() => startRun(BASE.model)}>
+                Run research
+              </Button>
             ) : undefined
           }
+        />
+      )}
+
+      {shownState === "error" && (
+        <Banner
+          tone="error"
+          title="The research run stopped part way"
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                icon={RotateCcw}
+                onClick={() => {
+                  sim.reset();
+                  startRun(pendingModel);
+                }}
+              >
+                Retry
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setModalOpen(true)}>
+                Pick another model
+              </Button>
+            </div>
+          }
         >
+          OpenRouter did not answer in time. Nothing was charged, and the last finished run is kept.
+        </Banner>
+      )}
+
+      {shownState === "running" && (
+        <div className="grid items-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid min-w-0 gap-4">
+            <LivePanel
+              step={sim.step}
+              steps={isNightShift ? nightShiftResearchStatus : runSteps}
+              progress={sim.progress}
+              cost={sim.cost}
+              estimate={isNightShift ? 0.62 : estimateRef.current}
+              onCancel={isNightShift ? undefined : () => sim.cancel()}
+            />
+            {hasDossier && <StreamedFindings progress={sim.progress} />}
+          </div>
+          <aside aria-label="Sources" className="vol-glass grid min-w-0 content-start gap-3 rounded-card p-[18px]">
+            <h2 className="text-[14px] font-bold text-ink">Run</h2>
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 text-[13px]">
+              <dt className="text-ink-3">Model</dt>
+              <dd className="text-right font-medium text-ink">
+                <ModelName slug={pendingModel} />
+              </dd>
+              <dt className="text-ink-3">Spent</dt>
+              <dd className="num text-right font-medium text-ink" aria-live="off">
+                {formatUsd(sim.cost)}
+              </dd>
+              <dt className="text-ink-3">Started</dt>
+              <dd className="num text-right font-medium text-ink">{formatRelative(DEMO_NOW)}</dd>
+            </dl>
+            <h3 className="mt-2 text-[14px] font-bold text-ink">Sources so far</h3>
+            <SourcesPane
+              state={shownState}
+              hasDossier={hasDossier}
+              progress={sim.progress}
+              uses={uses}
+              onUse={(id, v) => setUses((u) => ({ ...u, [id]: v }))}
+              highlight={highlight}
+              onShowCitation={showCitation}
+              filter={filter}
+            />
+          </aside>
+        </div>
+      )}
+
+      {shownState === "ready" && hasDossier && (
+        <ResearchCounts
+          items={[
+            { label: "Sources read", value: BASE.sources.length },
+            { label: "Used in the book", value: usedCount },
+            { label: "Reader pains", value: BASE.problems.length },
+            { label: "Angles", value: BASE.angles.length },
+            { label: "Keyword ideas", value: keywordIdeas.length },
+          ]}
+        />
+      )}
+
+      {shownState === "ready" && hasDossier && (
+        <Dossier keywordIdeas={keywordIdeas} gaps={gaps} sourceNumber={sourceNumber} onCite={showSource} flash={flash} />
+      )}
+
+      {shownState === "ready" && hasDossier && (
+        <Card as="section" aria-labelledby="sources-heading" className="grid gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="sources-heading" className="flex items-center gap-2 text-[15px] font-bold text-ink">
+              Sources
+              <span className="num text-small font-medium text-ink-3">
+                {usedCount} of {BASE.sources.length} used
+              </span>
+            </h2>
+            <p className="text-small text-ink-2">Only sources cited from a live web search are kept. Only ticked ones can appear in References.</p>
+          </div>
           <SourcesPane
             state={shownState}
             hasDossier={hasDossier}
@@ -276,13 +275,29 @@ function Research({ book }: { book: Book }) {
             onShowCitation={showCitation}
             filter={filter}
           />
-        </InspectorSection>
-        <InspectorSection title="How sources work">
-          <p className="text-small text-ink-secondary">
-            Only sources the model cites from a live web search are kept. Tick the ones the writer may use; only ticked sources can appear in References.
-          </p>
-        </InspectorSection>
-      </Inspector>
+        </Card>
+      )}
+
+      {shownState === "ready" && !hasDossier && (
+        <Banner tone="success" title="Research finished">
+          The dossier for {book.title} is saved with this run. Run it again with another model at any time; earlier runs are kept.
+        </Banner>
+      )}
+
+      {hasDossier && (
+        <DemoStates
+          value={screen}
+          onChange={(s) => {
+            sim.reset();
+            if (s === "ready" && runs.length === 0) {
+              setRuns([firstRun]);
+              setRunId(firstRun.id);
+            }
+            setScreen(s);
+            if (s === "error") startRun(pendingModel, 0.4);
+          }}
+        />
+      )}
 
       <RunModelModal
         open={modalOpen}
@@ -325,7 +340,7 @@ function RunHeader({
   at: string;
 }) {
   return (
-    <div className="grid gap-4 rounded-md border border-border bg-sheet px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+    <div className="vol-glass grid gap-4 rounded-card px-[18px] py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
       <dl className="grid grid-cols-2 gap-x-8 gap-y-3 sm:flex sm:flex-wrap">
         <div className="grid gap-1">
           <dt className="text-small text-ink-secondary">Model</dt>
@@ -394,14 +409,13 @@ function LivePanel({
   onCancel: (() => void) | undefined;
 }) {
   return (
-    <section aria-labelledby="live-heading" className="relative overflow-hidden rounded-lg border border-border bg-sheet px-5 py-5 shadow-sheet sm:px-6">
-      <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-accent" />
+    <section aria-labelledby="live-heading" className="vol-glass rounded-card p-[18px]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid gap-1">
-          <p className="flex items-center gap-2 text-small font-semibold text-accent-text">
-            <LiveDot /> Researching now
+          <p className="flex items-center gap-2">
+            <StatusChip status="writing">Live</StatusChip>
           </p>
-          <h2 id="live-heading" className="font-book text-heading text-ink">
+          <h2 id="live-heading" className="text-[15px] font-bold text-ink">
             {steps[step]}
           </h2>
         </div>
@@ -487,13 +501,13 @@ function StreamedFindings({ progress }: { progress: number }) {
 
 function DossierBlock({ title, aside, children, className }: { title: string; aside?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={cn("grid content-start gap-3", className)}>
-      <div className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
-        <h2 className="font-book text-heading text-ink">{title}</h2>
+    <Card as="section" className={cn("grid content-start gap-3", className)}>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[15px] font-bold text-ink">{title}</h2>
         {aside}
       </div>
       {children}
-    </section>
+    </Card>
   );
 }
 
@@ -527,17 +541,21 @@ function Cited({
   children,
   as = "li",
   className,
+  n,
 }: {
   anchor: string;
   flash: string | null;
   children: ReactNode;
   as?: "li" | "div";
   className?: string;
+  /** A number drawn before the item (angles). */
+  n?: number;
 }) {
   const Tag = as;
   return (
     <Tag
       id={`cite-${anchor}`}
+      data-n={n}
       tabIndex={-1}
       className={cn("rounded-xs transition-colors duration-(--vol-dur-base)", flash === anchor && "bg-select-wash", className)}
     >
@@ -560,10 +578,10 @@ function Dossier({
   flash: string | null;
 }) {
   return (
-    <div className="grid gap-10">
+    <div className="grid gap-4 md:grid-cols-2">
       <DossierBlock title="Audience">
         <Cited anchor="audience" flash={flash} as="div">
-          <p className="max-w-[68ch] font-book text-prose-sm text-ink">
+          <p className="max-w-[68ch] text-[14.5px] leading-[1.6] text-ink">
             {BASE.audience}
             <CiteMarks anchor="audience" sourceNumber={sourceNumber} onCite={onCite} />
           </p>
@@ -571,11 +589,11 @@ function Dossier({
       </DossierBlock>
 
       <DossierBlock title="Reader pains" aside={<span className="num text-small text-ink-tertiary">{BASE.problems.length}</span>}>
-        <ol className="grid gap-px overflow-hidden rounded-md border border-border bg-border">
+        <ol className="grid gap-1.5">
           {BASE.problems.map((p, i) => (
-            <Cited key={p} anchor={`pain-${i}`} flash={flash} className="flex gap-3 rounded-none bg-sheet px-4 py-3">
-              <span className="num w-4 shrink-0 text-small text-ink-tertiary">{i + 1}</span>
-              <span className="text-body text-ink">
+            <Cited key={p} anchor={`pain-${i}`} flash={flash} className="flex gap-3 rounded-control bg-soft px-3 py-2.5">
+              <span className="num w-4 shrink-0 text-small text-ink-3">{i + 1}</span>
+              <span className="text-[13.5px] text-ink">
                 {p}
                 <CiteMarks anchor={`pain-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
               </span>
@@ -585,46 +603,50 @@ function Dossier({
       </DossierBlock>
 
       <DossierBlock title="Angles">
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ol className="grid gap-2.5">
           {BASE.angles.map((a, i) => (
-            <Cited key={a.title} anchor={`angle-${i}`} flash={flash} className="grid content-start gap-1.5 rounded-md border border-border bg-sheet p-4">
-              <h3 className="font-book text-[18px] leading-6 font-medium text-ink">
+            <Cited
+              key={a.title}
+              anchor={`angle-${i}`}
+              flash={flash}
+              className="grid grid-cols-[26px_minmax(0,1fr)] gap-x-2.5 gap-y-0.5 before:row-span-2 before:grid before:size-[26px] before:place-items-center before:rounded-[8px] before:bg-mint-wash before:text-[12px] before:font-bold before:text-mint-ink before:content-[attr(data-n)]"
+              n={i + 1}
+            >
+              <h3 className="text-[13.5px] font-bold text-ink">
                 {a.title}
                 <CiteMarks anchor={`angle-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
               </h3>
-              <p className="text-body text-ink-secondary">{a.detail}</p>
+              <p className="text-[13px] leading-normal text-ink-2">{a.detail}</p>
+            </Cited>
+          ))}
+        </ol>
+      </DossierBlock>
+
+      <DossierBlock title="Competing themes">
+        <ul className="grid gap-2.5">
+          {BASE.competingThemes.map((t, i) => (
+            <Cited key={t} anchor={`theme-${i}`} flash={flash} className="border-l-2 border-border-strong pl-3 text-body text-ink">
+              {t}
+              <CiteMarks anchor={`theme-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
+            </Cited>
+          ))}
+        </ul>
+      </DossierBlock>
+      <DossierBlock title="Gaps this book can fill">
+        <ul className="grid gap-2.5">
+          {gaps.map((g, i) => (
+            <Cited key={g} anchor={`gap-${i}`} flash={flash} className="border-l-2 border-select pl-3 text-body text-ink">
+              {g}
+              <CiteMarks anchor={`gap-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
             </Cited>
           ))}
         </ul>
       </DossierBlock>
 
-      <div className="grid gap-10 md:grid-cols-2">
-        <DossierBlock title="Competing themes">
-          <ul className="grid gap-2.5">
-            {BASE.competingThemes.map((t, i) => (
-              <Cited key={t} anchor={`theme-${i}`} flash={flash} className="border-l-2 border-border-strong pl-3 text-body text-ink">
-                {t}
-                <CiteMarks anchor={`theme-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
-              </Cited>
-            ))}
-          </ul>
-        </DossierBlock>
-        <DossierBlock title="Gaps this book can fill">
-          <ul className="grid gap-2.5">
-            {gaps.map((g, i) => (
-              <Cited key={g} anchor={`gap-${i}`} flash={flash} className="border-l-2 border-select pl-3 text-body text-ink">
-                {g}
-                <CiteMarks anchor={`gap-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
-              </Cited>
-            ))}
-          </ul>
-        </DossierBlock>
-      </div>
-
       <DossierBlock title="Keyword ideas" aside={<span className="text-small text-ink-tertiary">Starting points for the 7 KDP keywords</span>}>
         <ul className="flex flex-wrap gap-2">
           {keywordIdeas.map((k) => (
-            <li key={k} className="inline-flex h-[30px] items-center rounded-pill border border-border bg-sheet px-3 text-[13px] text-ink">
+            <li key={k} className="inline-flex items-center rounded-pill bg-mint-wash px-2.5 py-1 text-[12px] text-mint-ink">
               {k}
             </li>
           ))}
@@ -636,15 +658,15 @@ function Dossier({
 
 function DossierSkeleton() {
   return (
-    <div role="status" aria-label="Loading the research dossier" className="grid gap-8">
-      <div className="grid gap-2 rounded-md border border-border bg-sheet p-5">
+    <div role="status" aria-label="Loading the research dossier" className="grid gap-4">
+      <div className="vol-glass grid gap-2 rounded-card p-[18px]">
         <Skeleton className="w-40" />
         <Skeleton className="w-full" />
         <Skeleton className="w-10/12" />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="grid gap-2 rounded-md border border-border bg-sheet p-4">
+          <div key={i} className="vol-glass grid gap-2 rounded-card p-[18px]">
             <Skeleton className="w-1/2" />
             <Skeleton className="w-full" />
             <Skeleton className="w-9/12" />
@@ -701,7 +723,7 @@ function SourcesPane({
     .map((s, i) => ({ s, number: i + 1 }))
     .filter(({ s }) => !ready || sourceMatches(filter, uses[s.id] ?? false, Object.values(plainSource(s))));
   const cards = (
-    <ul className="grid gap-3">
+    <ul className={cn("grid gap-3", ready && "md:grid-cols-2")}>
       {visible.map(({ s, number }) => (
         <SourceCard
           key={s.id}

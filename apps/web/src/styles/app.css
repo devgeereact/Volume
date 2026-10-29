@@ -10,25 +10,21 @@
 
 /* Shell measurements that screens can read (set by the shell). */
 :root {
-  /* The top bar holds the breadcrumb and the page title on two lines (64 px on phones). */
-  --shell-topbar: 64px;
-  --shell-jobbar: 0px;
-  /* Book screens (D-016): the step rail that sticks under the top bar (shell/StepRail measures it). */
+  /* The top bar holds the breadcrumb and the page title on two lines (70 px on phones). */
+  --shell-topbar: 70px;
+  /* Book screens (D-016): the step bar that sticks under the top bar (shell/StepRail measures it). */
   --shell-bookbar: 0px;
-  /* Where sticky panels start: under the top bar and, inside a book, the step rail. */
+  /* Where sticky panels start: under the top bar and, inside a book, the step bar. */
   --shell-sticky-top: calc(var(--shell-topbar) + var(--shell-bookbar));
 }
 @media (min-width: 640px) {
   :root {
-    --shell-topbar: 72px;
+    --shell-topbar: 78px;
   }
 }
 :root[data-book="on"] {
-  /* Until the rail has measured itself. */
-  --shell-bookbar: 74px;
-}
-:root[data-jobbar="on"] {
-  --shell-jobbar: var(--vol-jobbar);
+  /* Until the step bar has measured itself. */
+  --shell-bookbar: 68px;
 }
 
 @layer base {
@@ -48,17 +44,17 @@
     background: var(--vol-canvas);
   }
   :focus-visible {
-    outline: var(--vol-focus-width) solid var(--vol-select);
+    outline: var(--vol-focus-width) solid var(--vol-mint);
     outline-offset: var(--vol-focus-offset);
   }
   ::selection {
     background: var(--vol-select-wash);
     color: var(--vol-ink);
   }
-  /* Focus is never hidden behind the top bar or the job bar (WCAG 2.4.11). */
+  /* Focus is never hidden behind the top bar or the step bar (WCAG 2.4.11). */
   html {
     scroll-padding-top: calc(var(--shell-topbar) + var(--shell-bookbar) + 16px);
-    scroll-padding-bottom: calc(var(--shell-jobbar) + 16px);
+    scroll-padding-bottom: 16px;
   }
   kbd {
     font-family: var(--vol-font-mono);
@@ -72,9 +68,9 @@
 }
 
 @layer utilities {
-  /* Lining figures for words, money and times. Schibsted Grotesk's tabular figures also make commas
-     and full stops tabular (wide gaps in "21,340"), so .num stays proportional in the interface font.
-     Literata (figures, book text) gets true tabular figures. Use .tnum for columns that must align. */
+  /* Lining figures for words, money and times. Manrope's tabular "1" is very wide ("1 4 books"), so the
+     interface keeps proportional figures; Literata (figures, book text) gets true tabular figures.
+     Use .tnum for columns that must align. */
   .num {
     font-variant-numeric: lining-nums;
   }
@@ -97,20 +93,20 @@
 }
 
 /* Shell-height and hit-area helpers as Tailwind v4 utilities, so variants work (lg:h-screen-fill,
-   xl:min-h-screen-fill, sm:hit-44). Height of the area between the top bar and the job bar, for screens
-   with their own panes. */
+   xl:min-h-screen-fill, sm:hit-44). Height of the area under the top bar (and the step bar in a book),
+   for screens with their own panes. */
 @utility h-screen-fill {
-  height: calc(100dvh - var(--shell-topbar) - var(--shell-bookbar) - var(--shell-jobbar));
+  height: calc(100dvh - var(--shell-topbar) - var(--shell-bookbar));
 }
 @utility min-h-screen-fill {
-  min-height: calc(100dvh - var(--shell-topbar) - var(--shell-bookbar) - var(--shell-jobbar));
+  min-height: calc(100dvh - var(--shell-topbar) - var(--shell-bookbar));
 }
 /* A side column that stays in view while the page scrolls (Library grid): it pins under the top bar, is never
-   taller than the space above the job bar, and scrolls on its own when its content is taller than that. */
+   taller than the window below it, and scrolls on its own when its content is taller than that. */
 @utility sticky-side {
   position: sticky;
   top: calc(var(--shell-sticky-top) + var(--vol-space-4));
-  max-height: calc(100dvh - var(--shell-sticky-top) - var(--shell-jobbar) - var(--vol-space-8));
+  max-height: calc(100dvh - var(--shell-sticky-top) - var(--vol-space-8));
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -133,17 +129,17 @@
 }
 
 @layer components {
-  /* Gilt caret for streamed text (ink in). Blinks at 1 s steps; holds still with reduced motion. */
+  /* Caret for streamed text (ink in): a frost blue block. Blinks at 1 s steps; holds still with reduced motion. */
   .vol-caret {
     display: inline-block;
-    width: 2px;
+    width: 0.5em;
     height: 1.05em;
     margin-left: 2px;
     vertical-align: -2px;
-    background: var(--vol-accent);
+    background: var(--vol-mint);
     animation: vol-caret 1s steps(1) infinite;
   }
-  /* The gilt nib at the live edge of a progress bar. Fades between full and 35% while the job runs. */
+  /* The nib at the live edge of a progress bar. Fades between full and 35% while the job runs. */
   .vol-nib {
     animation: vol-nib 1600ms var(--vol-ease-out) infinite alternate;
   }
@@ -162,6 +158,10 @@
   }
   .vol-loader > i:nth-child(3) {
     animation-delay: 300ms;
+  }
+  /* The running dot (chips, the live dot) pulses with opacity, as in the approved design. */
+  .vol-pulse {
+    animation: vol-pulse 1.2s ease-in-out infinite;
   }
   /* Skeletons breathe with opacity only. */
   .vol-breathe {
@@ -297,6 +297,11 @@
     opacity: 0.4;
   }
 }
+@keyframes vol-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
 @keyframes vol-breathe {
   from {
     opacity: 1;
@@ -311,7 +316,8 @@
   .vol-caret,
   .vol-nib,
   .vol-loader > i,
-  .vol-breathe {
+  .vol-breathe,
+  .vol-pulse {
     animation: none;
   }
   .vol-loader > i {
@@ -326,6 +332,7 @@
 }
 /* Live indicators also stop while the tab is hidden (set by the shell). */
 :root[data-hidden="true"] .vol-caret,
-:root[data-hidden="true"] .vol-nib {
+:root[data-hidden="true"] .vol-nib,
+:root[data-hidden="true"] .vol-pulse {
   animation-play-state: paused;
 }

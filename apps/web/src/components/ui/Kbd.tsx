@@ -15,8 +15,8 @@ export function Kbd({ keys, tone = "default", className }: KbdProps) {
         <kbd
           key={k}
           className={cn(
-            "inline-grid h-[22px] min-w-[22px] place-items-center rounded-xs border px-[5px] font-mono text-[11.5px] leading-none font-medium",
-            tone === "spine" ? "border-spine-raised bg-spine-raised text-ink-on-spine" : "border-border bg-canvas text-ink-secondary",
+            "inline-grid h-5 min-w-5 place-items-center rounded-xs border px-1.5 font-mono text-[11px] leading-none font-medium",
+            tone === "spine" ? "border-spine-raised bg-spine-raised text-ink-on-spine" : "border-line bg-soft text-ink-3",
           )}
         >
           {k}

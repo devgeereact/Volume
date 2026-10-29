@@ -22,32 +22,42 @@ export const stepStateWords: Record<StepState, string> = {
   done: "done",
 };
 
-/** A step's marker: check when done, flag when it needs you, a dot while in progress, else its number. */
+/**
+ * A step's marker (.sn in the approved design): a green check circle when done, an amber flag when it
+ * needs you, the number in an accent ring while in progress, else the number in a quiet ring. On the
+ * current step (onDark) it takes the pill's colour.
+ */
 export function StepMarker({ state, n, onDark = false }: { state: StepState; n: number; onDark?: boolean }) {
-  const base = "grid size-[22px] shrink-0 place-items-center rounded-full text-[11.5px] leading-none font-semibold";
+  const base = "grid size-5 shrink-0 place-items-center rounded-full border-[1.5px] text-[11px] leading-none font-bold";
+  if (onDark)
+    return (
+      <span aria-hidden className={cn(base, "num border-current bg-transparent")}>
+        {state === "done" ? <Check size={12} strokeWidth={2.4} /> : state === "attention" ? <Flag size={11} strokeWidth={2.2} /> : n}
+      </span>
+    );
   switch (state) {
     case "done":
       return (
-        <span aria-hidden className={cn(base, onDark ? "border-[1.5px] border-current" : "bg-ink text-canvas")}>
-          <Check size={13} strokeWidth={2.75} />
+        <span aria-hidden className={cn(base, "border-transparent bg-good text-sky-1")}>
+          <Check size={12} strokeWidth={2.4} />
         </span>
       );
     case "attention":
       return (
-        <span aria-hidden className={cn(base, "border-[1.5px]", onDark ? "border-current" : "border-accent text-accent-text")}>
-          <Flag size={11} strokeWidth={2.5} />
+        <span aria-hidden className={cn(base, "border-amber bg-amber-wash text-amber")}>
+          <Flag size={11} strokeWidth={2.2} />
         </span>
       );
     case "running":
     case "in-progress":
       return (
-        <span aria-hidden className={cn(base, "border-[1.5px] border-accent")}>
-          <span className={cn("rounded-full bg-accent", state === "running" ? "size-2.5" : "size-2")} />
+        <span aria-hidden className={cn(base, "num border-mint text-mint-ink", state === "running" && "vol-pulse")}>
+          {n}
         </span>
       );
     case "not-started":
       return (
-        <span aria-hidden className={cn(base, "num border-[1.5px]", onDark ? "border-current" : "border-border-strong text-ink-tertiary")}>
+        <span aria-hidden className={cn(base, "num border-line-2")}>
           {n}
         </span>
       );
@@ -56,9 +66,9 @@ export function StepMarker({ state, n, onDark = false }: { state: StepState; n: 
 
 /**
  * The book's eight steps (D-016) as links: Research, Titles, Blueprint, Writing, Editor, Cover, Marketing,
- * Export (last). The marker shows each step's state from the book; the filled pill shows the page you are on.
- * Used inside the step rail (shell/StepRail). The list scrolls sideways when it does not fit and keeps the
- * current step in view; on phones only the current step shows its name.
+ * Export (last). The marker shows each step's state from the book; the navy pill shows the page you are on.
+ * Used inside the step bar (shell/StepRail). The list scrolls sideways when it does not fit and keeps the
+ * current step in view; under 761 px only the current step shows its name.
  */
 export function BookSteps({ book, current, runningBookId = null, className }: BookStepsProps) {
   const listRef = useRef<HTMLOListElement>(null);
@@ -76,7 +86,7 @@ export function BookSteps({ book, current, runningBookId = null, className }: Bo
     <ol
       ref={listRef}
       className={cn(
-        "relative flex min-w-0 items-center gap-0.5 overflow-x-auto px-3 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        "relative flex min-w-0 items-center gap-0.5 overflow-x-auto px-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         "[mask-image:linear-gradient(90deg,transparent,black_12px,black_calc(100%-12px),transparent)]",
         className,
       )}
@@ -90,14 +100,12 @@ export function BookSteps({ book, current, runningBookId = null, className }: Bo
               to={`/books/${book.id}/${s.id}`}
               aria-current={here ? "step" : undefined}
               className={cn(
-                "flex h-11 min-w-11 items-center justify-center gap-2 rounded-control px-2.5 text-label whitespace-nowrap transition-colors duration-(--vol-dur-fast) ease-out",
-                here
-                  ? "bg-nav-active font-semibold text-on-nav-active shadow-nav-active"
-                  : "font-medium text-ink-secondary hover:bg-glass-strong hover:text-ink max-sm:px-2",
+                "flex h-9 items-center justify-center gap-1.5 rounded-[11px] px-[9px] text-[13px] font-medium whitespace-nowrap transition-colors duration-(--vol-dur-fast) ease-out",
+                here ? "bg-btn text-on-btn" : "text-ink-2 hover:bg-soft hover:text-ink max-[760px]:px-2",
               )}
             >
               <StepMarker state={state} n={i + 1} onDark={here} />
-              <span className={cn(!here && "max-sm:sr-only")}>{s.label}</span>
+              <span className={cn(!here && "max-[760px]:sr-only")}>{s.label}</span>
               <span className="sr-only">
                 , step {i + 1} of {bookSteps.length}, {stepStateWords[state]}
               </span>

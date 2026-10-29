@@ -47,11 +47,11 @@ export function SegmentedControl<T extends string>({ label, options, value, onCh
       role="radiogroup"
       aria-label={label}
       onKeyDown={onKey}
-      className={cn("relative inline-grid grid-flow-col auto-cols-fr rounded-sm bg-sunken p-[3px]", size === "md" ? "h-10" : "h-9", className)}
+      className={cn("relative inline-grid grid-flow-col auto-cols-fr rounded-md border border-edge bg-soft p-[3px]", size === "md" ? "h-10" : "h-9", className)}
     >
       <span
         aria-hidden
-        className="absolute top-[3px] bottom-[3px] left-[3px] rounded-xs bg-sheet shadow-[0_0_0_1px_var(--vol-border)] transition-transform duration-(--vol-dur-base) ease-out"
+        className="absolute top-[3px] bottom-[3px] left-[3px] rounded-sm bg-panel-2 shadow-segment transition-transform duration-(--vol-dur-base) ease-out"
         style={{ width: `calc((100% - 6px) / ${options.length})`, transform: `translateX(${index * 100}%)` }}
       />
       {options.map((o, i) => {
@@ -70,12 +70,12 @@ export function SegmentedControl<T extends string>({ label, options, value, onCh
             tabIndex={checked ? 0 : -1}
             onClick={() => onChange(o.value)}
             className={cn(
-              "relative z-[1] inline-flex items-center justify-center gap-1.5 rounded-xs px-3.5 text-[13.5px] font-medium whitespace-nowrap",
+              "relative z-[1] inline-flex items-center justify-center gap-1.5 rounded-sm px-3 text-[13px] font-medium whitespace-nowrap",
               "focus-visible:outline-offset-1",
-              checked ? "text-ink" : "text-ink-secondary hover:text-ink",
+              checked ? "text-ink" : "text-ink-2 hover:text-ink",
             )}
           >
-            {Icon && <Icon size={16} aria-hidden />}
+            {Icon && <Icon size={16} strokeWidth={1.8} aria-hidden />}
             {!o.iconOnly && o.label}
           </button>
         );

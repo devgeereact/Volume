@@ -14,6 +14,7 @@ Every screen uses the app shell from `docs/03-design/DESIGN-SYSTEM.md`: left nav
 | `/profiles` | Profiles |
 | `/profiles/:id` | Profile editor (`/profiles/new` to add) |
 | `/books/new` | New book wizard |
+| `/books/:id/overview` | Book overview (profile, working and ledger columns; the first tab in the step bar) |
 | `/books/:id/research` | Research |
 | `/books/:id/titles` | Titles |
 | `/books/:id/blueprint` | Blueprint |
@@ -85,6 +86,15 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 - **Components:** chapter card (title, subheadings, summary with word count, target), "Regenerate this part" with optional instruction, version compare, approve bar.
 - **Primary action:** Approve blueprint (disabled with the list of what is missing).
 - **Empty:** "Build the blueprint" with cost. **Loading:** parts fill in as they arrive. **Error:** schema failure shows "The plan came back incomplete. Try again or pick another model."
+
+### Approved Studio layout (D-066, 29 October 2026)
+- Every screen follows the approved Volume Studio artifact. Where a section below disagrees on layout, the artifact and D-066 win; the functions listed below all stay.
+- **Shell:** labelled side card with a status box (Writing now or Nothing running, OpenRouter, month spend, credit left when known, Pause or Resume, Open Volume mode). No bottom job bar.
+- **Library:** four tiles, a Writing now card, All books (filter, All profiles, Covers, Shelves and Ledger), Needs you and Releases, next 7 days.
+- **Blueprint:** Outline card and a right card with the chosen chapter, the whole book, claims and versions. Arrange sections and the full plan open as dialogs.
+- **Writing:** five figure tiles, sections, the live page and a checks card. **Editor:** manuscript list, page with find, focus mode and undo, and Style, Claims and Notes tabs.
+- **Marketing:** a launch kit in the cover colours with generic previews and Copy; no counts or logos. **Export:** preflight rows, files grid, KDP pack and the royalty calculator.
+- **Cover studio:** concepts, layers, a canvas that fits, Edit and Checks tabs, palettes (saved as `typography.colours`) and a paperback what-if from `config/kdp-rules/`. Gradient, image and shape layers wait for print parity.
 
 ### Writing [M7]
 - **Purpose:** watch the book being written and handle anything that needs attention.

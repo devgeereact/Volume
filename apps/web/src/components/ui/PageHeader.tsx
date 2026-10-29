@@ -8,7 +8,7 @@ interface PageHeaderProps {
   title: ReactNode;
   /** One-line summary beside or under the title ("8 books, one writing now"). */
   summary?: ReactNode | undefined;
-  /** Right-hand tools. Put the screen's one primary (gilt) action last. */
+  /** Right-hand tools. Put the screen's one primary (navy) action last. */
   actions?: ReactNode | undefined;
   /** Hide the h1 visually when another element is the visual heading (book screens). */
   titleHidden?: boolean | undefined;
@@ -16,9 +16,9 @@ interface PageHeaderProps {
 }
 
 /** Title style inside a book's step head (shell/StepHead), shared with the head's own default title. */
-export const stepHeadTitleClasses = "font-book text-heading text-ink";
+export const stepHeadTitleClasses = "text-step-title text-ink";
 /** Purpose line style inside a book's step head. */
-export const stepHeadSummaryClasses = "mt-0.5 max-w-[72ch] text-body text-ink-secondary";
+export const stepHeadSummaryClasses = "mt-0.5 max-w-[72ch] text-[13.5px] leading-[1.45] text-ink-2";
 
 /**
  * Screen header: title, summary, then tools on the right. Wraps under 1024 px.
@@ -43,7 +43,9 @@ export function PageHeader({ title, summary, actions, titleHidden = false, class
       <>
         {slots.title && createPortal(<h1 className={stepHeadTitleClasses}>{title}</h1>, slots.title)}
         {summary && slots.summary && createPortal(<p className={stepHeadSummaryClasses}>{summary}</p>, slots.summary)}
-        {actions && slots.actions && createPortal(<div className="flex flex-wrap items-center gap-2">{actions}</div>, slots.actions)}
+        {actions &&
+          slots.actions &&
+          createPortal(<div className="flex flex-wrap items-center justify-end gap-2 max-[760px]:justify-start">{actions}</div>, slots.actions)}
       </>
     );
   }

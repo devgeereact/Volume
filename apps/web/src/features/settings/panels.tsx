@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Check, Copy, Download, HardDriveDownload, PlugZap, Save } from "lucide-react";
-import { Banner, Button, EmptyState, Figure, IconButton, Input, KeyValueList, SegmentedControl, Select, StatusChip, Switch } from "../../components/ui";
+import { Banner, Button, EmptyState, IconButton, Input, KeyValueList, SegmentedControl, Select, StatusChip, Switch } from "../../components/ui";
 import { books, DEMO_NOW } from "../../demo/books";
 import { bookCategories, bookTypes, bookTypesIn, coverStyles, getBookType, getCoverStyle, getInteriorTheme, interiorThemes } from "../../demo/config";
 import { workspace } from "../../demo/workspace";
@@ -9,7 +9,7 @@ import { formatDate, formatNumber, formatRelative, formatTime, formatUsd } from 
 import { useTheme } from "../../lib/theme";
 import type { DemoState } from "../library/demoState";
 import { TRIM_HINT, TRIM_OPTIONS } from "../profiles/PublishingTab";
-import { InlineStatus, PanelHeader, SaveAction } from "./PanelHeader";
+import { InlineStatus, PanelHeader, SaveAction, SettingRow, SettingsSection } from "./PanelHeader";
 
 /* Settings panels other than Models. Demo values come from src/data/workspace.ts; the prototype never
    reads a key and never calls OpenRouter. */
@@ -34,15 +34,12 @@ function useFakeAction(ms: number): [boolean, (done: () => void) => void] {
   ];
 }
 
+/** A titled section card in a Settings panel (approved design, .set-sec). */
 export function Block({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode | undefined }) {
   return (
-    <section className="grid gap-4 rounded-md border border-border bg-sheet p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-subhead text-ink">{title}</h3>
-        {aside}
-      </div>
+    <SettingsSection title={title} aside={aside}>
       {children}
-    </section>
+    </SettingsSection>
   );
 }
 
@@ -72,25 +69,11 @@ export function KeyPanel({ state, retry }: { state: DemoState; retry: () => void
     );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-[18px]">
       <PanelHeader
         title="OpenRouter"
         body="Volume reaches every model through OpenRouter with one key that stays on the server."
-        actions={
-          <Button
-            icon={PlugZap}
-            loading={testing}
-            loadingLabel="Testing"
-            onClick={() =>
-              runTest(() => {
-                setCheckedAt(DEMO_NOW);
-                setResult(`Connected at ${formatTime(DEMO_NOW)}. OpenRouter accepted the key and reported ${formatUsd(or.creditUsd ?? 0)} of credit left.`);
-              })
-            }
-          >
-            Test connection
-          </Button>
-        }
+        actions={state === "error" ? <StatusChip status="attention">Not reachable</StatusChip> : <StatusChip status="passed">Connected</StatusChip>}
       />
       {state === "error" ? (
         <Banner
@@ -111,41 +94,87 @@ export function KeyPanel({ state, retry }: { state: DemoState; retry: () => void
           </Banner>
         )
       )}
-      <Block
-        title="Key status"
-        aside={state === "error" ? <StatusChip status="attention">Not reachable</StatusChip> : <StatusChip status="passed">Connected</StatusChip>}
-      >
-        <div className="grid gap-x-10 gap-y-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <KeyValueList
-            items={[
-              { label: "Key", value: or.keyPresent ? "Present on the server" : "Missing" },
-              { label: "Key is valid", value: state === "error" ? "Not checked" : "Yes" },
-              { label: "Credit left", value: or.creditUsd === null ? "Not reported" : formatUsd(or.creditUsd) },
-              { label: "Last checked", value: formatRelative(checkedAt) },
-            ]}
-          />
-          <div className="grid content-start gap-2 border-t border-border pt-4 text-small text-ink-secondary md:border-t-0 md:border-l md:pt-0 md:pl-10">
-            <p className="font-semibold text-ink">Where the key lives</p>
-            <p>
-              In the server’s .env file as <span className="font-mono text-[12.5px] text-ink">OPENROUTER_API_KEY</span>. Volume never shows it, logs it or sends
-              it to the browser, not even in part.
-            </p>
-            <p>To change it, edit the file and restart the server.</p>
-          </div>
+      <SettingsSection title="Key">
+        <div>
+          <SettingRow
+            title="API key"
+            body={
+              <>
+                Kept on the server as <span className="font-mono text-[12px] text-ink-2">OPENROUTER_API_KEY</span>. Volume never shows it, logs it or sends it
+                to the browser, not even in part.
+              </>
+            }
+          >
+            {!or.keyPresent ? (
+              <StatusChip status="attention">Missing</StatusChip>
+            ) : state === "error" ? (
+              <StatusChip tone="info">Present, not checked</StatusChip>
+            ) : (
+              <StatusChip status="passed">Present and valid</StatusChip>
+            )}
+          </SettingRow>
+          <SettingRow title="Credit left" body={`Last checked ${formatRelative(checkedAt).toLowerCase()}.`}>
+            <span className="num text-[28px] leading-none font-light tracking-[-0.02em] text-ink">
+              {or.creditUsd === null ? "Not reported" : formatUsd(or.creditUsd)}
+            </span>
+          </SettingRow>
+          <SettingRow title="Test the connection" body="Sends one small request to OpenRouter.">
+            <Button
+              icon={PlugZap}
+              loading={testing}
+              loadingLabel="Testing"
+              onClick={() =>
+                runTest(() => {
+                  setCheckedAt(DEMO_NOW);
+                  setResult(`Connected at ${formatTime(DEMO_NOW)}. OpenRouter accepted the key and reported ${formatUsd(or.creditUsd ?? 0)} of credit left.`);
+                })
+              }
+            >
+              Test connection
+            </Button>
+          </SettingRow>
         </div>
-      </Block>
-      <Banner tone="info" title="Set a spending limit on the key if you want one">
-        Volume has no spending cap of its own. In your OpenRouter account you can cap what this key may spend. See what the AI has cost on the{" "}
-        <Link to="/settings/budgets" className="font-semibold text-select underline underline-offset-2">
-          spending
-        </Link>{" "}
-        page.
-      </Banner>
+      </SettingsSection>
+      <KeySafetyNet />
     </div>
   );
 }
 
+/** Where to cap the key and how to change it; shared with the server version of the OpenRouter panel. */
+export function KeySafetyNet() {
+  return (
+    <SettingsSection title="Safety net">
+      <div>
+        <SettingRow
+          title="Cap the key in OpenRouter"
+          body={
+            <>
+              Volume has no spending cap of its own. Your OpenRouter account can limit what this key may spend, as a second safety net. See what the AI has cost
+              on the{" "}
+              <Link to="/settings/budgets" className="font-semibold text-select underline underline-offset-2">
+                spending
+              </Link>{" "}
+              page.
+            </>
+          }
+        />
+        <SettingRow title="Change the key" body="Edit the server’s environment file and restart the server. The browser never sees it." />
+      </div>
+    </SettingsSection>
+  );
+}
+
 /* ---------- Spending (D-057: no book or monthly cap) ---------- */
+
+/** This month's spend as the approved design's light figure (.statpill b), with its words beside it. */
+export function SpendFigure({ usd }: { usd: number }) {
+  return (
+    <p className="flex flex-wrap items-baseline gap-x-2">
+      <span className="num text-[28px] leading-none font-light tracking-[-0.02em] text-ink">{formatUsd(usd)}</span>
+      <span className="text-small text-ink-3">spent this month</span>
+    </p>
+  );
+}
 
 export function BudgetsPanel() {
   const spend = workspace.spend;
@@ -156,8 +185,8 @@ export function BudgetsPanel() {
         body="Volume has no book or monthly spending cap. It records what the AI costs and pauses a job only when the AI provider runs out of credit, then tells you to top up."
       />
       <Block title={`${spend.monthLabel} so far`}>
-        <Figure value={formatUsd(spend.spentUsd)} unit="spent this month" />
-        <p className="text-small text-ink-secondary">All books and profiles together, in dollars as the AI provider bills.</p>
+        <SpendFigure usd={spend.spentUsd} />
+        <p className="text-small text-ink-2">All books and profiles together, in dollars as the AI provider bills.</p>
       </Block>
     </div>
   );
@@ -227,77 +256,81 @@ export function BookDefaultsPanel() {
         }
       />
       {status && !dirty && <InlineStatus>{status}</InlineStatus>}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Select
-          label="Book type"
-          value={v.type}
-          onChange={chooseType}
-          options={bookTypeOptions}
-          hint={type ? `${type.description} Choosing a type fills in its length, trim, interior and cover style.` : undefined}
-          className="sm:col-span-2"
-        />
-        <Select label="Trim size" value={v.trim} onChange={(trim) => setV({ ...v, trim })} options={TRIM_OPTIONS} hint={TRIM_HINT} />
-        <fieldset className="grid content-start gap-1.5">
-          <legend className="mb-1.5 text-label text-ink">Paper</legend>
-          <SegmentedControl<"cream" | "white">
-            label="Paper"
-            value={v.paper}
-            onChange={(paper) => setV({ ...v, paper })}
-            options={[
-              { value: "cream", label: "Cream" },
-              { value: "white", label: "White" },
-            ]}
-            className="w-full sm:w-60"
-          />
-          <p className="text-small text-ink-tertiary">Cream suits text-led books. Spine width depends on it.</p>
-        </fieldset>
-        <Select
-          label="Interior theme"
-          value={v.theme}
-          onChange={(theme) => setV({ ...v, theme })}
-          options={interiorThemes.map((t) => ({ value: t.id, label: t.name }))}
-          hint={getInteriorTheme(v.theme)?.description}
-        />
-        <Select
-          label="Cover style"
-          value={v.cover}
-          onChange={(cover) => setV({ ...v, cover })}
-          options={coverStyles.map((c) => ({ value: c.id, label: c.name }))}
-          hint={getCoverStyle(v.cover)?.description}
-        />
-      </div>
-      <fieldset className="grid gap-4">
-        <legend className="mb-3 text-subhead text-ink">Length</legend>
+      <SettingsSection title="Every new book">
         <div className="grid gap-5 sm:grid-cols-2">
-          <Input
-            label="Book length, words"
-            inputMode="numeric"
-            value={v.total}
-            onChange={(e) => setV({ ...v, total: e.target.value })}
-            error={totalError}
-            hint={type ? `${formatNumber(type.wordRange.min)} to ${formatNumber(type.wordRange.max)} for this book type` : undefined}
+          <Select
+            label="Book type"
+            value={v.type}
+            onChange={chooseType}
+            options={bookTypeOptions}
+            hint={type ? `${type.description} Choosing a type fills in its length, trim, interior and cover style.` : undefined}
+            className="sm:col-span-2"
           />
-          <Input
-            label={unitLabel}
-            inputMode="numeric"
-            value={v.chapters}
-            onChange={(e) => setV({ ...v, chapters: e.target.value })}
-            error={chaptersError}
-            hint={
-              type
-                ? `${formatNumber(type.chapterRange.min)} to ${formatNumber(type.chapterRange.max)}${perUnit ? `, about ${formatNumber(perUnit)} words each` : ""}`
-                : undefined
-            }
+          <Select label="Trim size" value={v.trim} onChange={(trim) => setV({ ...v, trim })} options={TRIM_OPTIONS} hint={TRIM_HINT} />
+          <fieldset className="grid content-start gap-1.5">
+            <legend className="mb-1.5 text-label text-ink">Paper</legend>
+            <SegmentedControl<"cream" | "white">
+              label="Paper"
+              value={v.paper}
+              onChange={(paper) => setV({ ...v, paper })}
+              options={[
+                { value: "cream", label: "Cream" },
+                { value: "white", label: "White" },
+              ]}
+              className="w-full sm:w-60"
+            />
+            <p className="text-small text-ink-3">Cream suits text-led books. Spine width depends on it.</p>
+          </fieldset>
+          <Select
+            label="Interior theme"
+            value={v.theme}
+            onChange={(theme) => setV({ ...v, theme })}
+            options={interiorThemes.map((t) => ({ value: t.id, label: t.name }))}
+            hint={getInteriorTheme(v.theme)?.description}
+          />
+          <Select
+            label="Cover style"
+            value={v.cover}
+            onChange={(cover) => setV({ ...v, cover })}
+            options={coverStyles.map((c) => ({ value: c.id, label: c.name }))}
+            hint={getCoverStyle(v.cover)?.description}
           />
         </div>
-      </fieldset>
-      <Switch
-        label="British English"
-        description="Version 1 writes in British English. Spelling and phrasing follow the house style, so this stays on."
-        checked
-        disabled
-        onChange={() => undefined}
-      />
+      </SettingsSection>
+      <SettingsSection title="Length and language">
+        <fieldset className="grid gap-4">
+          <legend className="sr-only">Length</legend>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Input
+              label="Book length, words"
+              inputMode="numeric"
+              value={v.total}
+              onChange={(e) => setV({ ...v, total: e.target.value })}
+              error={totalError}
+              hint={type ? `${formatNumber(type.wordRange.min)} to ${formatNumber(type.wordRange.max)} for this book type` : undefined}
+            />
+            <Input
+              label={unitLabel}
+              inputMode="numeric"
+              value={v.chapters}
+              onChange={(e) => setV({ ...v, chapters: e.target.value })}
+              error={chaptersError}
+              hint={
+                type
+                  ? `${formatNumber(type.chapterRange.min)} to ${formatNumber(type.chapterRange.max)}${perUnit ? `, about ${formatNumber(perUnit)} words each` : ""}`
+                  : undefined
+              }
+            />
+          </div>
+        </fieldset>
+        <Switch
+          label="British English"
+          description="Version 1 writes in British English. Spelling and phrasing follow the house style, so this stays on."
+          checked
+          disabled
+          onChange={() => undefined}
+        />
+      </SettingsSection>
     </div>
   );
 }
@@ -310,8 +343,7 @@ export function AppearancePanel() {
   return (
     <div className="grid gap-6">
       <PanelHeader title="Appearance" body="Paper and cloth by day, the night desk after dark. Changes apply straight away." />
-      <div className="grid gap-2">
-        <p className="text-label text-ink">Theme</p>
+      <SettingsSection title="Theme" className="gap-3">
         <SegmentedControl<"light" | "dark" | "system">
           label="Theme"
           value={value}
@@ -323,15 +355,22 @@ export function AppearancePanel() {
           ]}
           className="w-full sm:w-[360px]"
         />
-        <p role="status" className="text-small text-ink-secondary">
+        <p role="status" className="text-small text-ink-2">
           {preference === null
             ? `Following this computer’s setting, so the ${theme} theme is on now.`
             : `The ${theme} theme stays on until you change it here.`}
         </p>
-      </div>
-      <Banner tone="info" title="Motion follows your system">
-        When “reduce motion” is on in your system settings, page turns, cover lifts and streaming text become simple fades, and nothing moves on its own.
-      </Banner>
+      </SettingsSection>
+      <SettingsSection title="Motion">
+        <div>
+          <SettingRow
+            title="Reduced motion"
+            body="When “reduce motion” is on in your system settings, page turns, cover lifts and streaming text become simple fades, and nothing moves on its own."
+          >
+            <span className="text-[14px] font-semibold text-ink">Follows your system</span>
+          </SettingRow>
+        </div>
+      </SettingsSection>
     </div>
   );
 }
@@ -429,7 +468,7 @@ export function BackupsPanel() {
       </Block>
 
       <Block title="Export a project">
-        <p className="max-w-[62ch] text-small text-ink-secondary">
+        <p className="max-w-[62ch] text-small text-ink-2">
           A zip with the manuscript, versions, covers, exports and settings, so you can move a book to another computer or keep an archive.
         </p>
         <div className="flex flex-wrap items-end gap-3">
@@ -504,7 +543,7 @@ export function HouseStyleRules() {
       <Block title="Spelling, a few examples">
         <table className="w-full max-w-[420px] text-[14px]">
           <thead>
-            <tr className="text-left text-[12.5px] text-ink-secondary">
+            <tr className="text-left text-[12.5px] text-ink-2">
               <th scope="col" className="pb-2 font-semibold">
                 US spelling
               </th>
@@ -515,8 +554,8 @@ export function HouseStyleRules() {
           </thead>
           <tbody>
             {SPELLING_EXAMPLES.map(([us, uk]) => (
-              <tr key={us} className="border-t border-border">
-                <td className="py-2 text-ink-secondary">{us}</td>
+              <tr key={us} className="border-t border-line">
+                <td className="py-2 text-ink-2">{us}</td>
                 <td className="py-2 font-semibold text-ink">{uk}</td>
               </tr>
             ))}
@@ -554,7 +593,7 @@ export function KdpRulesPanel() {
             { label: "Next check due", value: formatDate(`${kr.recheckDue}T09:00:00+00:00`) },
           ]}
         />
-        <p className="max-w-[62ch] text-small text-ink-secondary">
+        <p className="max-w-[62ch] text-small text-ink-2">
           Some rules are still marked unverified, such as the trim size list. Export preflight warns while a rule it uses is unverified.
         </p>
       </Block>
@@ -591,7 +630,7 @@ export function AboutFonts() {
         <li>
           <span className="font-book">Literata</span> for book text, SIL Open Font Licence 1.1
         </li>
-        <li>Schibsted Grotesk for the interface, SIL Open Font Licence 1.1</li>
+        <li>Manrope for the interface, SIL Open Font Licence 1.1</li>
         <li>
           <span className="font-mono text-[13px]">JetBrains Mono</span> for model IDs and keys, SIL Open Font Licence 1.1
         </li>

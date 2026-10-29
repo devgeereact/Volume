@@ -16,7 +16,7 @@ type Pending = { kind: "member"; member: ApiMember } | { kind: "invitation"; inv
 
 function MembersSkeleton() {
   return (
-    <div role="status" aria-label="Loading members" className="grid gap-3 rounded-md border border-border bg-sheet p-5">
+    <div role="status" aria-label="Loading members" className="grid gap-3 vol-glass rounded-card p-[22px] max-[560px]:p-4">
       <Skeleton className="h-4 w-1/3" />
       <Skeleton className="h-4 w-1/2" />
       <Skeleton className="h-4 w-2/5" />
@@ -144,8 +144,8 @@ export function MembersPanel({ me }: { me: VolumeMe }) {
 
       {data.state === "ready" && (
         <>
-          <section aria-labelledby="invite-heading" className="grid gap-4 rounded-md border border-border bg-sheet p-5">
-            <h3 id="invite-heading" className="text-subhead text-ink">
+          <section aria-labelledby="invite-heading" className="grid gap-4 vol-glass rounded-card p-[22px] max-[560px]:p-4">
+            <h3 id="invite-heading" className="text-[15px] leading-6 font-bold text-ink">
               Invite someone
             </h3>
             <form
@@ -185,29 +185,29 @@ export function MembersPanel({ me }: { me: VolumeMe }) {
           )}
 
           <section aria-labelledby="members-heading" className="grid gap-3">
-            <h3 id="members-heading" className="text-subhead text-ink">
-              Members <span className="num font-normal text-ink-secondary">({data.members.length})</span>
+            <h3 id="members-heading" className="text-[15px] leading-6 font-bold text-ink">
+              Members <span className="num font-normal text-ink-2">({data.members.length})</span>
             </h3>
-            <ul className="grid overflow-hidden rounded-md border border-border bg-sheet">
+            <ul className="grid vol-glass overflow-hidden rounded-card">
               {data.members.map((m) => {
                 const fixed = m.isYou || m.role === "owner";
                 return (
-                  <li key={m.userId} className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-border px-4 py-3.5 first:border-t-0">
-                    <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-pill bg-sunken text-ink-secondary">
+                  <li key={m.userId} className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line px-4 py-3.5 first:border-t-0">
+                    <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-pill bg-soft text-ink-2">
                       <UserRound size={16} />
                     </span>
                     <span className="grid min-w-0 flex-1 basis-48 gap-0.5">
                       <span className="text-label font-semibold text-ink">
                         {m.displayName}
-                        {m.isYou && <span className="ml-2 text-small font-normal text-ink-secondary">(you)</span>}
+                        {m.isYou && <span className="ml-2 text-small font-normal text-ink-2">(you)</span>}
                       </span>
-                      <span className="text-small text-ink-secondary">
+                      <span className="text-small text-ink-2">
                         {m.email ?? "Owner account"}
                         {m.signedIn ? "" : ". Has not signed in yet"}. Joined {formatDate(iso(m.joinedAt))}
                       </span>
                     </span>
                     {fixed ? (
-                      <span className="text-small font-semibold text-ink-secondary">{roleLabels[m.role]}</span>
+                      <span className="text-small font-semibold text-ink-2">{roleLabels[m.role]}</span>
                     ) : (
                       <span className="flex items-end gap-1">
                         <Select
@@ -231,18 +231,18 @@ export function MembersPanel({ me }: { me: VolumeMe }) {
           </section>
 
           <section aria-labelledby="invites-heading" className="grid gap-3">
-            <h3 id="invites-heading" className="text-subhead text-ink">
-              Waiting to sign in <span className="num font-normal text-ink-secondary">({data.invitations.length})</span>
+            <h3 id="invites-heading" className="text-[15px] leading-6 font-bold text-ink">
+              Waiting to sign in <span className="num font-normal text-ink-2">({data.invitations.length})</span>
             </h3>
             {data.invitations.length === 0 ? (
-              <p className="text-small text-ink-secondary">No invitations are waiting.</p>
+              <p className="text-small text-ink-2">No invitations are waiting.</p>
             ) : (
-              <ul className="grid overflow-hidden rounded-md border border-border bg-sheet">
+              <ul className="grid vol-glass overflow-hidden rounded-card">
                 {data.invitations.map((i) => (
-                  <li key={i.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-4 py-3 first:border-t-0">
+                  <li key={i.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-3 first:border-t-0">
                     <span className="grid min-w-0 flex-1 basis-48 gap-0.5">
                       <span className="text-label font-semibold break-all text-ink">{i.email}</span>
-                      <span className="text-small text-ink-secondary">
+                      <span className="text-small text-ink-2">
                         {i.role === "owner" ? "Separate self-publisher" : roleLabels[i.role]}. Invited {formatDate(iso(i.createdAt))}
                       </span>
                     </span>

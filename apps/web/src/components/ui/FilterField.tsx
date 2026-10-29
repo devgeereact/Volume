@@ -1,5 +1,5 @@
 import { useId, useRef } from "react";
-import { ListFilter, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { fieldBoxClasses } from "./FieldShell";
 
@@ -18,7 +18,7 @@ interface FilterFieldProps {
 
 /**
  * Narrows the list on this page. It is a filter, not a second search: one global search sits in the
- * top bar (Cmd K, D-016). 44 px tall, a clear button appears when there is text, and Escape clears.
+ * top bar (Cmd K, D-016). The approved design's .search: 40 px tall, a clear button appears when there is text, and Escape clears.
  */
 export function FilterField({ value, onChange, label = "Filter", showLabel = false, placeholder = "Filter", count, className }: FilterFieldProps) {
   const id = useId();
@@ -29,7 +29,7 @@ export function FilterField({ value, onChange, label = "Filter", showLabel = fal
         {label}
       </label>
       <span className="relative flex items-center">
-        <ListFilter size={16} className="pointer-events-none absolute left-3 text-ink-tertiary" aria-hidden />
+        <Search size={16} strokeWidth={1.8} className="pointer-events-none absolute left-3 text-ink-3" aria-hidden />
         <input
           ref={inputRef}
           id={id}
@@ -47,7 +47,7 @@ export function FilterField({ value, onChange, label = "Filter", showLabel = fal
               onChange("");
             }
           }}
-          className={cn(fieldBoxClasses({ error: false, disabled: false }), "h-11 pl-9", value && "pr-11")}
+          className={cn(fieldBoxClasses({ error: false, disabled: false }), "h-10 pl-9", value && "pr-10")}
         />
         {value && (
           <button
@@ -57,7 +57,7 @@ export function FilterField({ value, onChange, label = "Filter", showLabel = fal
               inputRef.current?.focus();
             }}
             aria-label={`Clear ${label.toLowerCase()}`}
-            className="absolute right-0 grid size-11 place-items-center rounded-sm text-ink-tertiary hover:text-ink"
+            className="absolute right-0 grid size-10 place-items-center rounded-md text-ink-3 hover:text-ink"
           >
             <X size={16} aria-hidden />
           </button>

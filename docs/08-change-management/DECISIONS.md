@@ -480,8 +480,17 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
 
 ## D-065, 28 October 2026: frost and glass for the app shell (studio redesign, stage 1)
 
-- **Status:** Accepted (owner approved the studio redesign plan, 28 October 2026, and said "go ahead" on the stage 1 screenshots).
+- **Status:** Superseded by D-066 (29 October 2026). Accepted (owner approved the studio redesign plan, 28 October 2026, and said "go ahead" on the stage 1 screenshots).
 - **Context:** the owner chose the Volume Studio prototype as the new look. Its shell (side menu, top bar, job bar, cards) sits on a pale frost sky with soft mountains in light and deep navy in dark, with translucent glass layers. D-014 said cards are flat and gradients are never decoration.
 - **Decision:** the app shell uses frost and glass. Values live in `packages/ui/glass.css`, hand written and imported after `tokens.css` and `theme.css`. Glass is only for the side menu, the top bar, the job bar and cards. Every glass layer turns solid without `backdrop-filter` or when the system asks for less transparency. Body text stays at 4.5:1 or more on the darkest backdrop each layer can sit on. Book content keeps the D-014 rules: covers are the only pictures, Literata for the book, gilt for the one next step. Plan: `docs/08-change-management/plans/2026-10-28-studio-redesign.md`.
 - **Options considered:** retuning `tokens.json` and the generated files (rejected for now: the frost values need translucency the build script does not check); Manrope as in the prototype (rejected: new font package, Schibsted Grotesk stays).
 - **Consequences:** the light hills are fainter than in the prototype to keep hint text at 4.5:1. The warm grey step bar and footer clash a little with the frost until stage 2 replaces them.
+
+## D-066, 29 October 2026: the app follows the approved Volume Studio artifact
+
+- **Status:** Accepted (owner, 29 October 2026: what is live "is totally different from what's in the approved artifacts", build it, commit, push and deploy it all). Supersedes D-065. The owner approved adding `@fontsource-variable/manrope` 5.3.0.
+- **Context:** stages 1 to 4a took ideas from the Studio prototype but kept the older app look: an icon rail, gilt accents, serif step heads and a bottom job bar. The approved artifact ("Volume Studio", frost edition) has a labelled side card with a status box, a navy accent, Manrope for the interface, a misty mountain scene behind glass cards and a different layout per page.
+- **Decision:** the artifact is the reference for every screen. Its frost palette, radii (22 cards, 12 controls) and scene become the tokens in `packages/ui`, regenerated from `tokens.json`. Manrope is the interface font; Literata stays for book text. The bottom job bar is gone; its status and controls live in the side status box. The gilt accent is retired. Exceptions to the artifact: no budget lines or caps (D-057), no invented counts, credit left only when the provider reports it, no ratings or store branding in previews, KDP values only from `config/kdp-rules/`, and cover controls that cannot yet print the same (gradient, image, shape layers) wait for a cover spec change with print parity.
+- **Options considered:** keep the D-065 shell and restyle pages only (rejected by the owner); load Manrope from Google Fonts (rejected: no runtime calls to other services).
+- **Consequences:** most screens change look at once. The design contrast script under `design/` has not been updated for the translucent colours; contrast is sampled by hand. The Schibsted Grotesk package is no longer used and can be removed with the owner's OK.
+

@@ -1,55 +1,79 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Outlet, ScrollRestoration, useLocation, useMatch } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
 import { IconButton } from "../components/ui/IconButton";
-import { getBook } from "../demo/books";
+import { workspace } from "../demo/workspace";
 import { cn } from "../lib/cn";
 import { dur, ease } from "../lib/motion";
-import { useWritingJob } from "../lib/job";
-import { useBreakpoint } from "../lib/useMediaQuery";
+import { useMediaQuery } from "../lib/useMediaQuery";
 import { useFocusTrap } from "../lib/useFocusTrap";
-import { bookStepPath } from "../screens";
 import { CommandPalette } from "./CommandPalette";
 import { useSettings } from "../api/hooks";
 import { Banner } from "../components/ui";
 import { useWorkspaceEvents } from "../api/events";
-import { toWiredBook, useApiBooks, useRunningJobs, useWireMode, stepForJob } from "../api/wire-a";
-import { ApiJobBar, JobBar } from "./JobBar";
+import { useWireMode } from "../api/wire-a";
 import { Spine } from "./Spine";
 import { NotConnectedBanner } from "./NotConnectedBanner";
 import { TopBar } from "./TopBar";
 import { useKeyChanged } from "../lib/useKeyChanged";
 
-/** The frost sky and hills behind the whole app (navy at night). Decorative, fixed, drawn once. */
+/** The misty mountain scene behind the whole app (approved design, frost edition). Decorative, fixed, drawn once. */
 function Scene() {
   return (
     <div aria-hidden className="vol-scene">
       <svg viewBox="0 0 1440 600" preserveAspectRatio="xMidYMax slice" focusable="false">
         <path
-          className="vol-hill-back"
+          className="vol-m3"
           d="M0 330 L120 250 L210 290 L330 170 L450 260 L560 200 L700 120 L820 230 L930 180 L1060 260 L1180 150 L1300 240 L1440 190 L1440 600 L0 600Z"
         />
         <path
-          className="vol-hill-mid"
+          className="vol-m2"
           d="M0 400 L140 320 L260 380 L400 290 L520 360 L660 300 L780 380 L900 320 L1040 390 L1180 310 L1320 370 L1440 330 L1440 600 L0 600Z"
         />
-        <path className="vol-hill-front" d="M0 470 L180 420 L340 470 L520 430 L700 480 L880 440 L1060 490 L1240 440 L1440 480 L1440 600 L0 600Z" />
+        <path className="vol-m1" d="M0 470 L180 420 L340 470 L520 430 L700 480 L880 440 L1060 490 L1240 440 L1440 480 L1440 600 L0 600Z" />
       </svg>
     </div>
   );
 }
 
+/** The foot pill under every screen but a book's: where the data comes from and the rule versions. */
+function Foot() {
+  const mode = useWireMode();
+  const settings = useSettings({ enabled: mode === "api" });
+  const parts: ReactNode[] = [];
+  if (mode === "mock") {
+    parts.push(
+      <span key="demo">
+        <b className="font-semibold text-ink">Volume</b>, on demo data
+      </span>,
+      <span key="kdp">KDP rules {workspace.kdpRules.version}</span>,
+      <span key="style">House style v{workspace.houseStyle.version}</span>,
+    );
+  } else if (mode === "api") {
+    parts.push(
+      <span key="v">
+        <b className="font-semibold text-ink">Volume</b>
+      </span>,
+    );
+    if (settings.data?.kdpRulesVersion) parts.push(<span key="kdp">KDP rules {settings.data.kdpRulesVersion}</span>);
+    if (settings.data?.houseStyleVersion !== null && settings.data?.houseStyleVersion !== undefined)
+      parts.push(<span key="style">House style v{settings.data.houseStyleVersion}</span>);
+  }
+  if (parts.length === 0) return null;
+  return <footer className="flex flex-wrap gap-x-[18px] gap-y-1.5 px-4 pt-2 pb-[22px] text-caption font-normal text-ink-2 min-[861px]:px-6">{parts}</footer>;
+}
+
 /**
- * App shell from docs/03-design/DESIGN-SYSTEM.md, in the frost and glass look (studio redesign, stage 1):
- * a frosted side menu that floats 16 px from the window edges (240 px, or 64 px inside a book and on
- * tablets, a drawer on phones), a glass top bar, the screen, and the job bar while a job runs elsewhere.
- * The document scrolls; the side menu, top bar and job bar stay put. Screens with their own panes can use
- * the h-screen-fill utility for the space between the top bar and the job bar.
+ * App shell from the approved design (Volume Studio, frost edition): the misty scene behind everything,
+ * the labelled side menu card that floats 16 px from the window edges (a drawer on phones, under 861 px),
+ * the top bar, the screen and the foot line. The document scrolls; the side card and top bar stay put.
+ * The status box at the foot of the side card replaced the bottom live bar: it shows what is running,
+ * with Pause and Resume, and a failed job's notice. Screens with their own panes can use h-screen-fill.
  */
 export function AppShell() {
   const { pathname } = useLocation();
-  const bp = useBreakpoint();
+  const wide = useMediaQuery("(min-width: 861px)");
   const reduce = useReducedMotion();
   const bookMatch = useMatch("/books/:bookId/*");
   const mode = useWireMode();
@@ -60,32 +84,12 @@ export function AppShell() {
   useWorkspaceEvents({ enabled: api && !inBook });
   const settings = useSettings({ enabled: api });
   const anthropicEmpty = settings.data?.anthropic?.configured === true && settings.data.anthropic.outOfFundsAt !== null;
-  const apiBooks = useApiBooks(api);
-  const demoBook = getBook(bookId);
-  const apiRow = api && inBook && !demoBook ? apiBooks.data?.find((b) => b.id === bookId) : undefined;
-  const book = demoBook ?? (apiRow ? toWiredBook(apiRow) : undefined);
-  const demoJob = useWritingJob();
-  const { job } = demoJob;
-  // The demo writing job belongs to demo mode only, never to a server workspace (or while checking).
-  const running = demoJob.running && mode === "mock";
-  const serverJobs = useRunningJobs(api);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   useFocusTrap(drawerRef, drawerOpen);
 
-  const phone = bp === "phone";
-  const collapsed = bp === "tablet" || Boolean(book) || (api && inBook);
-  const onLibrary = pathname === "/library";
-  const onJobScreen = pathname.startsWith(bookStepPath(job.bookId, "writing"));
-  // A server job's bar hides on the Library (its own live line) and on the screen that shows that job.
-  const serverJob = serverJobs.find((j) => j.status === "failed" || !pathname.startsWith(bookStepPath(j.bookId, stepForJob(j.kind))));
-  const showApiJobBar = api && !onLibrary && serverJob !== undefined;
-  const showJobBar = (running && !onLibrary && !onJobScreen) || showApiJobBar;
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-jobbar", showJobBar ? "on" : "off");
-  }, [showJobBar]);
+  const phone = !wide;
 
   // The drawer closes on navigation and when the window grows past phone size.
   const pathChanged = useKeyChanged(pathname);
@@ -100,27 +104,27 @@ export function AppShell() {
   }, [drawerOpen]);
 
   return (
-    <div className={cn("isolate grid min-h-dvh", phone ? "grid-cols-1" : "grid-cols-[auto_minmax(0,1fr)]")}>
+    <div className={cn("isolate grid min-h-dvh", phone ? "grid-cols-1" : "grid-cols-[var(--vol-side)_minmax(0,1fr)]")}>
       <Scene />
       <a
         href="#main"
-        className="fixed top-2 left-2 z-[80] -translate-y-20 rounded-sm bg-raised px-4 py-2 text-label font-semibold text-ink shadow-pop focus:translate-y-0"
+        className="fixed top-3 left-3 z-[80] -translate-y-20 rounded-md bg-btn px-3.5 py-2 text-label font-semibold text-on-btn focus:translate-y-0"
       >
         Skip to content
       </a>
 
       {!phone && (
-        <div className="sticky top-0 h-dvh py-(--vol-shell-inset) pl-(--vol-shell-inset)">
-          <Spine collapsed={collapsed} book={book} />
+        <div className="sticky top-4 my-4 ml-4 h-[calc(100dvh-32px)]">
+          <Spine />
         </div>
       )}
 
-      <div className="flex min-w-0 flex-col">
+      <div className="flex min-h-dvh min-w-0 flex-col">
         <TopBar phone={phone} onOpenMenu={() => setDrawerOpen(true)} menuButtonRef={menuButtonRef} />
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
-          <NotConnectedBanner className="mx-6 mt-4" />
+          <NotConnectedBanner className="mx-4 mt-4 min-[861px]:mx-6" />
           {anthropicEmpty && (
-            <Banner tone="attention" title="Anthropic credit has run out" className="mx-6 mt-4">
+            <Banner tone="attention" title="Anthropic credit has run out" className="mx-4 mt-4 min-[861px]:mx-6">
               Volume is using OpenRouter for Claude models until you top up at{" "}
               <a
                 href="https://console.anthropic.com/settings/billing"
@@ -135,7 +139,7 @@ export function AppShell() {
           )}
           <Outlet />
         </main>
-        {showApiJobBar && serverJob ? <ApiJobBar job={serverJob} more={serverJobs.length - 1} /> : showJobBar && <JobBar />}
+        {!inBook && <Foot />}
       </div>
 
       <AnimatePresence>
@@ -161,7 +165,7 @@ export function AppShell() {
               animate={reduce ? { opacity: 1 } : { x: 0, transition: { duration: dur.slow, ease: ease.out } }}
               exit={reduce ? { opacity: 0 } : { x: "-100%", transition: { duration: dur.base, ease: ease.in } }}
             >
-              <Spine collapsed={false} book={book} variant="drawer" onNavigate={() => setDrawerOpen(false)} />
+              <Spine variant="drawer" onNavigate={() => setDrawerOpen(false)} className="w-[272px]" />
               <IconButton icon={X} label="Close menu" variant="glass" onClick={() => setDrawerOpen(false)} className="mt-3 ml-3" />
             </motion.div>
           </div>

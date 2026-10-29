@@ -110,7 +110,7 @@ Target: WCAG 2.2 AA everywhere, no exceptions for "internal tools".
 
 ## Visual direction: Volume (D-014)
 
-**Status:** Fused direction is implemented in the app and accepted by the owner on 7 October 2026 (D-014). Board: `design/final/volume-direction.html` (open it and use the Light and Dark switch). Screenshots: `design/final/screenshots/`. Research behind it: `design/research/inspiration.md`. Tokens: `packages/ui/tokens.json`, with `tokens.css` and `theme.css` generated from it by `node design/final/src/build.mjs`, which also checks every contrast pair below and rebuilds the board.
+**Status:** Replaced by the approved Volume Studio look (D-066, 29 October 2026; see "Studio shell" below). Colours, the gilt accent and Schibsted Grotesk in this section are history; `packages/ui/tokens.json` holds the current values. The writing, layout and accessibility rules here still apply. Fused direction was accepted by the owner on 7 October 2026 (D-014). Board: `design/final/volume-direction.html` (open it and use the Light and Dark switch). Screenshots: `design/final/screenshots/`. Research behind it: `design/research/inspiration.md`. Tokens: `packages/ui/tokens.json`, with `tokens.css` and `theme.css` generated from it by `node design/final/src/build.mjs`, which also checks every contrast pair below and rebuilds the board.
 
 ### The idea
 
@@ -372,20 +372,22 @@ Other checks that apply to this direction:
 - The live stream sits in a region with `aria-live="off"`. Progress is announced through the job bar's polite status at most every 10 seconds, so screen reader users are not flooded with words.
 - The theme follows the system setting until the owner picks one in Settings. Both themes pass the same checks.
 
-## Studio shell: frost and glass (D-065)
+## Studio shell: the approved Volume Studio look (D-066)
 
-The app shell sits on a scene: a pale frost sky with soft mountains in light, deep navy in dark. The side menu floats 16 px from the edge, and the top bar (72 px, 64 px on phones), the job bar and cards are glass over that scene.
+The approved "Volume Studio" artifact (frost edition) is the reference for every screen. D-066 replaces the D-065 shell.
 
-- Tokens: `packages/ui/glass.css` (`--vol-frost-*` for the scene, `--vol-glass*` for layers, `--vol-nav-active` for the current menu item, `--vol-shadow-glass*`). Hand written; import it after `tokens.css` and `theme.css`.
-- Blur only on the side menu, top bar, job bar and cards. Never on book content, sheets or covers.
-- Without `backdrop-filter`, or with `prefers-reduced-transparency`, every glass layer is solid (`--vol-glass-solid`).
-- Contrast: body text 4.5:1 or more on the darkest backdrop a layer can sit on, in both themes. The light hills stay faint for that reason.
-- Everything inside the shell keeps the D-014 rules above.
+- **Scene:** a pale frost sky with soft blurred hills and mist in light, deep navy in dark, fixed behind everything.
+- **Tokens:** `packages/ui/tokens.json` (regenerated into `tokens.css` and `theme.css`) and `glass.css`, using the artifact's names: `sky-1/2`, `m1` to `m3`, `mist`, `panel`, `panel-2`, `soft`, `edge`, `line`, `line-2`, the ink scale, the accent family, `btn` (navy) and `on-btn`, amber, red, blue, good and track. Radii 22 for cards, 12 for controls, 24 for the side card.
+- **Type:** Manrope for the interface, Literata for book text (titles on cards, the editor, covers).
+- **Side card:** 280 px, labelled: Library, Published, Volume mode, Profiles, New book, Archive, Settings, with real counts only. The current item is a navy pill. A status box at the foot shows Writing now or Nothing running, the OpenRouter status, month spend, credit left when the provider reports it, Pause or Resume, and Open Volume mode. On phones the side card is the drawer.
+- **Top bar:** back inside a book, breadcrumb and title, search with Ctrl K, the Demo data chip, theme, New book and the user.
+- **Glass:** cards and bars are glass over the scene. Without `backdrop-filter`, or with `prefers-reduced-transparency`, every panel is solid. Body text stays at 4.5:1 or more on the darkest backdrop.
+- **Buttons:** primary is navy (`btn`), secondary is the pill button. No gilt.
 
 ### Step navigation (stage 2)
 
-- **Step rail:** a sticky `vol-glass-bar` layer under the top bar in every book step (the fifth glass layer, with blur). It holds the book's small cover (not on phones), Previous, the 8 steps with done, attention, in-progress and number markers, and "Next: <step>". The current step is a filled `nav-active` pill with `aria-current="step"`. On phones only the current step shows its name, and the list scrolls sideways with it kept in view. The rail uses `vol-glass-bar`, not `vol-glass`, so text stays at 4.5:1 with a light cover scrolled behind it.
-- **Step head:** step marker, title (Literata, `text-heading`), one purpose line, the screen's own tools and the one gilt step action. Writing, Editor and Cover are full-height workspaces with no head; their gilt action sits in the rail before Next.
+- **Step bar:** a sticky glass card under the top bar in every book step. It holds Previous, the 8 steps with done, attention, in-progress and number markers, and "Next: <step>". The current step is a navy pill with `aria-current="step"`. On phones only the current step shows its name, and the list scrolls sideways with it kept in view. The rail uses `vol-glass-bar`, not `vol-glass`, so text stays at 4.5:1 with a light cover scrolled behind it.
+- **Step head:** an icon tile, a sans title, one purpose line, the screen's own chips and tools and the one navy step action. Writing, Editor and Cover are full-height workspaces with no head; their step action sits in the step bar before Next.
 - **Up next:** a dashed glass card at the end of each step page with the next step, a short line, a status chip and "Open <step>". After Export it reads "Then publish on KDP".
 - **Status chips:** two new states, "In progress" and "Not started".
 

@@ -3,7 +3,7 @@ import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
 import { useBlocker, useNavigate, useParams, useSearchParams } from "react-router";
 import { Save } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Banner, Button, Cover, InspectorSection, Inspector, Modal, PageHeader, Skeleton, Tabs, tabPanelProps, type TabItem } from "../../components/ui";
+import { Banner, Button, chipClasses, Cover, InspectorSection, Modal, Skeleton, Tabs, tabPanelProps, type TabItem } from "../../components/ui";
 import { useProfile, useProfileMemory, useProfileSamples } from "../../api/hooks";
 import { apiErrorText, useApiBooks, useApiProfiles, useWireMode } from "../../api/wire-a";
 import type { ApiProfile, ProfileMemoryItem, ProfileSample } from "../../api/types";
@@ -17,6 +17,7 @@ import { NotFound } from "../../shell/NotFound";
 import { IdentityTab } from "./IdentityTab";
 import { MemoryTab } from "./MemoryTab";
 import { ModelsTab } from "./ModelsTab";
+import { ProfileAvatar } from "./ProfileAvatar";
 import { RealPersonBadge } from "./ProfilesPage";
 import { PublishingTab } from "./PublishingTab";
 import { renderTemplate, validateProfile, type EditorTab } from "./profileRules";
@@ -64,7 +65,7 @@ function StylePreview({ draft, title }: { draft: ProfileDraft; title: string }) 
             ["Cover style", style?.name ?? "Not chosen"],
           ].map(([k, v]) => (
             <div key={k}>
-              <dt className="text-ink-tertiary">{k}</dt>
+              <dt className="text-ink-3">{k}</dt>
               <dd className="text-ink">{v}</dd>
             </div>
           ))}
@@ -81,7 +82,7 @@ function PrintPreview({ draft, title }: { draft: ProfileDraft; title: string }) 
   const illustrative = draft.realPerson && draft.publishing.illustrative ? renderTemplate(draft.publishing.illustrativeLine, draft, title) : [];
   return (
     <InspectorSection title="Copyright page, as it will print">
-      <div className="grid gap-2.5 rounded-sm border border-border bg-canvas px-5 py-6 font-book text-[12.5px] leading-[19px] text-ink">
+      <div className="grid gap-2.5 rounded-lg border border-line bg-soft px-5 py-6 font-book text-[12.5px] leading-[19px] text-ink">
         {draft.publishing.imprint.trim() && <p className="font-semibold">{draft.publishing.imprint.trim()}</p>}
         {[...copyright, ...illustrative, ...disclaimer].map((para, i) => (
           <p key={i} className="whitespace-pre-line">
@@ -89,7 +90,7 @@ function PrintPreview({ draft, title }: { draft: ProfileDraft; title: string }) 
           </p>
         ))}
       </div>
-      <p className="mt-2 text-small text-ink-tertiary">Shown for {title}. No ISBN entered, so the ISBN line is left out.</p>
+      <p className="mt-2 text-small text-ink-3">Shown for {title}. No ISBN entered, so the ISBN line is left out.</p>
     </InspectorSection>
   );
 }
@@ -208,19 +209,20 @@ function ProfileEditor({ initial, isNew, env }: { initial: ProfileDraft; isNew: 
   const title = isNew ? draft.name.trim() || "New profile" : saved.name;
 
   return (
-    <div className="grid grid-cols-1 lg:min-h-screen-fill lg:grid-cols-[minmax(0,1fr)_auto]">
-      <div className="grid content-start gap-6 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
-        <PageHeader
-          title={title}
-          summary={
-            <span className="inline-flex flex-wrap items-center gap-2">
+    <div className="grid grid-cols-1 items-start gap-5 px-4 pt-1.5 pb-8 min-[861px]:px-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="vol-glass grid min-w-0 content-start gap-6 rounded-card p-[22px] max-[560px]:p-4">
+        <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <ProfileAvatar initials={draft.initials || "?"} id={isNew ? undefined : saved.id} size="xl" />
+          <div className="grid min-w-0 flex-1 gap-1">
+            <h1 className="text-[20px] leading-7 font-bold tracking-[-0.01em] text-ink">{title}</h1>
+            <p className="inline-flex flex-wrap items-center gap-2 text-small text-ink-2">
               {isNew ? "Identity, voice, defaults and models." : count === 0 ? "No books yet" : `${count} ${count === 1 ? "book" : "books"}`}
-              {!isNew && saved.realPerson && <RealPersonBadge />}
-            </span>
-          }
-          actions={
+              {!isNew && (saved.realPerson ? <RealPersonBadge /> : <span className={chipClasses("info")}>Pen name</span>)}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <>
-              <span role="status" className={cn("text-small", dirty ? "font-semibold text-accent-text" : "text-ink-tertiary")}>
+              <span role="status" className={cn("text-small", dirty ? "font-semibold text-amber" : "text-ink-3")}>
                 {dirty ? "Unsaved changes" : isNew ? "" : "All changes saved"}
               </span>
               {dirty && !isNew && canWrite && (
@@ -234,8 +236,8 @@ function ProfileEditor({ initial, isNew, env }: { initial: ProfileDraft; isNew: 
                 </Button>
               )}
             </>
-          }
-        />
+          </div>
+        </header>
         <ReadOnlyBanner />
 
         {saveError && (
@@ -273,10 +275,12 @@ function ProfileEditor({ initial, isNew, env }: { initial: ProfileDraft; isNew: 
         </div>
       </div>
 
-      <Inspector label="Preview" className="border-t lg:sticky lg:top-(--shell-topbar) lg:h-screen-fill lg:border-t-0">
-        <StylePreview draft={draft} title={isNew ? "Your Book Title" : env.title} />
-        <PrintPreview draft={draft} title={isNew ? "Your Book Title" : env.title} />
-      </Inspector>
+      <aside aria-label="Preview" className="min-w-0 lg:sticky-side">
+        <div className="vol-glass relative grid content-start rounded-card p-5">
+          <StylePreview draft={draft} title={isNew ? "Your Book Title" : env.title} />
+          <PrintPreview draft={draft} title={isNew ? "Your Book Title" : env.title} />
+        </div>
+      </aside>
 
       <Modal
         open={blocker.state === "blocked"}
@@ -305,7 +309,7 @@ function demoSave(draft: ProfileDraft): Promise<string> {
 
 function EditorSkeleton() {
   return (
-    <div role="status" aria-label="Loading profile" className="grid content-start gap-6 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
+    <div role="status" aria-label="Loading profile" className="grid content-start gap-6 px-4 pt-1.5 pb-8 min-[861px]:px-6">
       <Skeleton className="h-8 w-64" />
       <Skeleton className="h-3 w-40" />
       <Skeleton className="h-10 w-full max-w-[760px]" />
@@ -356,7 +360,7 @@ function ApiProfileEditor({ profileId }: { profileId: string | undefined }) {
   if (profile.isError && profile.error && "code" in profile.error && profile.error.code === "not_found") return <NotFound what="profile" />;
   if (failed)
     return (
-      <div className="px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
+      <div className="px-4 pt-1.5 pb-8 min-[861px]:px-6">
         <Banner
           tone="error"
           title="Could not load this profile"

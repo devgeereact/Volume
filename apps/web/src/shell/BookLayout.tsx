@@ -30,7 +30,7 @@ function StepPage({ book, author, current, runningBookId }: { book: Book; author
     <>
       <StepRail book={book} author={author} current={current} runningBookId={runningBookId} action={full ? action : null} />
       {/* A viewer reads every step; the write buttons are hidden, and this says why (D-047). */}
-      <ReadOnlyBanner className="mx-4 mt-4 sm:mx-8 lg:mx-10" />
+      <ReadOnlyBanner className="mx-4 mb-4 min-[861px]:mx-6" />
       {full ? (
         <Outlet />
       ) : (
@@ -77,7 +77,7 @@ function BookLoading() {
 }
 
 /**
- * Layout for every /books/:bookId/<step> route (D-016, studio redesign stage 2): the step rail that sticks
+ * Layout for every /books/:bookId/<step> route (D-016, approved design): the step bar that sticks
  * under the top bar (Previous, the eight steps, Next), the step head, the screen, and the Up next card.
  * Full-height steps (writing, editor, cover) skip the head and the card and put their main action in the
  * rail. It sets data-book on <html>; the rail measures itself into --shell-bookbar, so h-screen-fill and

@@ -16,9 +16,9 @@ interface EmptyStateProps {
 
 /** Simple line drawings, the only illustrations the app uses. */
 function Drawing({ kind }: { kind: EmptyDrawing }) {
-  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  const common = { fill: "none", stroke: "currentColor", strokeWidth: 4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   return (
-    <svg viewBox="0 0 56 56" className="size-14 text-ink-tertiary" aria-hidden>
+    <svg viewBox="4 4 48 48" className="size-[22px]" aria-hidden>
       {kind === "books" && (
         <g {...common}>
           <rect x="10" y="12" width="14" height="34" rx="2" />
@@ -66,14 +66,19 @@ function Drawing({ kind }: { kind: EmptyDrawing }) {
   );
 }
 
-/** Empty state: line drawing, Literata heading, one sentence, one action. Copy comes from 09-UX-FLOWS. */
+/**
+ * Empty state from the approved design (.card.empty): a glass card, centred, with the drawing in a
+ * 42 px icon tile, a 16 px heading, one sentence and one action. Copy comes from 09-UX-FLOWS.
+ */
 export function EmptyState({ title, body, action, drawing = "books", headingLevel = 2, className }: EmptyStateProps) {
   const H = headingLevel === 2 ? "h2" : "h3";
   return (
-    <div className={cn("grid content-start justify-items-start gap-2.5 rounded-md border border-dashed border-border-strong bg-sheet p-7", className)}>
-      <Drawing kind={drawing} />
-      <H className="font-book text-[20px] leading-[26px] font-medium text-ink">{title}</H>
-      {body && <p className="max-w-[44ch] text-body text-ink-secondary">{body}</p>}
+    <div className={cn("vol-glass grid content-start justify-items-center gap-2 rounded-card px-5 py-9 text-center", className)}>
+      <span className="grid size-[42px] place-items-center rounded-[14px] bg-panel-2 text-mint-ink shadow-control">
+        <Drawing kind={drawing} />
+      </span>
+      <H className="mt-1 text-[16px] leading-[1.35] font-semibold tracking-[-0.01em] text-ink">{title}</H>
+      {body && <p className="max-w-[46ch] text-body text-ink-2">{body}</p>}
       {action && <div className="mt-1.5">{action}</div>}
     </div>
   );

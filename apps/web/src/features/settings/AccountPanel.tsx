@@ -20,8 +20,8 @@ type Done = "left" | "deleted";
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section aria-labelledby={id} className="grid gap-3 rounded-md border border-border bg-sheet p-5">
-      <h3 id={id} className="text-subhead text-ink">
+    <section aria-labelledby={id} className="grid gap-3 vol-glass rounded-card p-[22px] max-[560px]:p-4">
+      <h3 id={id} className="text-[15px] leading-6 font-bold text-ink">
         {title}
       </h3>
       {children}
@@ -42,17 +42,17 @@ function AccountClosed({ done }: { done: Done }) {
         aria-modal="true"
         aria-labelledby="account-closed-title"
         aria-describedby="account-closed-body"
-        className="w-full max-w-[420px] rounded-md border border-border bg-sheet p-6 shadow-sheet"
+        className="w-full max-w-[420px] rounded-card border border-edge bg-panel-solid p-6 shadow-modal"
       >
-        <h2 id="account-closed-title" className="font-book text-heading text-ink">
+        <h2 id="account-closed-title" className="text-[20px] leading-7 font-bold text-ink">
           {left ? "You left this workspace" : "The workspace is deleted"}
         </h2>
-        <p id="account-closed-body" className="mt-2 text-body text-ink-secondary">
+        <p id="account-closed-body" className="mt-2 text-body text-ink-2">
           {left
             ? "You no longer have access to its books. If you belong to no other workspace, your account is gone too."
             : "Every book, profile and file in it is gone, with the accounts that belonged only to it."}
         </p>
-        {hostedSignIn && <p className="mt-2 text-body text-ink-secondary">Sign out to finish.</p>}
+        {hostedSignIn && <p className="mt-2 text-body text-ink-2">Sign out to finish.</p>}
         <div className="mt-5">
           <SignOutButton />
         </div>
@@ -152,7 +152,7 @@ export function AccountPanel({ me }: { me: VolumeMe }) {
 
       {actions.download && (
         <Section id="account-download" title="Download all my data">
-          <p className="max-w-[62ch] text-body text-ink-secondary">
+          <p className="max-w-[62ch] text-body text-ink-2">
             A zip of every book, profile, setting and file in this workspace. It includes private profile details such as legal names, so keep it somewhere
             safe.
           </p>
@@ -173,7 +173,7 @@ export function AccountPanel({ me }: { me: VolumeMe }) {
 
       {actions.leave && (
         <Section id="account-leave" title="Leave this workspace">
-          <p className="max-w-[62ch] text-body text-ink-secondary">
+          <p className="max-w-[62ch] text-body text-ink-2">
             You lose access to every book here at once. Your past work stays in the books. If you belong to no other workspace, your account is deleted too.
           </p>
           <div>
@@ -186,7 +186,7 @@ export function AccountPanel({ me }: { me: VolumeMe }) {
 
       {actions.deleteWorkspace && (
         <Section id="account-delete" title="Delete this workspace">
-          <p className="max-w-[62ch] text-body text-ink-secondary">
+          <p className="max-w-[62ch] text-body text-ink-2">
             Deletes every book, profile, cover and file in this workspace, and the accounts of members who belong nowhere else. This cannot be undone. Download
             your data first if you want a copy.
           </p>
@@ -195,12 +195,12 @@ export function AccountPanel({ me }: { me: VolumeMe }) {
               Delete this workspace
             </Button>
           </div>
-          {api && blocked && <p className="text-small text-ink-secondary">{blocked}</p>}
+          {api && blocked && <p className="text-small text-ink-2">{blocked}</p>}
         </Section>
       )}
 
       {actions.mainWorkspace && (
-        <p className="max-w-[62ch] text-small text-ink-secondary">
+        <p className="max-w-[62ch] text-small text-ink-2">
           This is the main workspace of this Volume, so it cannot be deleted from here. Separate self-publishers can delete their own workspaces.
         </p>
       )}

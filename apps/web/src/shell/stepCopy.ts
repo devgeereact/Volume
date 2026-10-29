@@ -1,4 +1,17 @@
+import { Book, Globe, Image, Layers2, Megaphone, Package, PenLine, Zap, type LucideIcon } from "lucide-react";
 import type { BookStepId } from "../demo/types";
+
+/** Each step's icon in the approved design (the Up next card). */
+export const stepIcons: Record<BookStepId, LucideIcon> = {
+  research: Globe,
+  titles: PenLine,
+  blueprint: Layers2,
+  writing: Zap,
+  editor: Book,
+  cover: Image,
+  marketing: Megaphone,
+  export: Package,
+};
 
 /**
  * Words for the step rail, the step head and the Up next card (studio redesign, stage 2).
@@ -41,7 +54,7 @@ export const stepCopy: Record<BookStepId, { purpose: string; short: string }> = 
 };
 
 /**
- * Steps whose screen is a full-height workspace with its own header and tools (writing, editor, cover
- * studio). They get no step head and no Up next card; their main action sits in the step rail instead.
+ * Steps whose screen is a full-height workspace with its own header and tools (the cover studio).
+ * They get no step head and no Up next card; their main action sits in the step rail instead.
  */
-export const fullSteps: ReadonlySet<BookStepId> = new Set<BookStepId>(["writing", "editor", "cover"]);
+export const fullSteps: ReadonlySet<BookStepId> = new Set<BookStepId>(["cover"]);

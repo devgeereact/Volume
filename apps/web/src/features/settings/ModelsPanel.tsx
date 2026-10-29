@@ -48,7 +48,7 @@ function ApiModelsPanel() {
   useSyncWorkspaceModels(true);
   if (q.isPending)
     return (
-      <div role="status" aria-label="Loading models" className="grid gap-3 rounded-md border border-border bg-sheet p-5">
+      <div role="status" aria-label="Loading models" className="grid gap-3 vol-glass rounded-card p-[22px] max-[560px]:p-4">
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-3 w-4/5" />
         <Skeleton className="h-3 w-3/5" />
@@ -149,10 +149,10 @@ function ModelsEditor({ saved, state, onSave, saving = false, saveError = null }
         </Banner>
       )}
 
-      <div className="overflow-hidden rounded-md border border-border bg-sheet">
+      <div className="vol-glass overflow-hidden rounded-card">
         <div
           aria-hidden
-          className="hidden grid-cols-[112px_minmax(0,1.2fr)_140px_minmax(0,1fr)_80px] gap-4 bg-canvas px-4 py-3 text-[12.5px] leading-none font-semibold text-ink-secondary lg:grid"
+          className="hidden grid-cols-[112px_minmax(0,1.2fr)_140px_minmax(0,1fr)_80px] gap-4 bg-soft px-4 py-3 text-[12.5px] leading-none font-semibold text-ink-2 lg:grid"
         >
           <span>Stage</span>
           <span>Model</span>
@@ -168,25 +168,25 @@ function ModelsEditor({ saved, state, onSave, saving = false, saveError = null }
             return (
               <li
                 key={s.stage}
-                className="grid gap-x-4 gap-y-1.5 border-t border-border px-4 py-3 first:border-t-0 lg:grid-cols-[112px_minmax(0,1.2fr)_140px_minmax(0,1fr)_80px] lg:items-center lg:first:border-t"
+                className="grid gap-x-4 gap-y-1.5 border-t border-line px-4 py-3 first:border-t-0 lg:grid-cols-[112px_minmax(0,1.2fr)_140px_minmax(0,1fr)_80px] lg:items-center lg:first:border-t"
               >
                 <span className="grid">
                   <span className="text-label text-ink">{s.label}</span>
-                  {changed && <span className="text-[12.5px] text-ink-tertiary">Changed from default</span>}
+                  {changed && <span className="text-[12.5px] text-ink-3">Changed from default</span>}
                 </span>
                 <span className="min-w-0">
                   <ModelName slug={choice.model} className="text-[14px] leading-[19px] font-semibold text-ink" />
-                  <span className="block text-[12.5px] text-ink-secondary">{modelLabel(choice.model)}</span>
+                  <span className="block text-[12.5px] text-ink-2">{modelLabel(choice.model)}</span>
                 </span>
-                <span className="num text-[13px] text-ink-secondary lg:text-right lg:text-ink">{model ? modelPrice(model) : "No price"}</span>
+                <span className="num text-[13px] text-ink-2 lg:text-right lg:text-ink">{model ? modelPrice(model) : "No price"}</span>
                 <span className="min-w-0">
                   {choice.fallbacks.length === 0 ? (
-                    <span className="text-[12.5px] text-ink-tertiary">None</span>
+                    <span className="text-[12.5px] text-ink-3">None</span>
                   ) : (
                     <ol className="grid">
                       {choice.fallbacks.map((f, i) => (
-                        <li key={f} title={`OpenRouter model: ${f}`} className="text-[13px] leading-[19px] text-ink-secondary">
-                          <span className="num text-ink-tertiary">{i + 1}. </span>
+                        <li key={f} title={`OpenRouter model: ${f}`} className="text-[13px] leading-[19px] text-ink-2">
+                          <span className="num text-ink-3">{i + 1}. </span>
                           {formatModel(f)}
                         </li>
                       ))}
@@ -205,7 +205,7 @@ function ModelsEditor({ saved, state, onSave, saving = false, saveError = null }
           })}
         </ul>
       </div>
-      <p className="text-small text-ink-tertiary">{examplePricesNote} Image models show a price per image. Profiles and books can override any stage.</p>
+      <p className="text-small text-ink-3">{examplePricesNote} Image models show a price per image. Profiles and books can override any stage.</p>
 
       {editingStage && (
         <ModelStageDialog

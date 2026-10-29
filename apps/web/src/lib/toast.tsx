@@ -53,7 +53,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         aria-live="polite"
         aria-label="Notifications"
         className="pointer-events-none fixed right-4 z-[55] grid w-[min(440px,calc(100vw-32px))] justify-items-end gap-2"
-        style={{ bottom: "calc(var(--shell-jobbar) + 16px)" }}
+        style={{ bottom: "var(--vol-space-4)" }}
       >
         <AnimatePresence initial={false}>
           {items.map((t) => (

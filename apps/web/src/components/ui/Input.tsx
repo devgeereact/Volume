@@ -62,7 +62,7 @@ export function Input({
           disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy(id, Boolean(error), Boolean(hint || (disabled && disabledReason)))}
-          className={cn(fieldBoxClasses({ error: Boolean(error), disabled: Boolean(disabled) }), "h-11", Icon && "pl-9", fieldClassName)}
+          className={cn(fieldBoxClasses({ error: Boolean(error), disabled: Boolean(disabled) }), "h-10", Icon && "pl-9", fieldClassName)}
           {...rest}
         />
       </span>

@@ -1,28 +1,24 @@
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router";
-import { Check, Lock, Pencil, RefreshCw, RotateCcw } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { ChevronRight, Pencil, RefreshCw, RotateCcw } from "lucide-react";
 import {
   Banner,
   Button,
+  buttonClasses,
+  Card,
   EmptyState,
-  GalleySheet,
-  IconButton,
   Input,
-  Inspector,
-  InspectorSection,
   KeyValueList,
   LiveDot,
   Modal,
   ModelName,
   PageHeader,
   ProgressBar,
-  Select,
   Skeleton,
   Textarea,
 } from "../../components/ui";
 import { blueprintData } from "../../api/adapters";
 import { planningApi } from "../../api/planning";
-import { scrollBehavior } from "../../lib/motion";
 import { isApiError } from "../../api/client";
 import {
   useApproveBlueprint,
@@ -47,13 +43,17 @@ import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
 import { useCanWrite } from "../../lib/access";
 import { blueprintCreateInput } from "./blueprintRequest";
+import { CheckList, OutlineCard, PlanCounts, SideLabel, VersionChip, VersionList } from "./ChapterPlan";
 import { NarrationEditor, StoryBibleEditor, StoryBibleView, StoryLedgerPanel, emptyBible, storyBibleOf, type Tense } from "./StoryBible";
 
-/* Blueprint for a book on the server (API mode). Build it, read the latest version, edit a part
-   (saved as a new version against the version you opened, so a stale edit is caught), regenerate a
-   part, then approve it, which creates the sections and opens Writing. */
+/* Blueprint for a book on the server (API mode), in the approved two-column layout: the Outline card
+   (front matter, chapters with editable titles and word-target bars, back matter) and the right card
+   (the chosen part, the whole book with its checks, this version and the Versions list). Build it,
+   edit a part (saved as a new version against the version you opened, so a stale edit is caught),
+   regenerate a part, compare and restore a version, then approve it, which creates the sections and
+   opens Writing. */
 
-type Part = { key: BlueprintPartKey; label: string; anchor: string };
+type Part = { key: BlueprintPartKey; label: string };
 
 function rec(v: unknown): Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
@@ -101,7 +101,10 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
   const [history, setHistory] = useState<ApiBlueprintVersion | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [selected, setSelected] = useState<BlueprintPartKey>("summary");
+  // The part shown in the right card; null shows the first chapter.
+  const [selected, setSelected] = useState<BlueprintPartKey | null>(null);
+  // A front or back matter chip that was clicked ("front:dedication"), so its row is marked in the card.
+  const [chipKey, setChipKey] = useState<string | null>(null);
   const [edit, setEdit] = useState<EditTarget | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
   const [editBase, setEditBase] = useState<number | null>(null);
@@ -137,14 +140,16 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
   const parts: Part[] = useMemo(() => {
     if (!d) return [];
     return [
-      { key: "summary", label: "Title, summary and audience", anchor: "bp-summary" },
-      { key: "front", label: "Front matter", anchor: "bp-front" },
-      ...d.chapters.map<Part>((c) => ({ key: `chapter:${c.number}`, label: `Chapter ${c.number}`, anchor: `bp-chapter-${c.number}` })),
-      { key: "back", label: "Back matter", anchor: "bp-back" },
-      { key: "listing", label: "Listing", anchor: "bp-listing" },
+      { key: "summary", label: "Title, summary and audience" },
+      { key: "front", label: "Front matter" },
+      ...d.chapters.map<Part>((c) => ({ key: `chapter:${c.number}`, label: `Chapter ${c.number}` })),
+      { key: "back", label: "Back matter" },
+      { key: "listing", label: "Listing" },
     ];
   }, [d]);
-  const selectedPart = parts.find((p) => p.key === selected) ?? parts[0];
+  // The part in the right card: the one chosen, else the first chapter, else the summary.
+  const sel: BlueprintPartKey = selected ?? (d && d.chapters[0] ? `chapter:${d.chapters[0].number}` : "summary");
+  const selectedPart = parts.find((p) => p.key === sel) ?? parts[0];
   const buildEstimate = useEstimate(bookId, "blueprint", { enabled: bp.isSuccess && !bp.data?.blueprint });
   const regenEstimate = useEstimate(bookId, "blueprint_part", { partTarget: selectedPart?.key ?? "summary", enabled: regenOpen && !!selectedPart });
   const regenerating = active && job?.kind === "blueprint_part" && typeof job.payload["part"] === "string" ? job.payload["part"] : null;
@@ -156,10 +161,29 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
     return { chapters: d.chapters.length, chapterWords: d.chapters.reduce((n, c) => n + c.word_target, 0), front: sum(d.front), back: sum(d.back) };
   }, [d]);
 
-  function select(p: Part) {
-    setSelected(p.key);
-    requestAnimationFrame(() => document.getElementById(p.anchor)?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
+  function pick(key: BlueprintPartKey) {
+    setChipKey(null);
+    setSelected(key);
   }
+
+  /** A chapter title edited in the Outline card: saved as a new version on top of the one on screen. */
+  function saveTitle(key: string, title: string) {
+    if (!version || !d) return;
+    const number = Number(key.slice("chapter:".length));
+    patch.mutate(
+      {
+        bookId,
+        input: {
+          parts: { chapters: d.chapters.map((x) => (x.number === number ? { ...x, title } : x)) },
+          baseVersion: version.version,
+          note: `Chapter ${number} title edited by the owner`,
+        },
+      },
+      { onSuccess: (v) => setSaved(`Version ${v.version} saved. Chapter ${number} has a new title.`) },
+    );
+  }
+
+  const matterCount = d ? matterRows(d.front).length + matterRows(d.back).length : 0;
 
   function openEdit(target: EditTarget) {
     if (!version) return;
@@ -267,7 +291,6 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
     const part = parts.find((p) => p.key === `chapter:${c.number}`) ?? {
       key: `chapter:${c.number}` as BlueprintPartKey,
       label: `Chapter ${c.number}`,
-      anchor: "",
     };
     return {
       part,
@@ -345,402 +368,329 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
   const conflict = patch.error && isApiError(patch.error) && patch.error.isConflict;
 
   return (
-    <div className="grid grid-cols-1 lg:h-screen-fill lg:grid-cols-[minmax(0,1fr)_auto] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_auto]">
-      <nav aria-label="Blueprint outline" className="hidden min-h-0 overflow-y-auto border-r border-border px-3 py-5 xl:block">
-        <p className="px-2 pb-2 text-[13px] font-semibold text-ink-secondary">Outline</p>
-        {parts.length === 0 ? (
-          <p className="px-2 text-small text-ink-tertiary">Parts appear once the blueprint is built.</p>
-        ) : (
-          <ol className="grid gap-0.5">
-            {parts.map((p) => (
-              <li key={p.key}>
-                <button
-                  type="button"
-                  aria-current={selected === p.key ? "true" : undefined}
-                  onClick={() => select(p)}
-                  className={cn(
-                    "flex min-h-9 w-full items-center rounded-sm px-2 text-left text-label",
-                    selected === p.key ? "bg-select-wash font-semibold text-select" : "text-ink-secondary hover:bg-sunken hover:text-ink",
-                  )}
-                >
-                  {p.key.startsWith("chapter:") && d ? `${p.label}: ${d.chapters.find((c) => `chapter:${c.number}` === p.key)?.title ?? ""}` : p.label}
-                </button>
-              </li>
-            ))}
-          </ol>
-        )}
-      </nav>
-
-      <div className="min-h-0 min-w-0 lg:overflow-y-auto">
-        <div className="grid gap-4 px-3 pt-5 pb-8 sm:px-6">
-          <PageHeader title="Blueprint" summary="The whole plan for the book, part by part. Edit or regenerate any part, then approve it to start writing." />
-
-          {saved && (
-            <Banner
-              tone="success"
-              title={saved}
-              action={
-                <Button size="sm" variant="ghost" onClick={() => setSaved(null)}>
-                  Dismiss
-                </Button>
-              }
+    <div className="grid gap-4 px-4 min-[861px]:px-6">
+      <PageHeader
+        title="Blueprint"
+        summary="The plan for every section. You approve it before any writing starts."
+        actions={
+          version ? (
+            <VersionChip
+              version={version.version}
+              total={versions.data ? versions.data.length : null}
+              approved={approved}
+              items={(versions.data ?? []).map((v) => ({
+                version: v.version,
+                when: whenMs(v.createdAt),
+                note: v.note ?? (v.source === "human" ? "Edited by you." : "From the planner."),
+                approved: v.status === "approved",
+              }))}
+              actionLabel={canWrite ? "Compare and restore" : "Compare"}
+              onAction={(n) => void compareVersion(n)}
+              actionDisabledReason={active ? "Wait for the current run to finish." : historyLoading ? "Opening a version." : undefined}
             />
-          )}
-          {create.isError && (
-            <Banner tone="error" title="The blueprint build did not start">
-              {plainError(create.error)}
-            </Banner>
-          )}
-          {regen.isError && (
-            <Banner tone="error" title="The part was not regenerated">
-              {plainError(regen.error)}
-            </Banner>
-          )}
+          ) : undefined
+        }
+      />
 
-          {bp.isPending && (
-            <div role="status" aria-label="Loading the blueprint" className="grid gap-3 rounded-md border border-border bg-sheet p-6">
-              <Skeleton className="h-8 w-2/5" />
-              <Skeleton className="w-full" />
-              <Skeleton className="w-4/5" />
-            </div>
-          )}
-          {bp.isError && (
-            <Banner
-              tone="error"
-              title="The blueprint could not be loaded"
-              action={
-                <Button size="sm" icon={RotateCcw} onClick={() => void bp.refetch()}>
-                  Retry
-                </Button>
-              }
-            >
-              {plainError(bp.error)}
-            </Banner>
-          )}
+      {saved && (
+        <Banner
+          tone="success"
+          title={saved}
+          action={
+            <Button size="sm" variant="ghost" onClick={() => setSaved(null)}>
+              Dismiss
+            </Button>
+          }
+        />
+      )}
+      {create.isError && (
+        <Banner tone="error" title="The blueprint build did not start">
+          {plainError(create.error)}
+        </Banner>
+      )}
+      {regen.isError && (
+        <Banner tone="error" title="The part was not regenerated">
+          {plainError(regen.error)}
+        </Banner>
+      )}
+      {patch.isError && !edit && !bibleOpen && history === null && (
+        <Banner
+          tone={conflict ? "attention" : "error"}
+          title={conflict ? "The blueprint changed while you were editing" : "The change was not saved"}
+          action={
+            conflict ? (
+              <Button size="sm" icon={RotateCcw} onClick={reloadAfterConflict}>
+                Reload
+              </Button>
+            ) : undefined
+          }
+        >
+          {plainError(patch.error)}
+        </Banner>
+      )}
+      {historyError && (
+        <Banner tone="error" title="Version could not be opened">
+          {historyError}
+        </Banner>
+      )}
 
-          {active && job && (
-            <section aria-label="Blueprint run" className="relative overflow-hidden rounded-lg border border-border bg-sheet px-5 py-4 shadow-sheet">
-              <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-accent" />
-              <p className="flex items-center gap-2 text-label font-semibold text-ink">
-                <LiveDot />
-                {job.kind === "blueprint_part"
-                  ? `Regenerating ${partName(job.payload["part"], parts)}`
-                  : job.status === "queued"
-                    ? "Waiting to start"
-                    : (job.message ?? "Building the blueprint")}
-              </p>
-              <ProgressBar
-                className="mt-3"
-                value={Math.round(job.progress * 100)}
-                max={100}
-                live
-                label="Blueprint progress"
-                valueText={`${Math.round(job.progress * 100)} per cent`}
-              />
-              <p className="mt-2 text-small text-ink-secondary">A new version appears here when the run finishes. Every earlier version is kept.</p>
-            </section>
-          )}
+      {bp.isPending && (
+        <div role="status" aria-label="Loading the blueprint" className="vol-glass grid gap-3 rounded-card p-6">
+          <Skeleton className="h-8 w-2/5" />
+          <Skeleton className="w-full" />
+          <Skeleton className="w-4/5" />
+        </div>
+      )}
+      {bp.isError && (
+        <Banner
+          tone="error"
+          title="The blueprint could not be loaded"
+          action={
+            <Button size="sm" icon={RotateCcw} onClick={() => void bp.refetch()}>
+              Retry
+            </Button>
+          }
+        >
+          {plainError(bp.error)}
+        </Banner>
+      )}
 
-          {failed && (
-            <Banner
-              tone="error"
-              title={failed.kind === "blueprint_part" ? "Regenerating the part stopped" : "The blueprint build stopped"}
-              action={
-                failed.kind === "blueprint" && canWrite ? (
-                  <Button
-                    size="sm"
-                    icon={RefreshCw}
-                    onClick={() => create.mutate({ bookId, input: blueprintCreateInput(apiBook.settings) })}
-                    loading={create.isPending}
-                    loadingLabel="Starting"
-                  >
-                    Try again
-                  </Button>
-                ) : undefined
-              }
-            >
-              {failed.error ?? "It did not finish."} {version ? `Version ${version.version} is still the current plan.` : "Nothing was saved."}
-            </Banner>
-          )}
+      {active && job && (
+        <section aria-label="Blueprint run" className="vol-glass rounded-card px-[18px] py-4">
+          <p className="flex items-center gap-2 text-label font-semibold text-ink">
+            <LiveDot />
+            {job.kind === "blueprint_part"
+              ? `Regenerating ${partName(job.payload["part"], parts)}`
+              : job.status === "queued"
+                ? "Waiting to start"
+                : (job.message ?? "Building the blueprint")}
+          </p>
+          <ProgressBar
+            className="mt-3"
+            value={Math.round(job.progress * 100)}
+            max={100}
+            live
+            label="Blueprint progress"
+            valueText={`${Math.round(job.progress * 100)} per cent`}
+          />
+          <p className="mt-2 text-small text-ink-2">A new version appears here when the run finishes. Every earlier version is kept.</p>
+        </section>
+      )}
 
-          {bp.isSuccess && !version && !active && (
-            <EmptyState
-              drawing="page"
-              title="Build the blueprint"
-              body={
-                apiBook.title
-                  ? "The planner writes the summary, audience, every chapter with its subheadings, the front and back matter and the listing, using the research and the chosen title. Start it with Build the blueprint below."
-                  : "Choose a title on the Titles step first. The planner builds the whole plan from the research and the chosen title."
-              }
-            />
-          )}
+      {failed && (
+        <Banner
+          tone="error"
+          title={failed.kind === "blueprint_part" ? "Regenerating the part stopped" : "The blueprint build stopped"}
+          action={
+            failed.kind === "blueprint" && canWrite ? (
+              <Button
+                size="sm"
+                icon={RefreshCw}
+                onClick={() => create.mutate({ bookId, input: blueprintCreateInput(apiBook.settings) })}
+                loading={create.isPending}
+                loadingLabel="Starting"
+              >
+                Try again
+              </Button>
+            ) : undefined
+          }
+        >
+          {failed.error ?? "It did not finish."} {version ? `Version ${version.version} is still the current plan.` : "Nothing was saved."}
+        </Banner>
+      )}
 
-          {approved && version && (
-            <Banner tone="info" title={`Version ${version.version} is approved`}>
-              Writing follows this plan. An edit or a regenerated part makes a new draft version to approve; chapters already written are flagged, not
-              rewritten.
-            </Banner>
-          )}
+      {bp.isSuccess && !version && !active && (
+        <EmptyState
+          drawing="page"
+          title="Build the blueprint"
+          body={
+            apiBook.title
+              ? "The planner writes the summary, audience, every chapter with its subheadings, the front and back matter and the listing, using the research and the chosen title. Start it with Build the blueprint above."
+              : "Choose a title on the Titles step first. The planner builds the whole plan from the research and the chosen title."
+          }
+        />
+      )}
 
-          {version && guard && guard.needsAttention.length > 0 && <GuardrailNote items={guard.needsAttention} />}
+      {approved && version && (
+        <Banner tone="info" title={`Version ${version.version} is approved`}>
+          Writing follows this plan. An edit or a regenerated part makes a new draft version to approve; chapters already written are flagged, not rewritten.
+        </Banner>
+      )}
 
-          {d && version && (
-            <GalleySheet
-              className="sm:px-8! sm:py-8! lg:px-10!"
-              label={`Blueprint version ${version.version}`}
-              metaLeft={
-                <span className="inline-flex items-center gap-1.5">
-                  {approved && <Lock size={12} strokeWidth={2} aria-hidden />}
-                  Blueprint, version {version.version}
-                  {approved ? ", approved" : ", draft"}
-                </span>
-              }
-              metaRight={`${d.chapters.length} chapters, ${formatNumber(totals.chapterWords + totals.front + totals.back)} words`}
-            >
-              <div className="mt-6 grid gap-9 @container">
-                <PartBlock
-                  id="bp-summary"
-                  busy={busyFor("summary")}
-                  selected={selected === "summary"}
-                  title="Title, summary and audience"
-                  onEdit={
-                    canWrite
-                      ? () => {
-                          const t = editSummary();
-                          if (t) openEdit(t);
-                        }
-                      : undefined
+      {version && guard && guard.needsAttention.length > 0 && <GuardrailNote items={guard.needsAttention} />}
+
+      {d && version && (
+        <>
+          <PlanCounts
+            items={[
+              { label: "Chapters", value: d.chapters.length },
+              { label: "Words planned", value: totals.chapterWords + totals.front + totals.back },
+              { label: "Front and back parts", value: matterCount },
+              { label: "Listing keywords", value: d.keywords.length },
+            ]}
+          />
+          <div className="grid items-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="grid min-w-0 gap-4">
+              <OutlineCard
+                front={matterRows(d.front).map((r) => ({ key: `front:${r.key}`, label: r.label }))}
+                chapters={d.chapters.map((c) => ({ key: `chapter:${c.number}`, number: c.number, title: c.title, wordTarget: c.word_target }))}
+                back={matterRows(d.back).map((r) => ({ key: `back:${r.key}`, label: r.label }))}
+                selectedKey={chipKey ?? sel}
+                onSelect={(key) => {
+                  if (key.startsWith("front:") || key.startsWith("back:")) {
+                    setChipKey(key);
+                    setSelected(key.startsWith("front:") ? "front" : "back");
+                  } else {
+                    setChipKey(null);
+                    setSelected(key as BlueprintPartKey);
                   }
-                  onSelect={() => setSelected("summary")}
-                >
-                  <p className="opsz-display font-book text-[30px] leading-[36px] font-medium tracking-[-0.02em] text-ink">
-                    {d.title || <Empty>No title in the plan</Empty>}
-                  </p>
-                  {d.subtitle && <p className="font-book text-[19px] leading-7 text-ink-secondary italic">{d.subtitle}</p>}
-                  <Rows
-                    items={[
-                      { label: "Summary", value: d.summary },
-                      { label: "Audience", value: d.audience },
-                      { label: "Tone", value: d.tone_notes },
-                      { label: "Hook style", value: d.hook_style },
-                    ]}
-                  />
-                  {d.usps.length > 0 && <List title="What makes it different" items={d.usps} />}
-                </PartBlock>
-
-                {fiction && (
-                  <PartBlock
-                    id="bp-story"
-                    selected={false}
-                    title="Story bible"
-                    onSelect={() => undefined}
-                    onEdit={canWrite && bible ? () => setBibleOpen(true) : undefined}
-                  >
-                    {bible ? (
-                      <StoryBibleView bible={bible} pov={pov} tense={tense} />
-                    ) : (
-                      <p className="text-small text-ink-secondary">
-                        This version has no story bible. The planner writes one with the blueprint
-                        {canWrite ? ", or add your own now." : "."}
-                      </p>
-                    )}
+                }}
+                onTitle={canWrite && !active && !patch.isPending ? saveTitle : undefined}
+                titleLockedReason={canWrite && (active || patch.isPending) ? "Titles can be edited when the current run ends." : undefined}
+              />
+              {fiction && (
+                <Card as="section" aria-labelledby="story-bible-title">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <h2 id="story-bible-title" className="text-[15px] font-bold text-ink">
+                      Story bible
+                    </h2>
                     {canWrite && (
                       <div className="flex flex-wrap gap-2">
-                        {!bible && (
-                          <Button size="sm" icon={Pencil} onClick={() => setBibleOpen(true)}>
-                            Add a story bible
-                          </Button>
-                        )}
+                        <Button size="sm" icon={Pencil} onClick={() => setBibleOpen(true)}>
+                          {bible ? "Edit the story bible" : "Add a story bible"}
+                        </Button>
                         <Button size="sm" variant="ghost" onClick={() => setNarrationOpen(true)}>
                           Change point of view
                         </Button>
                       </div>
                     )}
-                  </PartBlock>
-                )}
-
-                <PartBlock id="bp-front" busy={busyFor("front")} selected={selected === "front"} title="Front matter" onSelect={() => setSelected("front")}>
-                  <MatterList m={d.front} />
-                </PartBlock>
-
-                <section className="grid gap-5">
-                  <h2 className="border-b border-border pb-2 text-[13px] font-semibold text-ink-secondary">Chapters</h2>
-                  {d.chapters.length === 0 && <Empty>No chapters in this version.</Empty>}
-                  {d.chapters.map((c) => (
-                    <PartBlock
-                      key={c.number}
-                      id={`bp-chapter-${c.number}`}
-                      busy={busyFor(`chapter:${c.number}`)}
-                      selected={selected === `chapter:${c.number}`}
-                      title={`Chapter ${c.number}`}
-                      onSelect={() => setSelected(`chapter:${c.number}`)}
-                      onEdit={canWrite ? () => openEdit(editChapter(c)) : undefined}
-                      sub
-                    >
-                      <p className="font-book text-[21px] leading-7 font-medium text-ink">{c.title || <Empty>Untitled</Empty>}</p>
-                      {c.summary && <p className="max-w-[68ch] font-book text-[15.5px] leading-[23px] text-ink">{c.summary}</p>}
-                      {c.subheadings.length > 0 && <List title="Subheadings" items={c.subheadings} />}
-                      {c.key_points.length > 0 && <List title="Key points" items={c.key_points} />}
-                      {fiction && <FictionPlan chapter={c} />}
-                      {workbook && <ExercisePlanList chapter={c} />}
-                      <p className="num text-small text-ink-secondary">
-                        {formatNumber(c.word_target)} words{c.takeaways ? ", ends with takeaways" : ""}
-                        {c.bridge_note ? `. Bridge: ${c.bridge_note}` : ""}
-                      </p>
-                    </PartBlock>
-                  ))}
-                </section>
-
-                <PartBlock id="bp-back" busy={busyFor("back")} selected={selected === "back"} title="Back matter" onSelect={() => setSelected("back")}>
-                  <MatterList m={d.back} />
-                </PartBlock>
-
-                <PartBlock
-                  id="bp-listing"
-                  busy={busyFor("listing")}
-                  selected={selected === "listing"}
-                  title="Listing"
-                  onSelect={() => setSelected("listing")}
-                  onEdit={
-                    canWrite
-                      ? () => {
-                          const t = editListing();
-                          if (t) openEdit(t);
-                        }
-                      : undefined
-                  }
-                >
-                  <Rows
-                    items={[
-                      { label: "Amazon description", value: d.description_draft },
-                      { label: "Back cover blurb", value: d.back_blurb },
-                      { label: "Categories", value: d.categories.join("; ") },
-                      { label: "Keywords", value: d.keywords.join(", ") },
-                    ]}
-                  />
-                </PartBlock>
-              </div>
-            </GalleySheet>
-          )}
-
-          {fiction && version && (
-            <StoryLedgerPanel
-              state={ledger.isPending ? "loading" : ledger.isError ? "error" : "ready"}
-              items={ledger.data ?? []}
-              bible={bible}
-              sectionName={sectionName}
-              onRetry={() => void ledger.refetch()}
-            />
-          )}
-        </div>
-      </div>
-
-      <Inspector label="Blueprint details" className="lg:h-full lg:overflow-y-auto">
-        <InspectorSection title="Version">
-          {version ? (
-            <KeyValueList
-              items={[
-                { label: "Version", value: `${version.version}, ${approved ? "approved" : version.status === "draft" ? "draft" : version.status}` },
-                { label: "Saved", value: whenMs(version.createdAt) },
-                { label: "Made by", value: version.source === "human" ? "You" : version.source.startsWith("ai") ? "The planner" : version.source },
-                {
-                  label: "Model",
-                  value: version.source === "human" ? "None, edited by you" : versionModel ? <ModelName slug={versionModel} /> : "Not recorded",
-                },
-                { label: "Cost", value: meta.costUsd === null ? "Not recorded" : `$${meta.costUsd.toFixed(2)}` },
-              ]}
-            />
-          ) : (
-            <p className="text-small text-ink-secondary">Not built yet.</p>
-          )}
-        </InspectorSection>
-
-        {d && (
-          <InspectorSection title="Word targets">
-            <KeyValueList
-              items={[
-                { label: "Chapters", value: `${totals.chapters}, ${formatNumber(totals.chapterWords)} words` },
-                { label: "Front matter", value: `${formatNumber(totals.front)} words` },
-                { label: "Back matter", value: `${formatNumber(totals.back)} words` },
-                { label: "Book target", value: apiBook.wordTarget ? `${formatNumber(apiBook.wordTarget)} words` : "Not set yet" },
-              ]}
-            />
-          </InspectorSection>
-        )}
-
-        {version && selectedPart && canWrite && (
-          <InspectorSection title="Selected part">
-            <Select
-              label="Part"
-              value={selectedPart.key}
-              onChange={(k) => {
-                const p = parts.find((x) => x.key === k);
-                if (p) select(p);
-              }}
-              options={parts.map((p) => ({ value: p.key, label: p.label }))}
-            />
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                icon={RefreshCw}
-                disabledReason={active ? "Wait for the current run to finish." : undefined}
-                onClick={() => {
-                  setInstruction("");
-                  regen.reset();
-                  setRegenOpen(true);
-                }}
-              >
-                Regenerate {selectedPart.key.startsWith("chapter:") ? "chapter" : "part"}
-              </Button>
+                  </div>
+                  {bible ? (
+                    <StoryBibleView bible={bible} pov={pov} tense={tense} />
+                  ) : (
+                    <p className="text-small text-ink-2">
+                      This version has no story bible. The planner writes one with the blueprint{canWrite ? ", or add your own now." : "."}
+                    </p>
+                  )}
+                </Card>
+              )}
+              {fiction && (
+                <StoryLedgerPanel
+                  state={ledger.isPending ? "loading" : ledger.isError ? "error" : "ready"}
+                  items={ledger.data ?? []}
+                  bible={bible}
+                  sectionName={sectionName}
+                  onRetry={() => void ledger.refetch()}
+                />
+              )}
             </div>
-          </InspectorSection>
-        )}
 
-        {missing.length > 0 && (
-          <InspectorSection title="Before you approve" tone="attention">
-            <ul className="grid gap-1.5">
-              {missing.map((m) => (
-                <li key={m} className="text-small text-ink">
-                  {m}
-                </li>
-              ))}
-            </ul>
-          </InspectorSection>
-        )}
+            <aside
+              aria-label="Blueprint details"
+              className="vol-glass grid min-w-0 content-start rounded-card p-[18px] min-[1180px]:sticky min-[1180px]:top-(--shell-sticky-top)"
+            >
+              <div aria-live="polite">
+                {selectedPart && (
+                  <SelectedPartView
+                    part={selectedPart}
+                    data={d}
+                    chipKey={chipKey}
+                    busy={busyFor(selectedPart.key)}
+                    fiction={fiction}
+                    workbook={workbook}
+                    onEdit={
+                      canWrite
+                        ? () => {
+                            const key = selectedPart.key;
+                            const c = key.startsWith("chapter:") ? d.chapters.find((x) => `chapter:${x.number}` === key) : undefined;
+                            const t = c ? editChapter(c) : key === "summary" ? editSummary() : key === "listing" ? editListing() : null;
+                            if (t) openEdit(t);
+                          }
+                        : undefined
+                    }
+                    onRegenerate={
+                      canWrite
+                        ? () => {
+                            setInstruction("");
+                            regen.reset();
+                            setRegenOpen(true);
+                          }
+                        : undefined
+                    }
+                    regenDisabledReason={active ? "Wait for the current run to finish." : undefined}
+                  />
+                )}
+              </div>
 
-        <InspectorSection title="Versions" aside={versions.data ? <span className="num text-small text-ink-tertiary">{versions.data.length}</span> : undefined}>
-          {versions.isPending ? (
-            <Skeleton className="w-full" />
-          ) : !versions.data || versions.data.length === 0 ? (
-            <p className="text-small text-ink-secondary">No versions yet.</p>
-          ) : (
-            <ol className="grid gap-2">
-              {[...versions.data]
-                .sort((a, b) => b.version - a.version)
-                .map((v) => (
-                  <li key={v.id} className="grid gap-0.5 text-small">
-                    <span className="flex items-center gap-1.5 font-semibold text-ink">
-                      Version {v.version}
-                      {v.status === "approved" && <Check size={13} strokeWidth={2.25} aria-label="approved" className="text-success" />}
-                    </span>
-                    <span className="text-ink-secondary">
-                      {v.note ?? (v.source === "human" ? "Edited by you" : "From the planner")}, {whenMs(v.createdAt)}
-                    </span>
-                    <Button size="sm" variant="ghost" disabled={historyLoading || active} onClick={() => void compareVersion(v.version)}>
-                      {canWrite ? "Compare and restore" : "Compare"}
-                    </Button>
-                  </li>
-                ))}
-            </ol>
-          )}
-        </InspectorSection>
-        {apiBook.approvedBlueprintId && apiBook.title && <RebuildBook bookId={bookId} title={apiBook.title} className="mt-5" />}
-      </Inspector>
+              <hr className="mt-4 border-line" />
+              <SideLabel>The whole book</SideLabel>
+              <p className="text-[13.5px] leading-[1.55] text-ink-2">{d.summary || "No summary in this version."}</p>
+              <CheckList
+                items={[
+                  {
+                    key: "chapters",
+                    ok: d.chapters.length > 0 && d.chapters.every((c) => c.summary.trim().length > 0),
+                    label: `${d.chapters.length} chapters with summaries`,
+                  },
+                  { key: "matter", ok: matterCount > 0, label: "Front and back matter set" },
+                  { key: "listing", ok: d.keywords.length > 0, label: `Listing drafted, ${d.keywords.length} keywords` },
+                  ...missing.map((m) => ({ key: m, ok: false, label: m })),
+                ]}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="ghost" aria-pressed={sel === "summary"} onClick={() => pick("summary")}>
+                  Title and summary
+                </Button>
+                <Button size="sm" variant="ghost" aria-pressed={sel === "listing"} onClick={() => pick("listing")}>
+                  Listing
+                </Button>
+              </div>
 
-      {historyError && (
-        <Banner tone="error" title="Version could not be opened">
-          {historyError}
-        </Banner>
+              <SideLabel>This version</SideLabel>
+              <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 text-[13px]">
+                <dt className="text-ink-3">Made by</dt>
+                <dd className="text-right font-medium text-ink">
+                  {version.source === "human" ? "You" : version.source.startsWith("ai") ? "The planner" : version.source}
+                </dd>
+                <dt className="text-ink-3">Model</dt>
+                <dd className="text-right font-medium text-ink">
+                  {version.source === "human" ? "None, edited by you" : versionModel ? <ModelName slug={versionModel} /> : "Not recorded"}
+                </dd>
+                <dt className="text-ink-3">Saved</dt>
+                <dd className="text-right font-medium text-ink">{whenMs(version.createdAt)}</dd>
+                <dt className="text-ink-3">Cost</dt>
+                <dd className="text-right font-medium text-ink">{meta.costUsd === null ? "Not recorded" : formatUsd(meta.costUsd)}</dd>
+                <dt className="text-ink-3">Book target</dt>
+                <dd className="text-right font-medium text-ink">{apiBook.wordTarget ? `${formatNumber(apiBook.wordTarget)} words` : "Not set yet"}</dd>
+              </dl>
+
+              <SideLabel>Versions</SideLabel>
+              {versions.isPending ? (
+                <Skeleton className="w-full" />
+              ) : (
+                <VersionList
+                  items={(versions.data ?? []).map((v) => ({
+                    version: v.version,
+                    note: v.note ?? (v.source === "human" ? "Edited by you." : "From the planner."),
+                    detail: v.version === version.version && meta.costUsd !== null ? formatUsd(meta.costUsd) : whenMs(v.createdAt),
+                    approved: v.status === "approved",
+                  }))}
+                  current={version.version}
+                  actionLabel={canWrite ? "Restore" : "Compare"}
+                  onAction={(n) => void compareVersion(n)}
+                  disabledReason={active ? "Wait for the current run to finish." : historyLoading ? "Opening a version." : undefined}
+                />
+              )}
+              {approved && apiBook.approvedBlueprintId === version.id && (
+                <Link to={writingPath} className={cn(buttonClasses("primary", "md"), "mt-4 w-full")}>
+                  Go to writing
+                  <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
+                </Link>
+              )}
+              {apiBook.approvedBlueprintId && apiBook.title && <RebuildBook bookId={bookId} title={apiBook.title} className="mt-5" />}
+            </aside>
+          </div>
+        </>
       )}
       <Modal
         open={history !== null}
@@ -1063,67 +1013,139 @@ function partName(part: unknown, parts: Part[]): string {
   return p ? p.label.toLowerCase() : "a part";
 }
 
-function PartBlock({
-  id,
-  title,
-  selected,
-  onSelect,
-  onEdit,
-  sub,
+/** The chosen part at the top of the right card: a chapter's plan, the summary, the matter or the listing. */
+function SelectedPartView({
+  part,
+  data: d,
+  chipKey,
   busy,
-  children,
+  fiction,
+  workbook,
+  onEdit,
+  onRegenerate,
+  regenDisabledReason,
 }: {
-  id: string;
-  title: string;
-  selected: boolean;
-  onSelect: () => void;
+  part: Part;
+  data: BlueprintData;
+  chipKey: string | null;
+  busy: boolean;
+  fiction: boolean;
+  workbook: boolean;
   onEdit?: (() => void) | undefined;
-  sub?: boolean;
-  busy?: boolean;
-  children: ReactNode;
+  onRegenerate?: (() => void) | undefined;
+  regenDisabledReason?: string | undefined;
 }) {
-  return (
-    <section
-      id={id}
-      className={cn("grid scroll-mt-4 content-start gap-3 border-l-2 pl-4", sub ? "border-border" : "border-transparent", selected && "vol-pencil-edge")}
-    >
-      <div className={cn("flex items-center justify-between gap-3", !sub && "border-b border-border pb-2")}>
-        <h2 className="text-[13px] font-semibold text-ink-secondary">{title}</h2>
-        {onEdit && (
-          <IconButton
-            icon={Pencil}
-            size="sm"
-            label={`Edit ${title.toLowerCase()}`}
-            onClick={() => {
-              onSelect();
-              onEdit();
-            }}
-          />
-        )}
-      </div>
-      {busy && (
-        <p role="status" className="flex items-center gap-2 text-small font-semibold text-accent-text">
-          <LiveDot /> Regenerating this part. The new version appears when it is done.
-        </p>
+  const chapter = part.key.startsWith("chapter:") ? d.chapters.find((c) => `chapter:${c.number}` === part.key) : undefined;
+  const editable = onEdit && (chapter !== undefined || part.key === "summary" || part.key === "listing");
+  const tools = (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {editable && (
+        <Button size="sm" icon={Pencil} onClick={onEdit}>
+          Edit {chapter ? "chapter" : part.key === "listing" ? "listing" : "summary"}
+        </Button>
       )}
-      {children}
-    </section>
+      {onRegenerate && (
+        <Button size="sm" variant="ghost" icon={RefreshCw} disabledReason={regenDisabledReason} onClick={onRegenerate}>
+          Regenerate {chapter ? "chapter" : "part"}
+        </Button>
+      )}
+    </div>
   );
-}
+  const busyNote = busy && (
+    <p role="status" className="mt-2 flex items-center gap-2 text-small font-semibold text-mint-ink">
+      <LiveDot /> Regenerating this part. The new version appears when it is done.
+    </p>
+  );
 
-function Empty({ children }: { children: ReactNode }) {
-  return <span className="text-small text-ink-tertiary">{children}</span>;
+  if (chapter) {
+    return (
+      <>
+        <SideLabel>Chapter {chapter.number}</SideLabel>
+        <h3 className="mt-0.5 mb-1.5 font-book text-[17px] leading-[1.3] font-semibold text-ink [overflow-wrap:anywhere]">{chapter.title || "Untitled"}</h3>
+        {busyNote}
+        <p className="text-[13.5px] leading-[1.55] text-ink-2">{chapter.summary || "No summary in this version."}</p>
+        {chapter.subheadings.length > 0 && (
+          <>
+            <SideLabel>Subheadings</SideLabel>
+            <ol className="grid list-decimal gap-1.5 pl-[18px] text-[13px] text-ink-2 marker:text-ink-3">
+              {chapter.subheadings.map((s, i) => (
+                <li key={`${i}-${s}`}>{s}</li>
+              ))}
+            </ol>
+          </>
+        )}
+        {chapter.key_points.length > 0 && <List title="Key points" items={chapter.key_points} />}
+        {fiction && <FictionPlan chapter={chapter} />}
+        {workbook && <ExercisePlanList chapter={chapter} />}
+        <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 text-[13px]">
+          <dt className="text-ink-3">Word target</dt>
+          <dd className="num text-right font-medium text-ink">{formatNumber(chapter.word_target)}</dd>
+          {chapter.takeaways && (
+            <>
+              <dt className="text-ink-3">Ends with</dt>
+              <dd className="text-right font-medium text-ink">Takeaways</dd>
+            </>
+          )}
+        </dl>
+        {chapter.bridge_note && <p className="mt-2 text-small text-ink-2">Bridge: {chapter.bridge_note}</p>}
+        {tools}
+      </>
+    );
+  }
+  if (part.key === "front" || part.key === "back") {
+    return (
+      <>
+        <SideLabel>{part.label}</SideLabel>
+        {busyNote}
+        <MatterList m={part.key === "front" ? d.front : d.back} marked={chipKey ? chipKey.slice(chipKey.indexOf(":") + 1) : null} />
+        {tools}
+      </>
+    );
+  }
+  if (part.key === "listing") {
+    return (
+      <>
+        <SideLabel>Listing</SideLabel>
+        {busyNote}
+        <Rows
+          items={[
+            { label: "Amazon description", value: d.description_draft },
+            { label: "Back cover blurb", value: d.back_blurb },
+            { label: "Categories", value: d.categories.join("; ") },
+            { label: "Keywords", value: d.keywords.join(", ") },
+          ]}
+        />
+        {tools}
+      </>
+    );
+  }
+  return (
+    <>
+      <SideLabel>Title and summary</SideLabel>
+      <h3 className="mt-0.5 font-book text-[17px] leading-[1.3] font-semibold text-ink [overflow-wrap:anywhere]">{d.title || "No title in the plan"}</h3>
+      {d.subtitle && <p className="font-book text-[14px] text-ink-2 italic">{d.subtitle}</p>}
+      {busyNote}
+      <Rows
+        items={[
+          { label: "Summary", value: d.summary },
+          { label: "Audience", value: d.audience },
+          { label: "Tone", value: d.tone_notes },
+          { label: "Hook style", value: d.hook_style },
+        ]}
+      />
+      {d.usps.length > 0 && <List title="What makes it different" items={d.usps} />}
+      {tools}
+    </>
+  );
 }
 
 function Rows({ items }: { items: { label: string; value: string }[] }) {
   return (
-    <dl className="grid gap-2.5">
+    <dl className="mt-2 grid gap-2.5">
       {items.map((i) => (
-        <div key={i.label} className="grid gap-0.5 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-4">
-          <dt className="text-small text-ink-secondary">{i.label}</dt>
-          <dd className={cn("font-book text-[15.5px] leading-[23px] [overflow-wrap:anywhere]", i.value ? "text-ink" : "text-ink-tertiary")}>
-            {i.value || "Not set yet"}
-          </dd>
+        <div key={i.label} className="grid gap-0.5">
+          <dt className="text-small text-ink-3">{i.label}</dt>
+          <dd className={cn("text-[13.5px] leading-[1.55] [overflow-wrap:anywhere]", i.value ? "text-ink" : "text-ink-3")}>{i.value || "Not set yet"}</dd>
         </div>
       ))}
     </dl>
@@ -1132,31 +1154,31 @@ function Rows({ items }: { items: { label: string; value: string }[] }) {
 
 function List({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="grid gap-1.5">
-      <p className="text-small text-ink-secondary">{title}</p>
+    <>
+      <SideLabel>{title}</SideLabel>
       <ul className="grid gap-1.5">
         {items.map((t, i) => (
-          <li key={`${i}-${t}`} className="border-l-2 border-border-strong pl-3 font-book text-[15.5px] leading-[23px] text-ink">
+          <li key={`${i}-${t}`} className="border-l-2 border-line-2 pl-2.5 text-[13px] leading-[1.5] text-ink-2">
             {t}
           </li>
         ))}
       </ul>
-    </div>
+    </>
   );
 }
 
-function MatterList({ m }: { m: Record<string, unknown> }) {
+function MatterList({ m, marked }: { m: Record<string, unknown>; marked: string | null }) {
   const rows = matterRows(m);
-  if (rows.length === 0) return <Empty>None in this version.</Empty>;
+  if (rows.length === 0) return <p className="text-small text-ink-3">None in this version.</p>;
   return (
-    <dl className="grid gap-2.5">
+    <dl className="grid gap-1.5">
       {rows.map((r) => (
-        <div key={r.key} className="grid gap-0.5 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-4">
-          <dt className="text-small text-ink-secondary">{r.label}</dt>
-          <dd className="font-book text-[15.5px] leading-[23px] text-ink">
-            {r.text || <span className="text-ink-tertiary">No notes in the plan</span>}
-            {r.words !== null && <span className="num ml-2 font-ui text-small text-ink-tertiary">{formatNumber(r.words)} words</span>}
-          </dd>
+        <div key={r.key} className={cn("grid gap-0.5 rounded-control px-2.5 py-2", r.key === marked ? "bg-mint-wash" : "bg-soft")}>
+          <dt className="flex items-baseline justify-between gap-2 text-[13px] font-semibold text-ink">
+            {r.label}
+            {r.words !== null && <span className="num text-small font-normal text-ink-3">{formatNumber(r.words)} words</span>}
+          </dt>
+          <dd className="text-[13px] leading-[1.5] text-ink-2">{r.text || "No notes in the plan"}</dd>
         </div>
       ))}
     </dl>

@@ -1,22 +1,7 @@
 import { useMemo, useState } from "react";
 import { useCanWrite } from "../../lib/access";
-import { Archive, Check, Copy, PenLine, RotateCcw, RotateCw, ShieldCheck, X } from "lucide-react";
-import {
-  Banner,
-  Button,
-  Card,
-  EmptyState,
-  Input,
-  Inspector,
-  InspectorSection,
-  Loader,
-  PageHeader,
-  Skeleton,
-  StatusChip,
-  Tabs,
-  tabPanelProps,
-  Textarea,
-} from "../../components/ui";
+import { Archive, Check, PenLine, RotateCcw, RotateCw, X } from "lucide-react";
+import { Banner, Button, EmptyState, Input, Loader, PageHeader, tabPanelProps, Textarea } from "../../components/ui";
 import type { Book } from "../../demo";
 import { useGenerateMarketing, useMarketing, useMarketingStatus, usePatchMarketing, useRememberJob } from "../../api/hooks";
 import { productionApi } from "../../api/production";
@@ -28,13 +13,30 @@ import { formatRelative } from "../../lib/format";
 import { useToast } from "../../lib/toast";
 import { useStepAction } from "../../lib/stepAction";
 import { ErrorPanel, LoadingBlock } from "../writing/screenState";
-import { EmailBody, headline, InstagramBody, LockedNotice, MARKETING_LOCKED, meta, SelectedPanel, TikTokBody } from "./MarketingPage";
+import { headline, LockedNotice, MARKETING_LOCKED, SelectedPanel } from "./MarketingPage";
+import {
+  BusyPreview,
+  ChannelTabs,
+  channelLabel,
+  GalleryItem,
+  galleryGrid,
+  Guardrails,
+  kitCard,
+  kitColours,
+  KitEmpty,
+  LaunchHero,
+  PostPreview,
+  type Channel,
+} from "./LaunchKit";
+import { PostDetail } from "./PostDetail";
+import { useBook } from "../../lib/useBook";
+import { cardTitle } from "../writing/studio";
 import { itemText, type ItemKind, type MarketingItem } from "./marketingExtras";
 
 /* Marketing on the Volume server (API mode): Generate is a job (progress over SSE), items are listed
    from GET /marketing, edited with PATCH, marked used or draft, archived and restored. */
 
-type Tab = ItemKind | "archive";
+type Tab = Channel;
 const KIND: Record<ItemKind, MarketingKind> = { tiktok: "tiktok_script", instagram: "instagram_caption", email: "launch_email" };
 const kindLabel: Record<ItemKind, string> = { tiktok: "TikTok script", instagram: "Instagram caption", email: "Launch email" };
 const generateLabel: Record<ItemKind, { label: string; cost: string }> = {
@@ -99,6 +101,7 @@ function toItem(i: ApiMarketingItem): MarketingItem | null {
 
 export function ApiMarketing({ book }: { book: Book }) {
   const canWrite = useCanWrite();
+  const author = useBook().penName?.name ?? "";
   const bookId = book.id;
   const locked = book.writingComplete ? undefined : MARKETING_LOCKED;
   const toast = useToast();
@@ -202,12 +205,19 @@ export function ApiMarketing({ book }: { book: Book }) {
     }
   }
 
-  const tabItems = [
-    { id: "tiktok", label: "TikTok", count: byKind("tiktok").length },
-    { id: "instagram", label: "Instagram", count: byKind("instagram").length },
-    { id: "email", label: "Email", count: byKind("email").length },
-    { id: "archive", label: "Archive", count: archived.length },
-  ];
+  const counts: Record<Channel, number> = {
+    tiktok: byKind("tiktok").length,
+    instagram: byKind("instagram").length,
+    email: byKind("email").length,
+    archive: archived.length,
+  };
+  const hashtags = new Set(items.flatMap((i) => (i.kind === "email" ? [] : i.data.hashtags))).size;
+  const generatingHere = generating && job?.kind === tab;
+  const nothingYet = items.length === 0 && archived.length === 0 && !generating;
+  const selectedIndex = selected ? list.findIndex((i) => i.data.id === selected.data.id) : -1;
+  const selectedRaw = selected ? rawById.get(selected.data.id) : undefined;
+  const regenerating = (id: string) => regen?.itemId === id;
+  const busyNote = <BusyPreview text={regenWatch.message ?? jobStatusText(regenWatch.status)} />;
 
   useStepAction(
     tab === "archive"
@@ -220,13 +230,13 @@ export function ApiMarketing({ book }: { book: Book }) {
         },
   );
 
-  if (listQ.isPending) return <LoadingBlock label="Loading marketing" rows={6} />;
+  if (listQ.isPending) return <LoadingBlock label="Loading marketing" rows={6} className="vol-glass rounded-card p-6" />;
   if (listQ.isError)
     return (
       <>
         <PageHeader title="Marketing" />
         <ErrorPanel
-          className="mt-5 max-w-[720px]"
+          className="max-w-[720px]"
           title="Could not load the launch content"
           body={marketingError(listQ.error)}
           onRetry={() => void listQ.refetch()}
@@ -236,13 +246,23 @@ export function ApiMarketing({ book }: { book: Book }) {
 
   return (
     <>
-      <PageHeader title="Marketing" summary="Launch content for this book. Edit it, copy what you need, archive what you do not." />
+      <PageHeader title="Marketing" summary="Launch scripts and posts written from the book. Edit them, copy what you need, archive what you do not." />
+      <LaunchHero
+        book={book}
+        author={author}
+        live={items.length > 0}
+        counts={{
+          tiktok: items.length > 0 ? counts.tiktok : book.marketingCounts.tiktok,
+          instagram: items.length > 0 ? counts.instagram : book.marketingCounts.instagram,
+          email: items.length > 0 ? counts.email : 1,
+          hashtags,
+        }}
+      />
       {locked && <LockedNotice book={book} />}
       {problem && (
         <Banner
           tone="error"
           title="That did not work"
-          className="mt-4 max-w-[860px]"
           action={
             <Button size="sm" variant="ghost" onClick={() => setProblem(null)}>
               Dismiss
@@ -252,167 +272,155 @@ export function ApiMarketing({ book }: { book: Book }) {
           {problem}
         </Banner>
       )}
-      <Tabs idBase="mk" label="Content type" className="mt-5" value={tab} onChange={(t) => setTab(t as Tab)} items={tabItems} />
-
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_var(--vol-inspector)]">
-        <div {...tabPanelProps("mk", tab)} className="grid min-w-0 content-start gap-4 focus-visible:outline-offset-4">
-          {tab === "archive" ? (
-            archived.length === 0 ? (
-              <EmptyState drawing="archive" title="Nothing archived" body="Archived items land here, so nothing is lost." />
-            ) : (
-              <ul className="grid gap-3">
-                {archived.map((a) => {
-                  const item = toItem(a);
-                  return (
-                    <li key={a.id}>
-                      <Card padding="md" className="flex flex-wrap items-start gap-3">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-small text-ink-secondary">
-                            {item ? kindLabel[item.kind] : a.kind}, archived {a.archivedAt ? formatRelative(new Date(a.archivedAt).toISOString(), now) : ""}
-                          </p>
-                          <p className="mt-1 font-book text-prose-sm text-ink">{item ? headline(item) : a.body}</p>
-                        </div>
-                        {canWrite && (
-                          <Button size="sm" icon={RotateCcw} onClick={() => void restore(a.id)}>
-                            Restore
-                          </Button>
-                        )}
-                      </Card>
-                    </li>
-                  );
-                })}
-              </ul>
-            )
-          ) : (
-            <>
-              {generating && job?.kind === tab && (
-                <div role="status" aria-label="Generating" className="grid gap-2 rounded-md border border-border bg-sheet p-5">
-                  <p className="flex items-center gap-2 text-small text-ink-secondary">
-                    <Loader />
-                    {watch.message ?? jobStatusText(watch.status)}
-                  </p>
-                </div>
-              )}
-              {list.length === 0 && !(generating && job?.kind === tab) ? (
-                <EmptyState
-                  drawing="pen"
-                  title={emptyCopy[tab]}
-                  body={
-                    locked ??
-                    `The writer drafts these from the book in the profile's voice. No reviews, rankings or numbers are invented. ${generateLabel[tab].label}, at the foot of the page, makes the first ones.`
-                  }
-                />
+      {nothingYet ? (
+        locked ? null : (
+          <KitEmpty book={book} label={generateLabel.tiktok.label} />
+        )
+      ) : (
+        <>
+          <ChannelTabs value={tab} onChange={setTab} counts={counts} />
+          <div className="grid grid-cols-1 items-start gap-4 min-[1025px]:grid-cols-[minmax(0,1fr)_320px]">
+            <section
+              {...tabPanelProps("mk", tab)}
+              aria-label={tab === "archive" ? "Archive" : `${channelLabel[tab]} previews`}
+              className={cn(kitCard, "min-w-0 focus-visible:outline-offset-4")}
+              style={kitColours(book)}
+            >
+              <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className={cardTitle}>{tab === "archive" ? "Archive" : `${channelLabel[tab]} previews`}</h2>
+                <small className="text-[12px] text-ink-3">{tab === "archive" ? "Archived items. Restore any of them." : "Pick one to read it in full"}</small>
+              </div>
+              {tab === "archive" ? (
+                archived.length === 0 ? (
+                  <EmptyState drawing="archive" title="Nothing archived" body="Archived items land here, so nothing is lost." className="shadow-none" />
+                ) : (
+                  <ul className="grid gap-2.5">
+                    {archived.map((a) => {
+                      const item = toItem(a);
+                      return (
+                        <li key={a.id} className="flex flex-wrap items-start gap-3 rounded-[14px] border border-line bg-panel-2 p-3.5">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[12px] text-ink-3">
+                              {item ? kindLabel[item.kind] : a.kind}, archived {a.archivedAt ? formatRelative(new Date(a.archivedAt).toISOString(), now) : ""}
+                            </p>
+                            <p className="mt-1 font-book text-prose-sm text-ink">{item ? headline(item) : a.body}</p>
+                          </div>
+                          {canWrite && (
+                            <Button size="sm" icon={RotateCcw} onClick={() => void restore(a.id)}>
+                              Restore
+                            </Button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )
               ) : (
-                <ul className="grid gap-4">
-                  {list.map((item) => {
-                    const r = rawById.get(item.data.id);
-                    return (
-                      <li key={item.data.id}>
-                        {editing === item.data.id && r ? (
-                          <EditCard item={item} raw={r} saving={patch.isPending} onCancel={() => setEditing(null)} onSave={(p) => void save(item.data.id, p)} />
-                        ) : (
-                          <article
-                            aria-label={`${kindLabel[item.kind]}: ${headline(item)}`}
-                            onFocusCapture={() => setSelectedId(item.data.id)}
-                            onClick={() => setSelectedId(item.data.id)}
-                            aria-busy={regen?.itemId === item.data.id || undefined}
-                            className={cn(
-                              "rounded-md border bg-sheet p-5",
-                              selected?.data.id === item.data.id ? "vol-pencil-edge border-select" : "border-border",
-                            )}
+                <>
+                  {generatingHere && (
+                    <div role="status" aria-label="Generating" className="mb-4 grid gap-2 rounded-[14px] border border-line bg-panel-2 p-4">
+                      <p className="flex items-center gap-2 text-[13px] text-ink-2">
+                        <Loader />
+                        {watch.message ?? jobStatusText(watch.status)}
+                      </p>
+                    </div>
+                  )}
+                  {list.length === 0 && !generatingHere ? (
+                    <EmptyState
+                      drawing="pen"
+                      title={emptyCopy[tab]}
+                      className="shadow-none"
+                      body={
+                        locked ??
+                        `The writer drafts these from the book in the profile's voice. No reviews, rankings or numbers are invented. ${generateLabel[tab].label} makes the first ones.`
+                      }
+                    />
+                  ) : (
+                    <ul className={galleryGrid(tab)}>
+                      {list.map((item, i) => (
+                        <li key={item.data.id} className="min-w-0">
+                          <GalleryItem
+                            label={`${kindLabel[item.kind]}: ${headline(item)}`}
+                            n={i + 1}
+                            selected={selected?.data.id === item.data.id}
+                            busy={regenerating(item.data.id)}
+                            onSelect={() => setSelectedId(item.data.id)}
                           >
-                            {regen?.itemId === item.data.id ? (
-                              <div role="status" aria-label="Writing it again" className="grid gap-3">
-                                <p className="flex items-center gap-2 text-small text-ink-secondary">
-                                  <Loader />
-                                  {regenWatch.message ?? jobStatusText(regenWatch.status)}
-                                </p>
-                                <Skeleton className="h-6 w-3/5" />
-                                <Skeleton className="h-4 w-full" />
-                              </div>
-                            ) : (
-                              <>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  {item.status === "used" ? <StatusChip status="passed">Used</StatusChip> : <StatusChip status="queued">Draft</StatusChip>}
-                                  <span className="num text-small text-ink-secondary">{meta(item)}</span>
-                                </div>
-                                {item.kind === "tiktok" && <TikTokBody item={item} />}
-                                {item.kind === "instagram" && <InstagramBody item={item} />}
-                                {item.kind === "email" && (
-                                  <EmailBody
-                                    item={item}
-                                    subjectIndex={subjectIndex(item)}
-                                    onSubject={(i) => {
-                                      const line = item.data.subjects[i];
-                                      if (line && line !== item.data.subject) void save(item.data.id, { title: line });
-                                    }}
-                                  />
-                                )}
-                              </>
-                            )}
-                            <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
-                              <Button size="sm" icon={Copy} onClick={() => void copy(itemText(item, subjectIndex(item)), kindLabel[item.kind])}>
-                                Copy
-                              </Button>
-                              {canWrite && (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    icon={RotateCw}
-                                    estimate="about $0.01"
-                                    loading={regen?.itemId === item.data.id}
-                                    loadingLabel="Regenerating"
-                                    disabledReason={locked ?? (regen && regen.itemId !== item.data.id ? "Another item is being written again." : undefined)}
-                                    onClick={() => void regenerate(item.data.id)}
-                                  >
-                                    Regenerate
-                                  </Button>
-                                  <Button size="sm" variant="ghost" icon={PenLine} onClick={() => setEditing(item.data.id)}>
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    icon={Check}
-                                    aria-pressed={item.status === "used"}
-                                    onClick={() => void save(item.data.id, { status: item.status === "used" ? "draft" : "used" })}
-                                  >
-                                    {item.status === "used" ? "Mark as draft" : "Mark as used"}
-                                  </Button>
-                                  <Button size="sm" variant="ghost" icon={Archive} className="sm:ml-auto" onClick={() => void archive(item)}>
-                                    Archive
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </article>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                            {regenerating(item.data.id) ? busyNote : <PostPreview book={book} author={author} item={item} />}
+                          </GalleryItem>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
               )}
-            </>
-          )}
-        </div>
+            </section>
 
-        <Inspector label="Selected item" width="100%" className="self-start rounded-md border xl:sticky xl:top-[calc(var(--shell-topbar)+16px)]">
-          {selected && tab !== "archive" ? (
-            <SelectedPanel item={selected} subjectIndex={subjectIndex(selected)} onCopy={(t, w) => void copy(t, w)} />
-          ) : (
-            <InspectorSection title="Selected item">
-              <p className="text-small text-ink-secondary">{tab === "archive" ? "Restore an item to edit or copy it." : "Pick an item to copy its parts."}</p>
-            </InspectorSection>
-          )}
-          <InspectorSection title="Guardrails" icon={ShieldCheck}>
-            <p className="text-small text-ink-secondary">
-              No invented reviews, testimonials, rankings or awards. Review requests ask for an honest review and offer nothing in return (KDP rules 10.6 and
-              10.7).
-            </p>
-          </InspectorSection>
-        </Inspector>
-      </div>
+            <aside aria-label="Selected item" className={cn(kitCard, "min-[1025px]:sticky min-[1025px]:top-[calc(var(--shell-sticky-top)+16px)]")}>
+              {selected && tab !== "archive" ? (
+                editing === selected.data.id && selectedRaw ? (
+                  <EditCard
+                    item={selected}
+                    raw={selectedRaw}
+                    saving={patch.isPending}
+                    onCancel={() => setEditing(null)}
+                    onSave={(p) => void save(selected.data.id, p)}
+                  />
+                ) : (
+                  <PostDetail
+                    item={selected}
+                    index={Math.max(0, selectedIndex)}
+                    subjectIndex={subjectIndex(selected)}
+                    onSubject={(i) => {
+                      if (selected.kind !== "email") return;
+                      const line = selected.data.subjects[i];
+                      if (line && line !== selected.data.subject) void save(selected.data.id, { title: line });
+                    }}
+                    onCopy={() => void copy(itemText(selected, subjectIndex(selected)), kindLabel[selected.kind])}
+                    busy={regenerating(selected.data.id) ? busyNote : undefined}
+                    actions={
+                      canWrite ? (
+                        <>
+                          <Button
+                            size="sm"
+                            icon={RotateCw}
+                            estimate="about $0.01"
+                            loading={regenerating(selected.data.id)}
+                            loadingLabel="Regenerating"
+                            disabledReason={locked ?? (regen && regen.itemId !== selected.data.id ? "Another item is being written again." : undefined)}
+                            onClick={() => void regenerate(selected.data.id)}
+                          >
+                            Regenerate
+                          </Button>
+                          <Button size="sm" variant="ghost" icon={PenLine} onClick={() => setEditing(selected.data.id)}>
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            icon={Check}
+                            aria-pressed={selected.status === "used"}
+                            onClick={() => void save(selected.data.id, { status: selected.status === "used" ? "draft" : "used" })}
+                          >
+                            {selected.status === "used" ? "Mark as draft" : "Mark as used"}
+                          </Button>
+                          <Button size="sm" variant="ghost" icon={Archive} onClick={() => void archive(selected)}>
+                            Archive
+                          </Button>
+                        </>
+                      ) : undefined
+                    }
+                    parts={<SelectedPanel item={selected} subjectIndex={subjectIndex(selected)} onCopy={(t, w) => void copy(t, w)} />}
+                  />
+                )
+              ) : (
+                <p className="text-[13px] text-ink-2">{tab === "archive" ? "Restore an item to edit or copy it." : "Pick an item to read and copy it."}</p>
+              )}
+              <Guardrails />
+            </aside>
+          </div>
+        </>
+      )}
       <span className="sr-only" role="status" aria-live="polite">
         {announce}
       </span>
@@ -453,7 +461,7 @@ function EditCard({
   return (
     <form
       aria-label={`Edit ${kindLabel[item.kind].toLowerCase()}`}
-      className="grid gap-3 rounded-md border border-select bg-sheet p-5"
+      className="grid gap-3"
       onSubmit={(e) => {
         e.preventDefault();
         onSave(p);

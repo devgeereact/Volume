@@ -1,5 +1,6 @@
-import { libraryColumns, stageLabels } from "../../demo/books";
+import { bookSteps, currentStep, libraryColumns, stageLabels, stepState } from "../../demo/books";
 import type { Book, StageId } from "../../demo/types";
+import type { SegState } from "../../components/ui";
 import { formatNumber } from "../../lib/format";
 
 /* Small helpers that turn a book into the words the Library shows. */
@@ -61,4 +62,20 @@ export function groupOf(book: Book): BookGroup {
   if (column === "published") return "published";
   if (column === "export") return "ready";
   return "progress";
+}
+
+/** One segment per book step (Research to Export): done steps filled, started ones half filled, the rest empty. */
+export function stepSegments(book: Book): SegState[] {
+  return bookSteps.map((s) => {
+    const state = stepState(book, s.id, null);
+    return state === "done" ? "on" : state === "not-started" ? "off" : "half";
+  });
+}
+
+/** The words under a card's segment bar: "Step 5 of 8: Editing", "Idea, not started" or "All 8 steps done". */
+export function stepLine(book: Book): string {
+  if (book.stage === "published") return `All ${bookSteps.length} steps done`;
+  if (book.stage === "idea") return "Idea, not started";
+  const at = bookSteps.findIndex((s) => s.id === currentStep(book));
+  return `Step ${at + 1} of ${bookSteps.length}: ${stageLabels[book.stage]}`;
 }

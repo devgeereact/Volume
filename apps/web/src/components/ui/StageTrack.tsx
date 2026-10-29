@@ -25,7 +25,7 @@ type MarkerState = "done" | "current" | "upcoming" | "loading";
 
 /**
  * Stage track: marker plus label per stage, joined by short rules. Done: ink marker with a check.
- * Current: gilt marker with a dot, page-turn entrance, aria-current="step". Upcoming: outlined.
+ * Current: accent marker with a dot, page-turn entrance, aria-current="step". Upcoming: outlined.
  * Loading (a job runs in that stage): a softly pulsing dot, still with reduced motion. When stages are links, it has one tab stop and the
  * arrow keys, Home and End move between stages.
  */

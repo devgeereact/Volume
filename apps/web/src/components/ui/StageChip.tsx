@@ -6,7 +6,7 @@ import { LiveDot } from "./LiveDot";
 
 interface StageChipProps {
   stage: StageId;
-  /** A job is running in this stage (gilt live dot). */
+  /** A job is running in this stage (live dot). */
   live?: boolean | undefined;
   className?: string | undefined;
 }

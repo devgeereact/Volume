@@ -316,7 +316,8 @@ test.describe("production hub (D-048, D-049)", () => {
       const expected = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(
         new Date(`${isoDay(-10)}T00:00:00Z`),
       );
-      await expect(shelfBook.getByText("Live since").locator("xpath=following-sibling::dd")).toHaveText(expected);
+      // Each format row (or, before an export pack, the one row) reads "Live since <date>".
+      await expect(shelfBook.getByText(`Live since ${expected}`).first()).toBeVisible();
     });
 
     expect(errors(), "console errors").toEqual([]);

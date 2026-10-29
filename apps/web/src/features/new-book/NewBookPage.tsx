@@ -2,10 +2,11 @@ import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react
 import { ReadOnlyBanner } from "../../lib/access";
 import { useVolumeMe } from "../../api/wire-d";
 import { Link, useNavigate } from "react-router";
-import { ArrowLeft, Check, Plus, Save } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Plus, Save } from "lucide-react";
 import {
   Banner,
   Button,
+  buttonClasses,
   Checkbox,
   Cover,
   EmptyState,
@@ -44,6 +45,8 @@ import { textModels } from "../research/RunModelModal";
 import { estimateFor } from "../research/sim";
 import { BookTypeStep } from "./BookTypeStep";
 import { ChoiceCard } from "./ChoiceCard";
+import { ProfileAvatar } from "../profiles/ProfileAvatar";
+import { cn } from "../../lib/cn";
 import {
   ageRanges,
   applyProfile,
@@ -185,14 +188,14 @@ export default function NewBookPage() {
   const me = useVolumeMe();
   if (me.state === "loading")
     return (
-      <div role="status" className="px-4 py-6 text-small text-ink-secondary sm:px-8 lg:px-10">
+      <div role="status" className="px-4 pt-1.5 pb-8 text-small text-ink-2 min-[861px]:px-6">
         Checking what your account can do
       </div>
     );
   if (!me.canWrite)
     return (
-      <div className="grid max-w-[760px] content-start gap-5 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
-        <PageHeader title="New book" />
+      <div className="grid max-w-[760px] content-start gap-5 px-4 pt-1.5 pb-8 min-[861px]:px-6">
+        <PageHeader title="New book" titleHidden />
         <ReadOnlyBanner />
         <p>
           <Link to="/library" className="text-label text-select underline underline-offset-2">
@@ -238,6 +241,29 @@ function NewBookWizard() {
   const est = useMemo(() => estimate(draft), [draft]);
   const title = workingTitle(draft.idea) ?? "Working title";
   const picture = isPictureBook(type);
+  // The rail's second line: what each step is for, or what was chosen there.
+  const railSteps: WizardStep[] = steps.map((s) => {
+    if (s.id === "profile") return { ...s, hint: pen?.name ?? "Who writes it" };
+    if (s.id === "type") return { ...s, hint: type?.name ?? "What kind of book" };
+    if (s.id === "idea") return { ...s, hint: workingTitle(draft.idea) ?? "Title and idea" };
+    if (s.id === "details")
+      return { ...s, hint: type && reached >= 3 ? `${formatNumber(parseNum(draft.words) || 0)} words, ${draft.trim}` : "Length and trim" };
+    return { ...s, hint: "Check and start" };
+  });
+  const stepIntro =
+    step === 0
+      ? "The profile sets the voice, the bio and the defaults."
+      : step === 1
+        ? "Each type has its own structure, length and checks."
+        : step === 2
+          ? picture
+            ? "One or two sentences is enough. The story and spreads come next."
+            : "One or two sentences is enough. Research and titles come next."
+          : step === 4
+            ? picture
+              ? "Volume writes the story and paints the spreads next."
+              : "Volume runs research first, then waits for you to pick a title. You can also skip straight to titles."
+            : null;
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -336,19 +362,25 @@ function NewBookWizard() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-10 px-4 py-6 sm:px-8 lg:px-10 lg:py-7 xl:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-7">
-        <PageHeader title="New book" summary="Start from a rough idea or a working title. It takes about a minute." />
-        <WizardSteps steps={steps} current={step} reached={reached} onGo={go} />
+    <div className="grid grid-cols-1 items-start gap-5 px-4 pt-1.5 pb-8 min-[861px]:grid-cols-[220px_minmax(0,1fr)] min-[861px]:px-6 min-[1381px]:grid-cols-[250px_minmax(0,1fr)_280px]">
+      <header className="sr-only">
+        <h1>New book</h1>
+        <p>Start from a rough idea or a working title. It takes about a minute.</p>
+      </header>
+      <WizardSteps steps={railSteps} current={step} reached={reached} onGo={go} />
 
-        <form onSubmit={next} noValidate className="grid gap-6">
-          <h2 ref={headingRef} tabIndex={-1} className="font-book text-heading text-ink focus:outline-none">
-            {step === 0 && "Who is writing this book?"}
-            {step === 1 && "What kind of book is it?"}
-            {step === 2 && "What is the book about?"}
-            {step === 3 && `Shape the ${type ? type.name.toLowerCase() : "book"}`}
-            {step === 4 && "Check and start"}
-          </h2>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-5">
+        <form onSubmit={next} noValidate className="vol-glass grid min-w-0 gap-[18px] rounded-card p-[26px] max-[560px]:p-[18px]">
+          <div className="grid gap-2">
+            <h2 ref={headingRef} tabIndex={-1} className="text-[24px] leading-[1.25] font-bold tracking-[-0.02em] text-ink focus:outline-none">
+              {step === 0 && "Who is writing this book?"}
+              {step === 1 && "What kind of book is it?"}
+              {step === 2 && "What is the book about?"}
+              {step === 3 && `Shape the ${type ? type.name.toLowerCase() : "book"}`}
+              {step === 4 && "Check and start"}
+            </h2>
+            {stepIntro && <p className="text-body text-ink-2">{stepIntro}</p>}
+          </div>
 
           {step === 0 && (
             <ProfileStep
@@ -442,14 +474,14 @@ function NewBookWizard() {
                 {type ? type.name : "Not chosen"}
               </ReviewBlock>
               <ReviewBlock title="Idea" onChange={() => go(2)}>
-                <span className="font-book text-prose-sm">{draft.idea}</span>
-                {draft.audience && <span className="mt-1 block text-small text-ink-secondary">Audience: {draft.audience}</span>}
-                {draft.notes && <span className="mt-1 block text-small text-ink-secondary">Notes: {draft.notes}</span>}
+                <span className="text-body">{draft.idea}</span>
+                {draft.audience && <span className="mt-1 block text-small text-ink-2">Audience: {draft.audience}</span>}
+                {draft.notes && <span className="mt-1 block text-small text-ink-2">Notes: {draft.notes}</span>}
               </ReviewBlock>
               <ReviewBlock title="Details" onChange={() => go(3)}>
                 <KeyValueList items={reviewItems(draft, type)} />
               </ReviewBlock>
-              <div className="grid gap-1 rounded-md border border-border bg-sheet p-4">
+              <div className="grid gap-1 rounded-lg border border-edge bg-soft p-4">
                 {picture ? (
                   <p className="text-body text-ink">
                     Next, the Story and spreads step writes the story, paints the character references and one picture for each spread. The pictures cost{" "}
@@ -462,7 +494,7 @@ function NewBookWizard() {
                   </p>
                 )}
                 {type && writingArrives(type) && (
-                  <p className="text-small text-ink-secondary">
+                  <p className="text-small text-ink-2">
                     Research, titles and the blueprint work for every book type now. Automatic writing for this type arrives in {writingArrives(type)}.
                   </p>
                 )}
@@ -485,38 +517,47 @@ function NewBookWizard() {
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 border-t border-border pt-5">
-            {step > 0 ? (
-              <Button variant="ghost" icon={ArrowLeft} onClick={() => go(step - 1)}>
-                Back
-              </Button>
-            ) : (
-              <Button variant="ghost" onClick={() => void navigate("/library")}>
-                Cancel
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              icon={Save}
-              onClick={saveDraft}
-              loading={savingDraft}
-              loadingLabel="Saving"
-              disabledReason={draft.profileId ? undefined : "Choose a profile first."}
-            >
-              Save draft
-            </Button>
-            <p role="status" className={saveError ? "text-small text-claim" : "text-small text-success"}>
-              {saveError && `Draft not saved. ${saveError}`}
-              {!saveError && savedAt && (
-                <span className="inline-flex items-center gap-1">
-                  <Check size={14} strokeWidth={2} aria-hidden /> Draft saved at {formatTime(savedAt)}
-                </span>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+            <div className="flex flex-wrap items-center gap-2">
+              {step > 0 ? (
+                <Button icon={ChevronLeft} onClick={() => go(step - 1)}>
+                  Back
+                </Button>
+              ) : (
+                <Button onClick={() => void navigate("/library")}>Cancel</Button>
               )}
-            </p>
-            <div className="ml-auto flex flex-wrap gap-3">
+              <Button
+                variant="ghost"
+                icon={Save}
+                onClick={saveDraft}
+                loading={savingDraft}
+                loadingLabel="Saving"
+                disabledReason={draft.profileId ? undefined : "Choose a profile first."}
+              >
+                Save draft
+              </Button>
+              <p role="status" className={saveError ? "text-small text-claim" : "text-small text-good"}>
+                {saveError && `Draft not saved. ${saveError}`}
+                {!saveError && savedAt && (
+                  <span className="inline-flex items-center gap-1">
+                    <Check size={14} strokeWidth={2} aria-hidden /> Draft saved at {formatTime(savedAt)}
+                  </span>
+                )}
+              </p>
+            </div>
+            <small className="text-small text-ink-3">
+              Step {step + 1} of {steps.length}
+            </small>
+            <div className="flex flex-wrap gap-2">
               {step < steps.length - 1 ? (
-                <Button type="submit" variant="primary" disabledReason={step === 0 && screen !== "ready" ? "Profiles need to load first." : undefined}>
-                  Next: {steps[step + 1]?.label}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  iconRight={ChevronRight}
+                  aria-label={`Next: ${steps[step + 1]?.label ?? ""}`}
+                  disabledReason={step === 0 && screen !== "ready" ? "Profiles need to load first." : undefined}
+                >
+                  Next
                 </Button>
               ) : picture ? (
                 <Button variant="primary" loading={starting} loadingLabel="Creating the book" onClick={() => start(false)}>
@@ -554,19 +595,35 @@ function NewBookWizard() {
         )}
       </div>
 
-      <aside aria-label="Your book so far" className="hidden xl:block">
-        <div className="sticky top-[calc(var(--shell-topbar)+28px)] grid gap-4 rounded-md border border-border bg-sheet p-5">
-          <h2 className="text-[13px] font-semibold text-ink-secondary">Your book so far</h2>
+      <aside
+        aria-label="Your book so far"
+        className={cn(
+          "vol-glass grid min-w-0 content-start gap-3.5 rounded-card p-5",
+          "min-[861px]:col-span-2 min-[861px]:grid-cols-[auto_minmax(0,1fr)] min-[861px]:gap-x-5",
+          "min-[1381px]:sticky min-[1381px]:top-[calc(var(--shell-topbar)+12px)] min-[1381px]:col-span-1 min-[1381px]:grid-cols-1 min-[1381px]:justify-items-center",
+        )}
+      >
+        <h2 className="text-[12px] font-bold tracking-[0.08em] text-ink-3 uppercase min-[861px]:col-span-2 min-[1381px]:col-span-1 min-[1381px]:justify-self-start">
+          Preview
+        </h2>
+        <div className="grid justify-items-start gap-2 min-[1381px]:justify-items-center">
+          <Cover
+            title={title}
+            author={pen?.name ?? ""}
+            design={coverPreview(draft.coverStyle, title)}
+            hideSubtitle
+            decorative
+            className="w-[110px] min-[1381px]:w-[150px]"
+          />
           {type && (
-            <div className="flex items-end gap-4">
-              <Cover title={title} author={pen?.name ?? ""} design={coverPreview(draft.coverStyle, title)} width={88} hideSubtitle decorative />
-              <p className="pb-1 text-small text-ink-secondary">
-                {getCoverStyle(draft.coverStyle)?.name ?? "Cover style"} cover, {getInteriorTheme(draft.interiorTheme)?.name ?? "default"} interior
-              </p>
-            </div>
+            <p className="max-w-[200px] text-caption text-ink-3 min-[1381px]:text-center">
+              {getCoverStyle(draft.coverStyle)?.name ?? "Cover style"} cover, {getInteriorTheme(draft.interiorTheme)?.name ?? "default"} interior
+            </p>
           )}
-          <KeyValueList
-            items={[
+        </div>
+        <div className="grid w-full min-w-0 content-start gap-1.5">
+          <dl className="grid w-full content-start gap-1.5 text-[12.5px]">
+            {[
               { label: "Profile", value: pen?.name ?? "Not chosen" },
               { label: "Type", value: type?.name ?? "Not chosen" },
               ...(type
@@ -574,19 +631,17 @@ function NewBookWizard() {
                     { label: "Words", value: formatNumber(parseNum(draft.words) || 0) },
                     { label: unitLabel(type), value: draft.chapters },
                     { label: "Trim", value: draft.trim },
+                    { label: "Estimate", value: `${formatUsd(est.low)} to ${formatUsd(est.high)}` },
                   ]
                 : []),
-            ]}
-          />
-          {type && (
-            <div className="border-t border-border pt-4">
-              <p className="text-small text-ink-secondary">Estimate</p>
-              <p className="num font-book text-[22px] leading-7 text-ink">
-                {formatUsd(est.low)} to {formatUsd(est.high)}
-              </p>
-            </div>
-          )}
-          {draft.idea && <p className="border-t border-border pt-4 font-book text-[14px] leading-5 text-ink-secondary italic">{draft.idea}</p>}
+            ].map((row) => (
+              <div key={row.label} className="flex items-center justify-between gap-3 rounded-[11px] border border-edge bg-soft px-2.5 py-2">
+                <dt className="text-ink-3">{row.label}</dt>
+                <dd className="num min-w-0 text-right font-semibold text-ink">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+          {draft.idea && <p className="px-1 pt-1.5 text-[12.5px] leading-[18px] text-ink-2">{draft.idea}</p>}
         </div>
       </aside>
     </div>
@@ -633,8 +688,8 @@ function reviewItems(d: Draft, type: BookType | undefined): { label: string; val
 
 function ReviewBlock({ title, onChange, children }: { title: string; onChange: () => void; children: ReactNode }) {
   return (
-    <section className="grid gap-2 border-b border-border pb-4 sm:grid-cols-[140px_minmax(0,1fr)_auto] sm:gap-5">
-      <h3 className="text-label text-ink-secondary">{title}</h3>
+    <section className="grid gap-2 border-b border-line pb-4 sm:grid-cols-[140px_minmax(0,1fr)_auto] sm:gap-5">
+      <h3 className="text-label text-ink-2">{title}</h3>
       <div className="min-w-0 text-body text-ink">{children}</div>
       <Button size="sm" variant="ghost" onClick={onChange} aria-label={`Change ${title.toLowerCase()}`}>
         Change
@@ -648,7 +703,7 @@ function ReviewBlock({ title, onChange, children }: { title: string; onChange: (
 function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (
     <section className="grid gap-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-2">
         <h3 className="text-subhead text-ink">{title}</h3>
         {aside}
       </div>
@@ -697,7 +752,7 @@ function DetailsStep({ draft, type, profile, errors, set, modelFor, onModelFor, 
 
   return (
     <div className="grid gap-9">
-      <p className="-mt-2 max-w-[68ch] text-body text-ink-secondary">
+      <p className="-mt-2 max-w-[68ch] text-body text-ink-2">
         {fromProfile && profile ? `Filled in from ${profile.name}'s defaults.` : `Filled in from the ${type.name.toLowerCase()} defaults.`} Change anything you
         like; it can all be changed later, before export.
       </p>
@@ -845,7 +900,7 @@ function DetailsStep({ draft, type, profile, errors, set, modelFor, onModelFor, 
       )}
 
       {groups.includes("exercises") && (
-        <Section title="Exercises" aside={<span className="text-small text-ink-tertiary">Two to four in each chapter</span>}>
+        <Section title="Exercises" aside={<span className="text-small text-ink-3">Two to four in each chapter</span>}>
           <fieldset className="grid gap-2 sm:grid-cols-2">
             <legend className="sr-only">Exercise styles</legend>
             {exerciseStyles.map((x) => (
@@ -901,7 +956,7 @@ function DetailsStep({ draft, type, profile, errors, set, modelFor, onModelFor, 
                 value={draft.paper}
                 onChange={(v) => set("paper", v)}
               />
-              <span className="text-small text-ink-secondary">{type.interior === "colour" ? "Colour interior" : "Black and white interior"}</span>
+              <span className="text-small text-ink-2">{type.interior === "colour" ? "Colour interior" : "Black and white interior"}</span>
             </div>
             <Select
               label="Interior theme"
@@ -920,7 +975,7 @@ function DetailsStep({ draft, type, profile, errors, set, modelFor, onModelFor, 
           </div>
           <figure className="grid justify-items-start gap-2 lg:justify-items-center xl:hidden">
             <Cover title={title} author={profile?.name ?? ""} design={design} width={132} hideSubtitle decorative />
-            <figcaption className="text-small text-ink-tertiary">Cover style preview</figcaption>
+            <figcaption className="text-small text-ink-3">Cover style preview</figcaption>
           </figure>
         </div>
       </Section>
@@ -952,7 +1007,7 @@ function DetailsStep({ draft, type, profile, errors, set, modelFor, onModelFor, 
         ) : (
           <ModelPicker label="Writing model" models={textModels} value={draft.writingModel} onChange={(v) => set("writingModel", v)} />
         )}
-        <p className="text-small text-ink-secondary">
+        <p className="text-small text-ink-2">
           {profile?.models.writing && modelFor === "writing"
             ? `${profile.name}'s profile picks this writer.`
             : "Defaults come from Settings and the profile. Change them per book here."}
@@ -960,12 +1015,12 @@ function DetailsStep({ draft, type, profile, errors, set, modelFor, onModelFor, 
       </Section>
 
       <Section title="Estimated cost">
-        <div className="rounded-md border border-border bg-sheet p-4 sm:max-w-md">
-          <p className="text-small text-ink-secondary">Estimated cost for the whole book</p>
-          <p className="num mt-1 font-book text-figure text-ink">
-            {formatUsd(est.low)} <span className="font-ui text-label text-ink-secondary normal-nums">to {formatUsd(est.high)}</span>
+        <div className="rounded-lg border border-edge bg-soft p-4 sm:max-w-md">
+          <p className="text-small text-ink-2">Estimated cost for the whole book</p>
+          <p className="num mt-1 text-figure text-ink">
+            {formatUsd(est.low)} <span className="font-ui text-label text-ink-2 normal-nums">to {formatUsd(est.high)}</span>
           </p>
-          <p className="mt-1 text-small text-ink-tertiary">
+          <p className="mt-1 text-small text-ink-3">
             Example prices. The app reads live prices from OpenRouter and your Anthropic account. Nothing stops a book at a limit: if the credit runs out, the
             book pauses and tells you to top up.
           </p>
@@ -998,9 +1053,9 @@ function ProfileStep({
 }) {
   if (state === "loading") {
     return (
-      <div role="status" aria-label="Loading profiles" className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+      <div role="status" aria-label="Loading profiles" className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2.5">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="grid gap-2.5 rounded-md border border-border bg-sheet p-5">
+          <div key={i} className="grid gap-2.5 rounded-[18px] border-[1.5px] border-edge bg-soft p-4">
             <div className="flex items-center gap-3">
               <Skeleton variant="circle" className="size-10" />
               <Skeleton className="w-32" />
@@ -1019,10 +1074,7 @@ function ProfileStep({
         title="Add a profile first"
         body="Every book is written under a profile, with its voice, bio, defaults and models. Add one, then come back."
         action={
-          <Link
-            to="/profiles/new"
-            className="inline-flex h-11 items-center gap-2 rounded-sm border border-border-strong bg-sheet px-4 text-label font-semibold text-ink hover:bg-sunken"
-          >
+          <Link to="/profiles/new" className={buttonClasses("secondary")}>
             <Plus size={16} aria-hidden /> Add profile
           </Link>
         }
@@ -1047,36 +1099,24 @@ function ProfileStep({
   return (
     <fieldset className="grid gap-3" aria-describedby={error ? "profile-error" : undefined}>
       <legend className="sr-only">Profile</legend>
-      <div id="field-profileId" tabIndex={-1} className="grid gap-3 focus:outline-none md:grid-cols-2 2xl:grid-cols-3">
+      <div id="field-profileId" tabIndex={-1} className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2.5 focus:outline-none">
         {list.map((p) => {
           const count = countFor(p.id);
           const defType = getBookType(p.profile.publishing.defaultBookType);
+          const tone = p.profile.voice.tone.slice(0, 3).join(", ");
           return (
-            <ChoiceCard key={p.id} name="profile" value={p.id} checked={value === p.id} onChange={onChange}>
-              <span className="flex items-center gap-3 pr-8">
-                <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-spine text-label font-semibold text-ink-on-spine">
-                  {p.initials}
-                </span>
-                <span className="grid">
-                  <span className="font-book text-[18px] leading-6 font-medium text-ink">{p.name}</span>
-                  <span className="text-small text-ink-secondary">
-                    {p.imprint ?? (p.realPerson ? "Own name" : "Pen name")}, {count} {count === 1 ? "book" : "books"}
-                  </span>
-                </span>
+            <ChoiceCard key={p.id} name="profile" value={p.id} checked={value === p.id} onChange={onChange} className="gap-0">
+              <ProfileAvatar initials={p.initials} id={p.id} className="mb-3" />
+              <span className="text-[14px] leading-6 font-bold text-ink">{p.name}</span>
+              <span className="text-[12.5px] leading-6 text-ink-2">
+                {p.imprint ?? (p.realPerson ? "Own name" : "Pen name")}, {count} {count === 1 ? "book" : "books"}
               </span>
-              <span className="font-book text-[15px] leading-[22px] text-ink italic">{p.voice.slice(0, 2).join(". ")}.</span>
+              {tone && <span className="text-[12.5px] leading-6 text-ink-2">{tone}</span>}
               {defType && (
-                <span className="text-small text-ink-secondary">
+                <span className="sr-only">
                   Usual type: {defType.name}, {formatNumber(p.profile.publishing.defaultWordTarget)} words, {p.profile.publishing.defaultTrim}
                 </span>
               )}
-              <span className="flex flex-wrap gap-1.5 pt-1">
-                {p.genres.slice(0, 3).map((g) => (
-                  <span key={g} className="inline-flex h-6 items-center rounded-pill bg-sunken px-2 text-caption text-ink-secondary">
-                    {g}
-                  </span>
-                ))}
-              </span>
             </ChoiceCard>
           );
         })}

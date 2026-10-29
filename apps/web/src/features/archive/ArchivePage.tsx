@@ -1,7 +1,22 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
-import { BookOpen, FileArchive, Megaphone, RotateCcw, Trash2, UserRound } from "lucide-react";
-import { Banner, Button, EmptyState, FilterField, IconButton, Input, Modal, PageHeader, Skeleton, Tabs, tabPanelProps } from "../../components/ui";
+import { BookOpen, FileArchive, Info, Megaphone, RotateCcw, Trash2, UserRound } from "lucide-react";
+import {
+  Banner,
+  Button,
+  Card,
+  EmptyState,
+  FilterField,
+  IconButton,
+  Input,
+  Modal,
+  PageHeader,
+  Skeleton,
+  tabId,
+  tabPanelId,
+  tabPanelProps,
+} from "../../components/ui";
+import { cn } from "../../lib/cn";
 import { useArchive, useDeleteArchived, useRestoreArchived } from "../../api/hooks";
 import type { ApiArchiveItem } from "../../api/types";
 import { apiErrorText, canDeleteArchived, downloadProjectFile, isoFromMs, useWireMode } from "../../api/wire-a";
@@ -28,14 +43,71 @@ function deleteWarning(item: ArchivedItem): string {
 
 function ArchiveSkeleton() {
   return (
-    <ul role="status" aria-label="Loading archive" className="grid overflow-hidden rounded-md border border-border bg-sheet">
-      {Array.from({ length: 3 }, (_, i) => (
-        <li key={i} className="grid gap-2 border-t border-border p-4 first:border-t-0">
-          <Skeleton className="h-4 w-1/3" />
-          <Skeleton className="h-3 w-1/2" />
-        </li>
-      ))}
-    </ul>
+    <Card padding="none" className="p-2">
+      <ul role="status" aria-label="Loading archive" className="grid gap-1.5">
+        {Array.from({ length: 3 }, (_, i) => (
+          <li key={i} className="grid gap-2 rounded-lg border border-edge bg-soft p-3.5">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-3 w-1/2" />
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+/**
+ * The archive's sections as the approved design's segmented tabs (.seg.tgl with role="tablist"): label and count,
+ * the chosen one raised. Arrow keys, Home and End move and select (roving tabindex), as the shared Tabs do.
+ */
+function SectionTabs({ items, value, onChange }: { items: { id: Kind; label: string; count: number }[]; value: Kind; onChange: (k: Kind) => void }) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  function onKey(e: KeyboardEvent<HTMLDivElement>) {
+    const idx = items.findIndex((t) => t.id === value);
+    let next = -1;
+    if (e.key === "ArrowRight") next = (idx + 1) % items.length;
+    else if (e.key === "ArrowLeft") next = (idx - 1 + items.length) % items.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = items.length - 1;
+    const target = items[next];
+    if (!target) return;
+    e.preventDefault();
+    onChange(target.id);
+    refs.current[next]?.focus();
+  }
+  return (
+    <div
+      role="tablist"
+      aria-label="Archived items"
+      onKeyDown={onKey}
+      className="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-md border border-edge bg-soft p-[3px]"
+    >
+      {items.map((t, i) => {
+        const selected = t.id === value;
+        return (
+          <button
+            key={t.id}
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
+            id={tabId(ID_BASE, t.id)}
+            role="tab"
+            type="button"
+            aria-selected={selected}
+            aria-controls={tabPanelId(ID_BASE, t.id)}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onChange(t.id)}
+            className={cn(
+              "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-sm px-3 text-[13px] font-medium whitespace-nowrap focus-visible:outline-offset-1",
+              selected ? "bg-panel-2 text-ink shadow-segment" : "text-ink-2 hover:text-ink",
+            )}
+          >
+            {t.label}
+            <small className="num text-[11px] text-ink-3">{t.count}</small>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -152,23 +224,8 @@ export default function ArchivePage() {
   const confirmMatches = toDelete !== null && confirmText === toDelete.title;
 
   return (
-    <div className="mx-auto grid w-full max-w-[1240px] grid-cols-1 content-start gap-6 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
-      <PageHeader
-        title="Archive"
-        summary={state === "ready" ? `${all.length} archived ${all.length === 1 ? "item" : "items"}` : undefined}
-        actions={
-          state === "ready" && all.length > 0 ? (
-            <FilterField
-              label="Filter the archive"
-              placeholder="Filter by title or profile"
-              value={query}
-              onChange={setQuery}
-              count={shown.length}
-              className="w-full sm:w-[280px]"
-            />
-          ) : undefined
-        }
-      />
+    <div className="grid grid-cols-1 content-start gap-4 px-4 pt-1 pb-6 min-[861px]:px-6">
+      <PageHeader title="Archive" titleHidden />
       <ReadOnlyBanner />
 
       {state === "loading" && <ArchiveSkeleton />}
@@ -187,21 +244,31 @@ export default function ArchivePage() {
       )}
 
       {(state === "ready" || state === "empty") && (
-        <div className="grid gap-5">
-          <Tabs
-            label="Archived items"
-            idBase={ID_BASE}
-            value={tab}
-            onChange={(id) => setTab(id as Kind)}
-            items={kinds.map((k) => ({ id: k.id, label: k.label, count: all.filter((i) => i.kind === k.id).length }))}
-          />
+        <>
+          <Card as="section" aria-label="Archive sections" className="flex flex-wrap items-center justify-between gap-3 px-4.5 py-4">
+            <SectionTabs
+              value={tab}
+              onChange={setTab}
+              items={kinds.map((k) => ({ id: k.id, label: k.label, count: all.filter((i) => i.kind === k.id).length }))}
+            />
+            {all.length > 0 && (
+              <FilterField
+                label="Filter the archive"
+                placeholder="Filter the archive"
+                value={query}
+                onChange={setQuery}
+                count={shown.length}
+                className="w-full min-[561px]:w-60"
+              />
+            )}
+          </Card>
           {status && <InlineStatus>{status}</InlineStatus>}
           {restoreError && (
             <Banner tone="error" title="That did not finish">
               {restoreError}
             </Banner>
           )}
-          <div {...tabPanelProps(ID_BASE, tab)} className="focus-visible:outline-offset-4">
+          <Card padding="none" {...tabPanelProps(ID_BASE, tab)} className="p-2 focus-visible:outline-offset-4">
             {inTab.length === 0 ? (
               <EmptyState
                 headingLevel={2}
@@ -218,22 +285,22 @@ export default function ArchivePage() {
                 action={<Button onClick={() => setQuery("")}>Clear filter</Button>}
               />
             ) : (
-              <ul aria-label={`Archived ${kind?.label.toLowerCase() ?? "items"}`} className="grid overflow-hidden rounded-md border border-border bg-sheet">
+              <ul aria-label={`Archived ${kind?.label.toLowerCase() ?? "items"}`} className="grid gap-1.5">
                 {shown.map((item) => {
                   const Icon = kind?.icon ?? BookOpen;
                   return (
                     <li
                       key={item.id}
-                      className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-border px-4 py-3.5 first:border-t-0 sm:flex-nowrap"
+                      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3.5 rounded-lg border border-edge bg-soft p-3.5 min-[861px]:grid-cols-[auto_minmax(0,1fr)_auto_auto]"
                     >
-                      <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-sm bg-sunken text-ink-secondary">
-                        <Icon size={16} />
+                      <span aria-hidden className="grid size-10.5 shrink-0 place-items-center rounded-[13px] bg-panel-2 text-ink-2">
+                        <Icon size={18} strokeWidth={1.8} />
                       </span>
-                      <span className="grid min-w-0 flex-1 basis-48 gap-0.5">
-                        <span className="font-book text-[16px] leading-5 font-medium text-ink">{item.title}</span>
-                        <span className="text-small text-ink-secondary">{item.detail}</span>
+                      <span className="grid min-w-0 gap-0.5">
+                        <b className="text-[14px] font-semibold text-ink">{item.title}</b>
+                        <small className="text-caption text-ink-3">{item.detail}</small>
                       </span>
-                      <span className="num shrink-0 text-small whitespace-nowrap text-ink-secondary sm:text-right">
+                      <span className="num text-caption whitespace-nowrap text-ink-3 max-[860px]:sr-only">
                         Archived <time dateTime={item.archivedAt}>{formatDate(item.archivedAt)}</time>
                       </span>
                       <span className="flex shrink-0 items-center gap-1">
@@ -258,8 +325,12 @@ export default function ArchivePage() {
                 })}
               </ul>
             )}
-          </div>
-        </div>
+          </Card>
+          <p className="vol-glass flex items-center gap-2.5 rounded-lg px-4 py-3 text-caption text-ink-2">
+            <Info size={16} strokeWidth={1.8} aria-hidden className="shrink-0 text-mint-ink" />
+            Restoring puts an item back where it was. {all.length} {all.length === 1 ? "item" : "items"} in the archive.
+          </p>
+        </>
       )}
 
       <Modal

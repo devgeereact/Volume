@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { barcodeArea, coverBleedIn, inches, safeInsetIn, spineTextMinPages, wrapSize, type Paper } from "../export/kdpRules";
 import { CoverFrame } from "./CoverFrame";
 
@@ -8,6 +8,16 @@ interface WrapPreviewProps {
   trim: { w: number; h: number };
   pages: number;
   paper: Paper;
+  /** Spine width in inches when it is not the paper's (colour ink). */
+  spineIn?: number | undefined;
+  /** A drawing of the wrap to show instead of the build's page (sample books, no server). */
+  art?: ReactNode;
+  /** Display width in px; fills the parent when missing. */
+  width?: number | undefined;
+  /** Show the print guides (default on). */
+  guides?: boolean | undefined;
+  /** Show the guides key and the panel sizes under the wrap (default on). The cover studio has them in a popover. */
+  legend?: boolean | undefined;
 }
 
 /**
@@ -15,8 +25,9 @@ interface WrapPreviewProps {
  * over it: bleed shaded, trim and spine folds in blue pencil, the safe area dashed and the barcode keep-out. Sizes come
  * from the KDP rules file. The labels sit in the legend, never on the cover.
  */
-export function WrapPreview({ page, trim, pages, paper }: WrapPreviewProps) {
-  const size = wrapSize(trim, pages, paper);
+export function WrapPreview({ page, trim, pages, paper, spineIn, art, width, guides: showGuides = true, legend = true }: WrapPreviewProps) {
+  const paperSize = wrapSize(trim, pages, paper);
+  const size = spineIn === undefined ? paperSize : { ...paperSize, spine: spineIn, width: paperSize.width - paperSize.spine + spineIn };
   const W = size.width;
   const H = size.height;
   const b = coverBleedIn;
@@ -35,7 +46,7 @@ export function WrapPreview({ page, trim, pages, paper }: WrapPreviewProps) {
   const spineText = pages >= spineTextMinPages;
   const bc = { x: spineX - safeInsetIn - 0.25 - barcodeArea.widthIn, y: b + trim.h - safeInsetIn - 0.25 - barcodeArea.heightIn };
 
-  const guides = (
+  const guides = !showGuides ? null : (
     <div aria-hidden>
       {/* Bleed shading on the four outer edges */}
       <div className="bg-scrim/35" style={box(0, 0, W, b)} />
@@ -59,19 +70,31 @@ export function WrapPreview({ page, trim, pages, paper }: WrapPreviewProps) {
     </div>
   );
 
+  const label = `Paperback wrap preview, ${inches(W)} by ${inches(H, 2)}: back cover, spine ${inches(size.spine)} wide, front cover.${spineText ? "" : " No spine text under 80 pages."}`;
+  const drawn = page ? (
+    <CoverFrame html={page.html} widthPx={page.widthPx} heightPx={page.heightPx} width={width} title="Paperback wrap, as the build draws it">
+      {guides}
+    </CoverFrame>
+  ) : art ? (
+    <div className="relative overflow-hidden rounded-xs" style={{ width: width ?? "100%", aspectRatio: `${W} / ${H}`, boxShadow: "var(--vol-shadow-cover)" }}>
+      {art}
+      {guides && <div className="absolute inset-0">{guides}</div>}
+    </div>
+  ) : (
+    <div className="animate-pulse rounded-xs bg-sunken" style={{ width: width ?? "100%", aspectRatio: `${W} / ${H}` }} />
+  );
+
+  if (!legend)
+    return (
+      <div role="img" aria-label={label}>
+        {drawn}
+      </div>
+    );
+
   return (
     <figure className="grid gap-3">
-      <div
-        role="img"
-        aria-label={`Paperback wrap preview, ${inches(W)} by ${inches(H, 2)}: back cover, spine ${inches(size.spine)} wide, front cover.${spineText ? "" : " No spine text under 80 pages."}`}
-      >
-        {page ? (
-          <CoverFrame html={page.html} widthPx={page.widthPx} heightPx={page.heightPx} title="Paperback wrap, as the build draws it">
-            {guides}
-          </CoverFrame>
-        ) : (
-          <div className="w-full animate-pulse rounded-xs bg-sunken" style={{ aspectRatio: `${W} / ${H}` }} />
-        )}
+      <div role="img" aria-label={label}>
+        {drawn}
       </div>
 
       <div className="num grid grid-cols-[1fr_auto_1fr] gap-1 text-center text-caption text-ink-secondary" aria-hidden>

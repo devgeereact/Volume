@@ -5,7 +5,7 @@ import { cn } from "../../lib/cn";
 interface InspectorSectionProps {
   title: ReactNode;
   icon?: LucideIcon | undefined;
-  /** "claim" titles the section in proof red (Claims to verify). "attention" uses gilt text. */
+  /** "claim" titles the section in proof red (Claims to verify). "attention" uses amber text. */
   tone?: "default" | "claim" | "attention" | undefined;
   /** Something small on the right of the title row, such as a link or a date. */
   aside?: ReactNode | undefined;
