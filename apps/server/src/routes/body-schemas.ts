@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { COVER_BLENDS, COVER_LAYER_LIMITS, COVER_SHAPE_KINDS, COVER_TEXTURES } from '@volume/core';
 import { ExercisePlanSchema, StoryBibleSchema } from '../ports/ai.js';
 
 /**
@@ -48,6 +49,83 @@ const Colours = z.record(z.string().max(32), Hex).refine((o) => Object.keys(o).l
 
 const Align = z.enum(['left', 'center', 'centre', 'right']);
 
+/* Cover layers (packages/core cover-layers.ts). Kinds, blends, textures and limits come from core, so the studio,
+   this check and the build agree. A picture is named by asset id; the route checks it belongs to the book. */
+const L = COVER_LAYER_LIMITS;
+const Pct = z.number().finite().min(0).max(100);
+const Unit = z.number().finite().min(0).max(1);
+const BoxX = z.number().finite().min(L.xMin).max(L.xMax);
+const BoxY = z.number().finite().min(L.yMin).max(L.yMax);
+const BoxSize = z.number().finite().min(L.sizeMin).max(L.sizeMax);
+const Turn = z.number().finite().min(-180).max(180);
+const AssetRef = z
+  .string()
+  .regex(/^[A-Za-z0-9_-]{1,64}$/)
+  .nullable();
+export const CoverBackgroundSchema = z
+  .object({
+    mode: z.enum(['solid', 'gradient', 'image']),
+    span: z.enum(['wrap', 'front']).optional(),
+    gradient: z
+      .object({
+        type: z.enum(['linear', 'radial']),
+        from: Hex,
+        to: Hex,
+        angle: z.number().finite().min(0).max(360).optional(),
+        centreX: Pct.optional(),
+        centreY: Pct.optional(),
+      })
+      .strict()
+      .optional(),
+    image: z
+      .object({
+        // A project move sets an id it could not carry over to null; the cover then uses its colour.
+        assetId: AssetRef.optional(),
+        texture: z.enum(COVER_TEXTURES).optional(),
+        opacity: Unit.optional(),
+        blend: z.enum(COVER_BLENDS).optional(),
+        scale: z.number().finite().min(L.scaleMin).max(L.scaleMax).optional(),
+        focusX: Pct.optional(),
+        focusY: Pct.optional(),
+        blur: z.number().finite().min(0).max(L.blurMax).optional(),
+        greyscale: z.boolean().optional(),
+        tint: z
+          .object({ colour: Hex, strength: z.number().finite().min(0).max(L.tintMax) })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .refine((i) => !(i.assetId && i.texture), { message: 'Use a picture or a texture, not both.' })
+      .optional(),
+  })
+  .strict();
+export const CoverShapeSchema = z
+  .object({
+    id: z
+      .string()
+      .regex(/^[A-Za-z0-9_-]{1,32}$/)
+      .optional(),
+    kind: z.enum(COVER_SHAPE_KINDS),
+    surface: z.enum(['front', 'back']).optional(),
+    x: BoxX,
+    y: BoxY,
+    w: BoxSize,
+    h: BoxSize,
+    rotation: Turn.optional(),
+    colour: Hex,
+    opacity: Unit.optional(),
+    layer: z.enum(['behind', 'over']).optional(),
+  })
+  .strict();
+export const CoverArtworkSchema = z
+  .object({
+    opacity: Unit.optional(),
+    rotation: Turn.optional(),
+    box: z.object({ x: BoxX, y: BoxY, w: BoxSize, h: BoxSize }).strict().nullable().optional(),
+  })
+  .strict();
+export const CoverSpineSchema = z.object({ colour: Hex.optional(), textColour: Hex.optional(), showBackground: z.boolean().optional() }).strict();
+
 /** POST /books/:id/cover/choose { assetId, typography? }: the keys applyCoverTypography (packages/export) reads. */
 export const CoverTypographySchema = z
   .object({
@@ -74,6 +152,11 @@ export const CoverTypographySchema = z
       .optional(),
     titleUppercase: z.boolean().optional(),
     authorUppercase: z.boolean().optional(),
+    background: CoverBackgroundSchema.optional(),
+    artwork: CoverArtworkSchema.optional(),
+    shapes: z.array(CoverShapeSchema).max(COVER_LAYER_LIMITS.shapes).optional(),
+    spine: CoverSpineSchema.optional(),
+    showBarcodeBox: z.boolean().optional(),
   })
   .strict();
 

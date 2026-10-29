@@ -26,6 +26,18 @@ import {
   inkScrimCss,
   zoneLuminance,
   type ArtInk,
+  artworkCss,
+  BACKGROUND_LAYER_CSS,
+  backgroundLayerHtml,
+  hasLayers,
+  layersNeedRaster,
+  luminanceRgb,
+  measuredContrast,
+  normaliseCoverLayers,
+  SHAPE_CSS,
+  shapeHtml,
+  shapesOn,
+  wrapWindow,
 } from '@volume/core';
 import { withBrowser } from './browser.ts';
 import { fontFaceCss, isVariableOnly, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
@@ -93,7 +105,13 @@ async function artInkFor(bg: Buffer, c: CoverStyle['colours']): Promise<ArtInk |
 const withInk = (style: CoverStyle, ink: ArtInk | undefined): CoverStyle =>
   ink ? { ...style, colours: { ...style.colours, title: ink.title, subtitle: ink.subtitle, author: ink.author } } : style;
 
-function frontHtml(meta: BookMeta, style: CoverStyle, bg: string | undefined): string {
+/** Layer markup for a front panel: the background layer (when it is drawn on the front) and the front's shapes. */
+interface FrontLayers {
+  /** The background layer's markup, drawn first inside the front. */
+  background?: string;
+}
+
+function frontHtml(meta: BookMeta, style: CoverStyle, bg: string | undefined, layers: FrontLayers = {}): string {
   const title = style.titleUppercase ? meta.title.toUpperCase() : meta.title;
   const author = style.authorUppercase ? meta.author.toUpperCase() : meta.author;
   const low = (style.titleTopPct ?? 0) > 50;
@@ -105,7 +123,7 @@ function frontHtml(meta: BookMeta, style: CoverStyle, bg: string | undefined): s
   // With an exact author position the rule and name sit in their own box; otherwise they end the stack as before.
   const authorAbs = style.authorTopPct !== undefined;
   return `<div class="front ${style.layout} ${alignWord(style.align)}${bg ? ' has-bg' : ''}">
-${bg ? `<img class="bg" src="${bg}" alt="">` : ''}
+${layers.background ?? ''}${bg ? `<img class="bg" src="${bg}" alt="">` : ''}
 ${!bg && (style.layout === 'band' || style.band) ? '<div class="band"></div>' : ''}${style.layout === 'frame' ? '<div class="frame"></div>' : ''}
 ${motif && low ? `<div class="motif high">${motif}</div>` : ''}
 ${subAbs ? sub : ''}
@@ -117,7 +135,7 @@ ${subAbs ? sub : ''}
   ${authorAbs ? '' : `<div class="rule${authorAlign}"></div>${authorEl.replace('class="author"', `class="author${authorAlign}"`)}`}
 </div>
 ${authorAbs ? `<div class="authorbox${authorAlign}"><div class="rule${authorAlign}"></div>${authorEl.replace('class="author"', `class="author${authorAlign}"`)}</div>` : ''}
-</div>`;
+${shapesOn(style.shapes, 'front').map(shapeHtml).join('')}</div>`;
 }
 
 function frontCss(style: CoverStyle, f: Fonts, ink?: ArtInk): string {
@@ -169,6 +187,23 @@ ${ink?.shadow ? `.front.has-bg .title, .front.has-bg .sub, .front.has-bg .author
 .front.minimal .rule { display: none; }
 `;
 }
+
+/**
+ * CSS for the cover layers (background modes, shapes, artwork settings), added only when a layer is set, so a cover
+ * without layers renders byte for byte as before. `frontClear` lets a whole-wrap background show through the front.
+ */
+function layerCss(style: CoverStyle, opts: { frontClear?: boolean } = {}): string {
+  if (!hasLayers(style)) return '';
+  return `
+${BACKGROUND_LAYER_CSS}
+${SHAPE_CSS}
+${artworkCss(style.artwork)}
+${opts.frontClear ? '.front { background: transparent; }' : ''}`;
+}
+
+/** The background layer's picture as a data URL, when the layer uses an uploaded picture and one was given. */
+const pictureSrc = (style: CoverStyle, picture: Buffer | undefined): string | undefined =>
+  style.background?.mode === 'image' && style.background.image?.assetId && picture ? dataUrl(picture) : undefined;
 
 /** Shrink each [data-fit] element until it fits its box width and a share of the height. Plain JS (runs in the page). */
 const FIT_SCRIPT = `<script>
@@ -258,11 +293,62 @@ const PREVIEW_SCRIPT = `<script>
 })();
 </script>`;
 
+/** In the page: each line's box and colour, then the type hidden. Returns JSON. */
+const MEASURE_SCRIPT = `(function () {
+  var out = [];
+  [['title', '.front .title'], ['subtitle', '.front .sub'], ['author', '.front .author']].forEach(function (p) {
+    var el = document.querySelector(p[1]);
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    out.push({ part: p[0], x: r.left, y: r.top, w: r.width, h: r.height, color: getComputedStyle(el).color });
+  });
+  var s = document.createElement('style');
+  s.textContent = '.front .title, .front .sub, .front .author, .front .rule { visibility: hidden !important; }';
+  document.head.appendChild(s);
+  return JSON.stringify(out);
+})()`;
+
+const rgbToHex = (css: string): string | null => {
+  const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(css);
+  return m ? `#${[m[1], m[2], m[3]].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}` : null;
+};
+
+/** Each line's contrast against the pixels behind it (measuredContrast in packages/core). */
+async function contrastBehind(bare: Buffer, boxesJson: string, W: number, H: number): Promise<NonNullable<EbookCoverResult['contrast']>> {
+  const boxes = JSON.parse(boxesJson) as { part: 'title' | 'subtitle' | 'author'; x: number; y: number; w: number; h: number; color: string }[];
+  const out: NonNullable<EbookCoverResult['contrast']> = [];
+  for (const b of boxes) {
+    const ink = rgbToHex(b.color);
+    const left = Math.max(0, Math.floor(b.x));
+    const top = Math.max(0, Math.floor(b.y));
+    const width = Math.min(W - left, Math.ceil(b.w));
+    const height = Math.min(H - top, Math.ceil(b.h));
+    if (!ink || width < 2 || height < 2) continue;
+    const { data, info } = await sharp(bare)
+      .extract({ left, top, width, height })
+      .resize({ width: Math.min(width, 96), fit: 'fill' })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const lums: number[] = [];
+    for (let i = 0; i + 2 < data.length; i += info.channels) lums.push(luminanceRgb(data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0));
+    out.push({ part: b.part, ratio: measuredContrast(ink, lums), need: b.part === 'title' ? 3 : 4.5 });
+  }
+  return out;
+}
+
 export interface EbookCoverOptions {
   /** Return the cover's HTML (what the build renders) without rendering it: the Cover studio previews with it. */
   htmlOnly?: boolean;
   /** Concept or background image (PNG or JPEG). */
   background?: Buffer;
+  /** The picture for an image background layer (style.background.image.assetId), PNG, JPEG or WebP. */
+  backgroundImage?: Buffer;
+  /**
+   * The paperback's sizes, so a background that spans the wrap shows on the eBook as the front's share of it.
+   * Without them the eBook draws the background across its own front.
+   */
+  wrap?: { trimWidthIn: number; spineIn: number; bleedIn: number };
   browser?: Browser;
   fonts?: FontLibrary;
   /** Rules file for the cover size (FACTS 10.5). Without it, 1600 x 2560. */
@@ -281,6 +367,11 @@ export interface EbookCoverResult {
   titlePxAt160: number;
   /** True when the subtitle had to be moved down to clear a title that wrapped onto more lines. */
   subtitlePushed: boolean;
+  /**
+   * With cover layers set: each line's contrast against the real pixels behind it (the cover drawn again with the
+   * text hidden), at the weakest tenth of that area. Not measured for covers without layers.
+   */
+  contrast?: { part: 'title' | 'subtitle' | 'author'; ratio: number; need: number }[];
   warnings: string[];
 }
 
@@ -293,9 +384,21 @@ export async function exportEbookCover(source: BookMeta, style: CoverStyle = DEF
   const f = coverFonts(style, opts.fonts ?? loadFontLibrary(), warnings);
   const ink = opts.background ? await artInkFor(opts.background, style.colours) : undefined;
   const front = withInk(style, ink);
+  const layers: FrontLayers = {};
+  if (style.background) {
+    const win = style.background.span === 'wrap' ? wrapWindow(opts.wrap) : { left: 0, width: 100 };
+    const boxStyle = win.width !== 100 ? `left: ${win.left.toFixed(4)}%; width: ${win.width.toFixed(4)}%; right: auto;` : undefined;
+    layers.background = backgroundLayerHtml(style.background, style.colours.background, {
+      src: pictureSrc(style, opts.backgroundImage),
+      blurUnit: `${W / 1000}px`,
+      boxStyle,
+    });
+    if (style.background.mode === 'image' && style.background.image?.assetId && !opts.backgroundImage)
+      warnings.push('The background picture was not found, so the cover uses its background colour there.');
+  }
   const html = withSymbolFallback(`<!doctype html><html lang="${escapeHtml(meta.language)}"><head><meta charset="utf-8"><style>${f.css}
 html, body { margin: 0; width: ${W}px; height: ${H}px; overflow: hidden; }
-${frontCss(front, f, ink)}</style></head><body>${frontHtml(meta, front, opts.background ? dataUrl(opts.background) : undefined)}${FIT_SCRIPT}</body></html>`);
+${frontCss(front, f, ink)}${layerCss(style)}</style></head><body>${frontHtml(meta, front, opts.background ? dataUrl(opts.background) : undefined, layers)}${FIT_SCRIPT}</body></html>`);
   if (opts.htmlOnly)
     return {
       html: html.replace('</body>', `${PREVIEW_SCRIPT}</body>`),
@@ -306,7 +409,8 @@ ${frontCss(front, f, ink)}</style></head><body>${frontHtml(meta, front, opts.bac
       subtitlePushed: false,
       warnings,
     };
-  const { png, fitted, subtitlePushed } = await withBrowser(opts.browser, async (browser) => {
+  const measure = hasLayers(style);
+  const { png, fitted, subtitlePushed, behind } = await withBrowser(opts.browser, async (browser) => {
     const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
     try {
       const page = await ctx.newPage();
@@ -315,11 +419,21 @@ ${frontCss(front, f, ink)}</style></head><body>${frontHtml(meta, front, opts.bac
       const fitted = Number(await page.evaluate(`document.querySelector('[data-fit]').getAttribute('data-fitted-px')`));
       const png = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: W, height: H } });
       const subtitlePushed = (await page.evaluate(`document.querySelector('.sub.abs[data-pushed]') !== null`)) === true;
-      return { png, fitted, subtitlePushed };
+      if (!measure) return { png, fitted, subtitlePushed, behind: null };
+      // The same page with the type hidden: what is behind each line, as drawn (art, background, tint, shapes).
+      const boxes = String(await page.evaluate(MEASURE_SCRIPT));
+      const bare = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: W, height: H } });
+      return { png, fitted, subtitlePushed, behind: { boxes, bare } };
     } finally {
       await ctx.close();
     }
   });
+  const contrast = behind ? await contrastBehind(behind.bare, behind.boxes, W, H) : undefined;
+  for (const c of contrast ?? [])
+    if (c.ratio < c.need)
+      warnings.push(
+        `The ${c.part} reads at about ${c.ratio.toFixed(1)} to 1 against what is behind it (${c.need} to 1 wanted). Change its colour, the background or the shapes.`,
+      );
   const jpeg = await sharp(png)
     .removeAlpha()
     .toColourspace('srgb')
@@ -328,7 +442,7 @@ ${frontCss(front, f, ink)}</style></head><body>${frontHtml(meta, front, opts.bac
     .toBuffer();
   const titlePxAt160 = (fitted * 160) / W;
   if (titlePxAt160 < 10) warnings.push(`Title is about ${titlePxAt160.toFixed(1)} px tall at 160 px wide; it may not be legible as a thumbnail.`);
-  return { jpeg, widthPx: W, heightPx: H, titlePxAt160, subtitlePushed, warnings };
+  return { jpeg, widthPx: W, heightPx: H, titlePxAt160, subtitlePushed, ...(contrast ? { contrast } : {}), warnings };
 }
 
 export interface WrapOptions {
@@ -345,9 +459,12 @@ export interface WrapOptions {
   blurb?: string;
   shortBio?: string;
   background?: Buffer;
+  /** The picture for an image background layer (style.background.image.assetId), PNG, JPEG or WebP. */
+  backgroundImage?: Buffer;
   /**
    * Render the whole wrap as one 300 DPI image inside the PDF. "auto" (default) does so when a cover font is only
-   * installed as a variable font (Chromium would print it as Type 3); "always" and "never" force the choice.
+   * installed as a variable font (Chromium would print it as Type 3) or a cover layer uses a blend, blur, greyscale or
+   * a filtered texture (layersNeedRaster in packages/core); "always" and "never" force the choice.
    */
   raster?: 'auto' | 'always' | 'never';
   /** Draw the barcode keep-out box in white (KDP prints its barcode there). Default true. */
@@ -400,6 +517,18 @@ export async function exportPaperbackWrap(source: BookMeta, style: CoverStyle = 
       if (imageDpi < min) warnings.push(`Cover image is about ${Math.floor(imageDpi)} DPI across the front; KDP asks for ${min} DPI or more.`);
     }
   }
+  // An uploaded background picture is held to the same DPI rule across what it covers (zoom spreads it further).
+  const pic = style.background?.mode === 'image' ? style.background.image : undefined;
+  if (pic?.assetId && opts.backgroundImage) {
+    const m = await sharp(opts.backgroundImage).metadata();
+    const across = style.background?.span === 'wrap' ? size.widthIn : trim.widthIn + b;
+    if (m.width && m.height) {
+      // object-fit: cover fills the box by its tighter side.
+      const dpi = Math.min(m.width / across, m.height / size.heightIn) / pic.scale;
+      const min = coverMinDpi(opts.rules);
+      if (dpi < min) warnings.push(`Background picture is about ${Math.floor(dpi)} DPI where it prints; KDP asks for ${min} DPI or more.`);
+    }
+  }
   // The back-cover blurb: paragraphs, and "- item" lines as a real list so the bullets align under the lead-in line.
   const blurbHtml = (t: string | undefined) => {
     if (!t) return '';
@@ -444,6 +573,25 @@ export async function exportPaperbackWrap(source: BookMeta, style: CoverStyle = 
   const c = style.colours;
   const ink = opts.background ? await artInkFor(opts.background, style.colours) : undefined;
   const front = withInk(style, ink);
+  // Cover layers: a background across the whole wrap sits under the back, spine and front; a front-only one inside the front.
+  const bgl = style.background;
+  const wide = bgl?.span === 'wrap';
+  const frontW = trim.widthIn + b;
+  const bgMarkup = bgl
+    ? backgroundLayerHtml(bgl, c.background, { src: pictureSrc(style, opts.backgroundImage), blurUnit: `${(frontW / 1000).toFixed(5)}in` })
+    : '';
+  if (bgl?.mode === 'image' && bgl.image?.assetId && !opts.backgroundImage)
+    warnings.push('The background picture was not found, so the cover uses its background colour there.');
+  const sp = style.spine;
+  const spineBg = sp?.showBackground && wide ? 'transparent' : (sp?.colour ?? c.band);
+  const spineInk = sp?.textColour ?? c.background;
+  const backShapes = shapesOn(style.shapes, 'back');
+  const backLayerCss = !hasLayers(style)
+    ? ''
+    : `
+${wide ? '.back { background: transparent; }' : ''}
+${backShapes.length ? '.back { container-type: size; } .back .text, .back .author { z-index: 2; } .back .barcode { z-index: 4; }' : ''}
+${wide ? '.wrap > .bgl { z-index: 0; } .back, .spine, .frontpanel { z-index: 1; }' : ''}`;
   const html = withSymbolFallback(`<!doctype html><html lang="${escapeHtml(meta.language)}"><head><meta charset="utf-8"><style>${f.css}
 @page { size: ${size.widthIn}in ${size.heightIn}in; margin: 0; }
 html, body { margin: 0; width: ${size.widthIn}in; height: ${size.heightIn}in; font-synthesis: none; }
@@ -458,15 +606,15 @@ html, body { margin: 0; width: ${size.widthIn}in; height: ${size.heightIn}in; fo
 .back .author .name { font-family: '${f.author}'; font-weight: ${style.weights.author}; font-size: 10pt; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 4pt; color: ${c.author}; }
 .back .author .bio { font-size: 8.5pt; line-height: 1.4; margin: 0; }
 .back .barcode { position: absolute; width: ${bc.widthIn}in; height: ${bc.heightIn}in; left: ${b + trim.widthIn - barcodeInset - bc.widthIn}in; top: ${b + trim.heightIn - barcodeInset - bc.heightIn}in; background: ${opts.showBarcodeBox === false ? 'transparent' : '#ffffff'}; }
-.spine { position: absolute; left: ${b + trim.widthIn}in; top: 0; width: ${size.spineIn}in; height: ${size.heightIn}in; background: ${c.band}; display: flex; align-items: center; justify-content: center; }
-.spine .st { writing-mode: vertical-rl; white-space: nowrap; font-family: '${f.title}'; font-weight: ${style.weights.title}; font-size: ${spineFont.toFixed(2)}pt; color: ${c.background}; letter-spacing: 0.04em; max-height: ${trim.heightIn - 2 * inset - 0.5}in; overflow: hidden; }
+.spine { position: absolute; left: ${b + trim.widthIn}in; top: 0; width: ${size.spineIn}in; height: ${size.heightIn}in; background: ${spineBg}; display: flex; align-items: center; justify-content: center; }
+.spine .st { writing-mode: vertical-rl; white-space: nowrap; font-family: '${f.title}'; font-weight: ${style.weights.title}; font-size: ${spineFont.toFixed(2)}pt; color: ${spineInk}; letter-spacing: 0.04em; max-height: ${trim.heightIn - 2 * inset - 0.5}in; overflow: hidden; }
 .spine .st .au { font-family: '${f.author}'; font-weight: ${style.weights.author}; margin-top: 0.3in; opacity: 0.9; }
 .frontpanel { position: absolute; left: ${b + trim.widthIn + size.spineIn}in; top: 0; width: ${trim.widthIn + b}in; height: ${size.heightIn}in; }
-${frontCss(front, f, ink)}
+${frontCss(front, f, ink)}${layerCss(style, { frontClear: wide })}${backLayerCss}
 </style></head><body><div class="wrap">
-<div class="back"><div class="text">${blurbHtml(opts.blurb)}</div><div class="author"><p class="name">${escapeHtml(meta.author)}</p>${opts.shortBio ? `<p class="bio">${escapeHtml(normalisePrintText(opts.shortBio.replace(/\s+/g, ' ').trim()))}</p>` : ''}</div><div class="barcode"></div></div>
+${wide ? bgMarkup : ''}<div class="back"><div class="text">${blurbHtml(opts.blurb)}</div><div class="author"><p class="name">${escapeHtml(meta.author)}</p>${opts.shortBio ? `<p class="bio">${escapeHtml(normalisePrintText(opts.shortBio.replace(/\s+/g, ' ').trim()))}</p>` : ''}</div><div class="barcode"></div>${backShapes.map(shapeHtml).join('')}</div>
 <div class="spine">${spineText ? `<div class="st">${escapeHtml(meta.title)}<span class="au">&#8195;${escapeHtml(meta.author)}</span></div>` : ''}</div>
-<div class="frontpanel">${frontHtml(meta, front, opts.background ? dataUrl(opts.background) : undefined)}</div>
+<div class="frontpanel">${frontHtml(meta, front, opts.background ? dataUrl(opts.background) : undefined, bgl && !wide ? { background: bgMarkup } : {})}</div>
 </div>${FIT_SCRIPT}</body></html>`);
 
   const W = size.widthIn * 72;
@@ -483,9 +631,12 @@ ${frontCss(front, f, ink)}
       warnings,
     };
   const minDpi = coverMinDpi(opts.rules);
-  const rasterised = opts.raster === 'always' || (opts.raster !== 'never' && f.variable);
-  if (rasterised && opts.raster !== 'always')
+  const layerRaster = layersNeedRaster(style);
+  const rasterised = opts.raster === 'always' || (opts.raster !== 'never' && (f.variable || layerRaster.length > 0));
+  if (rasterised && opts.raster !== 'always' && f.variable)
     warnings.push(`A cover font is only installed as a variable font, so the wrap was rendered as a ${minDpi} DPI image.`);
+  if (rasterised && opts.raster !== 'always' && layerRaster.length)
+    warnings.push(`The cover uses ${layerRaster.join(', ')}, so the wrap was rendered as a ${minDpi} DPI image (it then prints exactly as the preview shows).`);
   const out = await PDFDocument.create();
   const page = out.addPage([W, H]);
   if (rasterised) {
@@ -568,6 +719,13 @@ export interface CoverTypography {
   fonts?: Partial<CoverStyle['fonts']>;
   titleUppercase?: boolean;
   authorUppercase?: boolean;
+  /** Cover layers (packages/core cover-layers.ts): background mode, artwork settings, shapes and spine colours. */
+  background?: unknown;
+  artwork?: unknown;
+  shapes?: unknown;
+  spine?: unknown;
+  /** Draw the barcode area white on the wrap (default true). Read by the caller as WrapOptions.showBarcodeBox. */
+  showBarcodeBox?: boolean;
 }
 
 const TITLE_TOP: Record<'top' | 'middle' | 'bottom', number> = { top: 10, middle: 60, bottom: 105 };
@@ -624,5 +782,7 @@ export function applyCoverTypography(style: CoverStyle, typography: CoverTypogra
   }
   if (typeof t['titleUppercase'] === 'boolean') out.titleUppercase = t['titleUppercase'];
   if (typeof t['authorUppercase'] === 'boolean') out.authorUppercase = t['authorUppercase'];
+  // Layers replace the style's own (a style file has none today); missing keys leave the cover as it was.
+  Object.assign(out, normaliseCoverLayers(t));
   return out;
 }
