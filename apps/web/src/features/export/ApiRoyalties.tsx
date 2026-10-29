@@ -1,4 +1,4 @@
-import rulesFile from "@config/kdp-rules/2026-10-06.json";
+import { kdpRulesFile as rulesFile } from "../../lib/kdpRulesFile";
 import {
   ebookRoyaltyGBP,
   KdpRuleError,

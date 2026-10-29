@@ -9,8 +9,28 @@ import { bool, flag, fromJson, newId, now, toJson } from '../lib/util.js';
 export const STAGES = ['idea', 'research', 'titles', 'blueprint', 'writing', 'editor', 'cover', 'export', 'marketing'] as const;
 export type Stage = (typeof STAGES)[number];
 export const BOOK_STATUSES = ['active', 'published', 'archived'] as const;
-/** Paperback trims the API accepts (config/kdp-rules paperback.trimSizes.list, plus 8x10 kept from before). */
-export const TRIMS = ['5x8', '5.25x8', '5.5x8.5', '6x9', '7x10', '8.5x11', '8x10', '8.5x8.5'] as const;
+/**
+ * Paperback trims the API accepts: every size in config/kdp-rules paperback.trimSizes.list (2026-10-29 file), width
+ * first. test/trims.test.ts fails when the newest rules file lists a trim that is missing here.
+ */
+export const TRIMS = [
+  '5x8',
+  '5.25x8',
+  '5.5x8.5',
+  '6x9',
+  '7x10',
+  '8.5x11',
+  '8x10',
+  '8.5x8.5',
+  '5.06x7.81',
+  '6.14x9.21',
+  '6.69x9.61',
+  '7.44x9.69',
+  '7.5x9.25',
+  '8.25x6',
+  '8.25x8.25',
+  '8.27x11.69',
+] as const;
 
 export const AiDisclosureSchema = z.object({
   text: z.enum(['ai_generated', 'ai_assisted', 'none']),

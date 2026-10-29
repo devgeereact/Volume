@@ -114,11 +114,13 @@ describe('bleed and safe area from the rules', () => {
 });
 
 describe('colour page range and printing cost', () => {
-  it('reads the colour page range for the trim and ink, with the partial paper rule as a warning', () => {
+  it('reads the colour page range for the trim and ink, citing the white-paper rule', () => {
     const row = premium.find((t) => t.widthIn === 8.5 && t.heightIn === 8.5);
     const r = colourPageRange(rules, trim, 'premium');
     expect(r.value).toEqual({ min: row?.minPages, max: row?.maxPages });
-    expect(r.warnings.join(' ')).toMatch(/paperback\.colour\.paper is partial/);
+    expect(r.ruleIds).toContain('paperback.colour.paper');
+    // paperback.colour.paper is confirmed from the 2026-10-29 file on, so it adds no check-before-use warning.
+    expect(r.warnings).toEqual([]);
     expect(colourPageRange(rules, trim, 'standard').value.min).toBeGreaterThan(r.value.min);
     expect(() => colourPageRange(rules, { widthIn: 4, heightIn: 4 }, 'premium')).toThrow(/No premium colour page range/);
   });
@@ -141,7 +143,7 @@ describe('colour page range and printing cost', () => {
 describe('page plan', () => {
   it('defaults to 24 pages = 10 spreads + 4 matter pages for premium colour on 8.5 x 8.5 in', () => {
     const plan = defaultPictureBookPlan(rules, trim, 'premium');
-    expect(plan).toMatchObject({ pages: 24, spreads: 10, frontPages: 3, backPages: 1, warnings: [expect.stringMatching(/partial/)] });
+    expect(plan).toMatchObject({ pages: 24, spreads: 10, frontPages: 3, backPages: 1, warnings: [] });
     expect(pictureBookPages(book(plan.spreads))).toHaveLength(plan.pages);
   });
 

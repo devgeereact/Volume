@@ -1,20 +1,28 @@
 import { getBookType, stageDefaults, type AuthorProfile, type BookType } from "../../demo";
+import { kdpTrims } from "../../lib/kdpTrims";
 
 /* Screen-local data and rules for the New book wizard. Book types, their categories, word ranges and
    defaults come from config/book-types.json; profile defaults from config/profiles/*.json (both
    through data/config.ts). Nothing here repeats those facts; it only decides which fields each kind of
    book asks for. */
 
-/** KDP paperback trim sizes, from config/kdp-rules (rule paperback.trimSizes.list, marked unverified). */
-export const trimSizes: { value: string; hint: string }[] = [
-  { value: "5 x 8 in", hint: "Pocket" },
-  { value: "5.25 x 8 in", hint: "Compact" },
-  { value: "5.5 x 8.5 in", hint: "Digest" },
-  { value: "6 x 9 in", hint: "Most common" },
-  { value: "7 x 10 in", hint: "Cookbooks and guides" },
-  { value: "8.5 x 8.5 in", hint: "Square, picture books" },
-  { value: "8.5 x 11 in", hint: "Workbooks" },
-];
+/** Volume's own notes beside the trims (not KDP facts); other trims say whether KDP prices them as large. */
+const WIZARD_TRIM_HINTS: Record<string, string> = {
+  "5 x 8 in": "Pocket",
+  "5.25 x 8 in": "Compact",
+  "5.5 x 8.5 in": "Digest",
+  "6 x 9 in": "Most common",
+  "7 x 10 in": "Cookbooks and guides",
+  "8.25 x 6 in": "Landscape",
+  "8.5 x 8.5 in": "Square, picture books",
+  "8.5 x 11 in": "Workbooks",
+};
+
+/** KDP paperback trim sizes from the newest config/kdp-rules file (rule paperback.trimSizes.list), in its order. */
+export const trimSizes: { value: string; hint: string }[] = kdpTrims.map((t) => ({
+  value: t.value,
+  hint: WIZARD_TRIM_HINTS[t.value] ?? (t.large ? "Large trim" : "Regular trim"),
+}));
 
 export const exampleIdea =
   "A practical guide for night-shift nurses on sleeping, eating and recovering well, written from my own years of nights on an acute ward. Working title: Night Shift Survival.";
