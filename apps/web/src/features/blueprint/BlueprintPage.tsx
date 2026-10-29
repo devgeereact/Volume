@@ -493,7 +493,6 @@ function BlueprintScreen({ book }: { book: Book }) {
         onChangeModel={() => setModelOpen(true)}
         costRows={costRows}
         spent={spent}
-        budget={book.cost.budget}
         regenerating={regen.status === "running" && regenTarget ? { label: regenTarget.label, cost: regen.cost } : null}
         claims={openClaims}
         onClaim={(c) => select(`chapter-${c.chapter}`)}
@@ -580,7 +579,7 @@ function BlueprintScreen({ book }: { book: Book }) {
               { label: "Sections to write", value: `${writerSections}, including ${totals.chapters} chapters` },
               { label: "Words", value: formatNumber(totals.total) },
               { label: "Writer", value: writer, mono: true },
-              { label: "Budget left", value: `${formatUsd(book.cost.budget - spent)} of ${formatUsd(book.cost.budget)}` },
+              { label: "Spent so far", value: formatUsd(spent) },
               { label: "Claims still open", value: String(openClaims.length) },
             ]}
           />

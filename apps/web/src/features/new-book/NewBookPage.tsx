@@ -145,7 +145,6 @@ export function bookInput(d: Draft, type: BookType | undefined, profileId: strin
   if (groups.includes("poems")) genre["poemForm"] = d.poemForm;
   if (groups.includes("takeaways")) genre["takeaways"] = d.takeaways;
   const trim = toServerTrim(d.trim);
-  const budget = parseNum(d.budget);
   return {
     profileId,
     bookTypeId: type?.id ?? null,
@@ -158,7 +157,6 @@ export function bookInput(d: Draft, type: BookType | undefined, profileId: strin
     ...(trim ? { trim } : {}),
     paper: d.paper,
     wordTarget: parseNum(d.words) || null,
-    ...(budget > 0 ? { budgetUsd: budget } : {}),
     settings: {
       audience: d.audience.trim() || null,
       chapters: parseNum(d.chapters) || null,

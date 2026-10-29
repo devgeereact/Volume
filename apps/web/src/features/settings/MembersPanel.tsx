@@ -27,7 +27,7 @@ function MembersSkeleton() {
 /**
  * Settings, Members (phase 8, P8-3 and P8-4, D-047). Owner only, and shown only when the server runs with
  * ACCOUNTS_MODE=invite. The owner adds an address with a role; the person then signs in with that address.
- * Volume sends no email. Editors write books but not settings, budgets or members; viewers read only.
+ * Volume sends no email. Editors write books but not settings, spending or members; viewers read only.
  */
 export function MembersPanel({ me }: { me: VolumeMe }) {
   const mode = useWireMode();

@@ -1,20 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Check, Copy, Download, HardDriveDownload, PlugZap, Save } from "lucide-react";
-import {
-  Banner,
-  Button,
-  EmptyState,
-  Figure,
-  IconButton,
-  Input,
-  KeyValueList,
-  ProgressBar,
-  SegmentedControl,
-  Select,
-  StatusChip,
-  Switch,
-} from "../../components/ui";
+import { Banner, Button, EmptyState, Figure, IconButton, Input, KeyValueList, SegmentedControl, Select, StatusChip, Switch } from "../../components/ui";
 import { books, DEMO_NOW } from "../../demo/books";
 import { bookCategories, bookTypes, bookTypesIn, coverStyles, getBookType, getCoverStyle, getInteriorTheme, interiorThemes } from "../../demo/config";
 import { workspace } from "../../demo/workspace";
@@ -147,103 +134,31 @@ export function KeyPanel({ state, retry }: { state: DemoState; retry: () => void
           </div>
         </div>
       </Block>
-      <Banner tone="info" title="Set a spending limit on the key too">
-        In your OpenRouter account you can cap what this key may spend. It is a second safety net under Volume’s own{" "}
+      <Banner tone="info" title="Set a spending limit on the key if you want one">
+        Volume has no spending cap of its own. In your OpenRouter account you can cap what this key may spend. See what the AI has cost on the{" "}
         <Link to="/settings/budgets" className="font-semibold text-select underline underline-offset-2">
-          budgets
-        </Link>
-        .
+          spending
+        </Link>{" "}
+        page.
       </Banner>
     </div>
   );
 }
 
-/* ---------- Budgets ---------- */
-
-function money(s: string): number | null {
-  const n = Number(s.replace(/[$,\s]/g, ""));
-  return Number.isFinite(n) && s.trim() !== "" ? n : null;
-}
+/* ---------- Spending (D-057: no book or monthly cap) ---------- */
 
 export function BudgetsPanel() {
   const spend = workspace.spend;
-  const [savedValues, setSavedValues] = useState({ monthly: String(spend.budgetUsd), book: "15", warn: "80" });
-  const [v, setV] = useState(savedValues);
-  const [status, setStatus] = useState<string | null>(null);
-  const monthly = money(v.monthly);
-  const book = money(v.book);
-  const monthlyError = monthly === null || monthly <= 0 ? "Enter a monthly cap above $0, for example 40." : undefined;
-  const bookError =
-    book === null || book <= 0
-      ? "Enter a book budget above $0, for example 15."
-      : monthly !== null && book > monthly
-        ? "A book budget cannot be more than the monthly cap."
-        : undefined;
-  const dirty = JSON.stringify(v) !== JSON.stringify(savedValues);
-  const used = Math.round((spend.spentUsd / (monthly && monthly > 0 ? monthly : spend.budgetUsd)) * 100);
-
   return (
     <div className="grid gap-6">
       <PanelHeader
-        title="Budgets"
-        body="Spend guides, not limits. Volume no longer stops a book at a budget. It pauses only when the AI provider runs out of credits, and then tells you to top up."
-        actions={
-          <SaveAction
-            dirty={dirty}
-            icon={Save}
-            invalidReason={monthlyError || bookError ? "Fix the fields marked in red first" : undefined}
-            onSave={() => {
-              setSavedValues(v);
-              setStatus(`Saved at ${formatTime(DEMO_NOW)}.`);
-            }}
-          >
-            Save budgets
-          </SaveAction>
-        }
+        title="Spending"
+        body="Volume has no book or monthly spending cap. It records what the AI costs and pauses a job only when the AI provider runs out of credit, then tells you to top up."
       />
-      {status && !dirty && <InlineStatus>{status}</InlineStatus>}
       <Block title={`${spend.monthLabel} so far`}>
-        <Figure value={formatUsd(spend.spentUsd)} unit={`of ${formatUsd(monthly ?? spend.budgetUsd)} this month`} />
-        <ProgressBar
-          value={spend.spentUsd}
-          max={monthly ?? spend.budgetUsd}
-          label={`${spend.monthLabel} AI spend`}
-          valueText={`${formatUsd(spend.spentUsd)} of ${formatUsd(monthly ?? spend.budgetUsd)}`}
-        />
-        <p className="text-small text-ink-secondary">
-          {used}% used. Volume warns at {v.warn}% and stops new jobs at the cap.
-        </p>
+        <Figure value={formatUsd(spend.spentUsd)} unit="spent this month" />
+        <p className="text-small text-ink-secondary">All books and profiles together, in dollars as the AI provider bills.</p>
       </Block>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Input
-          label="Monthly cap, US dollars"
-          inputMode="decimal"
-          value={v.monthly}
-          onChange={(e) => setV({ ...v, monthly: e.target.value })}
-          error={monthlyError}
-          hint="All books and profiles together. AI costs are in dollars, as OpenRouter bills."
-        />
-        <Input
-          label="Default budget per book, US dollars"
-          inputMode="decimal"
-          value={v.book}
-          onChange={(e) => setV({ ...v, book: e.target.value })}
-          error={bookError}
-          hint="New books start with this. Each book can change it in the wizard."
-        />
-        <Select
-          label="Warn me at"
-          value={v.warn}
-          onChange={(warn) => setV({ ...v, warn })}
-          options={[
-            { value: "50", label: "50% of a budget" },
-            { value: "70", label: "70% of a budget" },
-            { value: "80", label: "80% of a budget", hint: "Default" },
-            { value: "90", label: "90% of a budget" },
-          ]}
-          hint="Applies to the monthly cap and to each book."
-        />
-      </div>
     </div>
   );
 }

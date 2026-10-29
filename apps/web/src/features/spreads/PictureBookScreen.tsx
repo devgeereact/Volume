@@ -45,13 +45,11 @@ export interface PictureBookScreenProps {
   /** Progress (0 to 1) of each spread being repainted, by section id. */
   painting: Record<string, number>;
   spentUsd: number | null;
-  budgetUsd: number | null;
   exportPath: string;
   onStart: (story: PictureStoryInput, spreads: number, regenerateStory: boolean) => Promise<void>;
   onSaveText: (spread: SpreadView, text: string) => Promise<void>;
   onLayout: (spread: SpreadView, layout: SpreadLayout) => Promise<void>;
   onPaint: (spread: SpreadView) => Promise<void>;
-  onRaiseBudget: ((toUsd: number) => Promise<void>) | null;
   /** The server's price for a run and one picture (POST /books/:id/picture-book/estimate). Demo books leave it out. */
   estimate?: PictureEstimate | null | undefined;
 }
@@ -250,9 +248,7 @@ export function PictureBookScreen(props: PictureBookScreenProps) {
               { label: "Ink", value: "Premium colour" },
               { label: "Pages", value: view ? String(view.pageCount) : "Not planned yet" },
               ...(view?.newWord ? [{ label: "New word", value: view.newWord }] : []),
-              ...(props.spentUsd !== null && props.budgetUsd !== null
-                ? [{ label: "Spent", value: `${formatUsd(props.spentUsd)} of ${formatUsd(props.budgetUsd)}` }]
-                : []),
+              ...(props.spentUsd !== null ? [{ label: "Spent", value: formatUsd(props.spentUsd) }] : []),
             ]}
           />
         </InspectorSection>
@@ -275,16 +271,7 @@ export function PictureBookScreen(props: PictureBookScreenProps) {
         )}
       </Inspector>
 
-      <PaintDialog
-        spread={paintFor}
-        onClose={() => setPaintFor(null)}
-        onPaint={props.onPaint}
-        spentUsd={props.spentUsd}
-        budgetUsd={props.budgetUsd}
-        onRaiseBudget={props.onRaiseBudget}
-        pictureCost={pictureCost}
-        pictureUsd={props.estimate?.image.highUsd}
-      />
+      <PaintDialog spread={paintFor} onClose={() => setPaintFor(null)} onPaint={props.onPaint} spentUsd={props.spentUsd} pictureCost={pictureCost} />
     </div>
   );
 }

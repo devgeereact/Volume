@@ -5,7 +5,6 @@ import { getBook } from "../demo/books";
 import type { Book } from "../demo/types";
 import { penNames } from "../demo/penNames";
 import { workspace } from "../demo/workspace";
-import { ProgressBar } from "../components/ui/ProgressBar";
 import { Tooltip } from "../components/ui/Tooltip";
 import { cn } from "../lib/cn";
 import { formatUsd } from "../lib/format";
@@ -205,16 +204,8 @@ function SpineStatus({ mode, onNavigate }: { mode: ReturnType<typeof useWireMode
           {workspace.openRouter.connected ? "OpenRouter connected" : "OpenRouter not connected"}
         </p>
         <p>
-          {spend.monthLabel} spend <b className="num font-semibold text-ink">{formatUsd(spend.spentUsd)}</b> of {formatUsd(spend.budgetUsd).replace(".00", "")}
+          {spend.monthLabel} spend <b className="num font-semibold text-ink">{formatUsd(spend.spentUsd)}</b>
         </p>
-        <ProgressBar
-          className="mt-2"
-          size="thin"
-          value={spend.spentUsd}
-          max={spend.budgetUsd}
-          label={`${spend.monthLabel} AI spend`}
-          valueText={`${formatUsd(spend.spentUsd)} of ${formatUsd(spend.budgetUsd)}`}
-        />
       </div>
     );
   }
@@ -238,7 +229,6 @@ function SpineStatus({ mode, onNavigate }: { mode: ReturnType<typeof useWireMode
   const s = settings.data;
   const month = new Intl.DateTimeFormat("en-GB", { month: "long" }).format(new Date());
   const spent = s.budgets.monthSpendUsd;
-  const cap = s.budgets.monthlyCapUsd;
   return (
     <div className={box}>
       {writing}
@@ -252,18 +242,7 @@ function SpineStatus({ mode, onNavigate }: { mode: ReturnType<typeof useWireMode
       </Link>
       <p>
         {month} spend <b className="num font-semibold text-ink">{formatUsd(spent)}</b>
-        {cap !== null ? ` of ${formatUsd(cap).replace(".00", "")}` : ", no cap"}
       </p>
-      {cap !== null && cap > 0 && (
-        <ProgressBar
-          className="mt-2"
-          size="thin"
-          value={Math.min(spent, cap)}
-          max={cap}
-          label={`${month} AI spend`}
-          valueText={`${formatUsd(spent)} of ${formatUsd(cap)}`}
-        />
-      )}
     </div>
   );
 }

@@ -330,7 +330,7 @@ export default function BatchDetailPage() {
         open={confirmStart}
         onClose={() => setConfirmStart(false)}
         title={`${startLabel}: ${toRun === 1 ? "1 book" : `${toRun} books`}`}
-        description="Each book runs in turn: blueprint, approval, then writing, with the usual checks. Every book stops at its own budget and the monthly budget, so nothing spends past what you set."
+        description="Each book runs in turn: blueprint, approval, then writing, with the usual checks. There is no spending cap. A book pauses only if the AI provider runs out of credit, and finished work is kept."
         footer={
           <>
             <Button variant="ghost" onClick={() => setConfirmStart(false)}>

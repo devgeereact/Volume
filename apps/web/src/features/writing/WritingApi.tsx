@@ -177,6 +177,7 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
 
   function startWriting() {
     if (!writeEstimate.data) return;
+    // D-057: the book's budget figure is a guide, not a cap. A large estimate against it asks once before writing.
     const remaining = Math.max(0, apiBook.budgetUsd - apiBook.costToDateUsd);
     if (writeEstimate.data && writeEstimate.data.highUsd > remaining / 2) {
       setConfirmSpend(true);
@@ -381,9 +382,7 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
             {plainError(error)}
           </Banner>
         )}
-        {budget && (
-          <BudgetPausedBanner bookId={bookId} jobId={budget.jobId} message={budget.message} budgetUsd={apiBook.budgetUsd} spentUsd={apiBook.costToDateUsd} />
-        )}
+        {budget && <BudgetPausedBanner jobId={budget.jobId} message={budget.message} />}
         {tree.isError && (
           <Banner
             tone="error"
@@ -497,7 +496,7 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
                       "Worked out when writing is not running"
                     ),
                 },
-                { label: "Spent on this book", value: `${formatUsd(apiBook.costToDateUsd)} of ${formatUsd(apiBook.budgetUsd)}` },
+                { label: "Spent on this book", value: formatUsd(apiBook.costToDateUsd) },
               ]}
             />
           </InspectorSection>
@@ -547,7 +546,7 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
         onClose={() => setConfirmSpend(false)}
         size="sm"
         title="Confirm writing cost"
-        description={`The high estimate is $${writeEstimate.data?.highUsd.toFixed(2) ?? "0.00"}, more than half the remaining book budget of $${Math.max(0, apiBook.budgetUsd - apiBook.costToDateUsd).toFixed(2)}. Volume pauses before a request would exceed the budget.`}
+        description={`The high estimate for writing the rest of this book is $${writeEstimate.data?.highUsd.toFixed(2) ?? "0.00"}. There is no spending cap, so writing carries on until it is done. It pauses only if the AI provider runs out of credit.`}
         footer={
           <>
             <Button variant="ghost" onClick={() => setConfirmSpend(false)}>

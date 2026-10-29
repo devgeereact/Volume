@@ -1,62 +1,34 @@
 import { useState } from "react";
-import { Banner, Button, Input } from "../../components/ui";
-import { useJobControl, useUpdateBook } from "../../api/hooks";
+import { Banner, Button } from "../../components/ui";
+import { useJobControl } from "../../api/hooks";
 import { errorText } from "../../api/wire-c";
 import { useCanManage } from "../../lib/access";
 
-/* A job stopped at the book's budget (status paused_budget). Spending is the owner's call, so this says how
-   much the step needs, takes the new budget and resumes the job; nothing runs until the owner raises it. */
+/* A job saved as paused_budget (D-057). There is no book or monthly cap any more, so this status now means the
+   AI provider ran out of credit (top up, then continue) or, in another workspace, the owner's cap for guest
+   workspaces (D-047). Older jobs paused at a book budget simply continue. Finished work is always kept. */
 
-/** "about $0.49 more" from the server's budget message, or null. */
-export function neededUsd(message: string | null): number | null {
-  const m = message?.match(/\$(\d+(?:\.\d+)?) more/);
-  return m ? Number(m[1]) : null;
-}
-
-/** True when the job stopped because the AI provider has no credits left, not because of a budget. */
+/** True when the job stopped because the AI provider has no credits left. */
 export function isCreditsMessage(message: string | null): boolean {
   return /out of credits/i.test(message ?? "");
 }
 
 export function BudgetPausedBanner({
-  bookId,
   jobId,
   message,
-  budgetUsd,
-  spentUsd,
   onResumed,
   className,
 }: {
-  bookId: string;
   jobId: string;
   message: string | null;
-  budgetUsd: number;
-  spentUsd: number;
   onResumed?: (() => void) | undefined;
   className?: string | undefined;
 }) {
   const canManage = useCanManage();
-  const update = useUpdateBook();
   const control = useJobControl();
-  const need = neededUsd(message);
-  const suggested = Math.max(5, Math.ceil((Math.max(budgetUsd, spentUsd) + (need ?? 1)) * 2) / 2);
-  const [value, setValue] = useState(String(suggested));
   const [error, setError] = useState<string | null>(null);
-  const to = Number(value);
-  const valid = Number.isFinite(to) && to > budgetUsd;
 
-  async function raiseAndContinue() {
-    try {
-      if (to > budgetUsd) await update.mutateAsync({ bookId, patch: { budgetUsd: to } });
-      await control.mutateAsync({ jobId, action: "resume" });
-      setError(null);
-      onResumed?.();
-    } catch (e) {
-      setError(errorText(e));
-    }
-  }
-
-  async function continueAfterTopUp() {
+  async function resume() {
     try {
       await control.mutateAsync({ jobId, action: "resume" });
       setError(null);
@@ -65,6 +37,12 @@ export function BudgetPausedBanner({
       setError(errorText(e));
     }
   }
+
+  const continueButton = canManage && (
+    <Button onClick={() => void resume()} loading={control.isPending} loadingLabel="Continuing">
+      Continue
+    </Button>
+  );
 
   if (isCreditsMessage(message)) {
     return (
@@ -74,11 +52,7 @@ export function BudgetPausedBanner({
           <a href="https://openrouter.ai/settings/credits" target="_blank" rel="noreferrer" className="font-semibold text-select underline underline-offset-2">
             Top up on OpenRouter
           </a>
-          {canManage && (
-            <Button onClick={() => void continueAfterTopUp()} loading={control.isPending} loadingLabel="Continuing">
-              Continue
-            </Button>
-          )}
+          {continueButton}
         </div>
         {error && <p className="mt-2 text-claim">{error}</p>}
       </Banner>
@@ -86,34 +60,12 @@ export function BudgetPausedBanner({
   }
 
   return (
-    <Banner tone="attention" title="Stopped at this book's budget" className={className}>
-      <p>
-        This book's AI budget is ${budgetUsd.toFixed(2)} and ${spentUsd.toFixed(2)} is spent
-        {need !== null ? `; this step needs about $${need.toFixed(2)} more` : ""}. Nothing was charged for it. Raise the budget to carry on.
-      </p>
-      {canManage ? (
-        <div className="mt-3 flex flex-wrap items-end gap-2">
-          <Input
-            label="New budget for this book ($)"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step={0.5}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            className="w-[200px]"
-          />
-          <Button
-            onClick={() => void raiseAndContinue()}
-            loading={update.isPending || control.isPending}
-            loadingLabel="Continuing"
-            disabledReason={valid ? undefined : `Enter more than $${budgetUsd.toFixed(2)}.`}
-          >
-            Raise budget and continue
-          </Button>
-        </div>
+    <Banner tone="attention" title="This step is paused" className={className}>
+      <p>{message?.trim() ? message : "This step stopped before it finished. Nothing was charged for it and finished work is kept."}</p>
+      {continueButton ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">{continueButton}</div>
       ) : (
-        <p className="mt-2">Ask the owner of this Volume to raise the budget.</p>
+        <p className="mt-2">Ask the owner of this Volume to continue it.</p>
       )}
       {error && <p className="mt-2 text-claim">{error}</p>}
     </Banner>

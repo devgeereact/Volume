@@ -28,8 +28,6 @@ export const pipelineExamples = {
   restUsd: 0.6,
 };
 
-export const DEFAULT_BUDGET = 15;
-
 export const defaultModel = (stage: string, fallback: string) => stageDefaults.find((s) => s.stage === stage)?.defaultModel ?? fallback;
 export const RESEARCH_DEFAULT = defaultModel("research", "~google/gemini-pro-latest");
 export const WRITING_DEFAULT = defaultModel("writing", "~anthropic/claude-sonnet-latest");
@@ -145,7 +143,6 @@ export interface Draft {
   poemForm: string;
   researchModel: string;
   writingModel: string;
-  budget: string;
 }
 
 export const emptyDraft: Draft = {
@@ -179,7 +176,6 @@ export const emptyDraft: Draft = {
   poemForm: "free",
   researchModel: RESEARCH_DEFAULT,
   writingModel: WRITING_DEFAULT,
-  budget: String(DEFAULT_BUDGET),
 };
 
 /** Fills every type-dependent field: the profile's own defaults when this is its default type, else the type's. */

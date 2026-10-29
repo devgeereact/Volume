@@ -62,9 +62,9 @@ export function FixWholeBook({
     for (let i = 0; i < 360; i++) {
       const j = await jobsApi.get(r.jobId);
       if (j.status === "paused_budget") {
-        // Cancel it (nothing was charged for it) and stop: the budget is the owner's call.
+        // Cancel it (nothing was charged for it) and stop: the AI provider is out of credit (D-057).
         await jobsApi.cancel(r.jobId).catch(() => undefined);
-        throw new BudgetStop(j.error ?? "This book has reached its budget.");
+        throw new BudgetStop(j.error ?? "The AI provider has run out of credit.");
       }
       if (isTerminalJob(j.status)) {
         if (j.status === "succeeded") return { jobId: r.jobId, result: j.result };
@@ -127,7 +127,7 @@ export function FixWholeBook({
       },
     );
     if (halt.gone) setModelFix(halt.gone);
-    if (halt.budget) throw new Error(`${halt.budget} Raise this book's budget, then press Fix again.`);
+    if (halt.budget) throw new Error(`${halt.budget} Press Fix again when the AI can run.`);
     return report;
   }
 

@@ -29,6 +29,7 @@ import { cn } from "../../lib/cn";
 import { scrollBehavior } from "../../lib/motion";
 import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
+import { StorePreview, TitleLengthBar } from "./StorePreview";
 import { TitleCard } from "./TitleCard";
 import { checkTitle } from "./titlesExtras";
 import { RebuildBook } from "../rebuild/RebuildBook";
@@ -55,6 +56,7 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   const [busyDirection, setBusyDirection] = useState<string | null>(null);
   const [againOpen, setAgainOpen] = useState(false);
   const [instruction, setInstruction] = useState("");
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   const list = sets.data ?? [];
   const set: ApiTitleSet | null = list.find((x) => x.id === pickedSet) ?? list[0] ?? null;
@@ -112,6 +114,13 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
 
   const blueprintPath = bookStepPath(book.id, "blueprint");
   const chosenHere = options.find((o) => o.chosen) ?? null;
+  // The store preview shows the option picked to preview, else the chosen one, else the book's saved title.
+  const previewOption = options.find((o) => o.id === previewId) ?? chosenHere;
+  const preview = previewOption
+    ? { title: previewOption.title, subtitle: previewOption.subtitle, chosen: previewOption.chosen }
+    : bookTitle
+      ? { title: bookTitle, subtitle: apiBook.subtitle ?? "", chosen: true }
+      : null;
   useStepAction(
     sets.isPending || sets.isError
       ? { label: "Continue to blueprint", to: blueprintPath, disabledReason: sets.isPending ? "Loading titles." : "Titles could not be loaded." }
@@ -353,6 +362,8 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
                         fresh={false}
                         saving={savingChoiceId === o.id}
                         busy={savingChoiceId !== null}
+                        onPreview={() => setPreviewId(o.id)}
+                        previewing={previewOption?.id === o.id}
                       />
                     ))}
                   </ul>
@@ -364,6 +375,19 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
       </div>
 
       <Inspector label="Titles details" className="lg:sticky lg:top-(--shell-sticky-top) lg:h-screen-fill">
+        <InspectorSection title="Store preview">
+          {preview ? (
+            <div className="grid gap-4">
+              <StorePreview book={book} title={preview.title} subtitle={preview.subtitle} />
+              <TitleLengthBar title={preview.title} subtitle={preview.subtitle} />
+              {!preview.chosen && <p className="text-small text-ink-secondary">Previewing an option. It is not the chosen title.</p>}
+            </div>
+          ) : (
+            <p className="text-small text-ink-secondary">
+              {options.length > 0 ? "Choose a title, or press the eye on an option, to see it here." : "The preview appears when there is a title to show."}
+            </p>
+          )}
+        </InspectorSection>
         <InspectorSection title="Chosen title">
           {bookTitle ? (
             <div className="grid gap-3">
@@ -388,7 +412,9 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
               Saving the title
             </p>
           )}
-          <p className="mt-3 text-small text-ink-tertiary">KDP needs the title and subtitle together under 200 characters. Choosing sets the book's title.</p>
+          <p className="mt-3 text-small text-ink-tertiary">
+            KDP allows up to {TITLE_SUBTITLE_MAX} characters for the title and subtitle together. Choosing sets the book's title.
+          </p>
         </InspectorSection>
         {/* Once the book has text, a new title only reaches the blueprint and chapters through a rebuild. */}
         {bookTitle && <RebuildBook bookId={bookId} title={bookTitle} onlyWithText className="mt-5" />}

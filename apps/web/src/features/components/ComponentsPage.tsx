@@ -305,8 +305,8 @@ function Gallery({ theme }: { theme: "light" | "dark" }) {
               <ChapterBars segments={segments} />
             </div>
             <div className="rounded-md bg-spine p-4">
-              <p className="mb-2 text-small text-ink-on-spine-muted">Spend meter on the spine</p>
-              <ProgressBar value={4.82} max={40} tone="spine" size="thin" label="October AI spend" valueText="$4.82 of $40.00" />
+              <p className="mb-2 text-small text-ink-on-spine-muted">Thin meter on the spine</p>
+              <ProgressBar value={62} max={100} tone="spine" size="thin" label="Book written" valueText="62% written" />
             </div>
           </div>
         </div>
@@ -411,8 +411,8 @@ function Gallery({ theme }: { theme: "light" | "dark" }) {
             <Banner tone="error" title="Could not load your books" action={<Button size="sm">Retry</Button>}>
               The local server did not answer. Check it is running, then retry.
             </Banner>
-            <Banner tone="attention" title="This book needs about $1.20 more">
-              Raise the budget or stop here. Nothing is lost.
+            <Banner tone="attention" title="AI credits have run out">
+              Top up, then continue. Nothing is lost.
             </Banner>
             <p className="flex items-center gap-2 text-small text-ink-secondary">
               <Loader /> Reading 6 of 18 sources
@@ -451,8 +451,7 @@ function Gallery({ theme }: { theme: "light" | "dark" }) {
               />
             </InspectorSection>
             <InspectorSection title="Cost so far">
-              <Figure value={formatUsd(0.46)} unit="of $12.00 budget" />
-              <ProgressBar className="mt-2.5" value={0.46} max={12} label="Budget used" valueText="$0.46 of $12.00" />
+              <Figure value={formatUsd(0.46)} unit="so far" />
               <KeyValueList className="mt-3" items={bp.costBreakdown.map((c) => ({ label: c.label, value: formatUsd(c.usd) }))} />
             </InspectorSection>
             <InspectorSection title={`Claims to verify, ${bp.claims.length}`} tone="claim" icon={Flag}>

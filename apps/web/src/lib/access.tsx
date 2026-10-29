@@ -13,7 +13,7 @@ export function useCanWrite(): boolean {
   return useVolumeMe().canWrite;
 }
 
-/** True when the caller may change settings, budgets and members (owner only). */
+/** True when the caller may change settings, the guest workspace cap and members (owner only). */
 export function useCanManage(): boolean {
   return useVolumeMe().canManage;
 }

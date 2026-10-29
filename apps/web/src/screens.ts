@@ -65,7 +65,7 @@ export interface ScreenDef {
 export const settingsTabs = [
   { id: "key", label: "OpenRouter" },
   { id: "models", label: "Models" },
-  { id: "budgets", label: "Budgets" },
+  { id: "budgets", label: "Spending" },
   { id: "book-defaults", label: "Book defaults" },
   { id: "appearance", label: "Appearance" },
   { id: "backups", label: "Data and backups" },
@@ -322,7 +322,7 @@ export const screens: Record<ScreenId, ScreenDef> = {
   settings: {
     id: "settings",
     title: "Settings",
-    purpose: "Key status, models, budgets, book defaults, appearance, data and backups, house style and KDP rules.",
+    purpose: "Key status, models, spending, book defaults, appearance, data and backups, house style and KDP rules.",
     path: "/settings/:tab?",
     folder: "features/settings",
     owner: "A",

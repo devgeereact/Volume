@@ -28,7 +28,6 @@ export interface DemoBookState {
   exportProgress: number;
   builtAt: number | null;
   spentUsd: number;
-  budgetUsd: number;
 }
 
 const DEMO_TIME = Date.parse("2026-10-04T14:31:00+01:00");
@@ -48,7 +47,6 @@ function initial(bookId: string): DemoBookState {
     exportProgress: made ? 1 : 0,
     builtAt: made ? DEMO_TIME : null,
     spentUsd: made ? 1.38 : 0,
-    budgetUsd: made ? 6 : 5,
   };
 }
 
@@ -151,21 +149,13 @@ export async function demoSetLayout(bookId: string, sectionId: string, layout: S
   set(bookId, (s) => (s.view ? { ...s, view: { ...s.view, spreads: s.view.spreads.map((sp) => (sp.sectionId === sectionId ? { ...sp, layout } : sp)) } } : s));
 }
 
-/** Repaints one spread. `overBudget` (demo URL ?budget=low) answers as the server does at the budget limit. */
-export async function demoPaint(bookId: string, sectionId: string, overBudget: boolean): Promise<void> {
+/** Repaints one spread. There is no spending cap (D-057), so the demo never refuses for cost. */
+export async function demoPaint(bookId: string, sectionId: string): Promise<void> {
   const s = get(bookId);
   const story = demoPictureStories[bookId];
   const spread = s.view?.spreads.find((x) => x.sectionId === sectionId);
   if (!story || !spread) throw new ApiError(404, "not_found", "That spread was not found.");
   await tick(300);
-  if (overBudget || s.spentUsd + PICTURE_ESTIMATE_USD > s.budgetUsd) {
-    throw new ApiError(
-      402,
-      "budget_exceeded",
-      `One more picture needs about $${PICTURE_ESTIMATE_USD.toFixed(2)} more than this book's budget allows. Raise the budget first.`,
-      { scope: "book", limitUsd: s.budgetUsd, spentUsd: overBudget ? s.budgetUsd - 0.05 : s.spentUsd, estimateUsd: PICTURE_ESTIMATE_USD },
-    );
-  }
   repaintRound += 1;
   const round = repaintRound;
   const steps = 6;
@@ -195,10 +185,6 @@ export async function demoPaint(bookId: string, sectionId: string, overBudget: b
       };
     });
   })();
-}
-
-export function demoRaiseBudget(bookId: string, to: number): void {
-  set(bookId, (s) => ({ ...s, budgetUsd: to }));
 }
 
 export async function demoBuildExport(bookId: string): Promise<void> {

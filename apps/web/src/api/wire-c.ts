@@ -95,7 +95,7 @@ export function jobStatusText(status: JobStatus | null): string {
     case "paused":
       return "Paused";
     case "paused_budget":
-      return "Paused at the budget limit";
+      return "Paused for AI credit";
     case "succeeded":
       return "Finished";
     case "needs_attention":

@@ -29,7 +29,7 @@ export function plainError(e: unknown): string {
   if (isApiError(e)) {
     if (e.code === "network_error") return "The Volume server is not answering. Check your connection, then try again.";
     if (e.code === "conflict") return "Someone saved a newer version while you were working. Reload to see it, then make your change again.";
-    if (e.code === "budget_exceeded") return "This book has reached its budget. Raise the budget in the book's settings, then try again.";
+    if (e.code === "budget_exceeded") return "This step is paused for AI credit. Top up with the AI provider, or ask the owner of this Volume, then try again.";
     const issues = e.fieldIssues;
     if (issues.length > 0) return `${e.message} ${issues.map((i) => i.message).join(" ")}`;
     return e.message;

@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBookLive } from "../../api/events";
-import { queryKeys, useBookJobs, useJob, useJobControl, useUpdateBook } from "../../api/hooks";
+import { queryKeys, useBookJobs, useJob, useJobControl } from "../../api/hooks";
 import {
   usePaintSpread,
   usePatchSpread,
@@ -18,11 +17,12 @@ import { isTerminalJob, type ApiBookDetail } from "../../api/types";
 import { errorText, useJobWatch } from "../../api/wire-c";
 import { EmptyState } from "../../components/ui";
 import type { Book } from "../../demo/types";
-import { useCanManage, useCanWrite } from "../../lib/access";
+import { useCanWrite } from "../../lib/access";
+import { isCreditsMessage } from "../books/BudgetPausedBanner";
 import { bookStepPath } from "../../screens";
 import { ErrorPanel, LoadingBlock, useScreenState } from "../writing/screenState";
 import { demoPictureStories } from "../../demo/pictureBook";
-import { demoPaint, demoRaiseBudget, demoSaveText, demoSetLayout, demoStartRun, hasDemoStory, useDemoPictureBook } from "./demoStore";
+import { demoPaint, demoSaveText, demoSetLayout, demoStartRun, hasDemoStory, useDemoPictureBook } from "./demoStore";
 import { bleedPageSize, demoPlan } from "./geometry";
 import {
   mergeRunChildren,
@@ -64,7 +64,6 @@ function ApiPictureBook({ book, apiBook }: { book: Book; apiBook: ApiBookDetail 
   const bookId = book.id;
   const qc = useQueryClient();
   const canWrite = useCanWrite();
-  const canManage = useCanManage();
   const viewQ = usePictureBook(bookId);
   const charsQ = usePictureCharacters(bookId);
   const estimateQ = usePictureEstimate(bookId);
@@ -72,7 +71,6 @@ function ApiPictureBook({ book, apiBook }: { book: Book; apiBook: ApiBookDetail 
   const patch = usePatchSpread();
   const paint = usePaintSpread();
   const control = useJobControl();
-  const updateBook = useUpdateBook();
   const jobs = useBookJobs(bookId, { limit: 100 });
   const live = useBookLive(bookId);
   const [startedId, setStartedId] = useState<string | null>(null);
@@ -148,7 +146,10 @@ function ApiPictureBook({ book, apiBook }: { book: Book; apiBook: ApiBookDetail 
       runError = "The writer's safety check flagged the story, so no pictures were made. Change the idea if you need to, then write it again.";
     else if (latest.status === "failed") runError = latest.error ?? "The run failed. Carry on to try the step again.";
     else if (latest.status === "cancelled") runError = "The run was stopped. Carry on to finish it; finished steps are kept.";
-    else if (latest.status === "paused_budget") runError = "The run paused at the book's budget. Raise the budget, then carry on.";
+    else if (latest.status === "paused_budget")
+      runError = isCreditsMessage(latest.error ?? null)
+        ? "The run paused because the AI provider ran out of credit. Top up, then carry on; finished steps are kept."
+        : (latest.error ?? "The run is paused. Carry on to finish it; finished steps are kept.");
   }
 
   const throwPlain = (e: unknown): never => {
@@ -168,7 +169,6 @@ function ApiPictureBook({ book, apiBook }: { book: Book; apiBook: ApiBookDetail 
       canWrite={canWrite}
       painting={painting}
       spentUsd={apiBook.costToDateUsd}
-      budgetUsd={apiBook.budgetUsd}
       exportPath={bookStepPath(bookId, "export")}
       estimate={estimateQ.data ?? null}
       onStart={(story, spreads, regenerateStory) =>
@@ -189,9 +189,7 @@ function ApiPictureBook({ book, apiBook }: { book: Book; apiBook: ApiBookDetail 
           (e: unknown) => throwPlain(e),
         )
       }
-      // The raw ApiError reaches the dialog, so it can tell a 402 budget stop from other failures.
       onPaint={(s: SpreadView) => paint.mutateAsync({ bookId, sectionId: s.sectionId }).then(() => undefined)}
-      onRaiseBudget={canManage ? (to: number) => updateBook.mutateAsync({ bookId, patch: { budgetUsd: to } }).then(() => undefined) : null}
     />
   );
 }
@@ -204,11 +202,6 @@ function DemoPictureBook({ book }: { book: Book }) {
   const { state, retry } = useScreenState();
   const s = useDemoPictureBook(book.id);
   const canWrite = useCanWrite();
-  const canManage = useCanManage();
-  const [params] = useSearchParams();
-  // ?budget=low shows the 402 budget stop until the owner raises the budget.
-  const [raised, setRaised] = useState(false);
-  const overBudget = params.get("budget") === "low" && !raised;
   const plan = useMemo(() => demoPlan("premium", DEMO_MATTER.front, DEMO_MATTER.back), []);
   const story = demoPictureStories[book.id];
 
@@ -258,21 +251,11 @@ function DemoPictureBook({ book }: { book: Book }) {
       canWrite={canWrite}
       painting={s.painting}
       spentUsd={s.spentUsd}
-      budgetUsd={s.budgetUsd}
       exportPath={bookStepPath(book.id, "export")}
       onStart={(input, spreads) => demoStartRun(book.id, input, spreads)}
       onSaveText={(sp, text) => demoSaveText(book.id, sp.sectionId, text)}
       onLayout={(sp, layout) => demoSetLayout(book.id, sp.sectionId, layout)}
-      onPaint={(sp) => demoPaint(book.id, sp.sectionId, overBudget)}
-      onRaiseBudget={
-        canManage
-          ? (to) => {
-              demoRaiseBudget(book.id, to);
-              setRaised(true);
-              return Promise.resolve();
-            }
-          : null
-      }
+      onPaint={(sp) => demoPaint(book.id, sp.sectionId)}
     />
   );
 }

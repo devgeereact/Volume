@@ -85,7 +85,7 @@ describe("gate and run words", () => {
     expect(runLabel("draft").label).toBe("Not started");
     expect(runLabel("running")).toEqual({ label: "Running", tone: "live" });
     expect(runLabel("failed").tone).toBe("error");
-    expect(runLabel("paused_budget").label).toBe("Paused at budget");
+    expect(runLabel("paused_budget").label).toBe("Paused for AI credit");
   });
 
   it("reports books done and the book being written", () => {
