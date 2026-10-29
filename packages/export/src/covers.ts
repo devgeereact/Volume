@@ -382,7 +382,8 @@ export async function exportEbookCover(source: BookMeta, style: CoverStyle = DEF
   const H = spec.heightPx;
   const warnings: string[] = [];
   const f = coverFonts(style, opts.fonts ?? loadFontLibrary(), warnings);
-  const ink = opts.background ? await artInkFor(opts.background, style.colours) : undefined;
+  // Art faded right out (artwork opacity 0) sets no ink: the type keeps the palette colours over the layers.
+  const ink = opts.background && style.artwork?.opacity !== 0 ? await artInkFor(opts.background, style.colours) : undefined;
   const front = withInk(style, ink);
   const layers: FrontLayers = {};
   if (style.background) {
@@ -571,7 +572,8 @@ export async function exportPaperbackWrap(source: BookMeta, style: CoverStyle = 
   const authorWidthIn = Math.max(2, trim.widthIn - 2 * backPad - bc.widthIn - 0.35);
   const spineFont = Math.min(16, Math.max(5, (size.spineIn - 2 * clearance) * 72 * 0.62));
   const c = style.colours;
-  const ink = opts.background ? await artInkFor(opts.background, style.colours) : undefined;
+  // Art faded right out (artwork opacity 0) sets no ink: the type keeps the palette colours over the layers.
+  const ink = opts.background && style.artwork?.opacity !== 0 ? await artInkFor(opts.background, style.colours) : undefined;
   const front = withInk(style, ink);
   // Cover layers: a background across the whole wrap sits under the back, spine and front; a front-only one inside the front.
   const bgl = style.background;

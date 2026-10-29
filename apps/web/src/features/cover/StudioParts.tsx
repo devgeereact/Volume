@@ -411,6 +411,8 @@ export interface ChecksInput {
   /** Built files: null when nothing is built yet. */
   built: { stale: boolean } | null;
   show: (id: LayerId) => void;
+  /** Contrast checks for a cover with layers (layers.ts layerChecks); they replace the plain colour checks. */
+  layerChecks?: StudioCheck[] | null | undefined;
 }
 
 export function coverChecks(i: ChecksInput): StudioCheck[] {
@@ -435,7 +437,8 @@ export function coverChecks(i: ChecksInput): StudioCheck[] {
       onShow: () => i.show("title"),
     });
   }
-  if (!i.colours)
+  if (i.layerChecks) out.push(...i.layerChecks);
+  else if (!i.colours)
     out.push({
       status: "info",
       title: "Text colour over the art",
@@ -528,7 +531,7 @@ export function FixedLayerInfo({
             ? `The spine carries the title and ${author || "the author"}, sized by the build for a ${inches(spineIn, 3)} spine.`
             : `No spine text: KDP allows it from ${spineTextMinPages} pages and this book is shorter.`}
         </p>
-        <p className="text-[12px] leading-[1.45] text-ink-2">The spine colour follows the palette's band colour.</p>
+        <p className="text-[12px] leading-[1.45] text-ink-2">Without colours of its own, the spine follows the palette's band colour.</p>
       </Section>
     );
   if (id === "blurb")

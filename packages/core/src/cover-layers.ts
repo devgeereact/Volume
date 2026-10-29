@@ -522,9 +522,11 @@ export function layerContrast(
   const over = front.filter((s) => s.layer === 'over');
   const behind = front.filter((s) => s.layer === 'behind' && s.opacity >= 0.3);
   const img = l.background?.mode === 'image' ? l.background.image : undefined;
+  // Art faded right out is not behind the type.
+  const art = opts.art && l.artwork?.opacity !== 0;
   const look = img
     ? `The ${img.texture ? 'texture' : 'picture'} behind the type cannot be measured from the settings.`
-    : opts.art
+    : art
       ? l.artwork
         ? 'The art has its own opacity, angle or box, so the ink chosen from it is a guide only.'
         : 'Over the art the build picks the ink from the picture behind the type.'
