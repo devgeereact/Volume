@@ -3,10 +3,11 @@
 ## State on 28 October 2026 (studio redesign, stages 0 to 2)
 
 - Plan: `docs/08-change-management/plans/2026-10-28-studio-redesign.md` (owner approved, stage by stage, one PR each, every deploy needs the owner's yes).
-- Stage 0 merged: PR #76 (6fe89a2 on main). Not deployed.
+- Stages 0 to 2 merged (#76, #77, #78) and live: release `20261029T075300Z` from `d008bf6`, rollback `20261024T153751Z`.
 - Stage 1 (frost and glass shell, D-065): PR #77 from `feat/studio-shell`, open. Gate PASS: typecheck, lint, format, docs, web 240, e2e 20.
 - Stage 2 (StepRail, StepHead, Up next): committed on `feat/studio-steps`, cut from `feat/studio-shell`; PR open, merge after #77.
-- Open owner questions: deploy timing (stage 0 alone or with stage 1); bring back the stop-time handoff hook (commit 5ef1177, made by another session)?
+- Stage 3 (library grid): committed on `feat/studio-library`, PR open.
+- Open owner question: bring back the stop-time handoff hook (commit 5ef1177, made by another session)?
 - Later: stage 3 library, 4 step pages (also drop budget lines, D-057), 5 cover studio, 6 trims from KDP help (verify each value against the raw page), 7 deploy.
 
 ## State on 28 October 2026 (prompt caching, local only, nothing committed)
