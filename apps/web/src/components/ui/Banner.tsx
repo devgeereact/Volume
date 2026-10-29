@@ -3,7 +3,7 @@ import { Check, CircleAlert, Flag, Info } from "lucide-react";
 import { cn } from "../../lib/cn";
 
 interface BannerProps {
-  /** error: proof red (assertive). attention: gilt text with a flag. success: green. info: neutral. */
+  /** error: proof red (assertive). attention: amber text with a flag. success: green. info: neutral. */
   tone: "error" | "attention" | "success" | "info";
   title: ReactNode;
   children?: ReactNode | undefined;

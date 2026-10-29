@@ -1,4 +1,17 @@
+import { Book, Globe, Image, Layers2, Megaphone, Package, PenLine, Zap, type LucideIcon } from "lucide-react";
 import type { BookStepId } from "../demo/types";
+
+/** Each step's icon in the approved design (the Up next card). */
+export const stepIcons: Record<BookStepId, LucideIcon> = {
+  research: Globe,
+  titles: PenLine,
+  blueprint: Layers2,
+  writing: Zap,
+  editor: Book,
+  cover: Image,
+  marketing: Megaphone,
+  export: Package,
+};
 
 /**
  * Words for the step rail, the step head and the Up next card (studio redesign, stage 2).

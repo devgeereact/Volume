@@ -591,7 +591,7 @@ export function AboutFonts() {
         <li>
           <span className="font-book">Literata</span> for book text, SIL Open Font Licence 1.1
         </li>
-        <li>Schibsted Grotesk for the interface, SIL Open Font Licence 1.1</li>
+        <li>Manrope for the interface, SIL Open Font Licence 1.1</li>
         <li>
           <span className="font-mono text-[13px]">JetBrains Mono</span> for model IDs and keys, SIL Open Font Licence 1.1
         </li>

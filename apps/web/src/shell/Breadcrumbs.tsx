@@ -75,28 +75,35 @@ export function Breadcrumbs() {
   useEffect(() => {
     document.title = pageTitle;
   }, [pageTitle]);
-  // Two lines: the trail above (hidden on phones), then the current page as the bar's title on its own line.
+  // Two lines: the whole trail above (hidden on small phones), then the current page as the bar's title.
+  // The title repeats the last crumb, so it is hidden from screen readers; each screen keeps its own h1.
+  const current = crumbs[crumbs.length - 1]?.label ?? "";
   return (
-    <nav aria-label="Breadcrumb" className="min-w-0">
-      <ol className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
-        {crumbs.map((c, i) => {
-          const last = i === crumbs.length - 1;
-          return last ? (
-            <li key={c.to + i} className="flex w-full min-w-0">
-              <span aria-current="page" className="truncate text-subhead text-ink sm:text-bar-title">
-                {c.label}
-              </span>
-            </li>
-          ) : (
-            <li key={c.to + i} className="hidden min-w-0 items-center gap-1 text-caption text-ink-secondary sm:flex">
-              {i > 0 && <ChevronRight size={12} className="shrink-0" aria-hidden />}
-              <Link to={c.to} className="truncate rounded-xs hover:text-ink hover:underline">
-                {c.label}
-              </Link>
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
+    <div className="min-w-0">
+      <nav aria-label="Breadcrumb" className="max-[560px]:sr-only">
+        <ol className="flex min-w-0 flex-wrap items-center gap-1 text-caption font-normal text-ink-3">
+          {crumbs.map((c, i) => {
+            const last = i === crumbs.length - 1;
+            return (
+              <li key={c.to + i} className="flex min-w-0 items-center gap-1">
+                {i > 0 && <ChevronRight size={12} strokeWidth={1.8} className="shrink-0" aria-hidden />}
+                {last ? (
+                  <span aria-current="page" className="truncate font-medium text-ink-2">
+                    {c.label}
+                  </span>
+                ) : (
+                  <Link to={c.to} className="truncate rounded-xs hover:text-select hover:underline">
+                    {c.label}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+      <p aria-hidden className="truncate text-[18px] leading-[1.2] font-bold tracking-[-0.01em] text-ink min-[561px]:text-bar-title">
+        {current}
+      </p>
+    </div>
   );
 }

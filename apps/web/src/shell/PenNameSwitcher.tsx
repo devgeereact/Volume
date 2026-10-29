@@ -8,12 +8,12 @@ import { cn } from "../lib/cn";
 import { fadeOnly, popover } from "../lib/motion";
 import { usePenNameFilter } from "../lib/penName";
 
-/** Avatar circle in gilt with initials (side menu). */
+/** Avatar circle with initials (pen name switcher). */
 export function Avatar({ initials, className }: { initials: string; className?: string | undefined }) {
   return (
     <span
       aria-hidden
-      className={cn("grid size-7 shrink-0 place-items-center rounded-full bg-accent text-[11px] leading-none font-bold text-on-accent", className)}
+      className={cn("grid size-7 shrink-0 place-items-center rounded-full bg-avatar text-[11px] leading-none font-bold text-on-avatar", className)}
     >
       {initials}
     </span>
@@ -147,7 +147,7 @@ export function PenNameSwitcher() {
             openList();
           }
         }}
-        className="flex min-h-[52px] w-full items-center gap-3 rounded-control border border-glass-edge bg-glass-soft px-3 py-2 text-left text-ink shadow-glass-sm hover:bg-glass-strong"
+        className="flex min-h-12 w-full items-center gap-3 rounded-lg border border-edge bg-soft px-3 py-1.5 text-left text-ink shadow-control hover:bg-panel-2"
       >
         <Avatar initials={current?.initials ?? "All"} />
         <span className="min-w-0 flex-1">
@@ -171,7 +171,7 @@ export function PenNameSwitcher() {
             initial={preset.initial}
             animate={preset.animate}
             exit={preset.exit}
-            className="absolute top-full right-0 left-0 z-40 mt-1.5 grid gap-0.5 rounded-md border border-border bg-raised p-1.5 text-ink shadow-pop outline-none"
+            className="absolute right-0 bottom-full left-0 z-40 mb-1.5 grid gap-0.5 rounded-md border border-border bg-raised p-1.5 text-ink shadow-pop outline-none"
           >
             {options.map((o, i) => {
               const selected = i === selectedIndex;

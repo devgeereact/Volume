@@ -193,7 +193,7 @@ export function Select({
           aria-describedby={describedBy(id, Boolean(error), Boolean(hint || (disabled && disabledReason)))}
           onClick={() => (open ? close(false) : openList())}
           onKeyDown={onButtonKey}
-          className={cn(fieldBoxClasses({ error: Boolean(error), disabled: Boolean(disabled) }), "flex h-11 items-center justify-between gap-2 text-left")}
+          className={cn(fieldBoxClasses({ error: Boolean(error), disabled: Boolean(disabled) }), "flex h-10 items-center justify-between gap-2 text-left")}
         >
           <span className={cn("truncate", !selected && "text-ink-tertiary")}>{selected ? selected.label : placeholder}</span>
           <ChevronDown size={16} className="shrink-0 text-ink-secondary" aria-hidden />

@@ -94,7 +94,7 @@ function GridCard({
           )}
           {coverNote && <span className="truncate text-[12.5px] leading-4 text-ink-tertiary">{coverNote}</span>}
         </span>
-        <StageMeter book={book} live={live === "running"} className="mt-auto border-t border-glass-line px-0.5 pt-2" />
+        <StageMeter book={book} live={live === "running"} className="mt-auto border-t border-line px-0.5 pt-2" />
       </Link>
       {statusActions && <BookStatusActions look="links" className="mt-2 px-0.5" bookId={book.id} title={book.title} showPublish={canMarkPublished(book)} />}
     </li>

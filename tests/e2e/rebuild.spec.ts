@@ -65,8 +65,8 @@ test("rebuilds the whole book for a new title with named versions, then goes bac
   const before = chapter1.currentVersionId;
 
   await page.goto(`/books/${bookId}/blueprint`);
-  // The book bar shows the book's cover (a draft from its cover style), not the empty "no cover" box.
-  await expect(page.locator(".vol-cover").first()).toBeVisible();
+  // The book's step bar is up (the approved step bar has no cover; the Library card shows it).
+  await expect(page.getByRole("navigation", { name: "Book steps" })).toBeVisible();
 
   const panel = page.getByRole("region", { name: "Rebuild the whole book" });
   await panel.getByLabel("Title for the rebuild").fill("Calm Night Notes");

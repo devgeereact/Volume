@@ -1,29 +1,48 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { CircleAlert, Pause, Play } from "lucide-react";
-import { Button } from "../components/ui/Button";
-import { LiveDot } from "../components/ui/LiveDot";
-import { ProgressBar } from "../components/ui/ProgressBar";
-import { formatNumber, formatUsd } from "../lib/format";
-import { useWritingJob } from "../lib/job";
+import { Check, CircleAlert, Layers2, Pause, Play, X, Zap } from "lucide-react";
+import { IconButton } from "../components/ui/IconButton";
+import { buttonClasses } from "../components/ui/Button";
+import { getBook } from "../demo/books";
+import { workspace } from "../demo/workspace";
 import { cn } from "../lib/cn";
+import { formatUsd } from "../lib/format";
+import { useWritingJob } from "../lib/job";
 import { bookStepPath } from "../screens";
 import { useJob, useJobControl } from "../api/hooks";
 import { isSummaryOnlyJob } from "../api/wire-b";
-import { apiErrorText, dismissFailure, JOB_LABELS, stepForJob, type RunningJob } from "../api/wire-a";
+import { apiErrorText, dismissFailure, JOB_LABELS, stepForJob, useApiSettings, useRunningJobs, useWireMode, type RunningJob } from "../api/wire-a";
 
-/**
- * "Writing now" bar, 56 px, glass, fixed to the bottom of the main column while a job runs elsewhere.
- * Content above gets matching bottom padding (--shell-jobbar), so it never covers an action.
- * It announces pause and resume politely; word counts are not announced on every chunk.
+/*
+ * The status box at the foot of the side menu (approved design, "spine foot"). It replaces the bottom live
+ * bar: what is running now and on which book (linked to its screen), with Pause and Resume, a failed job's
+ * notice with Dismiss, the OpenRouter status, this month's AI spend, the credit left when OpenRouter
+ * reports it, and Open Volume mode. Plain spend only, never a budget (D-057).
  */
-export function JobBar() {
-  const { job, paused, pause, resume, wordsWritten, costSpent, progress } = useWritingJob();
+
+const box = "grid gap-1.5 rounded-lg border border-edge bg-soft p-3.5 text-[12.5px] leading-[1.45] text-ink-2";
+const row = "flex items-center justify-between gap-2";
+
+/** The first line: an icon and what is happening, with an optional control on the right. */
+function Head({ icon, children, control }: { icon: ReactNode; children: ReactNode; control?: ReactNode }) {
+  return (
+    <div className={cn(row, "min-h-6")}>
+      <b className="flex min-w-0 items-center gap-1.5 text-[13px] font-bold text-ink">
+        {icon}
+        <span className="truncate">{children}</span>
+      </b>
+      {control}
+    </div>
+  );
+}
+
+const bolt = <Zap size={15} strokeWidth={1.8} aria-hidden className="shrink-0 text-good" />;
+
+/** Demo mode: the demo writing job, with Pause and Resume as the live bar had them. */
+function DemoJob({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
+  const { job, running, paused, pause, resume } = useWritingJob();
   const [announce, setAnnounce] = useState("");
   const first = useRef(true);
-  const chapter = job.current.chapterNumber;
-  const chapters = job.sections.filter((s) => s.number !== null).length;
-
   useEffect(() => {
     if (first.current) {
       first.current = false;
@@ -31,56 +50,40 @@ export function JobBar() {
     }
     setAnnounce(paused ? `${job.label} paused.` : `${job.label} resumed.`);
   }, [paused, job.label]);
-
+  if (!running) return <NothingRunning />;
+  const title = getBook(job.bookId)?.title ?? job.label;
+  const to = bookStepPath(job.bookId, "writing");
   return (
-    <div
-      role="region"
-      aria-label="Running job"
-      className="vol-glass-bar sticky bottom-0 z-30 flex h-(--vol-jobbar) items-center gap-3 border-t border-glass-line px-4 text-[13.5px] sm:gap-4 sm:px-6"
-    >
-      {paused ? <span aria-hidden className="size-2 shrink-0 rounded-full border-[1.5px] border-accent-text" /> : <LiveDot />}
-      <p className="min-w-0 truncate">
-        <b className="font-semibold">{paused ? `${job.label}, paused` : job.label}</b>
-        <span className="hidden sm:inline">
-          , chapter {chapter} of {chapters}
-        </span>
-      </p>
-      <ProgressBar
-        className="hidden w-[200px] shrink-0 md:block"
-        size="thin"
-        value={progress}
-        max={1}
-        live={!paused}
-        label={`${job.label} progress`}
-        valueText={`${formatNumber(wordsWritten)} of ${formatNumber(job.words.target)} words`}
-      />
-      <span className={cn("num hidden text-ink-secondary lg:inline")}>
-        {formatNumber(wordsWritten)} of {formatNumber(job.words.target)} words, {formatUsd(costSpent)} so far
-      </span>
-      <span className="ml-auto flex shrink-0 gap-2">
-        <Link
-          to={bookStepPath(job.bookId, "writing")}
-          className="inline-flex h-10 items-center rounded-sm px-3 text-label font-semibold text-ink-secondary hover:bg-sunken hover:text-ink sm:px-4"
-        >
-          Open
-        </Link>
-        <Button variant="secondary" icon={paused ? Play : Pause} onClick={paused ? resume : pause}>
-          {paused ? "Resume" : "Pause"}
-        </Button>
-      </span>
+    <>
+      <Head
+        icon={bolt}
+        control={
+          <IconButton
+            icon={paused ? Play : Pause}
+            size="sm"
+            label={paused ? `Resume writing ${title}` : `Pause writing ${title}`}
+            onClick={paused ? resume : pause}
+          />
+        }
+      >
+        {paused ? "Nothing running" : "Writing now"}
+      </Head>
+      <Link to={to} onClick={onNavigate} className="-my-0.5 truncate rounded-xs hover:text-ink hover:underline">
+        {paused ? `${title} is paused` : `${title}, chapter ${job.current.chapterNumber}`}
+      </Link>
       <span className="sr-only" role="status" aria-live="polite">
         {announce}
       </span>
-    </div>
+    </>
   );
 }
 
-/**
- * The same bar for a server job (API mode): the first running top-level job in the workspace, from the
- * books list, the book's job list and the live state the event streams keep in the cache. Open goes to
- * the book's step for that job; Pause and Resume call the job controls.
- */
-export function ApiJobBar({ job, more }: { job: RunningJob; more: number }) {
+function NothingRunning() {
+  return <Head icon={bolt}>Nothing running</Head>;
+}
+
+/** API mode: the first running (or just failed) server job, with its controls. */
+function ApiJob({ job, more, onNavigate }: { job: RunningJob; more: number; onNavigate?: (() => void) | undefined }) {
   const control = useJobControl();
   const failed = job.status === "failed";
   const paused = job.status === "paused" || job.status === "paused_budget";
@@ -88,7 +91,6 @@ export function ApiJobBar({ job, more }: { job: RunningJob; more: number }) {
   const record = useJob(job.kind === "write_section" && !failed ? job.jobId : undefined);
   const summaryOnly = record.data ? isSummaryOnlyJob(record.data) : false;
   const kindLabel = summaryOnly ? "Summarising a section" : (JOB_LABELS[job.kind] ?? "Job");
-  const label = failed ? `A job failed on ${job.bookTitle}` : `${kindLabel}, ${job.bookTitle}`;
   const [announce, setAnnounce] = useState("");
   const first = useRef(true);
   useEffect(() => {
@@ -96,86 +98,142 @@ export function ApiJobBar({ job, more }: { job: RunningJob; more: number }) {
       first.current = false;
       return;
     }
-    setAnnounce(paused ? `${label} paused.` : `${label} running.`);
-  }, [paused, label]);
+    setAnnounce(paused ? `${kindLabel}, ${job.bookTitle} paused.` : `${kindLabel}, ${job.bookTitle} running.`);
+  }, [paused, kindLabel, job.bookTitle]);
   const detail = failed
     ? job.error
     : job.stalledMinutes !== null
-      ? `no progress for ${job.stalledMinutes} minutes`
+      ? `No progress for ${job.stalledMinutes} minutes`
       : job.status === "paused_budget"
         ? "AI credits have run out, top up and continue"
         : job.done !== null && job.total !== null
           ? `${job.done} of ${job.total} parts`
-          : ((summaryOnly ? null : job.message) ??
-            // A parent job waits while its sections are written, so say how far on it is, not that it has not started.
-            (job.status === "waiting" && job.progress > 0
+          : job.status === "queued" || job.status === "waiting"
+            ? job.progress > 0
               ? `${Math.round(job.progress * 100)}% done`
-              : job.status === "queued" || job.status === "waiting"
-                ? "waiting to start"
-                : null));
-
+              : "Waiting to start"
+            : `${Math.round(job.progress * 100)}% done`;
+  const to = failed ? `/books/${job.bookId}` : bookStepPath(job.bookId, stepForJob(job.kind));
+  const head = failed ? "A job failed" : paused ? "Paused" : `${kindLabel} now`;
+  const icon = failed || job.stalledMinutes !== null ? <CircleAlert size={15} strokeWidth={2} aria-hidden className="shrink-0 text-red" /> : bolt;
+  const controlButton = failed ? (
+    <IconButton icon={X} size="sm" label={`Dismiss the failed job on ${job.bookTitle}`} onClick={() => dismissFailure(job.jobId)} />
+  ) : job.status === "paused_budget" ? null : (
+    <IconButton
+      icon={paused ? Play : Pause}
+      size="sm"
+      label={paused ? `Resume ${kindLabel.toLowerCase()}, ${job.bookTitle}` : `Pause ${kindLabel.toLowerCase()}, ${job.bookTitle}`}
+      disabledReason={control.isPending ? (paused ? "Resuming" : "Pausing") : undefined}
+      onClick={() => control.mutate({ jobId: job.jobId, action: paused ? "resume" : "pause" })}
+    />
+  );
   return (
-    <div
-      role="region"
-      aria-label="Running job"
-      className="vol-glass-bar sticky bottom-0 z-30 flex h-(--vol-jobbar) items-center gap-3 border-t border-glass-line px-4 text-[13.5px] sm:gap-4 sm:px-6"
-    >
-      {failed || job.stalledMinutes !== null ? (
-        <CircleAlert size={16} strokeWidth={2} aria-hidden className="shrink-0 text-claim" />
-      ) : paused ? (
-        <span aria-hidden className="size-2 shrink-0 rounded-full border-[1.5px] border-accent-text" />
-      ) : (
-        <LiveDot />
-      )}
-      <p className="min-w-0 truncate" title={detail ?? undefined}>
-        <b className="font-semibold">{paused ? `${label}, paused` : label}</b>
-        {detail && <span className="hidden sm:inline">, {detail}</span>}
-        {more > 0 && <span className="hidden text-ink-secondary md:inline"> (and {more} more)</span>}
-      </p>
-      {!failed && (
-        <ProgressBar
-          className="hidden w-[200px] shrink-0 md:block"
-          size="thin"
-          value={job.progress}
-          max={1}
-          live={!paused}
-          label={`${label} progress`}
-          valueText={`${Math.round(job.progress * 100)}%`}
-        />
-      )}
-      {!failed && <span className="num hidden text-ink-secondary lg:inline">{Math.round(job.progress * 100)}%</span>}
-      <span className="ml-auto flex shrink-0 gap-2">
-        <Link
-          to={failed ? `/books/${job.bookId}` : bookStepPath(job.bookId, stepForJob(job.kind))}
-          className="inline-flex h-10 items-center rounded-sm px-3 text-label font-semibold text-ink-secondary hover:bg-sunken hover:text-ink sm:px-4"
-        >
-          Open<span className="sr-only"> {job.bookTitle}</span>
-        </Link>
-        {failed && (
-          <Button variant="secondary" onClick={() => dismissFailure(job.jobId)}>
-            Dismiss
-          </Button>
-        )}
-        {!failed && job.status !== "paused_budget" && (
-          <Button
-            variant="secondary"
-            icon={paused ? Play : Pause}
-            loading={control.isPending}
-            loadingLabel={paused ? "Resuming" : "Pausing"}
-            onClick={() =>
-              control.mutate({
-                jobId: job.jobId,
-                action: paused ? "resume" : "pause",
-              })
-            }
-          >
-            {paused ? "Resume" : "Pause"}
-          </Button>
-        )}
-      </span>
+    <>
+      <Head icon={icon} control={controlButton}>
+        {head}
+      </Head>
+      <Link to={to} onClick={onNavigate} className="-my-0.5 grid rounded-xs hover:text-ink" title={detail ?? undefined}>
+        <span className="truncate font-medium text-ink hover:underline">{job.bookTitle}</span>
+        {detail && <span className="line-clamp-2">{detail}</span>}
+        {more > 0 && <span>and {more} more</span>}
+      </Link>
       <span className="sr-only" role="status" aria-live="polite">
         {control.isError ? `Could not ${paused ? "resume" : "pause"}. ${apiErrorText(control.error)}` : announce}
       </span>
+    </>
+  );
+}
+
+function Money({ label, value }: { label: string; value: number }) {
+  return (
+    <div className={row}>
+      <span>{label}</span>
+      <b className="font-bold text-ink">{formatUsd(value)}</b>
     </div>
   );
+}
+
+function OpenVolume({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
+  return (
+    <Link to="/volume" onClick={onNavigate} className={cn(buttonClasses("primary", "sm"), "mt-1 w-full")}>
+      <Layers2 size={14} strokeWidth={1.8} aria-hidden />
+      Open Volume mode
+    </Link>
+  );
+}
+
+const checkIcon = <Check size={13} strokeWidth={2} aria-hidden className="shrink-0 text-good" />;
+
+/** The status box: demo values in demo mode, the server's settings and running jobs otherwise. */
+export function SideStatus({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
+  const mode = useWireMode();
+  const api = mode === "api";
+  const settings = useApiSettings(api);
+  const jobs = useRunningJobs(api);
+
+  if (mode === "mock") {
+    const { openRouter, spend } = workspace;
+    return (
+      <div className={box}>
+        <DemoJob onNavigate={onNavigate} />
+        <div className={row}>
+          <span className="inline-flex items-center gap-1.5">
+            {checkIcon}
+            {openRouter.connected ? "OpenRouter connected" : "OpenRouter not connected"}
+          </span>
+        </div>
+        <Money label={`${spend.monthLabel} spend`} value={spend.spentUsd} />
+        {openRouter.creditUsd !== null && <Money label="Credit left" value={openRouter.creditUsd} />}
+        <OpenVolume onNavigate={onNavigate} />
+      </div>
+    );
+  }
+
+  const job = jobs.find((j) => j.status === "failed") ?? jobs[0];
+  const jobPart = job ? <ApiJob job={job} more={jobs.length - 1} onNavigate={onNavigate} /> : <NothingRunning />;
+
+  if (mode === "checking" || settings.isPending)
+    return (
+      <div className={box}>
+        {jobPart}
+        <p>Connecting to Volume</p>
+        <OpenVolume onNavigate={onNavigate} />
+      </div>
+    );
+  if (settings.isError)
+    return (
+      <div className={box}>
+        {jobPart}
+        <p className="flex items-center gap-1.5">
+          <CircleAlert size={13} strokeWidth={2} aria-hidden className="shrink-0" />
+          Settings did not load
+        </p>
+        <OpenVolume onNavigate={onNavigate} />
+      </div>
+    );
+  const s = settings.data;
+  const month = new Intl.DateTimeFormat("en-GB", { month: "long" }).format(new Date());
+  const credit = s.openRouterCredit?.limitRemainingUsd ?? null;
+  const keyLine = !s.openRouterKey.present ? "No OpenRouter key" : s.openRouterCredit ? "OpenRouter connected" : "OpenRouter key set";
+  return (
+    <div className={box}>
+      {jobPart}
+      <Link to="/settings" onClick={onNavigate} className={cn(row, "rounded-xs hover:text-ink")}>
+        <span className="inline-flex items-center gap-1.5">
+          {s.openRouterKey.present ? checkIcon : <CircleAlert size={13} strokeWidth={2} aria-hidden className="shrink-0" />}
+          {keyLine}
+        </span>
+      </Link>
+      <Money label={`${month} spend`} value={s.budgets.monthSpendUsd} />
+      {credit !== null && <Money label="Credit left" value={credit} />}
+      <OpenVolume onNavigate={onNavigate} />
+    </div>
+  );
+}
+
+/** True when a server job failed recently (the phone menu button shows a dot). */
+export function useJobNeedsYou(): boolean {
+  const mode = useWireMode();
+  const jobs = useRunningJobs(mode === "api");
+  return jobs.some((j) => j.status === "failed" || j.stalledMinutes !== null);
 }

@@ -10,33 +10,19 @@ import { StepHeadContext, type StepHeadPart, type StepHeadSlots } from "../lib/s
 import { StepActionButton } from "./StepActionButton";
 import { stepCopy } from "./stepCopy";
 
+/* The head's tile (.sh-n): a check when done, a flag when it needs you, else the step number. */
 const markClasses: Record<StepState, string> = {
-  done: "bg-success-wash text-success",
-  attention: "bg-accent-wash text-accent-text",
-  running: "border border-glass-edge bg-glass-strong text-ink shadow-glass-sm",
-  "in-progress": "border border-glass-edge bg-glass-strong text-ink shadow-glass-sm",
-  "not-started": "border border-glass-edge bg-glass-strong text-ink-secondary shadow-glass-sm",
+  done: "border-transparent bg-good-wash text-good",
+  attention: "border-transparent bg-amber-wash text-amber",
+  running: "border-transparent bg-mint-wash text-mint-ink",
+  "in-progress": "border-transparent bg-mint-wash text-mint-ink",
+  "not-started": "border-edge bg-panel-2 text-ink-2 shadow-glass",
 };
 
 function HeadMark({ state, n }: { state: StepState; n: number }) {
   return (
-    <span
-      aria-hidden
-      className={cn(
-        "num grid size-11 shrink-0 place-items-center rounded-control text-label font-bold",
-        markClasses[state],
-        (state === "done" || state === "attention") && "border border-transparent",
-      )}
-    >
-      {state === "done" ? (
-        <Check size={18} strokeWidth={2.5} />
-      ) : state === "attention" ? (
-        <Flag size={16} strokeWidth={2.25} />
-      ) : state === "running" || state === "in-progress" ? (
-        <span className="grid size-[22px] place-items-center rounded-full border-[1.5px] border-accent text-[11.5px] leading-none">{n}</span>
-      ) : (
-        n
-      )}
+    <span aria-hidden className={cn("num grid size-[38px] shrink-0 place-items-center rounded-control border text-[14px] font-bold", markClasses[state])}>
+      {state === "done" ? <Check size={17} strokeWidth={2} /> : state === "attention" ? <Flag size={17} strokeWidth={1.8} /> : n}
     </span>
   );
 }
@@ -50,8 +36,8 @@ interface StepHeadProps {
 }
 
 /**
- * The head of a book step (studio redesign, stage 2): the step's marker and state, its title, a one-line
- * purpose, the screen's tools and the one gilt action from useStepAction. The screen's PageHeader fills
+ * The head of a book step (.sh in the approved design): the step's tile, its title in the interface font,
+ * a one-line purpose, the screen's chips and tools and the one navy action from useStepAction. The screen's PageHeader fills
  * the title, purpose and tools through StepHeadContext; until it does (while loading, or on screens
  * without one) the head shows the step's name and purpose from stepCopy. Wraps the screen (children).
  */
@@ -73,7 +59,7 @@ export function StepHead({ book, current, runningBookId, action, children }: Ste
 
   return (
     <StepHeadContext.Provider value={slots}>
-      <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3.5 gap-y-3 px-4 pt-5 sm:px-8 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:px-10">
+      <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3.5 gap-y-3 px-[18px] pb-4 min-[761px]:grid-cols-[auto_minmax(0,1fr)_auto] min-[861px]:px-[26px]">
         <HeadMark state={state} n={i + 1} />
         <div className="min-w-0">
           <div ref={setTitle} />
@@ -84,9 +70,9 @@ export function StepHead({ book, current, runningBookId, action, children }: Ste
           <div ref={setSummary} />
           {claims.summary === 0 && <p className={stepHeadSummaryClasses}>{stepCopy[current].purpose}</p>}
         </div>
-        <div className={cn("col-span-2 flex min-w-0 flex-wrap items-center gap-2 lg:col-span-1 lg:justify-end", !hasTools && "hidden")}>
+        <div className={cn("col-span-2 flex min-w-0 flex-wrap items-center gap-2 min-[761px]:col-span-1 min-[761px]:justify-end", !hasTools && "hidden")}>
           <div ref={setActions} className="contents" />
-          {action && <StepActionButton action={action} className="max-w-full" />}
+          {action && <StepActionButton action={action} size="sm" className="max-w-full" />}
         </div>
       </header>
       {children}

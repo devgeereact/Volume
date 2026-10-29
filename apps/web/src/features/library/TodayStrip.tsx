@@ -39,7 +39,7 @@ export function TodayStrip({
         ) : (
           <ol className="grid gap-3">
             {items.map((a) => (
-              <li key={a.id} className="grid gap-0.5 border-t border-glass-line pt-3 text-small first:border-t-0 first:pt-0">
+              <li key={a.id} className="grid gap-0.5 border-t border-line pt-3 text-small first:border-t-0 first:pt-0">
                 <time dateTime={a.at} className={cn("num text-[12.5px] leading-4 font-semibold", a.live ? "text-accent-text" : "text-ink-tertiary")}>
                   {formatTime(a.at)}
                 </time>

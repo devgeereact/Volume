@@ -1,29 +1,33 @@
 import { Link, useLocation } from "react-router";
-import { Check, CircleAlert, Zap } from "lucide-react";
-import { JOB_LABELS, stepForJob, usePenNames, useApiSettings, useRunningJobs, useWireMode } from "../api/wire-a";
-import { getBook } from "../demo/books";
-import type { Book } from "../demo/types";
-import { penNames } from "../demo/penNames";
-import { workspace } from "../demo/workspace";
-import { Tooltip } from "../components/ui/Tooltip";
+import { Archive, Book, FilePlus, Layers2, SlidersHorizontal, Star, Users, type LucideIcon } from "lucide-react";
+import { useApiBooks, useWireMode } from "../api/wire-a";
+import { publishedBooks } from "../demo/books";
 import { cn } from "../lib/cn";
-import { formatUsd } from "../lib/format";
-import { useWritingJob } from "../lib/job";
 import { usePenNameFilter } from "../lib/penName";
-import { bookStepPath, globalNav } from "../screens";
-import { Avatar, PenNameSwitcher, useCurrentProfileCount } from "./PenNameSwitcher";
+import { globalNav, type ScreenDef } from "../screens";
+import { PenNameSwitcher, useCurrentProfileCount } from "./PenNameSwitcher";
+import { DemoBadge } from "./DemoBadge";
+import { SideStatus } from "./JobBar";
 
-/** The Volume mark: a book with a gilt bookmark. */
+/** The Volume mark: the book icon from the approved design, on navy. */
 export function BrandMark({ className }: { className?: string | undefined }) {
   return (
-    <svg viewBox="0 0 24 24" className={cn("size-6 shrink-0", className)} aria-hidden>
-      <rect x="4" y="2.5" width="16" height="19" rx="2" fill="currentColor" opacity=".18" />
-      <rect x="4" y="2.5" width="16" height="19" rx="2" fill="none" stroke="currentColor" strokeWidth="1.75" />
-      <path d="M8 2.5v19" stroke="currentColor" strokeWidth="1.75" />
-      <rect x="11" y="7" width="6" height="2.2" rx="1" fill="var(--vol-accent)" />
-    </svg>
+    <span aria-hidden className={cn("grid size-9 shrink-0 place-items-center rounded-md bg-btn text-on-btn", className)}>
+      <Book size={19} strokeWidth={1.8} />
+    </span>
   );
 }
+
+/** Icons of the side menu, as in the approved design (the command menu keeps the screens' own icons). */
+const navIcons: Partial<Record<string, LucideIcon>> = {
+  library: Book,
+  published: Star,
+  volume: Layers2,
+  profiles: Users,
+  "new-book": FilePlus,
+  archive: Archive,
+  settings: SlidersHorizontal,
+};
 
 function isActive(pathname: string, path: string): boolean {
   if (path === "/library") return pathname === "/library" || (pathname.startsWith("/books/") && pathname !== "/books/new");
@@ -34,215 +38,129 @@ function isActive(pathname: string, path: string): boolean {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
+/** Published books under the profile picked in the switcher: the demo shelf, or the server's list. Null until known. */
+function usePublishedCount(): number | null {
+  const mode = useWireMode();
+  const { selectedId } = usePenNameFilter();
+  const books = useApiBooks(mode === "api");
+  if (mode === "mock") return publishedBooks().filter((b) => selectedId === null || b.penNameId === selectedId).length;
+  if (mode !== "api" || !books.data) return null;
+  return books.data.filter((b) => b.status === "published" && (selectedId === null || b.profileId === selectedId)).length;
+}
+
 interface SpineProps {
-  collapsed: boolean;
-  book?: Book | undefined;
   /** Called after a link is followed (closes the phone drawer). */
   onNavigate?: (() => void) | undefined;
-  /** "float" (default) is the frosted panel beside the screen; "drawer" is the phone menu, more opaque. */
+  /** "float" (default) is the glass card beside the screen; "drawer" is the phone menu, more opaque. */
   variant?: "float" | "drawer" | undefined;
   className?: string | undefined;
 }
 
+function NavItem({
+  screen,
+  pathname,
+  count,
+  countLabel,
+  onNavigate,
+}: {
+  screen: ScreenDef;
+  pathname: string;
+  count: number | null;
+  countLabel: string;
+  onNavigate?: (() => void) | undefined;
+}) {
+  const to = screen.id === "settings" ? "/settings" : screen.path;
+  const active = isActive(pathname, screen.path);
+  const Icon = navIcons[screen.id] ?? screen.icon;
+  return (
+    <li>
+      <Link
+        to={to}
+        onClick={onNavigate}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "flex min-h-[42px] w-full items-center gap-3 rounded-control px-3 py-[9px] font-medium transition-colors duration-(--vol-dur-fast) ease-out",
+          active ? "bg-btn text-on-btn shadow-nav-active" : "text-ink-2 hover:bg-soft hover:text-ink",
+        )}
+      >
+        <Icon size={18} strokeWidth={1.8} aria-hidden />
+        <span className="min-w-0 flex-1 truncate">{screen.title}</span>
+        {count !== null && (
+          <>
+            <span
+              aria-hidden
+              className={cn(
+                "grid h-5 min-w-[22px] place-items-center rounded-pill px-1.5 text-[11px] leading-none font-semibold",
+                active ? "bg-nav-count text-current" : "bg-soft text-ink-2 shadow-[inset_0_0_0_1px_var(--vol-edge)]",
+              )}
+            >
+              {count}
+            </span>
+            <span className="sr-only">
+              , {count} {countLabel}
+            </span>
+          </>
+        )}
+      </Link>
+    </li>
+  );
+}
+
 /**
- * The left nav (studio redesign, stage 1): a frosted panel that floats 16 px from the window edges,
- * with Library, Published, Profiles, New book, Archive and Settings. Wide (240 px): brand, pen name
- * switcher, nav with the Library count, and a foot card with the job that is writing now, the OpenRouter
- * status and this month's spend. Collapsed (64 px, inside a book and on tablets): icons with tooltips
- * and the pen name avatar. A book's steps live in the step rail above the screen (StepRail), not here.
+ * The side menu card from the approved design (Volume Studio, frost edition): a glass card that floats
+ * 16 px from the window edges. The brand, then Library, Published, Volume mode, Profiles, New book,
+ * Archive and Settings with their counts, the pen name switcher, and the status box at the foot (what is
+ * running, OpenRouter, this month's spend, credit left, Open Volume mode). On phones the same card is
+ * the menu drawer. A book's steps live in the step bar above the screen (StepRail), not here.
  */
-export function Spine({ collapsed, book, onNavigate, variant = "float", className }: SpineProps) {
+export function Spine({ onNavigate, variant = "float", className }: SpineProps) {
   const { pathname } = useLocation();
-  const { selectedId } = usePenNameFilter();
-  const mode = useWireMode();
-  const pens = usePenNames(mode, penNames);
-  const bookPen = book ? pens.get(book.penNameId) : undefined;
-  const selectedPen = selectedId ? pens.get(selectedId) : undefined;
-  const avatarPen = bookPen ?? selectedPen;
-  const nav = globalNav;
   const libraryCount = useCurrentProfileCount();
+  const publishedCount = usePublishedCount();
 
   return (
-    <nav
-      aria-label="Main"
+    <aside
+      aria-label="Main navigation"
       className={cn(
-        "relative flex h-full flex-col overflow-y-auto text-ink",
-        variant === "drawer" ? "vol-glass-drawer rounded-r-panel border-r border-glass-edge shadow-modal" : "vol-glass rounded-panel",
-        collapsed ? "w-(--vol-nav-collapsed) items-center px-2.5 pt-4 pb-4" : "w-(--vol-nav) px-3 pt-5 pb-3",
+        "flex h-full w-full flex-col gap-1 overflow-y-auto px-4 pt-[22px] pb-[18px] text-ink",
+        variant === "drawer" ? "vol-glass-2 rounded-r-panel shadow-modal" : "vol-glass rounded-panel",
         className,
       )}
     >
       <Link
         to="/library"
         onClick={onNavigate}
-        className={cn("flex items-center gap-2.5 rounded-control text-ink", collapsed ? "mb-4 justify-center" : "mb-5 px-2")}
+        className="flex items-center gap-2.5 rounded-control px-2 pb-3.5 leading-[1.1]"
         aria-label="Volume, go to Library"
       >
-        <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-control bg-nav-active text-on-nav-active shadow-glass-sm">
-          <BrandMark className="size-5" />
+        <BrandMark />
+        <span className="text-[19px] font-bold tracking-[-0.02em]">
+          Volume
+          <small className="block text-[11px] font-medium tracking-normal text-ink-3">Gakinz, London</small>
         </span>
-        {!collapsed && <span className="font-book text-[23px] leading-none font-medium tracking-[-0.015em]">Volume</span>}
       </Link>
 
-      {!collapsed && <PenNameSwitcher />}
+      {variant === "drawer" && <DemoBadge className="mx-2 mb-2 self-start" />}
 
-      <ul className={cn("grid gap-1", collapsed ? "mt-1" : "mt-4")}>
-        {nav.map((s) => {
-          const to = s.id === "settings" ? "/settings" : s.path;
-          const active = isActive(pathname, s.path);
-          const Icon = s.icon;
-          const count = s.id === "library" ? libraryCount : null;
-          const link = (
-            <Link
-              to={to}
-              onClick={onNavigate}
-              aria-current={active ? "page" : undefined}
-              aria-label={collapsed ? s.title : undefined}
-              className={cn(
-                "relative flex min-h-11 items-center gap-3 rounded-control text-[14.5px] leading-none font-medium transition-colors duration-(--vol-dur-fast) ease-out",
-                collapsed ? "w-11 justify-center" : "px-3",
-                active ? "bg-nav-active text-on-nav-active shadow-nav-active" : "text-ink-secondary hover:bg-glass-soft hover:text-ink",
-              )}
-            >
-              <Icon size={18} aria-hidden />
-              {!collapsed && <span className="min-w-0 flex-1 truncate">{s.title}</span>}
-              {!collapsed && count !== null && (
-                <>
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "num grid h-5 min-w-6 place-items-center rounded-pill px-1.5 text-caption",
-                      active ? "bg-nav-count" : "bg-glass-soft text-ink-secondary ring-1 ring-glass-edge",
-                    )}
-                  >
-                    {count}
-                  </span>
-                  <span className="sr-only">
-                    , {count} {count === 1 ? "book" : "books"}
-                  </span>
-                </>
-              )}
-            </Link>
-          );
-          return (
-            <li key={s.id}>
-              {collapsed ? (
-                <Tooltip content={s.title} side="right">
-                  {link}
-                </Tooltip>
-              ) : (
-                link
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      <nav aria-label="Main">
+        <ul className="grid">
+          {globalNav.map((s) => (
+            <NavItem
+              key={s.id}
+              screen={s}
+              pathname={pathname}
+              onNavigate={onNavigate}
+              count={s.id === "library" ? libraryCount : s.id === "published" ? publishedCount : null}
+              countLabel={s.id === "published" ? "published" : "books"}
+            />
+          ))}
+        </ul>
+      </nav>
 
-      {collapsed ? (
-        <div className="mt-auto pt-4">
-          <Tooltip content={avatarPen ? `Profile: ${avatarPen.name}` : "All profiles"} side="right">
-            <Link
-              to={avatarPen ? `/profiles/${avatarPen.id}` : "/profiles"}
-              onClick={onNavigate}
-              aria-label={avatarPen ? `Profile: ${avatarPen.name}` : "All profiles"}
-              className="grid size-11 place-items-center rounded-full"
-            >
-              <Avatar initials={avatarPen?.initials ?? "All"} />
-            </Link>
-          </Tooltip>
-        </div>
-      ) : (
-        <SpineStatus mode={mode} onNavigate={onNavigate} />
-      )}
-    </nav>
-  );
-}
-
-/** The job writing now, for the foot card: the demo job in demo mode, the first running server job otherwise. */
-function useWritingNow(mode: ReturnType<typeof useWireMode>): { title: string; detail: string; to: string } | null {
-  const demo = useWritingJob();
-  const jobs = useRunningJobs(mode === "api");
-  if (mode === "mock" && demo.running) {
-    const { job } = demo;
-    const chapters = job.sections.filter((x) => x.number !== null).length;
-    const title = getBook(job.bookId)?.title ?? job.label;
-    return { title: "Writing now", detail: `${title}, chapter ${job.current.chapterNumber} of ${chapters}`, to: bookStepPath(job.bookId, "writing") };
-  }
-  if (mode !== "api") return null;
-  const live = jobs.find((j) => j.status !== "failed");
-  if (!live) return null;
-  return { title: `${JOB_LABELS[live.kind] ?? "Working"} now`, detail: live.bookTitle, to: bookStepPath(live.bookId, stepForJob(live.kind)) };
-}
-
-/** Top of the foot card while a job runs: what is being written, linked to its screen. */
-function WritingNow({ mode, onNavigate }: { mode: ReturnType<typeof useWireMode>; onNavigate?: (() => void) | undefined }) {
-  const now = useWritingNow(mode);
-  if (!now) return null;
-  return (
-    <Link to={now.to} onClick={onNavigate} className="-mx-1 mb-2 grid gap-0.5 rounded-sm px-1 py-0.5 hover:bg-glass-soft">
-      <b className="flex items-center gap-1.5 text-label font-semibold text-ink">
-        <Zap size={15} aria-hidden className="text-accent-text" />
-        {now.title}
-      </b>
-      <span className="truncate text-ink-secondary">{now.detail}</span>
-    </Link>
-  );
-}
-
-/** Foot card of the wide spine: the job writing now, OpenRouter key status and this month's AI spend. */
-function SpineStatus({ mode, onNavigate }: { mode: ReturnType<typeof useWireMode>; onNavigate?: (() => void) | undefined }) {
-  const settings = useApiSettings(mode === "api");
-  const box = "mt-auto rounded-card border border-glass-edge bg-glass-soft p-3.5 text-[13px] leading-5 text-ink-secondary";
-  const writing = <WritingNow mode={mode} onNavigate={onNavigate} />;
-  if (mode === "mock") {
-    const spend = workspace.spend;
-    return (
-      <div className={box}>
-        {writing}
-        <p className="mb-1.5 flex items-center gap-2">
-          <Check size={14} strokeWidth={2} aria-hidden className="text-success" />
-          {workspace.openRouter.connected ? "OpenRouter connected" : "OpenRouter not connected"}
-        </p>
-        <p>
-          {spend.monthLabel} spend <b className="num font-semibold text-ink">{formatUsd(spend.spentUsd)}</b>
-        </p>
+      <div className="mt-auto grid gap-3 pt-4">
+        <PenNameSwitcher />
+        <SideStatus onNavigate={onNavigate} />
       </div>
-    );
-  }
-  if (mode === "checking" || settings.isPending)
-    return (
-      <div className={box}>
-        {writing}
-        <p>Connecting to Volume</p>
-      </div>
-    );
-  if (settings.isError)
-    return (
-      <div className={box}>
-        {writing}
-        <p className="flex items-center gap-2">
-          <CircleAlert size={14} strokeWidth={2} aria-hidden />
-          Settings did not load
-        </p>
-      </div>
-    );
-  const s = settings.data;
-  const month = new Intl.DateTimeFormat("en-GB", { month: "long" }).format(new Date());
-  const spent = s.budgets.monthSpendUsd;
-  return (
-    <div className={box}>
-      {writing}
-      <Link to="/settings" className="mb-1.5 flex items-center gap-2 rounded-xs hover:text-ink">
-        {s.openRouterKey.present ? (
-          <Check size={14} strokeWidth={2} aria-hidden className="text-success" />
-        ) : (
-          <CircleAlert size={14} strokeWidth={2} aria-hidden />
-        )}
-        {s.openRouterKey.present ? "OpenRouter key set" : "No OpenRouter key"}
-      </Link>
-      <p>
-        {month} spend <b className="num font-semibold text-ink">{formatUsd(spent)}</b>
-      </p>
-    </div>
+    </aside>
   );
 }
