@@ -237,7 +237,7 @@ function Research({ book }: { book: Book }) {
         )}
       </div>
 
-      <Inspector label="Sources" className="lg:sticky lg:top-(--shell-topbar) lg:h-screen-fill">
+      <Inspector label="Sources" className="lg:sticky lg:top-(--shell-sticky-top) lg:h-screen-fill">
         <InspectorSection
           title="Sources"
           aside={

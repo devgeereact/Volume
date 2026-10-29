@@ -7,14 +7,14 @@ import { cn } from "../../lib/cn";
 
 interface BookStepsProps {
   book: Book;
-  /** The page you are on. It is highlighted (aria-current="page"), whatever stage the book has reached. */
+  /** The page you are on. It is highlighted (aria-current="step"), whatever stage the book has reached. */
   current: BookStepId | null;
   /** Book id of the running writing job, if any (shows the live dot on Writing). */
   runningBookId?: string | null | undefined;
   className?: string | undefined;
 }
 
-const stateWords: Record<StepState, string> = {
+export const stepStateWords: Record<StepState, string> = {
   "not-started": "not started",
   "in-progress": "in progress",
   running: "writing now",
@@ -22,18 +22,19 @@ const stateWords: Record<StepState, string> = {
   done: "done",
 };
 
-function Marker({ state, n }: { state: StepState; n: number }) {
+/** A step's marker: check when done, flag when it needs you, a dot while in progress, else its number. */
+export function StepMarker({ state, n, onDark = false }: { state: StepState; n: number; onDark?: boolean }) {
   const base = "grid size-[22px] shrink-0 place-items-center rounded-full text-[11.5px] leading-none font-semibold";
   switch (state) {
     case "done":
       return (
-        <span aria-hidden className={cn(base, "bg-ink text-canvas")}>
+        <span aria-hidden className={cn(base, onDark ? "border-[1.5px] border-current" : "bg-ink text-canvas")}>
           <Check size={13} strokeWidth={2.75} />
         </span>
       );
     case "attention":
       return (
-        <span aria-hidden className={cn(base, "border-[1.5px] border-accent text-accent-text")}>
+        <span aria-hidden className={cn(base, "border-[1.5px]", onDark ? "border-current" : "border-accent text-accent-text")}>
           <Flag size={11} strokeWidth={2.5} />
         </span>
       );
@@ -46,7 +47,7 @@ function Marker({ state, n }: { state: StepState; n: number }) {
       );
     case "not-started":
       return (
-        <span aria-hidden className={cn(base, "num border-[1.5px] border-border-strong text-ink-tertiary")}>
+        <span aria-hidden className={cn(base, "num border-[1.5px]", onDark ? "border-current" : "border-border-strong text-ink-tertiary")}>
           {n}
         </span>
       );
@@ -54,48 +55,56 @@ function Marker({ state, n }: { state: StepState; n: number }) {
 }
 
 /**
- * The one step bar for a book (D-016): Research, Titles, Blueprint, Writing, Editor, Cover, Marketing, Export (last).
- * The marker shows each step's state from the book (done, in progress, needs attention,
- * not started); the blue pencil underline and bold label show the page you are on. Links, so Tab moves
- * through them; on phones the bar scrolls sideways and keeps the current step in view.
+ * The book's eight steps (D-016) as links: Research, Titles, Blueprint, Writing, Editor, Cover, Marketing,
+ * Export (last). The marker shows each step's state from the book; the filled pill shows the page you are on.
+ * Used inside the step rail (shell/StepRail). The list scrolls sideways when it does not fit and keeps the
+ * current step in view; on phones only the current step shows its name.
  */
 export function BookSteps({ book, current, runningBookId = null, className }: BookStepsProps) {
   const listRef = useRef<HTMLOListElement>(null);
   useEffect(() => {
-    const el = listRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
     const list = listRef.current;
+    const el = list?.querySelector<HTMLElement>('[aria-current="step"]');
     if (!el || !list || list.scrollWidth <= list.clientWidth) return;
-    list.scrollTo({ left: Math.max(0, el.offsetLeft - list.clientWidth / 2 + el.clientWidth / 2) });
+    // The list is positioned, so offsetLeft is measured from its own edge, like scrollLeft.
+    const left = el.offsetLeft;
+    const right = left + el.offsetWidth;
+    if (left < list.scrollLeft || right > list.scrollLeft + list.clientWidth) list.scrollLeft = Math.max(0, left - 24);
   }, [current]);
 
   return (
-    <nav aria-label={`Steps for ${book.title}`} className={cn("min-w-0", className)}>
-      <ol ref={listRef} className="flex min-w-0 items-stretch overflow-x-auto [scrollbar-width:none]">
-        {bookSteps.map((s, i) => {
-          const state = stepState(book, s.id, runningBookId);
-          const here = s.id === current;
-          return (
-            <li key={s.id} className="flex shrink-0 items-center">
-              {i > 0 && <span aria-hidden className="mx-0.5 h-px w-3 bg-border-strong xl:w-5" />}
-              <Link
-                to={`/books/${book.id}/${s.id}`}
-                aria-current={here ? "page" : undefined}
-                className={cn(
-                  "relative flex min-h-11 items-center gap-2 rounded-sm px-2 text-label whitespace-nowrap xl:px-2.5",
-                  here ? "font-semibold text-ink" : "font-medium text-ink-secondary hover:bg-sunken hover:text-ink",
-                )}
-              >
-                <Marker state={state} n={i + 1} />
-                {s.label}
-                <span className="sr-only">
-                  , step {i + 1} of {bookSteps.length}, {stateWords[state]}
-                </span>
-                {here && <span aria-hidden className="absolute inset-x-2 bottom-0 h-0.5 origin-left rounded-full bg-select animate-pencil-x" />}
-              </Link>
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
+    <ol
+      ref={listRef}
+      className={cn(
+        "relative flex min-w-0 items-center gap-0.5 overflow-x-auto px-3 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        "[mask-image:linear-gradient(90deg,transparent,black_12px,black_calc(100%-12px),transparent)]",
+        className,
+      )}
+    >
+      {bookSteps.map((s, i) => {
+        const state = stepState(book, s.id, runningBookId);
+        const here = s.id === current;
+        return (
+          <li key={s.id} className="flex shrink-0">
+            <Link
+              to={`/books/${book.id}/${s.id}`}
+              aria-current={here ? "step" : undefined}
+              className={cn(
+                "flex h-11 min-w-11 items-center justify-center gap-2 rounded-control px-2.5 text-label whitespace-nowrap transition-colors duration-(--vol-dur-fast) ease-out",
+                here
+                  ? "bg-nav-active font-semibold text-on-nav-active shadow-nav-active"
+                  : "font-medium text-ink-secondary hover:bg-glass-strong hover:text-ink max-sm:px-2",
+              )}
+            >
+              <StepMarker state={state} n={i + 1} onDark={here} />
+              <span className={cn(!here && "max-sm:sr-only")}>{s.label}</span>
+              <span className="sr-only">
+                , step {i + 1} of {bookSteps.length}, {stepStateWords[state]}
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

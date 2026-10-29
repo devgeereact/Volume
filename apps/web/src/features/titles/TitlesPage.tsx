@@ -385,7 +385,7 @@ function Titles({ book }: { book: Book }) {
         )}
       </div>
 
-      <Inspector label="Titles details" className="lg:sticky lg:top-(--shell-topbar) lg:h-screen-fill">
+      <Inspector label="Titles details" className="lg:sticky lg:top-(--shell-sticky-top) lg:h-screen-fill">
         <InspectorSection title="Chosen title">
           {chosen && shown === "ready" ? (
             <div className="grid gap-3">

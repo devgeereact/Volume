@@ -87,8 +87,8 @@ test("a picture book goes from the wizard to a downloaded 24 page print PDF", as
   const failNow = () => expect(pageErrors, "uncaught page errors").toEqual([]);
 
   const main: Locator = page.locator("main");
-  const footer: Locator = page.locator('footer[aria-label="Step navigation"]');
-  const stepButton = (label: RegExp | string): Locator => footer.getByRole("button", { name: typeof label === "string" ? new RegExp(`^${label}`) : label });
+  const stepAction: Locator = page.getByRole("group", { name: "Step action" });
+  const stepButton = (label: RegExp | string): Locator => stepAction.getByRole("button", { name: typeof label === "string" ? new RegExp(`^${label}`) : label });
   const h1 = (name: string): Locator => main.getByRole("heading", { level: 1, name }).first();
   const stamp = String(Date.now()).slice(-6);
   const penName = `Nell Ashby ${stamp}`;

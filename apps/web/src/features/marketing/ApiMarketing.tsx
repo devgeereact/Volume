@@ -224,7 +224,7 @@ export function ApiMarketing({ book }: { book: Book }) {
   if (listQ.isError)
     return (
       <>
-        <h1 className="font-book text-title text-ink">Marketing</h1>
+        <PageHeader title="Marketing" />
         <ErrorPanel
           className="mt-5 max-w-[720px]"
           title="Could not load the launch content"

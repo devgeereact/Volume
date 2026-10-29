@@ -47,7 +47,7 @@ export default function MarketingPage() {
       {state === "loading" && <LoadingBlock label="Loading marketing" rows={6} />}
       {state === "error" && (
         <>
-          <h1 className="font-book text-title text-ink">Marketing</h1>
+          <PageHeader title="Marketing" />
           <ErrorPanel
             className="mt-5 max-w-[720px]"
             title="Could not load the launch content"

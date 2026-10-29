@@ -753,3 +753,18 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Files: packages/ai/scripts/live-cache.ts, docs/08-change-management/DECISIONS.md (D-064 consequences), .agent/CURRENT-TASK.md.
 - Checks: typecheck -w packages/ai PASS, eslint on the script PASS, live run PASS.
 - Next: owner asks to commit, PR, merge, deploy.
+
+## 28 October 2026, Claude Code (Opus 5.5): studio redesign stage 1 PR, stage 2 started
+
+- Stage 1 committed on `feat/studio-shell` and opened as PR #77. Added D-065 (frost and glass shell), a design-system section and a changelog line.
+- Checks: typecheck, lint, format:check, docs:check PASS. Web tests 240/240 PASS and e2e 20/20 PASS (stage 1 agent run, re-checked tests).
+- Stage 2 branch `feat/studio-steps`: frontend agent building StepRail, StepHead and Up next. Screenshots go to `../reports/volume/studio-redesign/stage2/`.
+- Next: review stage 2, PR it, then stage 3. No deploy without the owner's yes.
+
+## 29 October 2026, Claude Code (Opus 5.5): studio redesign stage 2 committed
+
+- StepRail, StepHead, UpNext, StepActionButton and stepCopy in `apps/web/src/shell/`, step head context in `apps/web/src/lib/stepHead.tsx`. StepFooter deleted. PageHeader portals into the step head inside book steps. Five e2e specs now find the step bar and the "Step action" group.
+- Checks: typecheck, lint, format:check PASS; web 240/240 PASS (re-run); e2e 20/20 PASS (agent run). Screenshots in `../reports/volume/studio-redesign/stage2/`.
+- Not tested: screen readers, touch on a real phone, API-mode screenshots.
+- Next: merge #77 then the stage 2 PR, then stage 3 (library 3x3 and sticky side, fix duplicate "Library" title). Budget lines on Blueprint and Writing go in stage 4 (D-057).
+

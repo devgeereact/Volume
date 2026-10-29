@@ -13,9 +13,10 @@
   /* The top bar holds the breadcrumb and the page title on two lines (64 px on phones). */
   --shell-topbar: 64px;
   --shell-jobbar: 0px;
-  /* Book screens (D-016): the step bar above the screen and Back and Next below it (shell/BookLayout). */
+  /* Book screens (D-016): the step rail that sticks under the top bar (shell/StepRail measures it). */
   --shell-bookbar: 0px;
-  --shell-stepfooter: 0px;
+  /* Where sticky panels start: under the top bar and, inside a book, the step rail. */
+  --shell-sticky-top: calc(var(--shell-topbar) + var(--shell-bookbar));
 }
 @media (min-width: 640px) {
   :root {
@@ -23,8 +24,8 @@
   }
 }
 :root[data-book="on"] {
-  --shell-bookbar: 56px;
-  --shell-stepfooter: 64px;
+  /* Until the rail has measured itself. */
+  --shell-bookbar: 74px;
 }
 :root[data-jobbar="on"] {
   --shell-jobbar: var(--vol-jobbar);
@@ -56,7 +57,7 @@
   }
   /* Focus is never hidden behind the top bar or the job bar (WCAG 2.4.11). */
   html {
-    scroll-padding-top: calc(var(--shell-topbar) + 16px);
+    scroll-padding-top: calc(var(--shell-topbar) + var(--shell-bookbar) + 16px);
     scroll-padding-bottom: calc(var(--shell-jobbar) + 16px);
   }
   kbd {
@@ -99,10 +100,10 @@
    xl:min-h-screen-fill, sm:hit-44). Height of the area between the top bar and the job bar, for screens
    with their own panes. */
 @utility h-screen-fill {
-  height: calc(100dvh - var(--shell-topbar) - var(--shell-bookbar) - var(--shell-stepfooter) - var(--shell-jobbar));
+  height: calc(100dvh - var(--shell-topbar) - var(--shell-bookbar) - var(--shell-jobbar));
 }
 @utility min-h-screen-fill {
-  min-height: calc(100dvh - var(--shell-topbar) - var(--shell-bookbar) - var(--shell-stepfooter) - var(--shell-jobbar));
+  min-height: calc(100dvh - var(--shell-topbar) - var(--shell-bookbar) - var(--shell-jobbar));
 }
 /* Extend a compact control's hit area to 44 px without changing its look. */
 @utility hit-44 {

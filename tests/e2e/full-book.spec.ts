@@ -191,13 +191,15 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
   const failNow = () => expect(pageErrors, "uncaught page errors").toEqual([]);
 
   const main = page.locator("main");
-  const footer = page.locator('footer[aria-label="Step navigation"]');
+  const rail = page.getByRole("navigation", { name: "Book steps" });
+  // The screen's one gilt button: in the step head, or in the step rail on full-height steps.
+  const stepAction = page.getByRole("group", { name: "Step action" });
   const stamp = new Date().toISOString().slice(11, 19).replace(/:/g, "");
   const workingTitle = `E2E Night Shifts ${stamp}`;
   let bookId = "";
 
-  /** The one gilt button in the step footer, found by the start of its label (the estimate follows it). */
-  const stepButton = (label: RegExp | string): Locator => footer.getByRole("button", { name: typeof label === "string" ? new RegExp(`^${label}`) : label });
+  /** The one gilt step action, found by the start of its label (the estimate follows it). */
+  const stepButton = (label: RegExp | string): Locator => stepAction.getByRole("button", { name: typeof label === "string" ? new RegExp(`^${label}`) : label });
   const h1 = (name: string): Locator => main.getByRole("heading", { level: 1, name }).first();
 
   await test.step("API mode: the server answers and the mock AI is on", async () => {
@@ -441,7 +443,7 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
     }
     // The saved text still has the edit made before the note.
     expect((await getJson<SectionDetail>(request, `/sections/${sectionId}`)).current?.bodyMd).toContain(marker);
-    // Mark the edit done: the step footer asks first, then opens the Cover step.
+    // Mark the edit done: the step action asks first, then opens the Cover step.
     await stepButton("Mark edit done").click();
     await page.getByRole("dialog", { name: "Mark the edit done?" }).getByRole("button", { name: "Mark edit done" }).click();
     await page.waitForURL(/\/cover$/);
@@ -464,7 +466,7 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
     expect(cover?.chosenAssetId).toBeTruthy();
     expect(cover?.ebookAssetId).toBeTruthy();
     expect(cover?.wrapAssetId).toBeTruthy();
-    await footer.getByRole("link", { name: /^Next: Marketing/ }).click();
+    await rail.getByRole("link", { name: "Next: Marketing" }).click();
     await page.waitForURL(/\/marketing$/);
     failNow();
   });
@@ -477,8 +479,7 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
     expect(items.length).toBeGreaterThan(0);
     expect(items.every((i) => i.body.trim().length > 0)).toBe(true);
     expect(items.map((i) => i.kind).join(","), "item kinds").toMatch(/tiktok/i);
-    // The footer says "Skip to Export" until the posts are in, then "Next: Export".
-    await footer.getByRole("link", { name: /^(Next: |Skip to )Export/ }).click();
+    await rail.getByRole("link", { name: "Next: Export" }).click();
     await page.waitForURL(/\/export$/);
     failNow();
   });
@@ -493,7 +494,7 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
     const tickLabels = preflight.getByText("I have checked this");
     for (let i = (await tickLabels.count()) - 1; i >= 0; i--) await tickLabels.nth(i).click();
     for (const box of await ticks.all()) await expect(box).toBeChecked();
-    const build = footer.getByRole("button", { name: /^Build pack/ });
+    const build = stepAction.getByRole("button", { name: /^Build pack/ });
     await expect(build).toBeEnabled();
     await build.click();
     const dialog = page.getByRole("dialog", { name: "Build pack" });

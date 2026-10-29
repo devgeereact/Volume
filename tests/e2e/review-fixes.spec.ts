@@ -93,7 +93,7 @@ test("blueprint comparison restores an older version as a new draft", async ({ p
   expect((await request.patch(`${API}/books/${book.id}`, { headers, data: { budgetUsd: 0.02 } })).status()).toBe(200);
   expect((await request.post(`${API}/books/${book.id}/blueprint/approve`, { headers, data: {} })).status()).toBe(200);
   await page.goto(`/books/${book.id}/writing`);
-  const start = page.locator("footer").getByRole("button", { name: /^Write book/ });
+  const start = page.getByRole("group", { name: "Step action" }).getByRole("button", { name: /^Write book/ });
   await expect(start).toBeEnabled();
   await start.click();
   const cost = page.getByRole("dialog", { name: "Confirm writing cost" });

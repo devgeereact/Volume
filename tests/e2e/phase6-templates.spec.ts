@@ -54,7 +54,7 @@ interface Ctx {
   page: Page;
   request: APIRequestContext;
   main: Locator;
-  footer: Locator;
+  stepAction: Locator;
   stepButton: (label: RegExp | string) => Locator;
   h1: (name: string) => Locator;
   failNow: () => void;
@@ -64,13 +64,14 @@ function context(page: Page, request: APIRequestContext): Ctx {
   const pageErrors: string[] = [];
   page.on("pageerror", (err) => pageErrors.push(`${page.url()}: ${err.message}`));
   const main = page.locator("main");
-  const footer = page.locator('footer[aria-label="Step navigation"]');
+  // The screen's one gilt button: in the step head, or in the step rail on full-height steps.
+  const stepAction = page.getByRole("group", { name: "Step action" });
   return {
     page,
     request,
     main,
-    footer,
-    stepButton: (label) => footer.getByRole("button", { name: typeof label === "string" ? new RegExp(`^${label}`) : label }),
+    stepAction,
+    stepButton: (label) => stepAction.getByRole("button", { name: typeof label === "string" ? new RegExp(`^${label}`) : label }),
     h1: (name) => main.getByRole("heading", { level: 1, name }).first(),
     failNow: () => expect(pageErrors, "uncaught page errors").toEqual([]),
   };
@@ -198,7 +199,7 @@ async function buildCover(c: Ctx, bookId: string): Promise<void> {
 
 /** Export: preflight has no blocking item and says so, tick the warnings, build the pack and open it. Returns the zip entry names. */
 async function exportPack(c: Ctx, bookId: string, manuscriptNeedle: RegExp): Promise<string[]> {
-  const { page, main, footer, request } = c;
+  const { page, main, stepAction, request } = c;
   await expect(main.getByRole("heading", { name: "Export" }).first()).toBeVisible();
   const preflight = main.locator('section[aria-labelledby="preflight-title"]');
   await expect(preflight.getByRole("status")).toContainText(/passed/, { timeout: JOB_WAIT });
@@ -210,7 +211,7 @@ async function exportPack(c: Ctx, bookId: string, manuscriptNeedle: RegExp): Pro
   const tickLabels = preflight.getByText("I have checked this");
   for (let i = (await tickLabels.count()) - 1; i >= 0; i--) await tickLabels.nth(i).click();
   for (const box of await preflight.getByRole("checkbox", { name: "I have checked this" }).all()) await expect(box).toBeChecked();
-  const build = footer.getByRole("button", { name: /^Build pack/ });
+  const build = stepAction.getByRole("button", { name: /^Build pack/ });
   await expect(build).toBeEnabled();
   await build.click();
   await page.getByRole("dialog", { name: "Build pack" }).getByRole("button", { name: "Build pack" }).click();
