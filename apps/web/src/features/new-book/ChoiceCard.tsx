@@ -23,13 +23,13 @@ export function ChoiceCard({ name, value, checked, onChange, disabledReason, des
   return (
     <label
       className={cn(
-        "relative grid cursor-pointer content-start gap-2 rounded-md border p-4 transition-colors duration-(--vol-dur-fast) sm:p-5",
+        "relative grid cursor-pointer content-start gap-2 rounded-[18px] border-[1.5px] p-4 transition-[transform,border-color] duration-(--vol-dur-base) ease-out",
         "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-select",
         checked
-          ? "vol-pencil-edge border-select bg-select-wash"
+          ? "border-btn bg-panel-2 shadow-[0_0_0_3px_var(--vol-mint-wash)]"
           : disabled
-            ? "cursor-not-allowed border-border bg-sunken"
-            : "border-border bg-sheet hover:border-border-strong",
+            ? "cursor-not-allowed border-edge bg-soft opacity-70"
+            : "border-edge bg-soft hover:-translate-y-0.5 hover:border-mint-2 motion-reduce:hover:translate-y-0",
         className,
       )}
     >
@@ -43,16 +43,11 @@ export function ChoiceCard({ name, value, checked, onChange, disabledReason, des
         aria-describedby={describedBy}
         className="sr-only"
       />
-      <span
-        aria-hidden
-        className={cn(
-          "absolute top-4 right-4 grid size-5 place-items-center rounded-full border-[1.5px]",
-          checked ? "border-select bg-select text-sheet" : "border-border-strong bg-sheet",
-          disabled && "border-border",
-        )}
-      >
-        {checked && <Check size={12} strokeWidth={3} />}
-      </span>
+      {checked && (
+        <span aria-hidden className="absolute top-3.5 right-3.5 grid size-5 place-items-center rounded-full bg-btn text-on-btn">
+          <Check size={12} strokeWidth={3} />
+        </span>
+      )}
       {children}
     </label>
   );

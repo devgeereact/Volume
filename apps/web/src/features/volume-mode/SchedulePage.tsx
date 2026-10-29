@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { CalendarPlus, Check, ChevronLeft, ChevronRight, Clock, Flag, ShieldCheck, Trash2 } from "lucide-react";
-import { Banner, Button, Input, Modal, ProgressBar, SegmentedControl, Select, Skeleton } from "../../components/ui";
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, Clock, ShieldCheck, Trash2 } from "lucide-react";
+import { Banner, Button, IconButton, Input, Modal, SegmentedControl, Select, Skeleton } from "../../components/ui";
 import { isApiError } from "../../api/client";
 import { TITLE_FORMATS, type ApiTitleLimit, type ApiTitleSlot, type TitleFormat } from "../../api/types";
 import { apiErrorText, useWireMode } from "../../api/wire-a";
@@ -24,52 +24,56 @@ import {
   windowRange,
   windowUse,
 } from "./model";
-import { LoadError, ReadOnlyNote, VolumeHeader } from "./parts";
+import { LoadError, ReadOnlyNote, VolumeHeader, volumePageClasses } from "./parts";
 import { useToday, usePickableBooks, useVolumeActions, useVolumeSchedule } from "./useVolume";
 
-const weekdayFmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "UTC" });
-const dayNumFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+const dayLabelFmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const iso = (ms: number) => new Date(ms).toISOString();
 const bookTitle = (s: ApiTitleSlot) => s.book.title ?? s.book.idea ?? "Untitled book";
 
+/* The lanes grid (approved design, .lanes): a 150 px name column, then the 7 days. Scrolls sideways on phones. */
+const laneCols = "grid grid-cols-[150px_repeat(7,minmax(0,1fr))]";
+
 function ScheduleSkeleton() {
   return (
-    <div role="status" aria-label="Loading the schedule" className="grid gap-4">
-      {TITLE_FORMATS.map((f) => (
-        <div key={f} className="grid gap-3 rounded-md border border-border bg-sheet p-4">
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-16 w-full" />
-        </div>
-      ))}
+    <div role="status" aria-label="Loading the schedule" className="grid gap-3">
+      <Skeleton className="h-4 w-2/5" />
+      <div className="grid gap-2 rounded-lg border border-line p-3">
+        {TITLE_FORMATS.map((f) => (
+          <Skeleton key={f} className="h-16 w-full" />
+        ))}
+      </div>
     </div>
   );
 }
 
+/* .evc: a confirmed release in the accent mint, a planned one in blue, each with its word. */
 function SlotButton({ slot, onOpen }: { slot: ApiTitleSlot; onOpen: (s: ApiTitleSlot) => void }) {
   const confirmed = slot.status === "confirmed";
   return (
     <button
       type="button"
       onClick={() => onOpen(slot)}
-      className="grid w-full min-h-11 gap-0.5 rounded-sm border border-border bg-canvas px-2.5 py-2 text-left hover:bg-sunken"
+      className={cn(
+        "block w-full min-w-0 rounded-[7px] border-l-[3px] px-[7px] py-1 text-left text-[11.5px] leading-[1.3] font-semibold hover:brightness-[0.98]",
+        confirmed ? "border-mint bg-mint-wash text-mint-ink" : "border-blue bg-blue-wash text-blue",
+      )}
     >
-      <span className="line-clamp-2 text-small font-semibold text-ink">{bookTitle(slot)}</span>
-      <span className="truncate text-[12.5px] text-ink-secondary">{slot.book.penName}</span>
-      <span className={cn("inline-flex items-center gap-1 text-[12.5px] font-semibold", confirmed ? "text-success" : "text-ink-secondary")}>
-        {confirmed ? <Check size={14} strokeWidth={2} aria-hidden /> : <Clock size={14} strokeWidth={2} aria-hidden />}
-        {confirmed ? "Confirmed" : "Planned"}
-      </span>
+      <span className="block truncate">{bookTitle(slot)}</span>
+      <span className="sr-only">, {slot.book.penName}, </span>
+      <small className="block truncate text-[11.5px] font-medium opacity-85">{confirmed ? "Confirmed" : "Planned"}</small>
     </button>
   );
 }
 
-/** One format's row: how full the 7 days are, then each day with its slots (a list on phones). */
-function FormatRow({
+/** One format's lane: its name and how full the 7 days are, then a cell per day with that day's releases. */
+function FormatLane({
   format,
   days,
   slots,
   limit,
   start,
+  today,
   onOpen,
 }: {
   format: TitleFormat;
@@ -77,68 +81,35 @@ function FormatRow({
   slots: ApiTitleSlot[];
   limit: ApiTitleLimit;
   start: number;
+  today: number;
   onOpen: (s: ApiTitleSlot) => void;
 }) {
   const use = windowUse(slots, format, start, limit);
   const mine = slots.filter((s) => s.format === format);
   const headingId = `format-${format}`;
   return (
-    <section aria-labelledby={headingId} className="grid gap-3 rounded-md border border-border bg-sheet p-4">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <h3 id={headingId} className="text-subhead text-ink">
+    <section aria-labelledby={headingId} className={cn(laneCols, "border-t border-line")}>
+      <div className="grid content-center gap-0.5 p-3">
+        <h3 id={headingId} className="text-[13px] font-bold text-ink">
           {formatLabels[format]}
         </h3>
-        <span className="num text-small text-ink-secondary">
-          {use.used} of {use.max} new titles in these 7 days
-        </span>
-        <ProgressBar
-          value={use.used}
-          max={use.max}
-          size="thin"
-          label={`${formatLabels[format]} slots used`}
-          valueText={`${use.used} of ${use.max}`}
-          className="w-24"
-        />
-        {use.full && (
-          <span className="inline-flex h-6 items-center gap-1.5 rounded-pill bg-accent-wash px-2.5 text-[12.5px] font-semibold text-accent-text">
-            <Flag size={14} strokeWidth={2} aria-hidden />
-            Full
-          </span>
-        )}
+        <p className={cn("num text-[12.5px]", use.full ? "text-red" : "text-ink-2")}>
+          {use.used} of {use.max}
+          <span className="sr-only"> new titles in these 7 days</span>
+          {use.full && ", full"}
+        </p>
       </div>
-      {/* Wide screens: a day per column. */}
-      <ol className="hidden grid-cols-7 gap-2 lg:grid">
-        {days.map((d) => {
-          const today = mine.filter((s) => sameDay(s.plannedAt, d));
-          return (
-            <li key={d} className="grid min-h-24 content-start gap-1.5 rounded-sm bg-sunken/60 p-1.5" aria-label={formatDate(iso(d))}>
-              <span aria-hidden className="px-1 text-[12.5px] text-ink-secondary">
-                {weekdayFmt.format(d)} {dayNumFmt.format(d)}
-              </span>
-              {today.map((s) => (
-                <SlotButton key={s.id} slot={s} onOpen={onOpen} />
-              ))}
-            </li>
-          );
-        })}
-      </ol>
-      {/* Phones and tablets: only the days with a release. */}
-      <div className="lg:hidden">
-        {mine.length === 0 ? (
-          <p className="text-small text-ink-secondary">Nothing planned for {formatNouns[format]} in these 7 days.</p>
-        ) : (
-          <ul className="grid gap-2">
-            {mine.map((s) => (
-              <li key={s.id} className="grid grid-cols-[88px_minmax(0,1fr)] items-start gap-3">
-                <span className="pt-2 text-small text-ink-secondary">
-                  {weekdayFmt.format(s.plannedAt)} {dayNumFmt.format(s.plannedAt)}
-                </span>
-                <SlotButton slot={s} onOpen={onOpen} />
-              </li>
+      {days.map((d) => {
+        const onDay = mine.filter((s) => sameDay(s.plannedAt, d));
+        return (
+          <div key={d} className={cn("flex min-h-[78px] min-w-0 flex-col gap-1 border-l border-line p-1.5", sameDay(d, today) && "bg-mint-wash/55")}>
+            {onDay.length > 0 && <span className="sr-only">{formatDate(iso(d))}:</span>}
+            {onDay.map((s) => (
+              <SlotButton key={s.id} slot={s} onOpen={onOpen} />
             ))}
-          </ul>
-        )}
-      </div>
+          </div>
+        );
+      })}
     </section>
   );
 }
@@ -396,7 +367,7 @@ function SlotDialog({ slot, canWrite, onClose, onDone }: { slot: ApiTitleSlot | 
 }
 
 /**
- * Release schedule (phase 8, P8-4, D-046): 7 days at a time, one row per format, each showing how many of KDP's
+ * Release schedule (phase 8, P8-4, D-046): 7 days at a time, one lane per format, each showing how many of KDP's
  * new titles are used. The limit comes from the server (config/kdp-rules, rule titles.creationLimit). Planning a
  * release over the limit is refused with the clash and the next free date; confirming a release needs the book
  * to pass the quality gate. Viewers read only.
@@ -405,7 +376,8 @@ export default function SchedulePage() {
   const mode = useWireMode();
   const me = useVolumeMe();
   const [offsetDays, setOffsetDays] = useState(0);
-  const start = useToday(mode) + offsetDays * DAY_MS;
+  const today = useToday(mode);
+  const start = today + offsetDays * DAY_MS;
   const range = useMemo(() => windowRange(start), [start]);
   const days = useMemo(() => windowDays(start), [start]);
   const data = useVolumeSchedule(mode, range);
@@ -418,10 +390,9 @@ export default function SchedulePage() {
   const limit = data.limit;
 
   return (
-    <div className="mx-auto grid w-full max-w-[1240px] grid-cols-1 content-start gap-6 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
+    <div className={volumePageClasses}>
       <VolumeHeader
         title="Release schedule"
-        summary={limit ? `Up to ${limit.maxNewTitlesPerFormat} new titles per format in any ${limit.periodDays} days, shared by every pen name.` : undefined}
         actions={
           me.canWrite ? (
             <Button
@@ -438,46 +409,64 @@ export default function SchedulePage() {
         }
       />
       <ReadOnlyNote me={me} />
-
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 aria-live="polite" className="font-book text-heading text-ink">
-          {rangeLabel}
-        </h2>
-        <div className="flex items-center gap-1 sm:ml-auto">
-          <Button icon={ChevronLeft} onClick={() => setOffsetDays((d) => d - 7)}>
-            Previous 7 days
-          </Button>
-          <Button variant="ghost" disabledReason={offsetDays === 0 ? "Already showing today." : undefined} onClick={() => setOffsetDays(0)}>
-            Today
-          </Button>
-          <Button iconRight={ChevronRight} onClick={() => setOffsetDays((d) => d + 7)}>
-            Next 7 days
-          </Button>
-        </div>
-      </div>
       {status && <InlineStatus>{status}</InlineStatus>}
 
-      {data.state === "loading" && <ScheduleSkeleton />}
-      {data.state === "error" && <LoadError title="Could not load the schedule" message={data.error} retry={data.retry} />}
-      {data.state === "ready" && limit && (
-        <>
-          {data.slots.length === 0 && (
-            <Banner tone="info" title="Nothing planned in these 7 days">
-              {me.canWrite ? "Plan a release to hold a slot for a book and format." : "No releases are planned for these days yet."}
-            </Banner>
-          )}
-          <div className="grid gap-4">
-            {TITLE_FORMATS.map((f) => (
-              <FormatRow key={f} format={f} days={days} slots={data.slots} limit={limit} start={start} onOpen={setOpen} />
-            ))}
+      <section aria-labelledby="schedule-range" className="vol-glass grid min-w-0 grid-cols-1 gap-4 rounded-card p-4.5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="schedule-range" aria-live="polite" className="text-[15px] leading-6 font-bold text-ink">
+            {rangeLabel}
+          </h2>
+          <div className="flex items-center gap-1.5">
+            <IconButton icon={ChevronLeft} label="Previous 7 days" variant="secondary" size="sm" onClick={() => setOffsetDays((d) => d - 7)} />
+            <Button size="sm" disabledReason={offsetDays === 0 ? "Already showing today." : undefined} onClick={() => setOffsetDays(0)}>
+              Today
+            </Button>
+            <IconButton icon={ChevronRight} label="Next 7 days" variant="secondary" size="sm" onClick={() => setOffsetDays((d) => d + 7)} />
           </div>
-          <p className="max-w-[80ch] text-small text-ink-secondary">
-            The limit comes from KDP rule {limit.ruleId} in rules version {limit.rulesVersion}. Volume counts any {limit.periodDays} days in a row, which is
-            never looser than a calendar week. So a date can be refused even when these 7 days show space: the check looks {limit.periodDays} days either side
-            of it.
-          </p>
-        </>
-      )}
+        </div>
+
+        {data.state === "loading" && <ScheduleSkeleton />}
+        {data.state === "error" && <LoadError title="Could not load the schedule" message={data.error} retry={data.retry} />}
+        {data.state === "ready" && limit && (
+          <>
+            <p className="text-body text-ink-2">
+              Up to {limit.maxNewTitlesPerFormat} new titles per format in any {limit.periodDays} days, shared by every pen name.
+            </p>
+            {data.slots.length === 0 && (
+              <p className="text-small text-ink-2">
+                Nothing planned in these 7 days.{" "}
+                {me.canWrite ? "Plan a release to hold a slot for a book and format." : "No releases are planned for these days yet."}
+              </p>
+            )}
+            <div className="-mx-4.5 min-w-0 overflow-x-auto px-4.5">
+              <div className="relative min-w-[760px] overflow-hidden rounded-lg border border-line">
+                <div aria-hidden className={cn(laneCols, "bg-soft")}>
+                  <span />
+                  {days.map((d) => (
+                    <small
+                      key={d}
+                      className={cn(
+                        "border-l border-line px-2 py-2.5 text-[12px] whitespace-nowrap",
+                        sameDay(d, today) ? "font-bold text-mint-ink" : "font-medium text-ink-3",
+                      )}
+                    >
+                      {dayLabelFmt.format(d)}
+                    </small>
+                  ))}
+                </div>
+                {TITLE_FORMATS.map((f) => (
+                  <FormatLane key={f} format={f} days={days} slots={data.slots} limit={limit} start={start} today={today} onOpen={setOpen} />
+                ))}
+              </div>
+            </div>
+            <p className="text-[12.5px] leading-[18px] text-ink-2">
+              The limit comes from KDP rule {limit.ruleId} in rules version {limit.rulesVersion}. Volume counts any {limit.periodDays} days in a row, which is
+              never looser than a calendar week. So a date can be refused even when these 7 days show space: the check looks {limit.periodDays} days either side
+              of it.
+            </p>
+          </>
+        )}
+      </section>
 
       <PlanDialog
         key={planning ? `plan-${start}` : "plan-closed"}

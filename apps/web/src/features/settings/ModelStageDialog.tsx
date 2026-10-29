@@ -77,18 +77,18 @@ export function ModelStageDialog({ open, onClose, stage, stageLabel, scope, valu
         {fallbacks !== undefined && (
           <section aria-labelledby={`fb-${stage}`} className="grid gap-2.5">
             <div>
-              <h3 id={`fb-${stage}`} className="text-subhead text-ink">
+              <h3 id={`fb-${stage}`} className="text-[15px] leading-6 font-bold text-ink">
                 Fallbacks, in order
               </h3>
-              <p className="text-small text-ink-secondary">If the model is busy or missing, Volume tries these next and records which one answered.</p>
+              <p className="text-small text-ink-2">If the model is busy or missing, Volume tries these next and records which one answered.</p>
             </div>
             {usedFallbacks.length === 0 ? (
-              <p className="text-small text-ink-tertiary">No fallbacks. A failed call stops the job and says why.</p>
+              <p className="text-small text-ink-3">No fallbacks. A failed call stops the job and says why.</p>
             ) : (
-              <ol className="grid overflow-hidden rounded-md border border-border bg-sheet">
+              <ol className="grid vol-glass overflow-hidden rounded-card">
                 {usedFallbacks.map((slug, i) => (
-                  <li key={slug} className="flex items-center gap-2 border-t border-border px-3 py-1.5 first:border-t-0">
-                    <span className="num w-5 text-small text-ink-tertiary">{i + 1}</span>
+                  <li key={slug} className="flex items-center gap-2 border-t border-line px-3 py-1.5 first:border-t-0">
+                    <span className="num w-5 text-small text-ink-3">{i + 1}</span>
                     <span title={`OpenRouter model: ${slug}`} className="min-w-0 flex-1 text-[14px] text-ink">
                       {formatModel(slug)}
                     </span>

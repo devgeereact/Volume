@@ -1,84 +1,105 @@
 import { Link, useNavigate } from "react-router";
 import { ReadOnlyBanner, useCanWrite } from "../../lib/access";
-import { ChevronRight, Plus, UserRound } from "lucide-react";
-import { Banner, Button, Cover, EmptyState, PageHeader, Skeleton, StatusChip } from "../../components/ui";
+import { ArrowUpRight, Plus, UserRound } from "lucide-react";
+import { Banner, Button, chipClasses, Cover, EmptyState, PageHeader, Skeleton, StatusChip } from "../../components/ui";
 import { useMemo } from "react";
 import { toPrototypeBook } from "../../api/adapters";
 import { profileBookCount, useApiBooks, usePenNames, useWireMode } from "../../api/wire-a";
 import { books } from "../../demo/books";
 import { penNames } from "../../demo/penNames";
 import type { Book } from "../../demo/types";
-import { cn } from "../../lib/cn";
+import { ProfileAvatar } from "./ProfileAvatar";
 import { useDemoState } from "../library/demoState";
 import { libraryCover } from "../library/draftCover";
 import { draftFromApi } from "./profileApi";
 import { bookCount, useProfiles, type ProfileDraft } from "./profileStore";
 
-/** Gilt initials circle for a profile (44 px), the larger sibling of the spine's avatar. */
-export function ProfileAvatar({ initials }: { initials: string }) {
-  return (
-    <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-accent text-[14px] leading-none font-bold text-on-accent">
-      {initials}
-    </span>
-  );
-}
-
 /** Pill that marks a profile as a real person (icon plus words, never colour alone). */
 export function RealPersonBadge() {
   return (
-    <span className="inline-flex h-6 items-center gap-1.5 rounded-pill bg-sunken px-2.5 text-[12.5px] leading-none font-semibold whitespace-nowrap text-ink-secondary">
+    <span className={chipClasses("info")}>
       <UserRound size={14} strokeWidth={2} aria-hidden />
       Real person
     </span>
   );
 }
 
-/** Up to four of the profile's book covers, overlapping like books laid on a desk. */
-function CoverStack({ list: all }: { list: Book[] }) {
-  const list = all.slice(0, 4);
+/** Up to six of the profile's book covers in a row (approved design, .pen-covers). */
+function CoverRow({ list: all }: { list: Book[] }) {
+  const list = all.slice(0, 6);
   if (list.length === 0) return null;
   return (
-    <span aria-hidden className="flex">
-      {list.map((b, i) => (
-        <span key={b.id} className={cn("block w-[30px] shrink-0", i > 0 && "-ml-2.5")}>
-          <Cover title={b.title} author="" design={libraryCover(b).design} image={libraryCover(b).image} width={30} hideSubtitle decorative />
+    <span aria-hidden className="flex min-h-[54px] gap-1.5 overflow-hidden">
+      {list.map((b) => (
+        <span key={b.id} className="block w-[34px] shrink-0">
+          <Cover title={b.title} author="" design={libraryCover(b).design} image={libraryCover(b).image} width={34} hideSubtitle decorative />
         </span>
       ))}
     </span>
   );
 }
 
-function ProfileCard({ p, count, covers }: { p: ProfileDraft; count: number; covers: Book[] }) {
-  const kind = p.realPerson
-    ? ["Real person", p.location.split(",")[0]].filter(Boolean).join(", ")
-    : ["Pen name", p.publishing.imprint].filter(Boolean).join(", ");
+/** 115500 as "115.5K", 640 as "640". */
+function compact(n: number): string {
+  if (n < 1000) return String(n);
+  const k = Math.round(n / 100) / 10;
+  return `${k.toLocaleString("en-GB", { maximumFractionDigits: 1 })}K`;
+}
+
+interface CardStats {
+  books: number;
+  /** Words written across the profile's books, or null when the list does not carry word counts (API mode). */
+  words: number | null;
+  /** Books live on Amazon, or null while the book list is still loading. */
+  live: number | null;
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <span className="grid text-center text-[11px] leading-4 text-ink-3">
+      <b className="num text-[16px] leading-6 font-bold text-ink">{value}</b>
+      {label}
+    </span>
+  );
+}
+
+function ProfileCard({ p, stats, covers }: { p: ProfileDraft; stats: CardStats; covers: Book[] }) {
+  const kind = p.realPerson ? ["Real person", p.location].filter(Boolean).join(", ") : ["Pen name", p.publishing.imprint].filter(Boolean).join(", ");
+  const cells: { value: string; label: string }[] = [{ value: String(stats.books), label: stats.books === 1 ? "Book" : "Books" }];
+  if (stats.words !== null) cells.push({ value: compact(stats.words), label: "Words" });
+  if (stats.live !== null) cells.push({ value: String(stats.live), label: "Live" });
   return (
     <li className="min-w-0">
       <Link
         to={`/profiles/${p.id}`}
-        className="group flex h-full flex-col rounded-md border border-border bg-sheet p-5 -outline-offset-2 hover:border-border-strong"
+        className="vol-glass group flex h-full flex-col gap-3 rounded-card p-[18px] text-left transition-[border-color] duration-(--vol-dur-fast) hover:border-mint-2"
       >
-        <span className="flex items-start gap-3.5">
-          <ProfileAvatar initials={p.initials || "?"} />
+        <span className="flex items-center gap-3">
+          <ProfileAvatar initials={p.initials || "?"} id={p.id} size="xl" />
           <span className="min-w-0 flex-1">
-            <span className="block font-book text-heading text-ink group-hover:text-select">{p.name}</span>
-            <span className="mt-0.5 flex items-center gap-1.5 text-small text-ink-secondary">
-              {p.realPerson && <UserRound size={14} strokeWidth={2} aria-hidden />}
-              {kind}
-            </span>
+            <span className="block text-[15px] leading-6 font-bold text-ink">{p.name}</span>
+            <span className="block text-[12.5px] leading-[1.6] text-ink-3">{kind}</span>
           </span>
-          <ChevronRight size={18} aria-hidden className="mt-1.5 shrink-0 text-ink-tertiary group-hover:text-select" />
         </span>
         {p.bioStatus === "owner-to-confirm" && (
-          <span className="mt-3">
+          <span>
             <StatusChip status="attention">Bio to confirm</StatusChip>
           </span>
         )}
-        <span className="mt-3.5 line-clamp-3 font-book text-[14.5px] leading-[23px] text-ink">{p.shortBio || "No short bio yet."}</span>
-        <span aria-hidden className="block min-h-4 flex-1" />
-        <span className="flex items-center gap-3 border-t border-border pt-3.5 text-small text-ink-secondary">
-          <CoverStack list={covers} />
-          <span className="num">{count === 0 ? "No books yet" : `${count} ${count === 1 ? "book" : "books"}`}</span>
+        <span className="line-clamp-3 text-[13.5px] leading-[1.45] text-ink-2">{p.shortBio || "No short bio yet."}</span>
+        <CoverRow list={covers} />
+        <span aria-hidden className="block flex-1" />
+        <span className="grid gap-2 rounded-lg bg-soft p-2.5" style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))` }}>
+          {cells.map((c) => (
+            <Stat key={c.label} value={c.value} label={c.label} />
+          ))}
+        </span>
+        <span className="flex items-center justify-between gap-2 text-[12px] text-ink-3">
+          <span className="min-w-0">{p.genres.slice(0, 2).join(", ")}</span>
+          <span aria-hidden className="inline-flex shrink-0 items-center gap-1 text-[13px] font-bold text-ink group-hover:text-blue">
+            Edit
+            <ArrowUpRight size={14} strokeWidth={2} />
+          </span>
         </span>
         <span className="sr-only">. Edit profile</span>
       </Link>
@@ -86,13 +107,15 @@ function ProfileCard({ p, count, covers }: { p: ProfileDraft; count: number; cov
   );
 }
 
+const cardGrid = "grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4";
+
 function ProfilesSkeleton() {
   return (
-    <ul role="status" aria-label="Loading profiles" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <ul role="status" aria-label="Loading profiles" className={cardGrid}>
       {Array.from({ length: 4 }, (_, i) => (
-        <li key={i} className="grid gap-3 rounded-md border border-border bg-sheet p-5">
-          <span className="flex items-center gap-3.5">
-            <span aria-hidden className="vol-breathe block size-11 rounded-full bg-sunken" />
+        <li key={i} className="vol-glass grid gap-3 rounded-card p-[18px]">
+          <span className="flex items-center gap-3">
+            <span aria-hidden className="vol-breathe block size-14 rounded-full bg-soft" />
             <span className="grid flex-1 gap-2">
               <Skeleton className="h-4 w-1/2" />
               <Skeleton className="h-3 w-1/3" />
@@ -131,6 +154,17 @@ export default function ProfilesPage() {
   const coversFor = (id: string): Book[] =>
     api ? (apiBooks.data ?? []).filter((b) => b.profileId === id).map((b) => toPrototypeBook(b)) : books.filter((b) => b.penNameId === id && !b.archived);
   const countFor = (id: string): number => (api ? (counts.get(id) ?? coversFor(id).length) : bookCount(id));
+  // Words and Live come from the books themselves. The server's book list carries no word totals, so Words shows
+  // in demo mode only; Live waits for the book list rather than guessing.
+  const statsFor = (id: string): CardStats => {
+    const mine = coversFor(id);
+    const booksKnown = !api || apiBooks.data !== undefined;
+    return {
+      books: countFor(id),
+      words: api ? null : mine.reduce((sum, b) => sum + b.words.written, 0),
+      live: booksKnown ? mine.filter((b) => b.published !== null).length : null,
+    };
+  };
   const realCount = list.filter((p) => p.realPerson).length;
   const penCount = list.length - realCount;
 
@@ -143,9 +177,10 @@ export default function ProfilesPage() {
   const ready = state === "ready" && list.length > 0;
 
   return (
-    <div className="grid content-start gap-7 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
+    <div className="grid min-w-0 content-start gap-7.5 px-4 pt-1.5 pb-8 min-[861px]:px-6">
       <PageHeader
         title="Profiles"
+        titleHidden
         summary={
           ready
             ? `${realCount === 1 ? "1 real person" : `${realCount} real people`} and ${penCount === 1 ? "1 pen name" : `${penCount} pen names`}. Each keeps its own bio, voice and defaults.`
@@ -172,9 +207,9 @@ export default function ProfilesPage() {
         <EmptyState drawing="pen" title="No profiles yet" body="Add your first one. Each profile keeps its own bio, voice and defaults." action={add} />
       )}
       {ready && (
-        <ul aria-label="Profiles" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul aria-label="Profiles" className={cardGrid}>
           {list.map((p) => (
-            <ProfileCard key={p.id} p={p} count={countFor(p.id)} covers={coversFor(p.id)} />
+            <ProfileCard key={p.id} p={p} stats={statsFor(p.id)} covers={coversFor(p.id)} />
           ))}
         </ul>
       )}
