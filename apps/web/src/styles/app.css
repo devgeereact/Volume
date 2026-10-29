@@ -105,6 +105,19 @@
 @utility min-h-screen-fill {
   min-height: calc(100dvh - var(--shell-topbar) - var(--shell-bookbar) - var(--shell-jobbar));
 }
+/* A side column that stays in view while the page scrolls (Library grid): it pins under the top bar, is never
+   taller than the space above the job bar, and scrolls on its own when its content is taller than that. */
+@utility sticky-side {
+  position: sticky;
+  top: calc(var(--shell-sticky-top) + var(--vol-space-4));
+  max-height: calc(100dvh - var(--shell-sticky-top) - var(--shell-jobbar) - var(--vol-space-8));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  /* Room for the cards' focus rings and shadows inside the scroller. */
+  padding: var(--vol-space-1);
+  margin: calc(var(--vol-space-1) * -1);
+}
 /* Extend a compact control's hit area to 44 px without changing its look. */
 @utility hit-44 {
   position: relative;

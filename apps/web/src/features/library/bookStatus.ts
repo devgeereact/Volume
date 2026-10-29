@@ -45,3 +45,20 @@ export function matchesQuery(book: Book, penName: string, query: string): boolea
   if (!q) return true;
   return [book.title, book.subtitle, penName].some((s) => s.toLowerCase().includes(q));
 }
+
+/** The Library's three groups (the lanes of the Shelves view, the stage filter of the Grid view). */
+export type BookGroup = "progress" | "ready" | "published";
+
+export const bookGroups: readonly { id: BookGroup; title: string; hint: string }[] = [
+  { id: "progress", title: "In progress", hint: "Still being researched, planned, written or finished." },
+  { id: "ready", title: "Ready to publish", hint: "Written and covered. Build the pack, then mark it published." },
+  { id: "published", title: "Published", hint: "Live on the shelf." },
+];
+
+/** Which group a book is in: Export is ready to publish, Published is published, every earlier stage is in progress. */
+export function groupOf(book: Book): BookGroup {
+  const column = columnFor(book);
+  if (column === "published") return "published";
+  if (column === "export") return "ready";
+  return "progress";
+}

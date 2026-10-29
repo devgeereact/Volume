@@ -768,3 +768,10 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Not tested: screen readers, touch on a real phone, API-mode screenshots.
 - Next: merge #77 then the stage 2 PR, then stage 3 (library 3x3 and sticky side, fix duplicate "Library" title). Budget lines on Blueprint and Writing go in stage 4 (D-057).
 
+## 29 October 2026, Claude Code (Opus 5.5): deploy of studio redesign stages 0 to 2
+
+- Owner merged #77 and #78 and said go ahead. Deployed main `d008bf6` as `releases/20261029T075300Z` (was `20261024T153751Z`, now the rollback target). No migrations. CI passed on `d008bf6`; deploy ran from a clean worktree of main, not the repo folder (stage 3 work is uncommitted there).
+- Checks PASS: deploy script (health 200, sign-in enforced, `/assets/index-D7wloluU.js` served); `/api/health` `{"status":"ok"}`; `/api/v1/books` 401 signed out; `/`, `/library`, `/robots.txt` 200. Not checked: signed-in pages in a browser.
+- Host access from Ubuntu: old key's passphrase forgotten. Owner made `~/.ssh/cpanel_ubuntu_ed25519` and imported it in cPanel as `volume_ubuntu_deploy`; `~/.ssh/config` now points `cpanel` at it (backup `config.bak-20261029`). The GNOME keyring agent refuses to sign from non-interactive shells, so deploys from an agent need a separate agent: owner runs `ssh-agent -a /run/user/1000/volume-deploy.sock` and `ssh-add` there; the agent is stopped after the deploy. The old Ubuntu key (`aN8q...`) is still in cPanel unless the owner removed it.
+- Stage 3 (library grid) built on `feat/studio-library`, uncommitted, gate PASS (typecheck, lint, format, web 244, e2e 20). Waiting for the owner's OK to commit.
+

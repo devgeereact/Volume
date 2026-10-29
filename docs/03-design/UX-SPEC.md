@@ -38,7 +38,7 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 
 ### Library [M2]
 - **Purpose:** see every book by pen name and status; open or start one.
-- **Regions:** header with search, filters (pen name, status, template) and "New book"; grid of book cards (list view toggle); inspector shows the selected book's summary, spend and last jobs.
+- **Regions:** header with filter, Grid, Shelves or Ledger, and "New book"; Grid shows 9 equal book cards with Show all; a side column with a By stage filter (All books, In progress, Ready to publish, Published, with real counts) and Today; pen name filter in the side menu's profile switcher.
 - **Components:** book card (cover thumbnail, title, pen name, status chip, words, spend, live progress), filter chips, view toggle.
 - **Primary action:** New book.
 - **Empty:** "No books yet. Start one from an idea or a working title." with New book. If no profile exists, the action is "Add a pen name first".
