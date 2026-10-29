@@ -5,6 +5,8 @@ User-visible changes, newest first. Dates in British format.
 ## 29 October 2026
 
 #### Changed
+- Research shows counts of sources, reader pains, angles and keyword ideas, with a filter and search over its sources. Titles shows a store listing preview and a length bar against the KDP limit of 199 characters.
+- Book and monthly budget lines, bars and Raise budget are gone (D-057). The side menu, library and inspectors show plain spend, and a job pauses only when the AI provider runs out of credit. Settings Budgets is now Spending.
 - The Library opens on a 3 by 3 grid of equal covers with Show all, and a side column (books by stage and Today) that stays in view as you scroll. The lanes view is now called Shelves. The page title shows once.
 - Book steps now have a step bar at the top: Previous, all 8 steps and Next stay in reach while you scroll. It replaces the Back and Next bar at the bottom. Each step page opens with what the step is for and its main button, and ends with an Up next card.
 

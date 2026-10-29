@@ -22,7 +22,7 @@ Every screen uses the app shell from `docs/03-design/DESIGN-SYSTEM.md`: left nav
 | `/books/:id/cover` | Cover studio |
 | `/books/:id/export` | Export |
 | `/books/:id/marketing` | Marketing |
-| `/settings/:tab?` | Settings (models, budgets, key, backups, house style, KDP rules) |
+| `/settings/:tab?` | Settings (models, spending, key, backups, house style, KDP rules) |
 | `/archive` | Archive |
 | `/published` | Published books |
 | `/books/:id/claims` | Claims to verify for one book, with fix options (D-052). Linked from the editor's To fix tab and from preflight |
@@ -66,16 +66,16 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 
 ### Research [M4]
 - **Purpose:** understand audience and gaps with real sources.
-- **Regions:** run header (model, cost, date, run selector); results in sections (audience, problems, angles, competing themes, gaps, keyword ideas); inspector lists sources with tick boxes "use in book".
+- **Regions:** run header (model, cost, date, run selector); a counts strip (sources read, used, reader pains, angles, keyword ideas); results in sections (audience, problems, angles, competing themes, gaps, keyword ideas); inspector lists sources with tick boxes "use in book", a filter (All, Used, Not used) and a search. Following a citation clears the filter so the source shows.
 - **Components:** source card (title, domain, open link), angle cards, keyword chips, run history menu.
 - **Primary action:** Choose titles (secondary: Run again).
 - **Empty:** "Research has not run yet" with Run research and its cost estimate.
-- **Loading:** live status lines from SSE ("Searching the web", "Reading 6 sources"). **Error:** model without web search, budget paused, provider error, each with its fix.
+- **Loading:** live status lines from SSE ("Searching the web", "Reading 6 sources"). **Error:** model without web search, AI credits run out, provider error, each with its fix.
 
 ### Titles [M5]
 - **Purpose:** pick a title and subtitle.
-- **Regions:** 5 direction columns or rows; 10 option cards grouped by direction; inspector shows the chosen option with character count and checks.
-- **Components:** option card (title, subtitle, character counter against 200, check badges, edit, choose), direction header with "More like this".
+- **Regions:** 5 direction columns or rows; 10 option cards grouped by direction; inspector shows the chosen option with character count, checks and a store listing preview (no store name, logo, ratings or reviews). An eye button on each card previews it without choosing it.
+- **Components:** option card (title, subtitle, length bar "N of 199" (KDP fact 5.4, from `config/kdp-rules/`; it counts the ": " between title and subtitle, which errs on the safe side), check badges, edit, choose), direction header with "More like this".
 - **Primary action:** Use this title.
 - **Empty:** "Generate title options" with cost. **Error:** invalid options are greyed with the reason.
 
@@ -92,7 +92,7 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 - **Components:** progress header (sections done of total, time running), streamed text pane, check badges, pause, resume, cancel, regenerate section.
 - **Primary action:** Write book (with estimate) before the run; Open editor after it.
 - **Empty:** "Approve the blueprint first" with a link, or "Ready to write 12 sections".
-- **Error:** budget paused ("This book needs about $1.20 more. Raise the budget or stop here."), model unavailable (offer fallback), needs attention list.
+- **Error:** AI credits run out ("AI credits have run out" with Top up and Continue; finished work is kept), model unavailable (offer fallback), needs attention list.
 
 ### Editor [M9]
 - **Purpose:** read, edit and polish every section.
@@ -122,9 +122,9 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 - **Empty:** "No scripts yet for this book." **Error:** standard retry.
 
 ### Settings [M13]
-- **Purpose:** key status, models, budgets, backups, house style and rules.
+- **Purpose:** key status, models, spending, backups, house style and rules.
 - **Regions:** tabs on the left of the canvas; tab content; inspector shows help for the selected field.
-- **Components:** key status card (present, valid, credit; never the key), model picker table (stage, model, price per million input and output tokens, context, capability badges, fallback list), budget fields with month-to-date spend, backup card, rules version card.
+- **Components:** key status card (present, valid, credit; never the key), model picker table (stage, model, price per million input and output tokens, context, capability badges, fallback list), Spending tab with month-to-date spend (the guest workspace cap, D-047, shows for the instance owner only), backup card, rules version card.
 - **Primary action:** Save (per tab).
 - **Empty:** no key: "Add OPENROUTER_API_KEY to the server .env file, then restart. Volume runs with the mock writer until then."
 - **Error:** model list could not load: show cached list with its date.

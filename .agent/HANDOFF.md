@@ -775,3 +775,11 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Host access from Ubuntu: old key's passphrase forgotten. Owner made `~/.ssh/cpanel_ubuntu_ed25519` and imported it in cPanel as `volume_ubuntu_deploy`; `~/.ssh/config` now points `cpanel` at it (backup `config.bak-20261029`). The GNOME keyring agent refuses to sign from non-interactive shells, so deploys from an agent need a separate agent: owner runs `ssh-agent -a /run/user/1000/volume-deploy.sock` and `ssh-add` there; the agent is stopped after the deploy. The old Ubuntu key (`aN8q...`) is still in cPanel unless the owner removed it.
 - Stage 3 (library grid) built on `feat/studio-library`, uncommitted, gate PASS (typecheck, lint, format, web 244, e2e 20). Waiting for the owner's OK to commit.
 
+
+## 29 October 2026, Claude Code (Opus 5.5): studio redesign stage 4a (budget lines, Research, Titles)
+
+- Branch `feat/studio-research-titles`, cut from `feat/studio-library` (PR #79). Budget lines, bars and Raise budget removed across the web app (D-057); the pause banner now speaks of AI credits; Settings Budgets tab renamed Spending (id stays `budgets`). New `features/research/SourceTools.tsx` (counts, filter, search) and `features/titles/StorePreview.tsx` (store preview, length bar from `config/kdp-rules/` fact 5.4). The new book wizard no longer sends `budgetUsd: 15`.
+- Docs: CHANGELOG, UX-SPEC (Research, Titles, Writing error, Settings), DESIGN-SYSTEM (Step pages, stage 4a), D-057 consequences note.
+- Checks: typecheck, lint, format:check PASS; unit tests core 185, ai 265, export 206, server 559, web 244 PASS; e2e 20/20 PASS (agent run, twice). Contrast PARTIAL (existing tokens only, not measured). Screenshots in `../reports/volume/studio-redesign/stage4a/`.
+- Open: the title length counts the ": " separator (safe side; the KDP rule counts title and subtitle together). The writing cost confirm still fires above half the stored budget figure, as a guide (owner said go on with that).
+- Next: stage 4b (Blueprint and Writing).
