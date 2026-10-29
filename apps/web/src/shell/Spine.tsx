@@ -5,7 +5,7 @@ import { publishedBooks } from "../demo/books";
 import { cn } from "../lib/cn";
 import { usePenNameFilter } from "../lib/penName";
 import { globalNav, type ScreenDef } from "../screens";
-import { PenNameSwitcher, useCurrentProfileCount } from "./PenNameSwitcher";
+import { useCurrentProfileCount } from "./PenNameSwitcher";
 import { DemoBadge } from "./DemoBadge";
 import { SideStatus } from "./JobBar";
 
@@ -158,7 +158,6 @@ export function Spine({ onNavigate, variant = "float", className }: SpineProps) 
       </nav>
 
       <div className="mt-auto grid gap-3 pt-4">
-        <PenNameSwitcher />
         <SideStatus onNavigate={onNavigate} />
       </div>
     </aside>
