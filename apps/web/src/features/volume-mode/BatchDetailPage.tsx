@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeft, BadgeCheck, CalendarPlus, Play, Plus, Trash2, X } from "lucide-react";
-import { Banner, Button, EmptyState, IconButton, LiveDot, Modal, PageHeader, ProgressBar, Skeleton } from "../../components/ui";
+import { Banner, Button, chipClasses, ChipDot, EmptyState, IconButton, LiveDot, Modal, ProgressBar, Skeleton } from "../../components/ui";
 import type { ApiBatchDetail, ApiBatchItemView, QualityGate } from "../../api/types";
 import { apiErrorText, useWireMode } from "../../api/wire-a";
 import { useVolumeMe } from "../../api/wire-d";
@@ -9,7 +9,7 @@ import { formatDate } from "../../lib/format";
 import { InlineStatus } from "../settings/PanelHeader";
 import { AddBooksDialog } from "./BatchDialogs";
 import { formatLabels, isBusy, listWords, runProgress } from "./model";
-import { GateChip, LoadError, ReadOnlyNote, RunChip, VolumeHeader } from "./parts";
+import { GateChip, LoadError, ReadOnlyNote, RunChip, VolumeHeader, volumePageClasses } from "./parts";
 import { useVolumeActions, useVolumeBatch } from "./useVolume";
 
 function DetailSkeleton() {
@@ -17,7 +17,7 @@ function DetailSkeleton() {
     <div role="status" aria-label="Loading batch" className="grid gap-4">
       <Skeleton className="h-8 w-1/3" />
       <Skeleton className="h-4 w-1/2" />
-      <div className="grid gap-3 rounded-md border border-border bg-sheet p-4">
+      <div className="vol-glass grid gap-3 rounded-card p-[18px]">
         {Array.from({ length: 3 }, (_, i) => (
           <Skeleton key={i} className="h-10 w-full" />
         ))}
@@ -35,17 +35,17 @@ function LivePanel({ batch }: { batch: ApiBatchDetail }) {
   const { done, total, current } = runProgress(batch.items);
   const pct = Math.round(batch.progress * 100);
   return (
-    <section aria-label="Batch progress" className="grid gap-3 rounded-lg border border-border border-l-[3px] border-l-accent bg-sheet p-5 shadow-sheet">
+    <section aria-label="Batch progress" className="vol-glass grid gap-3 rounded-card p-[18px]">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <LiveDot />
-        <p className="text-label font-semibold text-accent-text">{batch.status === "running" || batch.status === "waiting" ? "Running now" : "Waiting"}</p>
+        <p className="text-label font-semibold text-blue">{batch.status === "running" || batch.status === "waiting" ? "Running now" : "Waiting"}</p>
         {/* Polite and short, so a screen reader hears each book change once, not every percentage. */}
         <p aria-live="polite" className="text-body text-ink">
           {current ? `Writing ${current}.` : "Waiting for the next book."} {done} of {total} {total === 1 ? "book" : "books"} done.
         </p>
       </div>
       <ProgressBar value={pct} max={100} label="Batch progress" valueText={`${pct}% done, ${done} of ${total} ${total === 1 ? "book" : "books"}`} live />
-      <p className="text-small text-ink-secondary">Books run one at a time, so your other work keeps moving. You can leave this page; the run carries on.</p>
+      <p className="text-[12.5px] text-ink-2">Books run one at a time, so your other work keeps moving. You can leave this page; the run carries on.</p>
     </section>
   );
 }
@@ -53,7 +53,7 @@ function LivePanel({ batch }: { batch: ApiBatchDetail }) {
 function GateDetails({ bookId, gate }: { bookId: string; gate: QualityGate }) {
   if (gate.ok) return null;
   return (
-    <ul className="grid gap-1 text-small text-ink-secondary">
+    <ul className="grid gap-1 text-small text-ink-2">
       {gate.blocks.map((b) => (
         <li key={b.id}>
           {b.message}{" "}
@@ -104,16 +104,14 @@ export default function BatchDetailPage() {
   if (data.state === "error")
     return (
       <Page>
-        <BackLink />
-        <PageHeader title="Batch" />
+        <VolumeHeader title="Batch" titleVisible lead={<BackLink />} />
         <LoadError title="Could not load this batch" message={data.error} retry={data.retry} />
       </Page>
     );
   if (data.state === "missing" || !batch)
     return (
       <Page>
-        <BackLink />
-        <PageHeader title="Batch not found" />
+        <VolumeHeader title="Batch not found" titleVisible lead={<BackLink />} />
         <EmptyState
           drawing="search"
           title="This batch is not here"
@@ -153,9 +151,10 @@ export default function BatchDetailPage() {
 
   return (
     <Page>
-      <BackLink />
       <VolumeHeader
         title={b.name}
+        titleVisible
+        lead={<BackLink />}
         summary={
           <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
             <RunChip status={b.status} />
@@ -187,7 +186,7 @@ export default function BatchDetailPage() {
         }
       />
       <ReadOnlyNote me={me} />
-      {b.notes && <p className="max-w-[68ch] text-body text-ink-secondary">{b.notes}</p>}
+      {b.notes && <p className="max-w-[68ch] text-body text-ink-2">{b.notes}</p>}
       {busy && <LivePanel batch={b} />}
       {failedRun && (
         <Banner
@@ -218,7 +217,7 @@ export default function BatchDetailPage() {
           }
         />
       ) : (
-        <ol aria-label="Books in this batch" className="grid overflow-hidden rounded-md border border-border bg-sheet">
+        <ol aria-label="Books in this batch" className="vol-glass grid overflow-hidden rounded-card">
           {b.items.map((item) => {
             const gate = data.gates.get(item.id);
             const itemRunning = item.run?.status === "running" || item.run?.status === "waiting";
@@ -227,22 +226,22 @@ export default function BatchDetailPage() {
             return (
               <li
                 key={item.id}
-                className="grid gap-3 border-t border-border px-4 py-4 first:border-t-0 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.3fr)_176px] lg:items-start lg:gap-5"
+                className="grid gap-3 border-t border-line px-[18px] py-4 first:border-t-0 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.3fr)_176px] lg:items-start lg:gap-5"
               >
                 <div className="flex min-w-0 gap-3">
-                  <span className="num w-6 shrink-0 pt-0.5 text-small text-ink-tertiary">{item.position}</span>
+                  <span className="num w-6 shrink-0 pt-0.5 text-small text-ink-3">{item.position}</span>
                   <div className="grid min-w-0 gap-0.5">
-                    <Link to={`/books/${item.bookId}`} className="font-book text-[16px] leading-5 font-medium text-ink underline-offset-2 hover:underline">
+                    <Link to={`/books/${item.bookId}`} className="text-[14px] leading-5 font-bold text-ink underline-offset-2 hover:underline">
                       {titleOf(item)}
                     </Link>
-                    <span className="text-small text-ink-secondary">{item.book.penName}</span>
+                    <span className="text-[12.5px] text-ink-2">{item.book.penName}</span>
                   </div>
                 </div>
                 <div className="grid gap-1.5">
                   <span className="flex flex-wrap items-center gap-2">
                     {item.status === "ready" ? (
-                      <span className="inline-flex h-6 items-center gap-1.5 rounded-pill bg-success-wash px-2.5 text-[12.5px] font-semibold text-success">
-                        <BadgeCheck size={14} strokeWidth={2} aria-hidden />
+                      <span className={chipClasses("good")}>
+                        <ChipDot />
                         Ready
                       </span>
                     ) : (
@@ -253,10 +252,10 @@ export default function BatchDetailPage() {
                   {item.run?.error && <p className="text-small text-claim">{item.run.error}</p>}
                 </div>
                 <div className="grid gap-1.5">
-                  {data.gatesState === "error" ? <span className="text-small text-ink-secondary">Gate not checked</span> : <GateChip gate={gate} />}
+                  {data.gatesState === "error" ? <span className="text-small text-ink-2">Gate not checked</span> : <GateChip gate={gate} />}
                   {gate && <GateDetails bookId={item.bookId} gate={gate} />}
                   {item.slots.length > 0 && (
-                    <ul className="grid gap-0.5 text-small text-ink-secondary">
+                    <ul className="grid gap-0.5 text-small text-ink-2">
                       {item.slots.map((s) => (
                         <li key={s.id} className="inline-flex items-center gap-1.5">
                           <CalendarPlus size={14} aria-hidden />
@@ -304,7 +303,7 @@ export default function BatchDetailPage() {
           })}
         </ol>
       )}
-      <p className="text-small text-ink-secondary">
+      <p className="text-small text-ink-2">
         Plan release dates on the{" "}
         <Link to="/volume/schedule" className="font-semibold text-select underline-offset-2 hover:underline">
           release schedule
@@ -349,7 +348,7 @@ export default function BatchDetailPage() {
           </>
         }
       >
-        <p className="text-body text-ink-secondary">Books already marked ready are skipped.</p>
+        <p className="text-body text-ink-2">Books already marked ready are skipped.</p>
       </Modal>
 
       <Modal
@@ -395,12 +394,12 @@ export default function BatchDetailPage() {
 }
 
 function Page({ children }: { children: ReactNode }) {
-  return <div className="mx-auto grid w-full max-w-[1240px] grid-cols-1 content-start gap-6 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">{children}</div>;
+  return <div className={volumePageClasses}>{children}</div>;
 }
 
 function BackLink() {
   return (
-    <Link to="/volume" className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-xs text-small font-semibold text-ink-secondary hover:text-ink">
+    <Link to="/volume" className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-xs text-small font-semibold text-ink-2 hover:text-ink">
       <ArrowLeft size={16} aria-hidden />
       All batches
     </Link>

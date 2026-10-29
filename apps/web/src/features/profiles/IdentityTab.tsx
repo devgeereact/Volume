@@ -18,7 +18,7 @@ export interface TabProps {
 export function SectionTitle({ id, title, body }: { id: string; title: string; body?: string | undefined }) {
   return (
     <div className="grid gap-1">
-      <h2 id={id} className="font-book text-[20px] leading-[26px] font-medium text-ink">
+      <h2 id={id} className="text-[16px] leading-6 font-bold text-ink">
         {title}
       </h2>
       {body && <p className="max-w-[60ch] text-small text-ink-secondary">{body}</p>}
@@ -66,7 +66,7 @@ export function IdentityTab({ draft, update, errors }: TabProps) {
           ) : (
             <span
               aria-hidden
-              className="grid size-[72px] shrink-0 place-items-center rounded-full border border-dashed border-border-strong bg-sunken font-book text-[24px] text-ink-secondary"
+              className="grid size-[72px] shrink-0 place-items-center rounded-full border border-dashed border-line-2 bg-soft text-[22px] font-bold text-ink-2"
             >
               {initials}
             </span>

@@ -37,7 +37,7 @@ export function BookTypeStep({ value, profile, error, onChoose }: BookTypeStepPr
 
   return (
     <div className="grid gap-4">
-      <p role="status" className="text-body text-ink-secondary">
+      <p role="status" className="text-body text-ink-2">
         {selected ? (
           <>
             Selected: <b className="font-semibold text-ink">{selected.name}</b>, {bookCategories.find((c) => c.id === selected.category)?.name.toLowerCase()}
@@ -52,17 +52,15 @@ export function BookTypeStep({ value, profile, error, onChoose }: BookTypeStepPr
       <Tabs label="Book categories" idBase="booktype" items={items} value={tab} onChange={setTab} />
 
       <div {...tabPanelProps("booktype", tab)} className="grid gap-3 focus:outline-none focus-visible:outline-2 focus-visible:outline-select">
-        {category && <p className="text-small text-ink-secondary">{category.description}</p>}
-        {tab === PROFILE_TAB && profile && (
-          <p className="text-small text-ink-secondary">The types {profile.name} writes. Every other type is in the category tabs.</p>
-        )}
+        {category && <p className="text-small text-ink-2">{category.description}</p>}
+        {tab === PROFILE_TAB && profile && <p className="text-small text-ink-2">The types {profile.name} writes. Every other type is in the category tabs.</p>}
         <fieldset aria-describedby={error ? "type-error" : undefined}>
           <legend className="sr-only">Book type</legend>
-          <div id="field-bookTypeId" tabIndex={-1} className="grid gap-3 focus:outline-none md:grid-cols-2 2xl:grid-cols-3">
+          <div id="field-bookTypeId" tabIndex={-1} className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-2.5 focus:outline-none">
             {shown.map((t) => (
               <ChoiceCard key={t.id} name="book-type" value={t.id} checked={value === t.id} onChange={() => onChoose(t)} describedBy={`type-${t.id}`}>
-                <span className="pr-8 font-book text-[18px] leading-6 font-medium text-ink">{t.name}</span>
-                <span className="text-small text-ink-secondary">{t.description}</span>
+                <span className="pr-8 text-[14px] leading-6 font-bold text-ink">{t.name}</span>
+                <span className="text-small text-ink-2">{t.description}</span>
                 <span id={`type-${t.id}`} className="num flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-1 text-small text-ink">
                   <span>
                     {formatNumber(t.wordRange.default)} words, {t.chapterRange.default} {t.structure.bodyUnit}
@@ -87,5 +85,5 @@ export function BookTypeStep({ value, profile, error, onChoose }: BookTypeStepPr
 }
 
 function Tag({ children }: { children: ReactNode }) {
-  return <span className="inline-flex h-6 items-center rounded-pill bg-sunken px-2 text-caption text-ink-secondary">{children}</span>;
+  return <span className="inline-flex h-6 items-center rounded-pill border border-edge bg-panel-2 px-2 text-caption text-ink-2">{children}</span>;
 }

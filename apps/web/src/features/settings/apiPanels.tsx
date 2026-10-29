@@ -1,9 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { useCanManage } from "../../lib/access";
-import { Link } from "react-router";
 import { HardDriveDownload, PlugZap, RefreshCw, Save, Upload } from "lucide-react";
 import { useNavigate } from "react-router";
-import { Banner, Button, EmptyState, Figure, Input, KeyValueList, SegmentedControl, Select, Skeleton, StatusChip, Switch } from "../../components/ui";
+import { Banner, Button, EmptyState, Input, KeyValueList, SegmentedControl, Select, Skeleton, StatusChip, Switch } from "../../components/ui";
 import { apiErrorText, fromServerTrim, isoFromMs, toServerTrim, useApiProfiles, useApiSettings } from "../../api/wire-a";
 import { useBackups, useHealth, useImportProject, useMakeBackup, usePatchSettings, useTestOpenRouter } from "../../api/hooks";
 import type { BookDefaultsSetting } from "../../api/types";
@@ -13,8 +12,8 @@ import { TRIM_HINT, TRIM_OPTIONS } from "../profiles/PublishingTab";
 import type { SettingsResponse } from "../../api/types";
 import { formatTime, formatUsd } from "../../lib/format";
 import { useNow } from "../../lib/useNow";
-import { InlineStatus, PanelHeader, SaveAction } from "./PanelHeader";
-import { Block } from "./panels";
+import { InlineStatus, PanelHeader, SaveAction, SettingRow, SettingsSection } from "./PanelHeader";
+import { Block, KeySafetyNet, SpendFigure } from "./panels";
 import { canSeeBackups, guestCapError, guestCapOf, parseGuestCap } from "./instanceOnly";
 
 /* Settings panels that read and save through the Volume server (GET and PATCH /settings, the backups
@@ -23,7 +22,7 @@ import { canSeeBackups, guestCapError, guestCapOf, parseGuestCap } from "./insta
 
 function Loading({ label }: { label: string }) {
   return (
-    <div role="status" aria-label={label} className="grid gap-3 rounded-md border border-border bg-sheet p-5">
+    <div role="status" aria-label={label} className="vol-glass grid gap-3 rounded-card p-[22px]">
       <Skeleton className="h-3 w-1/3" />
       <Skeleton className="h-3 w-1/2" />
       <Skeleton className="h-3 w-2/5" />
@@ -64,23 +63,17 @@ export function ApiKeyPanel() {
   const q = useApiSettings(true);
   const test = useTestOpenRouter();
   const [testedAt, setTestedAt] = useState<string | null>(null);
+  const keyChip = !q.data ? undefined : q.data.openRouterKey.present ? (
+    test.data && !test.data.ok ? (
+      <StatusChip status="attention">Not accepted</StatusChip>
+    ) : (
+      <StatusChip status="passed">Key present</StatusChip>
+    )
+  ) : (
+    <StatusChip status="attention">No key</StatusChip>
+  );
   const header = (
-    <PanelHeader
-      title="OpenRouter"
-      body="Volume reaches every model through OpenRouter with one key that stays on the server."
-      actions={
-        q.data ? (
-          <Button
-            icon={PlugZap}
-            loading={test.isPending}
-            loadingLabel="Testing"
-            onClick={() => test.mutate(undefined, { onSettled: () => setTestedAt(new Date().toISOString()) })}
-          >
-            Test connection
-          </Button>
-        ) : undefined
-      }
-    />
+    <PanelHeader title="OpenRouter" body="Volume reaches every model through OpenRouter with one key that stays on the server." actions={keyChip} />
   );
   if (q.isPending)
     return (
@@ -128,42 +121,46 @@ export function ApiKeyPanel() {
           }
         />
       )}
-      <Block title="Key status" aside={present ? <StatusChip status="passed">Key present</StatusChip> : <StatusChip status="attention">No key</StatusChip>}>
-        <div className="grid gap-x-10 gap-y-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <KeyValueList
-            items={[
-              { label: "Key on the server", value: present ? "Yes" : "No" },
-              {
-                label: "Credit left",
-                value: present
-                  ? result?.ok
-                    ? result.creditUsd === null
-                      ? "No spending limit on the key"
-                      : formatUsd(result.creditUsd)
-                    : creditLine(s.openRouterCredit)
-                  : "No key",
-              },
-              { label: "Last tested", value: testedAt ? `Today, ${formatTime(testedAt)}` : "Not tested yet" },
-              { label: "AI answers from", value: providerLabel(s.aiProvider) },
-            ]}
-          />
-          <div className="grid content-start gap-2 border-t border-border pt-4 text-small text-ink-secondary md:border-t-0 md:border-l md:pt-0 md:pl-10">
-            <p className="font-semibold text-ink">Where the key lives</p>
-            <p>
-              In the server’s .env file as <span className="font-mono text-[12.5px] text-ink">OPENROUTER_API_KEY</span>. Volume never shows it, logs it or sends
-              it to the browser, not even in part.
-            </p>
-            <p>To change it, edit the file and restart the server.</p>
-          </div>
+      <SettingsSection title="Key">
+        <div>
+          <SettingRow
+            title="API key"
+            body={
+              <>
+                Kept on the server as <span className="font-mono text-[12px] text-ink-2">OPENROUTER_API_KEY</span>. Volume never shows it, logs it or sends it
+                to the browser, not even in part.
+              </>
+            }
+          >
+            {present ? <StatusChip status="passed">Present on the server</StatusChip> : <StatusChip status="attention">Not on the server</StatusChip>}
+          </SettingRow>
+          <SettingRow title="Credit left" body={testedAt ? `Last tested today, ${formatTime(testedAt)}.` : "Not tested yet in this session."}>
+            <span className="num text-right text-[28px] leading-none font-light tracking-[-0.02em] text-ink max-[560px]:text-[22px]">
+              {present
+                ? result?.ok
+                  ? result.creditUsd === null
+                    ? "No spending limit on the key"
+                    : formatUsd(result.creditUsd)
+                  : creditLine(s.openRouterCredit)
+                : "No key"}
+            </span>
+          </SettingRow>
+          <SettingRow title="AI answers from" body="The provider the server sends AI calls to.">
+            <span className="text-[14px] font-semibold text-ink">{providerLabel(s.aiProvider)}</span>
+          </SettingRow>
+          <SettingRow title="Test the connection" body="Sends one small request to OpenRouter.">
+            <Button
+              icon={PlugZap}
+              loading={test.isPending}
+              loadingLabel="Testing"
+              onClick={() => test.mutate(undefined, { onSettled: () => setTestedAt(new Date().toISOString()) })}
+            >
+              Test connection
+            </Button>
+          </SettingRow>
         </div>
-      </Block>
-      <Banner tone="info" title="Set a spending limit on the key if you want one">
-        Volume has no spending cap of its own. In your OpenRouter account you can cap what this key may spend. See what the AI has cost on the{" "}
-        <Link to="/settings/budgets" className="font-semibold text-select underline underline-offset-2">
-          spending
-        </Link>{" "}
-        page.
-      </Banner>
+      </SettingsSection>
+      <KeySafetyNet />
     </div>
   );
 }
@@ -233,14 +230,12 @@ function SpendingForm({ settings, header }: { settings: SettingsResponse; header
         </Banner>
       )}
       <Block title={`${monthLabel} so far`}>
-        <Figure value={formatUsd(spent)} unit="spent this month" />
-        <p className="text-small text-ink-secondary">All books and profiles together, in dollars as the AI provider bills.</p>
+        <SpendFigure usd={spent} />
+        <p className="text-small text-ink-2">All books and profiles together, in dollars as the AI provider bills.</p>
       </Block>
       {isInstanceOwner && (
         <Block title="Other workspaces">
-          <p className="text-small text-ink-secondary">
-            Other workspaces use your OpenRouter key. Set how much they may spend each month. 0 stops their AI runs.
-          </p>
+          <p className="text-small text-ink-2">Other workspaces use your OpenRouter key. Set how much they may spend each month. 0 stops their AI runs.</p>
           <Input
             label="Monthly cap per workspace, US dollars"
             inputMode="decimal"
@@ -391,66 +386,70 @@ function BookDefaultsForm({ saved }: { saved: BookDefaultsSetting | undefined })
           {apiErrorText(patch.error)} Your changes are still on this page.
         </Banner>
       )}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Select
-          label="Book type"
-          value={v.type}
-          onChange={chooseType}
-          options={bookTypeOptions}
-          hint={type ? `${type.description} Choosing a type fills in its length, trim, interior and cover style.` : undefined}
-          className="sm:col-span-2"
-        />
-        <Select label="Trim size" value={v.trim} onChange={(trim) => setV({ ...v, trim })} options={TRIM_OPTIONS} hint={TRIM_HINT} />
-        <fieldset className="grid content-start gap-1.5">
-          <legend className="mb-1.5 text-label text-ink">Paper</legend>
-          <SegmentedControl<"cream" | "white">
-            label="Paper"
-            value={v.paper}
-            onChange={(paper) => setV({ ...v, paper })}
-            options={[
-              { value: "cream", label: "Cream" },
-              { value: "white", label: "White" },
-            ]}
-            className="w-full sm:w-60"
-          />
-          <p className="text-small text-ink-tertiary">Cream suits text-led books. Spine width depends on it.</p>
-        </fieldset>
-        <Select
-          label="Interior theme"
-          value={v.theme}
-          onChange={(theme) => setV({ ...v, theme })}
-          options={interiorThemes.map((t) => ({ value: t.id, label: t.name }))}
-          hint={getInteriorTheme(v.theme)?.description}
-        />
-        <Select
-          label="Cover style"
-          value={v.cover}
-          onChange={(cover) => setV({ ...v, cover })}
-          options={coverStyles.map((c) => ({ value: c.id, label: c.name }))}
-          hint={getCoverStyle(v.cover)?.description}
-        />
-      </div>
-      <fieldset className="grid gap-4">
-        <legend className="mb-3 text-subhead text-ink">Length</legend>
+      <SettingsSection title="Every new book">
         <div className="grid gap-5 sm:grid-cols-2">
-          <Input
-            label="Book length, words"
-            inputMode="numeric"
-            value={v.total}
-            onChange={(e) => setV({ ...v, total: e.target.value })}
-            error={totalError}
-            hint={type ? `${formatNumber(type.wordRange.min)} to ${formatNumber(type.wordRange.max)} for this book type` : undefined}
+          <Select
+            label="Book type"
+            value={v.type}
+            onChange={chooseType}
+            options={bookTypeOptions}
+            hint={type ? `${type.description} Choosing a type fills in its length, trim, interior and cover style.` : undefined}
+            className="sm:col-span-2"
           />
-          <Input
-            label={unitLabel}
-            inputMode="numeric"
-            value={v.chapters}
-            onChange={(e) => setV({ ...v, chapters: e.target.value })}
-            error={chaptersError}
-            hint={type ? `${formatNumber(type.chapterRange.min)} to ${formatNumber(type.chapterRange.max)}` : undefined}
+          <Select label="Trim size" value={v.trim} onChange={(trim) => setV({ ...v, trim })} options={TRIM_OPTIONS} hint={TRIM_HINT} />
+          <fieldset className="grid content-start gap-1.5">
+            <legend className="mb-1.5 text-label text-ink">Paper</legend>
+            <SegmentedControl<"cream" | "white">
+              label="Paper"
+              value={v.paper}
+              onChange={(paper) => setV({ ...v, paper })}
+              options={[
+                { value: "cream", label: "Cream" },
+                { value: "white", label: "White" },
+              ]}
+              className="w-full sm:w-60"
+            />
+            <p className="text-small text-ink-3">Cream suits text-led books. Spine width depends on it.</p>
+          </fieldset>
+          <Select
+            label="Interior theme"
+            value={v.theme}
+            onChange={(theme) => setV({ ...v, theme })}
+            options={interiorThemes.map((t) => ({ value: t.id, label: t.name }))}
+            hint={getInteriorTheme(v.theme)?.description}
+          />
+          <Select
+            label="Cover style"
+            value={v.cover}
+            onChange={(cover) => setV({ ...v, cover })}
+            options={coverStyles.map((c) => ({ value: c.id, label: c.name }))}
+            hint={getCoverStyle(v.cover)?.description}
           />
         </div>
-      </fieldset>
+      </SettingsSection>
+      <SettingsSection title="Length">
+        <fieldset className="grid gap-4">
+          <legend className="sr-only">Length</legend>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Input
+              label="Book length, words"
+              inputMode="numeric"
+              value={v.total}
+              onChange={(e) => setV({ ...v, total: e.target.value })}
+              error={totalError}
+              hint={type ? `${formatNumber(type.wordRange.min)} to ${formatNumber(type.wordRange.max)} for this book type` : undefined}
+            />
+            <Input
+              label={unitLabel}
+              inputMode="numeric"
+              value={v.chapters}
+              onChange={(e) => setV({ ...v, chapters: e.target.value })}
+              error={chaptersError}
+              hint={type ? `${formatNumber(type.chapterRange.min)} to ${formatNumber(type.chapterRange.max)}` : undefined}
+            />
+          </div>
+        </fieldset>
+      </SettingsSection>
     </div>
   );
 }
@@ -569,16 +568,16 @@ export function ApiBackupsPanel() {
       )}
       <Block title={`Backups (${q.data.items.length})`}>
         {q.data.items.length === 0 ? (
-          <p className="text-small text-ink-secondary">No backups yet. Back up now, or wait for the nightly one.</p>
+          <p className="text-small text-ink-2">No backups yet. Back up now, or wait for the nightly one.</p>
         ) : (
           <ul className="grid">
             {q.data.items.slice(0, 14).map((f) => (
               <li
                 key={f.name}
-                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-t border-border py-2 text-[14px] first:border-t-0"
+                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 border-t border-line py-2 text-[14px] first:border-t-0"
               >
                 <span className="min-w-0 truncate font-mono text-[12.5px] text-ink">{f.name}</span>
-                <span className="num text-small text-ink-secondary">
+                <span className="num text-small text-ink-2">
                   {formatDate(isoFromMs(f.createdAt))}, {formatTime(isoFromMs(f.createdAt))}, {sizeText(f.bytes)}
                 </span>
               </li>
@@ -667,7 +666,7 @@ export function ApiKdpRulesPanel() {
               { label: "Next check due", value: due ? formatDate(due) : "Not set" },
             ]}
           />
-          <p className="max-w-[62ch] text-small text-ink-secondary">
+          <p className="max-w-[62ch] text-small text-ink-2">
             Some rules are still marked unverified, such as the trim size list. Export preflight warns while a rule it uses is unverified.
           </p>
         </Block>
@@ -732,7 +731,7 @@ function ImportProjectBlock() {
 
   return (
     <Block title="Import a project file">
-      <p className="max-w-[62ch] text-small text-ink-secondary">
+      <p className="max-w-[62ch] text-small text-ink-2">
         Load a book exported from Volume, with its versions, covers and exports. To make one, open the book and choose Export project file in the command menu
         (Cmd K), or use the file button on an Archive row.
       </p>
@@ -747,13 +746,9 @@ function ImportProjectBlock() {
               importer.reset();
               setFile(e.target.files?.[0] ?? null);
             }}
-            className="block w-full text-small text-ink-secondary file:mr-3 file:h-10 file:rounded-sm file:border file:border-border-strong file:bg-sheet file:px-3 file:text-label file:font-semibold file:text-ink hover:file:bg-sunken"
+            className="block w-full text-small text-ink-2 file:mr-3 file:h-10 file:rounded-sm file:border file:border-edge file:bg-panel-2 file:px-3 file:text-label file:font-semibold file:text-ink hover:file:bg-soft"
           />
-          {fileError ? (
-            <span className="text-small text-claim">{fileError}</span>
-          ) : (
-            <span className="text-small text-ink-tertiary">A .zip made by Volume.</span>
-          )}
+          {fileError ? <span className="text-small text-claim">{fileError}</span> : <span className="text-small text-ink-3">A .zip made by Volume.</span>}
         </label>
         <Select label="Put the book under" value={profileId} onChange={setProfileId} options={options} />
       </div>
