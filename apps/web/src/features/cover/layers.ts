@@ -115,7 +115,9 @@ export function layerChecks(i: {
     detail: c.detail,
     onShow: () => i.show(c.part),
   }));
-  for (const w of new Set(i.page)) out.push({ status: "warn", title: "From the build's page", detail: w });
-  for (const w of new Set(i.built)) out.push({ status: "warn", title: "Measured in the last build", detail: w });
+  // Rule status notes (the barcode area is a partial rule) are shown where the rule is, not as a cover problem.
+  const real = (list: readonly string[]) => [...new Set(list)].filter((w) => !/^Rule \S+ is (partial|unverified)/.test(w));
+  for (const w of real(i.page)) out.push({ status: "warn", title: "From the build's page", detail: w });
+  for (const w of real(i.built)) out.push({ status: "warn", title: "Noted by the last build", detail: w });
   return out;
 }

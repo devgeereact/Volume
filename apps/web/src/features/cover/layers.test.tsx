@@ -45,7 +45,7 @@ describe("cover layers in the studio", () => {
       colours: NAVY,
       art: true,
       showSubtitle: false,
-      built: ["The title reads at about 2.1 to 1."],
+      built: ["The title reads at about 2.1 to 1.", "Rule paperback.cover.barcodeArea is partial: check before you rely on it."],
       page: ["Background picture is about 90 DPI where it prints."],
       show: () => {},
     });
@@ -53,7 +53,7 @@ describe("cover layers in the studio", () => {
       ["warn", "Title contrast needs a look"],
       ["warn", "Author contrast needs a look"],
       ["warn", "From the build's page"],
-      ["warn", "Measured in the last build"],
+      ["warn", "Noted by the last build"],
     ]);
     expect(layerChecks({ layers: {}, colours: NAVY, art: true, showSubtitle: false, built: [], page: [], show: () => {} })).toBeNull();
   });
