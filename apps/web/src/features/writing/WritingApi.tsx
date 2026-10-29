@@ -45,6 +45,7 @@ import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
 import { useKeyChanged } from "../../lib/useKeyChanged";
 import { AcknowledgementsNotice } from "./AcknowledgementsNotice";
+import { JobStateChip, LiveCounts, type LiveCount } from "./LiveCounts";
 import { SummaryMissingNotice } from "./SummaryMissingNotice";
 import { TemplateRulesNotice } from "./TemplateRulesNotice";
 
@@ -270,6 +271,20 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
   const budgetJob = parent?.status === "paused_budget" ? parent : (children.find((c) => c.status === "paused_budget") ?? null);
   const budget = live.data.budgetPaused ?? (budgetJob ? { jobId: budgetJob.id, message: budgetJob.error ?? "" } : null);
 
+  // Live figures: words and sections come from the section list and the event stream, time left from the
+  // server's estimate (left out until it knows), spend from the book.
+  const liveCounts: LiveCount[] =
+    written.length === 0
+      ? []
+      : [
+          { label: wordTarget > 0 ? `of ${formatNumber(wordTarget)} words written` : "Words written", value: formatNumber(wordsWritten) },
+          { label: "Sections written", value: `${doneCount} of ${written.length}` },
+          ...((jobState === "running" || jobState === "pausing") && parent?.etaMs
+            ? [{ label: "Time left", value: etaWords(parent.etaMs).replace(/^about/, "About") }]
+            : []),
+          { label: "Spent on this book", value: formatUsd(apiBook.costToDateUsd) },
+        ];
+
   if (tree.isPending) return <WritingSkeleton />;
 
   return (
@@ -277,21 +292,24 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
       {/* Section list */}
       <nav aria-label="Sections" className="order-3 min-h-0 overflow-y-auto border-border px-4 py-5 xl:order-none xl:border-r">
         <div className="grid gap-2 px-1 pb-3">
-          <h2 className="text-[13px] font-semibold text-ink-secondary">Sections</h2>
+          <h2 className="flex items-baseline justify-between gap-3 text-subhead text-ink">
+            Sections
+            {written.length > 0 && (
+              <span className="num rounded-pill bg-sunken px-2.5 py-0.5 text-small font-semibold text-ink-secondary">
+                {doneCount} of {written.length}
+                <span className="sr-only"> written</span>
+              </span>
+            )}
+          </h2>
           {written.length > 0 && (
-            <>
-              <ProgressBar
-                value={doneCount}
-                max={written.length}
-                label="Sections written"
-                valueText={`${doneCount} of ${written.length} sections written`}
-                live={jobState === "running"}
-                size="thin"
-              />
-              <p className="num text-small text-ink-secondary">
-                {doneCount} of {written.length} sections written
-              </p>
-            </>
+            <ProgressBar
+              value={doneCount}
+              max={written.length}
+              label="Sections written"
+              valueText={`${doneCount} of ${written.length} sections written`}
+              live={jobState === "running"}
+              size="thin"
+            />
           )}
         </div>
         {rows.length === 0 ? (
@@ -308,8 +326,12 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
                     setFollow(current?.section.id === r.section.id);
                   }}
                   className={cn(
-                    "flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-sm px-2 text-left",
-                    shown?.section.id === r.section.id ? "bg-select-wash" : "hover:bg-sunken",
+                    "flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-sm px-2 py-1.5 text-left",
+                    r.status === "writing" || r.status === "checking"
+                      ? "bg-accent-wash"
+                      : shown?.section.id === r.section.id
+                        ? "bg-select-wash"
+                        : "hover:bg-sunken",
                   )}
                 >
                   <StatusMark status={r.status} />
@@ -322,6 +344,17 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
                       {r.words > 0 ? `, ${formatNumber(r.words)} words` : ""}
                       {r.flags.length > 0 ? `, ${r.flags.length} to look at` : ""}
                     </span>
+                    {r.status === "writing" && r.section.wordTarget ? (
+                      <ProgressBar
+                        className="mt-1.5"
+                        size="thin"
+                        live
+                        value={Math.min(r.words, r.section.wordTarget)}
+                        max={r.section.wordTarget}
+                        label={`${sectionName(r.section)} progress`}
+                        valueText={`${formatNumber(r.words)} of about ${formatNumber(r.section.wordTarget)} words`}
+                      />
+                    ) : null}
                   </span>
                 </button>
                 {r.status === "failed" && canWrite && (
@@ -339,7 +372,10 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
       <div className="order-1 grid min-h-0 content-start gap-4 overflow-y-auto px-4 py-6 sm:px-8 xl:order-none">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="grid gap-1">
-            <h1 className="font-book text-title text-ink">Writing</h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="font-book text-title text-ink">Writing</h1>
+              {rows.length > 0 && <JobStateChip tone={jobState} />}
+            </div>
             <p className="flex items-center gap-2 text-small text-ink-secondary">
               {jobState === "running" && (
                 <>
@@ -376,6 +412,8 @@ export function WritingApi({ book, apiBook }: { book: Book; apiBook: ApiBookDeta
             </div>
           )}
         </div>
+
+        {liveCounts.length > 0 && <LiveCounts items={liveCounts} />}
 
         {error && (
           <Banner tone="error" title="That did not work">
@@ -632,7 +670,7 @@ function Blocks({ blocks, live }: { blocks: TextBlock[]; live: boolean }) {
     <div className="grid max-w-[68ch] gap-4 font-book text-prose text-ink">
       {blocks.map((b, i) => {
         const last = live && i === blocks.length - 1;
-        const caret = last ? <span aria-hidden className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] animate-pulse bg-accent" /> : null;
+        const caret = last ? <span aria-hidden className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] motion-safe:animate-pulse bg-accent" /> : null;
         if (b.kind === "h1")
           return (
             <h2 key={i} className="text-[26px] leading-8 font-medium">
@@ -706,21 +744,25 @@ function SectionCanvas({
     if (streaming && following) bottomRef.current?.scrollIntoView({ block: "nearest" });
   }, [delta.length, streaming, following]);
 
+  const liveNow = streaming && row.status === "writing";
   const text = streaming ? delta : (detail.data?.current?.bodyMd ?? "");
   const blocks = markdownBlocks(text);
 
   return (
     <article aria-label={sectionName(s)} className="rounded-t-lg border border-b-0 border-border bg-sheet px-5 py-7 shadow-sheet sm:px-10 sm:py-9">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-2 text-small text-ink-secondary">
-        <span className="flex items-center gap-2">
-          {row.status === "writing" && streaming && <LiveDot />}
-          <span>
-            {`${sectionName(s)}: ${writeStatusWords[row.status].toLowerCase()}`}
-            {row.status !== "built" && (row.words > 0 || s.wordTarget)
-              ? `, ${formatNumber(row.words)}${s.wordTarget ? ` of ${formatNumber(s.wordTarget)}` : ""} words`
-              : ""}
-          </span>
-        </span>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-2">
+        <div className="grid gap-0.5">
+          <p className={cn("flex items-center gap-2 text-label font-semibold", liveNow ? "text-accent-text" : "text-ink-secondary")}>
+            {liveNow && <LiveDot />}
+            {liveNow ? `${sectionName(s)}, writing now` : `${sectionName(s)}: ${writeStatusWords[row.status].toLowerCase()}`}
+          </p>
+          {row.status !== "built" && (row.words > 0 || s.wordTarget) ? (
+            <p className="num text-small text-ink-secondary">
+              {formatNumber(row.words)}
+              {s.wordTarget ? ` of about ${formatNumber(s.wordTarget)}` : ""} words{liveNow ? ". Checks run when it is saved." : "."}
+            </p>
+          ) : null}
+        </div>
         {canFollow && (
           <Button size="sm" variant="ghost" onClick={onFollow}>
             Follow the writer

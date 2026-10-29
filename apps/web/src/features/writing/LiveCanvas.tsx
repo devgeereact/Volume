@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useReducedMotion } from "motion/react";
-import { ChevronDown, CircleStop, FileText, Pause, Play, RotateCw, Square } from "lucide-react";
+import { ChevronDown, CircleStop, FileText, Pause, Play, RotateCw } from "lucide-react";
 import { Button, LiveDot, StatusChip, StreamText, Switch } from "../../components/ui";
+import { JobStateChip, LiveCounts, type LiveCount } from "./LiveCounts";
 import { getBook, type WritingJob } from "../../demo";
 import { interiorLook } from "../../lib/interiorLook";
 import { cn } from "../../lib/cn";
@@ -27,6 +28,8 @@ interface LiveCanvasProps {
   rows: SectionRow[];
   retried: Record<string, { finishedAt: string | null }>;
   onRetry: (sectionId: string) => void;
+  /** Live figures over the page: words, sections, time and spend, all from the job. */
+  counts?: LiveCount[] | undefined;
 }
 
 /** The live page: header controls, the chapter being written with the gilt caret, and the log of finished sections. */
@@ -39,7 +42,7 @@ export function LiveCanvas(props: LiveCanvasProps) {
     <div className="flex min-h-0 flex-col xl:h-full">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border px-4 py-3 sm:px-8 xl:min-h-[76px]">
         <h1 className="text-[18px] leading-6 font-semibold text-ink">Writing</h1>
-        <StateChip jobState={jobState} />
+        <JobStateChip tone={jobState} />
         <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-1">
           <Switch nowrap label="Follow the writer" checked={follow} onChange={onFollow} disabled={jobState === "stopped"} />
           {jobState === "running" && (
@@ -61,6 +64,7 @@ export function LiveCanvas(props: LiveCanvasProps) {
       </header>
 
       <div className="relative min-h-0 flex-1 overflow-y-auto px-4 pt-7 pb-12 sm:px-8 xl:px-10">
+        {props.counts && <LiveCounts items={props.counts} className="mx-auto mb-8 max-w-[760px]" />}
         {jobState === "stopped" && (
           <div role="status" className="mx-auto mb-7 flex max-w-[640px] flex-wrap items-center gap-3 rounded-md bg-accent-wash px-4 py-3">
             <p className="min-w-0 flex-1 text-[14px] leading-5 text-ink">
@@ -85,22 +89,6 @@ export function LiveCanvas(props: LiveCanvasProps) {
         <FinishedLog job={job} rows={rows} retried={props.retried} onRetry={props.onRetry} />
       </div>
     </div>
-  );
-}
-
-function StateChip({ jobState }: { jobState: JobState }) {
-  if (jobState === "running")
-    return (
-      <span className="inline-flex h-7 items-center gap-2 rounded-pill bg-accent-wash px-3 text-small font-semibold text-accent-text">
-        <LiveDot />
-        Running
-      </span>
-    );
-  return (
-    <span className="inline-flex h-7 items-center gap-2 rounded-pill bg-sunken px-3 text-small font-semibold text-ink-secondary">
-      {jobState === "paused" ? <Pause size={14} strokeWidth={2} aria-hidden /> : <Square size={12} strokeWidth={2} aria-hidden />}
-      {jobState === "paused" ? "Paused" : "Stopped"}
-    </span>
   );
 }
 

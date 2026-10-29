@@ -47,6 +47,7 @@ import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
 import { useCanWrite } from "../../lib/access";
 import { blueprintCreateInput } from "./blueprintRequest";
+import { ChapterPlan, PlanCounts, VersionChip, type PlanChapter } from "./ChapterPlan";
 import { NarrationEditor, StoryBibleEditor, StoryBibleView, StoryLedgerPanel, emptyBible, storyBibleOf, type Tense } from "./StoryBible";
 
 /* Blueprint for a book on the server (API mode). Build it, read the latest version, edit a part
@@ -102,6 +103,8 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selected, setSelected] = useState<BlueprintPartKey>("summary");
+  // The chapter open in the chapter plan; null shows the first chapter.
+  const [planKey, setPlanKey] = useState<string | null>(null);
   const [edit, setEdit] = useState<EditTarget | null>(null);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
   const [editBase, setEditBase] = useState<number | null>(null);
@@ -158,8 +161,24 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
 
   function select(p: Part) {
     setSelected(p.key);
+    if (p.key.startsWith("chapter:")) setPlanKey(p.key);
     requestAnimationFrame(() => document.getElementById(p.anchor)?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
   }
+
+  const planChapters: PlanChapter[] = useMemo(
+    () =>
+      (d?.chapters ?? []).map((c) => ({
+        key: `chapter:${c.number}`,
+        number: c.number,
+        title: c.title,
+        wordTarget: c.word_target,
+        purpose: c.summary,
+        sections: c.subheadings,
+      })),
+    [d],
+  );
+  const matterCount = d ? matterRows(d.front).length + matterRows(d.back).length : 0;
+  const partFor = (key: string) => parts.find((p) => p.key === key);
 
   function openEdit(target: EditTarget) {
     if (!version) return;
@@ -373,7 +392,28 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
 
       <div className="min-h-0 min-w-0 lg:overflow-y-auto">
         <div className="grid gap-4 px-3 pt-5 pb-8 sm:px-6">
-          <PageHeader title="Blueprint" summary="The whole plan for the book, part by part. Edit or regenerate any part, then approve it to start writing." />
+          <PageHeader
+            title="Blueprint"
+            summary="The whole plan for the book, part by part. Edit or regenerate any part, then approve it to start writing."
+            actions={
+              version ? (
+                <VersionChip
+                  version={version.version}
+                  total={versions.data ? versions.data.length : null}
+                  approved={approved}
+                  items={(versions.data ?? []).map((v) => ({
+                    version: v.version,
+                    when: whenMs(v.createdAt),
+                    note: v.note ?? (v.source === "human" ? "Edited by you." : "From the planner."),
+                    approved: v.status === "approved",
+                  }))}
+                  actionLabel={canWrite ? "Compare and restore" : "Compare"}
+                  onAction={(n) => void compareVersion(n)}
+                  actionDisabledReason={active ? "Wait for the current run to finish." : historyLoading ? "Opening a version." : undefined}
+                />
+              ) : undefined
+            }
+          />
 
           {saved && (
             <Banner
@@ -483,6 +523,44 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
           )}
 
           {version && guard && guard.needsAttention.length > 0 && <GuardrailNote items={guard.needsAttention} />}
+
+          {d && version && planChapters.length > 0 && (
+            <>
+              <PlanCounts
+                items={[
+                  { label: "Chapters", value: d.chapters.length },
+                  { label: "Words planned", value: totals.chapterWords + totals.front + totals.back },
+                  { label: "Front and back parts", value: matterCount },
+                  { label: "Listing keywords", value: d.keywords.length },
+                ]}
+              />
+              <ChapterPlan
+                chapters={planChapters}
+                selectedKey={planKey}
+                onSelect={(key) => {
+                  setPlanKey(key);
+                  const p = partFor(key);
+                  if (p) setSelected(p.key);
+                }}
+                onShow={(key) => {
+                  const p = partFor(key);
+                  if (p) select(p);
+                }}
+                panelActions={
+                  canWrite
+                    ? (pc) => {
+                        const c = d.chapters.find((x) => x.number === pc.number);
+                        return c ? (
+                          <Button size="sm" variant="ghost" icon={Pencil} onClick={() => openEdit(editChapter(c))}>
+                            Edit chapter
+                          </Button>
+                        ) : null;
+                      }
+                    : undefined
+                }
+              />
+            </>
+          )}
 
           {d && version && (
             <GalleySheet

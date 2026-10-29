@@ -29,12 +29,15 @@ export function SectionList({ book, rows, doneCount, segments, chapterProgress, 
   return (
     <nav aria-label="Sections" className="flex min-h-0 flex-col xl:h-full border-border bg-canvas xl:border-r">
       <div className="px-5 pt-5 pb-4 sm:px-6">
-        <h2 className="text-subhead text-ink">Sections</h2>
+        <h2 className="flex items-baseline justify-between gap-3 text-subhead text-ink">
+          Sections
+          <span className="num rounded-pill bg-sunken px-2.5 py-0.5 text-small font-semibold text-ink-secondary">
+            {doneCount} of {rows.length}
+            <span className="sr-only"> done</span>
+          </span>
+        </h2>
         <p className="mt-0.5 text-small text-ink-secondary">{summary}</p>
         <ChapterBars className="mt-3" segments={segments} label={`${book.title}, chapters written`} />
-        <p className="num mt-1.5 text-caption text-ink-tertiary">
-          {doneCount} of {rows.length} sections done
-        </p>
       </div>
       <ol className="relative min-h-0 flex-1 overflow-y-auto border-t border-border px-3 py-3">
         {rows.map((row) => (

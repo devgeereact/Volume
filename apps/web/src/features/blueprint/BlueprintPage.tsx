@@ -7,7 +7,7 @@ import { calmWardBlueprint, getModel, getPenName, type Blueprint, type Book, typ
 import { DEMO_NOW } from "../../demo/books";
 import { cn } from "../../lib/cn";
 import { scrollBehavior } from "../../lib/motion";
-import { formatDuration, formatNumber, formatUsd } from "../../lib/format";
+import { formatDuration, formatNumber, formatRelative, formatUsd } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
 import { useBook } from "../../lib/useBook";
 import { bookStepPath } from "../../screens";
@@ -18,6 +18,7 @@ import { about, estimateFor, useSimulatedRun } from "../research/sim";
 import { BlueprintApi } from "./BlueprintApi";
 import { BlueprintInspector, type Totals } from "./BlueprintInspector";
 import { buildOutline, groupLabels, regenAlternates, type OutlinePart } from "./blueprintExtras";
+import { ChapterPlan, PlanCounts, VersionChip, type PlanChapter } from "./ChapterPlan";
 import { Galley, type Diff, type Note } from "./Galley";
 import { CATEGORIES_COUNT, DESCRIPTION_MAX, KEYWORDS_MAX } from "./ListingEditors";
 import { OutlineRail } from "./OutlineRail";
@@ -65,6 +66,8 @@ function BlueprintScreen({ book }: { book: Book }) {
   const [screen, setScreen] = useScreenState("ready");
   const [parts, setParts] = useState<OutlinePart[]>(buildOutline);
   const [selectedId, setSelectedId] = useState("chapter-4");
+  // The chapter open in the chapter plan. It follows the selection when a chapter is chosen anywhere.
+  const [planId, setPlanId] = useState("chapter-4");
   const [version, setVersion] = useState(bp.version);
   const [versions, setVersions] = useState<Blueprint["versions"]>(bp.versions);
   const [blueprintCost, setBlueprintCost] = useState(0.11);
@@ -108,6 +111,22 @@ function BlueprintScreen({ book }: { book: Book }) {
       back: sum("back"),
     };
   }, [parts]);
+
+  const planChapters: PlanChapter[] = useMemo(
+    () =>
+      parts
+        .filter((p) => p.group === "chapters" && p.on)
+        .map((p) => ({
+          key: p.id,
+          number: numbers[p.id] ?? 0,
+          title: p.title,
+          wordTarget: p.wordTarget ?? 0,
+          purpose: p.chapter?.summary ?? p.note,
+          sections: p.chapter?.subheadings ?? [],
+        })),
+    [parts, numbers],
+  );
+  const frontBackParts = parts.filter((p) => p.on && (p.group === "front" || p.group === "back")).length;
 
   const openClaims = claims.filter((c) => c.status === "open" && parts.find((p) => p.id === `chapter-${c.chapter}`)?.on);
   const claimCounts = useMemo(() => {
@@ -176,6 +195,7 @@ function BlueprintScreen({ book }: { book: Book }) {
 
   function select(id: string) {
     setSelectedId(id);
+    if (id.startsWith("chapter-")) setPlanId(id);
     requestAnimationFrame(() => document.getElementById(`bp-${id}`)?.scrollIntoView({ block: "start", behavior: scrollBehavior() }));
   }
 
@@ -338,7 +358,23 @@ function BlueprintScreen({ book }: { book: Book }) {
       </div>
 
       <div ref={canvasRef} className="min-h-0 min-w-0 lg:overflow-y-auto">
-        <PageHeader title="Blueprint" titleHidden />
+        <PageHeader
+          title="Blueprint"
+          titleHidden
+          actions={
+            screen === "empty" ? undefined : (
+              <VersionChip
+                version={version}
+                total={versions.length}
+                approved={false}
+                items={versions.map((v) => ({ version: v.version, when: formatRelative(v.at), note: v.note, detail: formatUsd(v.cost) }))}
+                actionLabel="Restore"
+                onAction={restore}
+                actionDisabledReason={busy ? "Wait for the current run to finish." : undefined}
+              />
+            )
+          }
+        />
         <div className="px-4 pt-4 sm:px-6 xl:hidden">
           <button
             type="button"
@@ -452,24 +488,47 @@ function BlueprintScreen({ book }: { book: Book }) {
               }
             />
           ) : (
-            <Galley
-              parts={parts}
-              numbers={numbers}
-              selectedId={selectedId}
-              onSelect={select}
-              penName={pen?.name ?? ""}
-              shortBio={pen?.shortBio ?? ""}
-              claims={openClaims}
-              version={version}
-              versionCount={versions.length}
-              notes={notes}
-              diff={diff}
-              regenerating={regen.status === "running" && regenTarget ? { partId: regenTarget.id, cost: regen.cost } : null}
-              building={building ? build.progress : null}
-              locked={false}
-              listing={listing}
-              onListing={setListing}
-            />
+            <>
+              {!building && (
+                <>
+                  <PlanCounts
+                    items={[
+                      { label: "Chapters", value: totals.chapters },
+                      { label: "Words planned", value: totals.total },
+                      { label: "Front and back parts", value: frontBackParts },
+                      { label: "Listing keywords", value: listing.keywords.length },
+                    ]}
+                  />
+                  <ChapterPlan
+                    chapters={planChapters}
+                    selectedKey={planId}
+                    onSelect={(id) => {
+                      setPlanId(id);
+                      setSelectedId(id);
+                    }}
+                    onShow={select}
+                  />
+                </>
+              )}
+              <Galley
+                parts={parts}
+                numbers={numbers}
+                selectedId={selectedId}
+                onSelect={select}
+                penName={pen?.name ?? ""}
+                shortBio={pen?.shortBio ?? ""}
+                claims={openClaims}
+                version={version}
+                versionCount={versions.length}
+                notes={notes}
+                diff={diff}
+                regenerating={regen.status === "running" && regenTarget ? { partId: regenTarget.id, cost: regen.cost } : null}
+                building={building ? build.progress : null}
+                locked={false}
+                listing={listing}
+                onListing={setListing}
+              />
+            </>
           )}
 
           <DemoStates

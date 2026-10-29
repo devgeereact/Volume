@@ -4,7 +4,7 @@ import { NotFound } from "../../shell/NotFound";
 import { useBook } from "../../lib/useBook";
 import { useWritingJob } from "../../lib/job";
 import { useStepAction } from "../../lib/stepAction";
-import { formatNumber, formatUsd } from "../../lib/format";
+import { formatDuration, formatNumber, formatUsd } from "../../lib/format";
 import { DEMO_NOW } from "../../demo";
 import { LiveCanvas, type JobState } from "./LiveCanvas";
 import { RetryDialog } from "./RetryDialog";
@@ -193,6 +193,16 @@ function LiveWriting() {
           rows={rows}
           retried={Object.fromEntries(Object.entries(retries).map(([k, v]) => [k, { finishedAt: v.finishedAt }]))}
           onRetry={setRetryFor}
+          counts={[
+            { label: `of ${formatNumber(job.words.target)} words written`, value: formatNumber(wordsWritten) },
+            { label: "Sections written", value: `${doneCount} of ${rows.length}` },
+            { label: "Time running", value: formatDuration(job.runningMinutes + extraMinutes) },
+            {
+              label: "Time left",
+              value: jobState === "running" ? `About ${formatDuration(minutesLeft)}` : jobState === "paused" ? "Paused" : "Stopped",
+            },
+            { label: "Spent so far", value: formatUsd(costSpent) },
+          ]}
         />
       </div>
       <div className="order-2 min-h-0 border-t border-border xl:order-none xl:border-t-0">
