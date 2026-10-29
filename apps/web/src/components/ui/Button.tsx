@@ -45,7 +45,7 @@ const disabledClasses = "bg-sunken text-ink-tertiary border-border shadow-none h
 const base =
   "relative inline-flex items-center justify-center rounded-sm border font-ui whitespace-nowrap select-none transition-transform duration-(--vol-dur-fast) ease-out active:translate-y-px";
 
-/** Button classes for a router Link that looks like a button (StepFooter, Published shelf). */
+/** Button classes for a router Link that looks like a button (Up next card, Published shelf). */
 export function buttonClasses(variant: ButtonVariant = "secondary", size: ButtonSize = "md"): string {
   return cn(base, sizes[size], variants[variant], "gap-2");
 }

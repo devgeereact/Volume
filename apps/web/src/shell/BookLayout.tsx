@@ -3,17 +3,17 @@ import { ReadOnlyBanner } from "../lib/access";
 import { Outlet, useLocation, useParams } from "react-router";
 import { useBookEvents, useBookLive } from "../api/events";
 import { useExports, useMarketing } from "../api/hooks";
-import { BookSteps } from "../components/ui/BookSteps";
-import { Cover } from "../components/ui/Cover";
-import { libraryCover } from "../features/library/draftCover";
 import { Loader } from "../components/ui/Loader";
 import { bookSteps } from "../demo/books";
-import type { Book, BookStepId, PenName } from "../demo/types";
+import type { Book, BookStepId } from "../demo/types";
 import { useWritingJob } from "../lib/job";
-import { StepActionProvider } from "../lib/stepAction";
+import { StepActionProvider, useCurrentStepAction } from "../lib/stepAction";
 import { useBook } from "../lib/useBook";
 import { NotFound } from "./NotFound";
-import { StepFooter } from "./StepFooter";
+import { StepHead } from "./StepHead";
+import { StepRail } from "./StepRail";
+import { fullSteps } from "./stepCopy";
+import { UpNext } from "./UpNext";
 
 /** The step the URL is on: /books/:bookId/<step>[/...]. */
 function stepFromPath(pathname: string, bookId: string): BookStepId | null {
@@ -22,40 +22,35 @@ function stepFromPath(pathname: string, bookId: string): BookStepId | null {
   return bookSteps.find((s) => s.id === id)?.id ?? null;
 }
 
-function BookBar({ book, penName, current, runningBookId }: { book: Book; penName: PenName | undefined; current: BookStepId; runningBookId: string | null }) {
-  // Same cover as the Library card: the real one, or a draft from the cover style until the Cover studio makes it.
-  const { design, image } = libraryCover(book);
+/** Rail, head, screen and Up next for one book step. The head and Up next are left out on full-height steps. */
+function StepPage({ book, author, current, runningBookId }: { book: Book; author: string; current: BookStepId; runningBookId: string | null }) {
+  const action = useCurrentStepAction();
+  const full = fullSteps.has(current);
   return (
-    <div className="flex h-(--shell-bookbar) items-center gap-4 border-b border-border bg-canvas px-4 sm:px-6 lg:px-10">
-      <div className="hidden shrink-0 items-center gap-2.5 sm:flex">
-        <Cover
-          title={book.title}
-          author={penName?.name ?? ""}
-          design={design}
-          image={image}
-          width={26}
-          hideSubtitle
-          decorative
-          className="[--vol-shadow-cover:none]"
-        />
-        <span className="hidden max-w-[11rem] min-w-0 2xl:block">
-          <span className="block truncate text-small font-semibold text-ink">{book.title}</span>
-          <span className="block truncate text-caption text-ink-secondary">{penName?.name}</span>
-        </span>
-      </div>
-      <BookSteps book={book} current={current} runningBookId={runningBookId} className="-mx-2 sm:mx-0" />
-    </div>
+    <>
+      <StepRail book={book} author={author} current={current} runningBookId={runningBookId} action={full ? action : null} />
+      {/* A viewer reads every step; the write buttons are hidden, and this says why (D-047). */}
+      <ReadOnlyBanner className="mx-4 mt-4 sm:mx-8 lg:mx-10" />
+      {full ? (
+        <Outlet />
+      ) : (
+        <StepHead book={book} current={current} runningBookId={runningBookId} action={action}>
+          <Outlet />
+          <UpNext book={book} current={current} runningBookId={runningBookId} />
+        </StepHead>
+      )}
+    </>
   );
 }
 
 /** Demo books: the live dot on Writing follows the demo writing job. */
-function DemoBookBar(props: { book: Book; penName: PenName | undefined; current: BookStepId }) {
+function DemoStepPage(props: { book: Book; author: string; current: BookStepId }) {
   const { job, running } = useWritingJob();
-  return <BookBar {...props} runningBookId={running ? job.bookId : null} />;
+  return <StepPage {...props} runningBookId={running ? job.bookId : null} />;
 }
 
 /** Server books: the live dot on Writing shows while a write job is running (from the event stream). */
-function ApiBookBar(props: { book: Book; penName: PenName | undefined; current: BookStepId }) {
+function ApiStepPage(props: { book: Book; author: string; current: BookStepId }) {
   const live = useBookLive(props.book.id);
   const writing = Object.values(live.data.jobs).some(
     (j) => (j.kind === "write_book" || j.kind === "rebuild_book" || j.kind === "write_section") && (j.status === "running" || j.status === "queued"),
@@ -65,7 +60,7 @@ function ApiBookBar(props: { book: Book; penName: PenName | undefined; current: 
   const marketing = useMarketing(props.book.id);
   const pack = (exports.data ?? []).filter((e) => e.kind === "pack" && e.status === "done").sort((a, b) => b.createdAt - a.createdAt)[0];
   const book = { ...props.book, exported: !!pack && !pack.stale, marketingMade: (marketing.data?.length ?? 0) > 0 };
-  return <BookBar {...props} book={book} runningBookId={writing ? props.book.id : null} />;
+  return <StepPage {...props} book={book} runningBookId={writing ? props.book.id : null} />;
 }
 
 function BookLoading() {
@@ -82,9 +77,11 @@ function BookLoading() {
 }
 
 /**
- * Layout for every /books/:bookId/<step> route: the one step bar at the top, the screen, and Back and
- * Next at the foot (D-016). It sets data-book on <html> so h-screen-fill subtracts the bar and footer.
- * The index redirect and unknown books render the screen alone.
+ * Layout for every /books/:bookId/<step> route (D-016, studio redesign stage 2): the step rail that sticks
+ * under the top bar (Previous, the eight steps, Next), the step head, the screen, and the Up next card.
+ * Full-height steps (writing, editor, cover) skip the head and the card and put their main action in the
+ * rail. It sets data-book on <html>; the rail measures itself into --shell-bookbar, so h-screen-fill and
+ * sticky inspectors sit below it. The index redirect and unknown books render the screen alone.
  *
  * Demo books come from src/data. Any other id is loaded from the server when it answers (lib/useBook).
  * For a server book this layout also opens the book's event stream (useBookEvents) once, so screens
@@ -121,11 +118,11 @@ export function BookLayout() {
   if (!current) return <Outlet />;
   return (
     <StepActionProvider>
-      {from === "api" ? <ApiBookBar book={book} penName={penName} current={current} /> : <DemoBookBar book={book} penName={penName} current={current} />}
-      {/* A viewer reads every step; the write buttons are hidden, and this says why (D-047). */}
-      <ReadOnlyBanner className="mx-4 mt-4 sm:mx-6 lg:mx-10" />
-      <Outlet />
-      <StepFooter book={book} current={current} />
+      {from === "api" ? (
+        <ApiStepPage book={book} author={penName?.name ?? ""} current={current} />
+      ) : (
+        <DemoStepPage book={book} author={penName?.name ?? ""} current={current} />
+      )}
     </StepActionProvider>
   );
 }

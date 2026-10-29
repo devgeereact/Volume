@@ -1,6 +1,6 @@
 # Plan: Studio redesign into the real app (28 October 2026)
 
-Status: proposed, waiting for the owner's OK. Nothing is built yet.
+Status: approved by the owner on 28 October 2026. Stage 0 merged (PR #76), stage 1 in PR #77, stage 2 in its own PR.
 
 ## Goal
 

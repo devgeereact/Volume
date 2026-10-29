@@ -131,7 +131,7 @@ test.describe("production hub (D-048, D-049)", () => {
     const stamp = String(Date.now()).slice(-6);
     const SHORT_BIO = `Hub Author ${stamp} writes short, practical books about calmer working days.`;
     const main = page.locator("main");
-    const footer = page.locator('footer[aria-label="Step navigation"]');
+    const stepAction = page.getByRole("group", { name: "Step action" });
     let bookId = "";
     let title = "";
     const profile = await newProfile(request, stamp, SHORT_BIO);
@@ -175,7 +175,7 @@ test.describe("production hub (D-048, D-049)", () => {
       await page.goto(`/books/${bookId}/marketing`);
       await expect(main.getByRole("heading", { level: 1, name: "Marketing" })).toBeVisible();
       await expect(main.getByText("Finish writing every chapter to open marketing.").first()).toBeVisible();
-      await expect(footer.getByRole("button", { name: /^Generate scripts/ })).toBeDisabled();
+      await expect(stepAction.getByRole("button", { name: /^Generate scripts/ })).toBeDisabled();
       await shoot(page, "marketing-locked");
     });
 
@@ -207,10 +207,10 @@ test.describe("production hub (D-048, D-049)", () => {
     await test.step("Marketing generates 5 TikTok scripts and 5 Instagram captions", async () => {
       await page.goto(`/books/${bookId}/marketing`);
       await expect(main.getByText("Finish writing every chapter to open marketing.")).toHaveCount(0);
-      await footer.getByRole("button", { name: /^Generate scripts/ }).click();
+      await stepAction.getByRole("button", { name: /^Generate scripts/ }).click();
       await waitForJob(request, bookId, "marketing", 1);
       await page.getByRole("tab", { name: /Instagram/ }).click();
-      await footer.getByRole("button", { name: /^Generate captions/ }).click();
+      await stepAction.getByRole("button", { name: /^Generate captions/ }).click();
       await waitForJob(request, bookId, "marketing", 2);
       const items = (await getJson<Items<MarketingItem>>(request, `/books/${bookId}/marketing`)).items;
       expect(items.filter((i) => i.kind === "tiktok_script")).toHaveLength(5);

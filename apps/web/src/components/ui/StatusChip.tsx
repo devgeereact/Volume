@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import { Check, Clock, Flag, Lock } from "lucide-react";
+import { Check, Circle, CircleDot, Clock, Flag, Lock } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { LiveDot } from "./LiveDot";
 
-export type Status = "writing" | "attention" | "claim" | "passed" | "queued" | "locked" | "demo";
+export type Status = "writing" | "attention" | "claim" | "passed" | "queued" | "locked" | "demo" | "progress" | "todo";
 
 const config: Record<Status, { label: string; classes: string; icon: ReactNode }> = {
   writing: { label: "Writing", classes: "bg-accent-wash text-accent-text", icon: <LiveDot /> },
@@ -13,6 +13,9 @@ const config: Record<Status, { label: string; classes: string; icon: ReactNode }
   queued: { label: "Queued", classes: "bg-sunken text-ink-secondary", icon: <Clock size={14} strokeWidth={2} aria-hidden /> },
   locked: { label: "Approved, locked", classes: "bg-sunken text-ink-secondary", icon: <Lock size={14} strokeWidth={2} aria-hidden /> },
   demo: { label: "Demo book", classes: "border border-border-strong bg-transparent text-ink-secondary", icon: null },
+  /* A book step's state (Up next card): started but not finished, and not started yet. */
+  progress: { label: "In progress", classes: "bg-sunken text-ink", icon: <CircleDot size={14} strokeWidth={2} aria-hidden /> },
+  todo: { label: "Not started", classes: "bg-sunken text-ink-secondary", icon: <Circle size={14} strokeWidth={2} aria-hidden /> },
 };
 
 interface StatusChipProps {

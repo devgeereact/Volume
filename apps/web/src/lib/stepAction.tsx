@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useCanWrite } from "./access";
 
-/** A book screen's main action, shown as the Next button in the StepFooter (D-016). */
+/** A book screen's main action (D-016): the gilt button in the step head, or in the step rail on full-height steps. */
 export interface StepAction {
   /** What happens, for example "Approve blueprint" or "Write book". */
   label: string;
@@ -27,20 +27,20 @@ export function StepActionProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** The action the current screen registered, or null. Read by StepFooter. */
+/** The action the current screen registered, or null. Read by the book layout (StepHead, StepRail). */
 export function useCurrentStepAction(): StepAction | null {
   return useContext(ActionContext);
 }
 
 /**
- * Called by a book screen to turn the footer's Next button into its primary action:
+ * Called by a book screen to show its primary action in the step head (or the step rail on full-height steps):
  *
  *   useStepAction({ label: "Approve blueprint", onClick: () => setConfirmOpen(true) });
  *
- * Pass null (or nothing) to keep the plain "Next: <step>" link. The footer then shows the only gilt
- * button, so remove the screen's own copy of that button. The click handler can change every render;
+ * Pass null (or nothing) for no action; the rail's Next link always moves on. The head then shows the only
+ * gilt button, so remove the screen's own copy of that button. The click handler can change every render;
  * only label, link, estimate and disabled reason trigger an update. Outside a book it does nothing.
- * A viewer (read-only role) never gets an action that runs something: the footer keeps its Next link.
+ * A viewer (read-only role) never gets an action that runs something; the rail's Next link still works.
  */
 export function useStepAction(requested: StepAction | null | undefined): void {
   const setAction = useContext(SetActionContext);

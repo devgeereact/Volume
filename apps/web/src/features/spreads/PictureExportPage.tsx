@@ -12,6 +12,7 @@ import { demoPicturePreflight } from "../../demo/pictureBook";
 import type { Book } from "../../demo/types";
 import { useCanWrite } from "../../lib/access";
 import { formatRelative } from "../../lib/format";
+import { PageHeader } from "../../components/ui";
 import { bookStepPath } from "../../screens";
 import { ErrorPanel, LoadingBlock, useScreenState } from "../writing/screenState";
 import { demoBuildExport, useDemoPictureBook } from "./demoStore";
@@ -38,7 +39,7 @@ function Loading() {
 function ErrorView({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="grid gap-5 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
-      <h1 className="font-book text-title text-ink">Export</h1>
+      <PageHeader title="Export" />
       <ErrorPanel className="max-w-[720px]" title="Could not load the export" body={message} onRetry={onRetry} />
     </div>
   );

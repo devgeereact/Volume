@@ -50,7 +50,7 @@ interface SpineProps {
  * with Library, Published, Profiles, New book, Archive and Settings. Wide (240 px): brand, pen name
  * switcher, nav with the Library count, and a foot card with the job that is writing now, the OpenRouter
  * status and this month's spend. Collapsed (64 px, inside a book and on tablets): icons with tooltips
- * and the pen name avatar. A book's steps live in the step bar above the screen (BookSteps), not here.
+ * and the pen name avatar. A book's steps live in the step rail above the screen (StepRail), not here.
  */
 export function Spine({ collapsed, book, onNavigate, variant = "float", className }: SpineProps) {
   const { pathname } = useLocation();

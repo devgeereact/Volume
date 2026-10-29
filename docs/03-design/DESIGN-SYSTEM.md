@@ -381,3 +381,11 @@ The app shell sits on a scene: a pale frost sky with soft mountains in light, de
 - Without `backdrop-filter`, or with `prefers-reduced-transparency`, every glass layer is solid (`--vol-glass-solid`).
 - Contrast: body text 4.5:1 or more on the darkest backdrop a layer can sit on, in both themes. The light hills stay faint for that reason.
 - Everything inside the shell keeps the D-014 rules above.
+
+### Step navigation (stage 2)
+
+- **Step rail:** a sticky `vol-glass-bar` layer under the top bar in every book step (the fifth glass layer, with blur). It holds the book's small cover (not on phones), Previous, the 8 steps with done, attention, in-progress and number markers, and "Next: <step>". The current step is a filled `nav-active` pill with `aria-current="step"`. On phones only the current step shows its name, and the list scrolls sideways with it kept in view. The rail uses `vol-glass-bar`, not `vol-glass`, so text stays at 4.5:1 with a light cover scrolled behind it.
+- **Step head:** step marker, title (Literata, `text-heading`), one purpose line, the screen's own tools and the one gilt step action. Writing, Editor and Cover are full-height workspaces with no head; their gilt action sits in the rail before Next.
+- **Up next:** a dashed glass card at the end of each step page with the next step, a short line, a status chip and "Open <step>". After Export it reads "Then publish on KDP".
+- **Status chips:** two new states, "In progress" and "Not started".
+

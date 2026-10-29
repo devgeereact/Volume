@@ -49,7 +49,7 @@ export default function ExportPage() {
       {state === "loading" && <LoadingBlock label="Loading the export" rows={8} />}
       {state === "error" && (
         <>
-          <h1 className="font-book text-title text-ink">Export</h1>
+          <PageHeader title="Export" />
           <ErrorPanel
             className="mt-5 max-w-[720px]"
             title="Preflight could not run"

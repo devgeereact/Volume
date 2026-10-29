@@ -2,6 +2,11 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 29 October 2026
+
+#### Changed
+- Book steps now have a step bar at the top: Previous, all 8 steps and Next stay in reach while you scroll. It replaces the Back and Next bar at the bottom. Each step page opens with what the step is for and its main button, and ends with an Up next card.
+
 ## 28 October 2026
 
 #### Changed
