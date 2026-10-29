@@ -6,8 +6,6 @@ import {
   Button,
   Chip,
   EmptyState,
-  Inspector,
-  InspectorSection,
   KeyValueList,
   LiveDot,
   Modal,
@@ -25,18 +23,17 @@ import { estimateWords, guardrailsOf, isFavourite, plainError, runMeta, useBookJ
 import { formatUsd } from "../../lib/format";
 import { GuardrailNote } from "../research/GuardrailNote";
 import { TITLE_SUBTITLE_MAX, titleLength, type Book, type TitleOption } from "../../demo";
-import { cn } from "../../lib/cn";
 import { scrollBehavior } from "../../lib/motion";
 import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
-import { StorePreview, TitleLengthBar } from "./StorePreview";
-import { TitleCard } from "./TitleCard";
+import { ChooseTitleButton, DirectionCard, TitleRow, TitleSide } from "./TitleCard";
 import { checkTitle } from "./titlesExtras";
 import { RebuildBook } from "../rebuild/RebuildBook";
 
-/* Titles for a book on the server (API mode). The writer suggests directions and title options; the
-   owner can pick a direction and ask for titles for it alone, edit an option, and choose one, which
-   saves the title and subtitle to the book. */
+/* Titles for a book on the server (API mode), in the approved layout: a card per direction with its
+   options as rows, and the right card with the store preview, the checks and Use this title. The writer
+   suggests directions and title options; the owner can ask for titles for one direction alone, star and
+   edit an option, and choose one, which saves the title and subtitle to the book. */
 
 type Filter = "all" | "favourites" | "valid";
 
@@ -114,13 +111,8 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
 
   const blueprintPath = bookStepPath(book.id, "blueprint");
   const chosenHere = options.find((o) => o.chosen) ?? null;
-  // The store preview shows the option picked to preview, else the chosen one, else the book's saved title.
-  const previewOption = options.find((o) => o.id === previewId) ?? chosenHere;
-  const preview = previewOption
-    ? { title: previewOption.title, subtitle: previewOption.subtitle, chosen: previewOption.chosen }
-    : bookTitle
-      ? { title: bookTitle, subtitle: apiBook.subtitle ?? "", chosen: true }
-      : null;
+  // The right card shows the option pressed, else the chosen one, else the first; with no set, the saved title.
+  const previewOption = options.find((o) => o.id === previewId) ?? chosenHere ?? options[0] ?? null;
   useStepAction(
     sets.isPending || sets.isError
       ? { label: "Continue to blueprint", to: blueprintPath, disabledReason: sets.isPending ? "Loading titles." : "Titles could not be loaded." }
@@ -148,7 +140,8 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   const visible = options.filter((o) => (filter === "favourites" ? favourites.has(o.id) : filter === "valid" ? !o.invalidReason : true));
   const validCount = options.filter((o) => !o.invalidReason).length;
   const favCount = options.filter((o) => favourites.has(o.id)).length;
-  const groups = groupByDirection(visible, directions);
+  // One card per direction (all of them, so each keeps its own button), then any option without one.
+  const cards = groupByDirection(visible, directions, filter === "all");
   const setDirectionKeys = new Set(options.map((o) => o.directionId));
   const forOneDirection = set !== null && setDirectionKeys.size === 1 && directions.length > 1;
 
@@ -163,165 +156,110 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto]">
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-8 px-4 py-6 sm:px-8 lg:px-10 lg:py-7">
-        <PageHeader
-          title="Titles"
-          summary="Directions from the research and title options to compare. Pick a direction for more titles in it, edit any option, then choose one."
-          actions={
-            canWrite && list.length > 0 && !active ? (
-              <Button icon={RefreshCw} estimate={estimateWords(estimate.data)} onClick={() => setAgainOpen(true)}>
-                Regenerate all
+    <div className="grid gap-4 px-4 min-[861px]:px-6">
+      <PageHeader
+        title="Titles"
+        summary="Directions from the research and title options to compare. Pick a direction for more titles in it, edit any option, then choose one."
+        actions={
+          canWrite && list.length > 0 && !active ? (
+            <Button icon={RefreshCw} estimate={estimateWords(estimate.data)} onClick={() => setAgainOpen(true)}>
+              Regenerate all
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {gen.isError && (
+        <Banner tone="error" title="The title run did not start">
+          {plainError(gen.error)}
+        </Banner>
+      )}
+      {favMut.isError && (
+        <Banner tone="error" title="The star was not saved">
+          {plainError(favMut.error)}
+        </Banner>
+      )}
+      {choose.isError && (
+        <Banner tone="error" title="The title was not saved">
+          {plainError(choose.error)}
+        </Banner>
+      )}
+
+      {sets.isPending && <OptionsSkeleton />}
+
+      {sets.isError && (
+        <Banner
+          tone="error"
+          title="Titles could not be loaded"
+          action={
+            <Button size="sm" icon={RotateCcw} onClick={() => void sets.refetch()}>
+              Retry
+            </Button>
+          }
+        >
+          {plainError(sets.error)}
+        </Banner>
+      )}
+
+      {sets.isSuccess && list.length === 0 && !active && (
+        <EmptyState
+          drawing="pen"
+          title="No title options yet"
+          body={
+            hasResearch
+              ? "The writer reads the research and your idea, then suggests directions and titles with subtitles. Each one is checked for length and em dashes. Start it with Generate titles below."
+              : "Research has not finished for this book, so titles are written from your idea alone. Start them with Generate titles below, or run research first."
+          }
+        />
+      )}
+
+      {active && job && (
+        <section aria-labelledby="titles-live" className="relative overflow-hidden rounded-lg border border-border bg-sheet px-5 py-4 shadow-sheet">
+          <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-accent" />
+          <p id="titles-live" className="flex items-center gap-2 text-label font-semibold text-ink">
+            <LiveDot />{" "}
+            {busyDirection
+              ? `Writing titles for ${directions.find((d) => d.key === busyDirection)?.label ?? "the chosen direction"}`
+              : job.status === "queued"
+                ? "Waiting to start"
+                : (job.message ?? "Writing titles")}
+          </p>
+          <ProgressBar
+            className="mt-3"
+            value={Math.round(job.progress * 100)}
+            max={100}
+            live
+            label="Title run progress"
+            valueText={`${Math.round(job.progress * 100)} per cent`}
+          />
+          <p className="mt-2 text-small text-ink-secondary">The new options appear here when the run finishes. Earlier sets are kept.</p>
+        </section>
+      )}
+
+      {failed && (
+        <Banner
+          tone="error"
+          title="The title run stopped"
+          action={
+            canWrite ? (
+              <Button size="sm" icon={RefreshCw} onClick={() => generate()} loading={gen.isPending} loadingLabel="Starting">
+                Retry
               </Button>
             ) : undefined
           }
-        />
+        >
+          {failed.error ?? "It did not finish."} Nothing from it was kept.
+        </Banner>
+      )}
 
-        {gen.isError && (
-          <Banner tone="error" title="The title run did not start">
-            {plainError(gen.error)}
-          </Banner>
-        )}
-        {favMut.isError && (
-          <Banner tone="error" title="The star was not saved">
-            {plainError(favMut.error)}
-          </Banner>
-        )}
-        {choose.isError && (
-          <Banner tone="error" title="The title was not saved">
-            {plainError(choose.error)}
-          </Banner>
-        )}
+      {set && guard && guard.needsAttention.length > 0 && <GuardrailNote items={guard.needsAttention} />}
 
-        {sets.isPending && <OptionsSkeleton />}
-
-        {sets.isError && (
-          <Banner
-            tone="error"
-            title="Titles could not be loaded"
-            action={
-              <Button size="sm" icon={RotateCcw} onClick={() => void sets.refetch()}>
-                Retry
-              </Button>
-            }
-          >
-            {plainError(sets.error)}
-          </Banner>
-        )}
-
-        {sets.isSuccess && list.length === 0 && !active && (
-          <EmptyState
-            drawing="pen"
-            title="No title options yet"
-            body={
-              hasResearch
-                ? "The writer reads the research and your idea, then suggests directions and titles with subtitles. Each one is checked for length and em dashes. Start it with Generate titles below."
-                : "Research has not finished for this book, so titles are written from your idea alone. Start them with Generate titles below, or run research first."
-            }
-          />
-        )}
-
-        {active && job && (
-          <section aria-labelledby="titles-live" className="relative overflow-hidden rounded-lg border border-border bg-sheet px-5 py-4 shadow-sheet">
-            <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-accent" />
-            <p id="titles-live" className="flex items-center gap-2 text-label font-semibold text-ink">
-              <LiveDot />{" "}
-              {busyDirection
-                ? `Writing titles for ${directions.find((d) => d.key === busyDirection)?.label ?? "the chosen direction"}`
-                : job.status === "queued"
-                  ? "Waiting to start"
-                  : (job.message ?? "Writing titles")}
-            </p>
-            <ProgressBar
-              className="mt-3"
-              value={Math.round(job.progress * 100)}
-              max={100}
-              live
-              label="Title run progress"
-              valueText={`${Math.round(job.progress * 100)} per cent`}
-            />
-            <p className="mt-2 text-small text-ink-secondary">The new options appear here when the run finishes. Earlier sets are kept.</p>
-          </section>
-        )}
-
-        {failed && (
-          <Banner
-            tone="error"
-            title="The title run stopped"
-            action={
-              canWrite ? (
-                <Button size="sm" icon={RefreshCw} onClick={() => generate()} loading={gen.isPending} loadingLabel="Starting">
-                  Retry
-                </Button>
-              ) : undefined
-            }
-          >
-            {failed.error ?? "It did not finish."} Nothing from it was kept.
-          </Banner>
-        )}
-
-        {set && directions.length > 0 && (
-          <section aria-labelledby="directions-heading" className="grid gap-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 id="directions-heading" className="font-book text-heading text-ink">
-                Topic directions
-              </h2>
-              <p className="text-small text-ink-tertiary">Pick one to get titles for it alone</p>
-            </div>
-            <ol className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-              {directions.map((d, i) => {
-                const count = options.filter((o) => o.directionId === d.key).length;
-                const busy = active && busyDirection === d.key;
-                return (
-                  <li
-                    key={d.key || i}
-                    className={cn(
-                      "grid content-start gap-3 rounded-md border bg-sheet p-4",
-                      forOneDirection && setDirectionKeys.has(d.key) ? "border-select" : "border-border",
-                    )}
-                  >
-                    <div className="flex items-baseline gap-2.5">
-                      <span className="num text-small text-ink-tertiary">{i + 1}</span>
-                      <h3 className="font-book text-[19px] leading-6 font-medium text-ink">{d.label || "Untitled direction"}</h3>
-                    </div>
-                    <dl className="grid gap-2 text-small">
-                      <DirectionRow label="Focus" value={d.angle} />
-                      <DirectionRow label="Readers" value={d.audience} />
-                      <DirectionRow label="Promise" value={d.promise} />
-                    </dl>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-                      <span className="num text-small text-ink-tertiary">
-                        {count} {count === 1 ? "option" : "options"} in this set
-                      </span>
-                      {canWrite && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          icon={Sparkles}
-                          loading={busy}
-                          loadingLabel="Writing"
-                          estimate={estimateWords(estimate.data)}
-                          disabledReason={active ? "Wait for the current run." : !d.key ? "This direction has no key, so it cannot be picked." : undefined}
-                          onClick={() => generate({ directionKey: d.key })}
-                        >
-                          Titles for this direction
-                        </Button>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
-        )}
-
-        {set && guard && guard.needsAttention.length > 0 && <GuardrailNote items={guard.needsAttention} />}
-
-        {set && (
-          <section aria-labelledby="options-heading" className="grid gap-4">
+      {set && (
+        <div className="grid items-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_320px]">
+          <section aria-labelledby="directions-heading" className="grid min-w-0 gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 id="options-heading" className="font-book text-heading text-ink">
-                Title options
+              <h2 id="directions-heading" className="text-[15px] font-bold text-ink">
+                Topic directions
               </h2>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Show">
                 <Chip pressed={filter === "all"} count={options.length} onClick={() => setFilter("all")}>
@@ -336,119 +274,162 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
               </div>
             </div>
             {options.length === 0 ? (
-              <p className="rounded-md border border-dashed border-border-strong bg-sheet p-5 text-body text-ink-secondary">This set has no title options.</p>
-            ) : visible.length === 0 ? (
-              <p className="rounded-md border border-dashed border-border-strong bg-sheet p-5 text-body text-ink-secondary">
-                {filter === "favourites" ? "No favourites yet. Star the options you like to compare them here." : "No option passes every check."}
-              </p>
+              <p className="vol-glass rounded-card p-5 text-body text-ink-2">This set has no title options.</p>
             ) : (
-              groups.map((g) => (
-                <div key={g.key} className="grid gap-2.5">
-                  <h3 className="text-[13px] font-semibold text-ink-secondary">{g.name}</h3>
-                  <ul className="grid gap-3 md:grid-cols-2">
-                    {g.options.map((o) => (
-                      <TitleCard
-                        key={o.id}
-                        option={o}
-                        directionName={g.name}
-                        favourite={favourites.has(o.id)}
-                        onFavourite={() => {
-                          if (!set) return;
-                          const index = Number(o.id.slice(o.id.lastIndexOf(":") + 1));
-                          favMut.mutate({ bookId, titleSetId: set.id, index, favourite: !favourites.has(o.id) });
-                        }}
-                        onChoose={() => chooseOption(o)}
-                        onSave={(t, s) => saveEdit(o, t, s)}
-                        fresh={false}
-                        saving={savingChoiceId === o.id}
-                        busy={savingChoiceId !== null}
-                        onPreview={() => setPreviewId(o.id)}
-                        previewing={previewOption?.id === o.id}
-                      />
-                    ))}
-                  </ul>
-                </div>
-              ))
+              visible.length === 0 && (
+                <p className="vol-glass rounded-card p-5 text-body text-ink-2">
+                  {filter === "favourites" ? "No favourites yet. Star the options you like to compare them here." : "No option passes every check."}
+                </p>
+              )
             )}
+            {cards.map((c, i) => {
+              const d = directions.find((x) => x.key === c.key);
+              const busy = active && busyDirection === c.key;
+              return (
+                <DirectionCard
+                  key={c.key || i}
+                  index={i}
+                  name={c.name}
+                  pitch={d?.angle ?? ""}
+                  count={options.filter((o) => o.directionId === c.key).length}
+                  details={
+                    d
+                      ? [
+                          { label: "Readers", value: d.audience },
+                          { label: "Promise", value: d.promise },
+                        ]
+                      : undefined
+                  }
+                  tools={
+                    canWrite && d ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={Sparkles}
+                        loading={busy}
+                        loadingLabel="Writing"
+                        estimate={estimateWords(estimate.data)}
+                        disabledReason={active ? "Wait for the current run." : !d.key ? "This direction has no key, so it cannot be picked." : undefined}
+                        onClick={() => generate({ directionKey: d.key })}
+                      >
+                        Titles for this direction
+                      </Button>
+                    ) : undefined
+                  }
+                >
+                  {c.options.length === 0 ? (
+                    <p className="text-small text-ink-2">No options for this direction in this set.</p>
+                  ) : (
+                    <ul className="grid gap-1.5">
+                      {c.options.map((o) => (
+                        <TitleRow
+                          key={o.id}
+                          option={o}
+                          directionName={c.name}
+                          favourite={favourites.has(o.id)}
+                          onFavourite={() => {
+                            if (!set) return;
+                            const index = Number(o.id.slice(o.id.lastIndexOf(":") + 1));
+                            favMut.mutate({ bookId, titleSetId: set.id, index, favourite: !favourites.has(o.id) });
+                          }}
+                          onSave={(t, s) => saveEdit(o, t, s)}
+                          fresh={false}
+                          onPreview={() => setPreviewId(o.id)}
+                          previewing={previewOption?.id === o.id}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </DirectionCard>
+              );
+            })}
           </section>
-        )}
-      </div>
 
-      <Inspector label="Titles details" className="lg:sticky lg:top-(--shell-sticky-top) lg:h-screen-fill">
-        <InspectorSection title="Store preview">
-          {preview ? (
-            <div className="grid gap-4">
-              <StorePreview book={book} title={preview.title} subtitle={preview.subtitle} />
-              <TitleLengthBar title={preview.title} subtitle={preview.subtitle} />
-              {!preview.chosen && <p className="text-small text-ink-secondary">Previewing an option. It is not the chosen title.</p>}
-            </div>
-          ) : (
-            <p className="text-small text-ink-secondary">
-              {options.length > 0 ? "Choose a title, or press the eye on an option, to see it here." : "The preview appears when there is a title to show."}
-            </p>
-          )}
-        </InspectorSection>
-        <InspectorSection title="Chosen title">
-          {bookTitle ? (
-            <div className="grid gap-3">
-              <p className="font-book text-body text-ink">
-                <span className="block font-medium">{bookTitle}</span>
-                {apiBook.subtitle && <span className="block text-ink-secondary italic">{apiBook.subtitle}</span>}
-              </p>
-              <p className="num text-small text-ink-tertiary">
-                {titleLength(bookTitle, apiBook.subtitle ?? "")} of {TITLE_SUBTITLE_MAX} characters. Saved to the book.
-              </p>
-              {chosenHere && (
-                <Button size="sm" variant="ghost" icon={ArrowDown} onClick={showChosen}>
-                  Show it in the list
-                </Button>
+          <aside
+            aria-label="Titles details"
+            className="vol-glass grid min-w-0 content-start rounded-card p-[18px] min-[1180px]:sticky min-[1180px]:top-(--shell-sticky-top)"
+          >
+            <TitleSide
+              book={book}
+              option={previewOption ?? (bookTitle ? { title: bookTitle, subtitle: apiBook.subtitle ?? "", checks: [], invalidReason: null } : null)}
+              chosen={previewOption ? previewOption.chosen : true}
+              action={
+                canWrite && previewOption ? (
+                  <ChooseTitleButton
+                    fullWidth
+                    invalid={previewOption.invalidReason !== null}
+                    saving={savingChoiceId === previewOption.id}
+                    busy={savingChoiceId !== null}
+                    onChoose={() => chooseOption(previewOption)}
+                  />
+                ) : undefined
+              }
+            >
+              <hr className="mt-4 border-line" />
+              <h3 className="mt-4 text-[14px] font-bold text-ink">Chosen title</h3>
+              {bookTitle ? (
+                <div className="mt-2 grid gap-2">
+                  <p className="font-book text-[14px] text-ink">
+                    <span className="block font-semibold">{bookTitle}</span>
+                    {apiBook.subtitle && <span className="block text-ink-2 italic">{apiBook.subtitle}</span>}
+                  </p>
+                  <p className="num text-small text-ink-3">
+                    {titleLength(bookTitle, apiBook.subtitle ?? "")} of {TITLE_SUBTITLE_MAX} characters. Saved to the book.
+                  </p>
+                  {chosenHere && (
+                    <Button size="sm" variant="ghost" icon={ArrowDown} className="justify-self-start" onClick={showChosen}>
+                      Show it in the list
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-2 text-small text-ink-2">Not set yet. Pick one with Use this title.</p>
               )}
-            </div>
-          ) : (
-            <p className="text-small text-ink-secondary">Not set yet. Pick one with Use this title.</p>
-          )}
-          {choose.isPending && (
-            <p className="mt-2 text-small text-ink-secondary" role="status">
-              Saving the title
-            </p>
-          )}
-          <p className="mt-3 text-small text-ink-tertiary">
-            KDP allows up to {TITLE_SUBTITLE_MAX} characters for the title and subtitle together. Choosing sets the book's title.
-          </p>
-        </InspectorSection>
-        {/* Once the book has text, a new title only reaches the blueprint and chapters through a rebuild. */}
-        {bookTitle && <RebuildBook bookId={bookId} title={bookTitle} onlyWithText className="mt-5" />}
-        <InspectorSection title="This set">
-          {set ? (
-            <div className="grid gap-3">
-              {list.length > 1 && (
-                <Select
-                  label="Set"
-                  value={set.id}
-                  onChange={setPickedSet}
-                  options={list.map((x, i) => ({ value: x.id, label: `Set ${list.length - i}, ${whenMs(x.createdAt)}` }))}
-                  disabled={active}
-                />
-              )}
-              <KeyValueList
-                items={[
-                  { label: "Model", value: setModel ? <ModelName slug={setModel} /> : "Not recorded" },
-                  { label: "Cost", value: setCost === null ? "Not recorded" : formatUsd(setCost) },
-                  { label: "Options", value: `${options.length}, ${validCount} passing` },
-                  { label: "Written", value: whenMs(set.createdAt) },
-                ]}
-              />
-              {forOneDirection && (
-                <p className="text-small text-ink-secondary">
-                  Titles for {directions.find((d) => setDirectionKeys.has(d.key))?.label ?? "one direction"} only.
+              {choose.isPending && (
+                <p className="mt-2 text-small text-ink-2" role="status">
+                  Saving the title
                 </p>
               )}
-            </div>
-          ) : (
-            <p className="text-small text-ink-secondary">No title run yet.</p>
-          )}
-        </InspectorSection>
-      </Inspector>
+              <p className="mt-2 text-small text-ink-3">
+                KDP allows up to {TITLE_SUBTITLE_MAX} characters for the title and subtitle together. Choosing sets the book's title.
+              </p>
+              {/* Once the book has text, a new title only reaches the blueprint and chapters through a rebuild. */}
+              {bookTitle && <RebuildBook bookId={bookId} title={bookTitle} onlyWithText className="mt-5" />}
+              <h3 className="mt-4 text-[14px] font-bold text-ink">This set</h3>
+              <div className="mt-2 grid gap-3">
+                {list.length > 1 && (
+                  <Select
+                    label="Set"
+                    value={set.id}
+                    onChange={setPickedSet}
+                    options={list.map((x, i) => ({ value: x.id, label: `Set ${list.length - i}, ${whenMs(x.createdAt)}` }))}
+                    disabled={active}
+                  />
+                )}
+                <KeyValueList
+                  items={[
+                    { label: "Model", value: setModel ? <ModelName slug={setModel} /> : "Not recorded" },
+                    { label: "Cost", value: setCost === null ? "Not recorded" : formatUsd(setCost) },
+                    { label: "Options", value: `${options.length}, ${validCount} passing` },
+                    { label: "Written", value: whenMs(set.createdAt) },
+                  ]}
+                />
+                {forOneDirection && (
+                  <p className="text-small text-ink-2">Titles for {directions.find((d) => setDirectionKeys.has(d.key))?.label ?? "one direction"} only.</p>
+                )}
+              </div>
+            </TitleSide>
+          </aside>
+        </div>
+      )}
+
+      {!set && bookTitle && sets.isSuccess && (
+        <aside aria-label="Titles details" className="vol-glass grid max-w-[420px] content-start rounded-card p-[18px]">
+          <TitleSide book={book} option={{ title: bookTitle, subtitle: apiBook.subtitle ?? "", checks: [], invalidReason: null }} chosen>
+            <RebuildBook bookId={bookId} title={bookTitle} onlyWithText className="mt-5" />
+          </TitleSide>
+        </aside>
+      )}
 
       <Modal
         open={againOpen}
@@ -492,20 +473,15 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   );
 }
 
-function DirectionRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid gap-0.5">
-      <dt className="font-semibold text-ink-secondary">{label}</dt>
-      <dd className={value ? "text-ink" : "text-ink-tertiary"}>{value || "Not given"}</dd>
-    </div>
-  );
-}
-
-function groupByDirection(options: TitleOption[], directions: ApiTitleDirection[]): { key: string; name: string; options: TitleOption[] }[] {
+function groupByDirection(
+  options: TitleOption[],
+  directions: ApiTitleDirection[],
+  keepEmpty: boolean,
+): { key: string; name: string; options: TitleOption[] }[] {
   const out: { key: string; name: string; options: TitleOption[] }[] = [];
   for (const d of directions) {
     const g = options.filter((o) => o.directionId === d.key);
-    if (g.length > 0) out.push({ key: d.key, name: d.label || "Untitled direction", options: g });
+    if (g.length > 0 || keepEmpty) out.push({ key: d.key, name: d.label || "Untitled direction", options: g });
   }
   const known = new Set(directions.map((d) => d.key));
   const rest = options.filter((o) => !known.has(o.directionId));
@@ -515,9 +491,9 @@ function groupByDirection(options: TitleOption[], directions: ApiTitleDirection[
 
 function OptionsSkeleton() {
   return (
-    <div role="status" aria-label="Loading title options" className="grid gap-3 md:grid-cols-2">
+    <div role="status" aria-label="Loading title options" className="grid gap-3">
       {Array.from({ length: 4 }, (_, i) => (
-        <div key={i} className="grid gap-3 rounded-md border border-border bg-sheet p-5">
+        <div key={i} className="vol-glass grid gap-3 rounded-card p-[18px]">
           <Skeleton className="w-24" />
           <Skeleton className="h-6 w-3/4" />
           <Skeleton className="w-full" />

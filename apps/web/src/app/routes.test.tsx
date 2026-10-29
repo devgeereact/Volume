@@ -62,6 +62,7 @@ const localPaths = [
   "/new-book",
   "/books/:bookId",
   "/books/:bookId (index)",
+  "/books/:bookId/overview",
   "/books/:bookId/research",
   "/books/:bookId/titles",
   "/books/:bookId/blueprint",

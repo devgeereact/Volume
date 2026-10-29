@@ -1,151 +1,311 @@
-import { useRef, useState, type ReactNode } from "react";
-import { Check, History } from "lucide-react";
-import { Button, Modal, StatusChip } from "../../components/ui";
+import { useId, useRef, useState, type ReactNode } from "react";
+import { AlertCircle, Check, History } from "lucide-react";
+import { Button, Card, Modal, StatusChip } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { formatNumber } from "../../lib/format";
 
-/* Blueprint overview pieces (studio redesign stage 4b): counts over the plan, the chapter plan (a list
-   with word-target bars and a panel for the chosen chapter) and the version chip with its history.
+/* Blueprint pieces from the approved Volume Studio design (stBlueprint): the figures over the plan, the
+   Outline card (front matter, numbered chapters with editable titles and word-target bars, back matter),
+   the labels, checks and version list of the right card, and the version chip with its history.
    Every figure comes from the blueprint on screen; nothing is estimated here. */
 
-/** A row of figures over the plan. Each value is counted from the blueprint that is open. */
+/** A row of figures over the plan (.kps). Each value is counted from the blueprint that is open. */
 export function PlanCounts({ items, className }: { items: { label: string; value: string | number }[]; className?: string | undefined }) {
   return (
-    <dl
-      aria-label="Blueprint in numbers"
-      className={cn("grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-4", className)}
-    >
+    <dl aria-label="Blueprint in numbers" className={cn("grid grid-cols-2 gap-2.5 sm:grid-cols-4", className)}>
       {items.map((it) => (
-        <div key={it.label} className="grid content-start gap-0.5 bg-sheet px-4 py-3">
-          <dt className="order-2 text-small text-ink-secondary">{it.label}</dt>
-          <dd className="num order-1 font-book text-heading text-ink">{typeof it.value === "number" ? formatNumber(it.value) : it.value}</dd>
+        <div key={it.label} className="vol-glass grid content-start rounded-[16px] px-3.5 py-3">
+          <dt className="order-2 text-[12px] text-ink-2">{it.label}</dt>
+          <dd className="num order-1 text-[20px] leading-tight font-bold tracking-[-0.01em] text-ink">
+            {typeof it.value === "number" ? formatNumber(it.value) : it.value}
+          </dd>
         </div>
       ))}
     </dl>
   );
 }
 
-export interface PlanChapter {
+/** The small capital label of the approved design (.lbl). */
+export function SideLabel({ as: Tag = "p", children, className }: { as?: "p" | "h3" | "h2"; children: ReactNode; className?: string | undefined }) {
+  return <Tag className={cn("mt-4 mb-2 block text-[10.5px] font-bold tracking-[0.09em] text-ink-3 uppercase first:mt-0", className)}>{children}</Tag>;
+}
+
+/** A list of checks with a tick, or an alert mark when a check fails. */
+export function CheckList({ items }: { items: { label: ReactNode; ok: boolean; key?: string }[] }) {
+  return (
+    <ul className="my-3 grid gap-2 text-[13px] text-ink">
+      {items.map((c, i) => (
+        <li key={c.key ?? i} className="flex items-start gap-2">
+          {c.ok ? (
+            <Check size={16} strokeWidth={2} aria-hidden className="mt-px shrink-0 text-mint-ink" />
+          ) : (
+            <AlertCircle size={16} strokeWidth={2} aria-hidden className="mt-px shrink-0 text-amber" />
+          )}
+          <span className="min-w-0">
+            <span className="sr-only">{c.ok ? "Done: " : "To do: "}</span>
+            {c.label}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export interface OutlineChip {
+  key: string;
+  label: string;
+  /** Off in this plan (switched off in Arrange sections). */
+  off?: boolean | undefined;
+}
+
+export interface OutlineChapter {
   /** The key the page uses for this chapter (a part id or "chapter:N"). */
   key: string;
   number: number;
   title: string;
   wordTarget: number;
-  /** What the chapter is for: the blueprint's chapter summary. */
-  purpose: string;
-  /** The chapter's subheadings, in order. */
-  sections: string[];
+  /** Open claims to verify in this chapter, if any. */
+  claims?: number | undefined;
 }
 
-interface ChapterPlanProps {
-  chapters: PlanChapter[];
-  /** The chapter shown in the panel. Falls back to the first chapter. */
+interface OutlineCardProps {
+  front: OutlineChip[];
+  chapters: OutlineChapter[];
+  back: OutlineChip[];
+  /** The part shown in the right card. */
   selectedKey: string | null;
   onSelect: (key: string) => void;
-  /** Scrolls to the chapter in the full plan below. */
-  onShow: (key: string) => void;
-  /** Extra buttons in the panel, for example Edit chapter. */
-  panelActions?: ((chapter: PlanChapter) => ReactNode) | undefined;
-  className?: string | undefined;
+  /** Saves a new chapter title. Without it the titles are read only. */
+  onTitle?: ((key: string, title: string) => void) | undefined;
+  /** Why titles cannot be edited now, shown under the hint. */
+  titleLockedReason?: string | undefined;
+  /** Buttons in the card head, for example Arrange sections. */
+  tools?: ReactNode;
+  /** Shown under the chapters, for example a note while a part is regenerated. */
+  footer?: ReactNode;
 }
 
-/** The chapter list with word-target bars, and the panel for the chosen chapter. */
-export function ChapterPlan({ chapters, selectedKey, onSelect, onShow, panelActions, className }: ChapterPlanProps) {
-  const chosen = chapters.find((c) => c.key === selectedKey) ?? chapters[0];
+/** The Outline card (.bp in the approved design). Click a number or a chip to see that part in the right card. */
+export function OutlineCard({ front, chapters, back, selectedKey, onSelect, onTitle, titleLockedReason, tools, footer }: OutlineCardProps) {
+  const titleId = useId();
   const longest = Math.max(1, ...chapters.map((c) => c.wordTarget));
-  if (!chosen) return null;
   return (
-    <section aria-labelledby="chapter-plan-title" className="@container rounded-lg border border-border bg-sheet shadow-sheet">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border px-4 py-3 sm:px-5">
-        <h2 id="chapter-plan-title" className="text-subhead text-ink">
-          Chapter plan
+    <Card as="section" aria-labelledby={titleId} className="min-w-0">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <h2 id={titleId} className="text-[15px] font-bold text-ink">
+          Outline
         </h2>
-        <p className="text-small text-ink-secondary">Choose a chapter to see its sections, word target and purpose.</p>
+        <p className="text-small text-ink-2">
+          {onTitle ? "Click a chapter number to see its plan. Titles can be edited here." : "Click a chapter number to see its plan."}
+          {titleLockedReason ? ` ${titleLockedReason}` : ""}
+        </p>
       </div>
-      <div className={cn("grid @2xl:grid-cols-[minmax(0,1fr)_minmax(0,19rem)]", className)}>
-        <ol aria-label="Chapters and word targets" className="grid content-start gap-0.5 p-2 sm:p-3">
-          {chapters.map((c) => {
-            const on = c.key === chosen.key;
+      {tools && <div className="mt-2 flex flex-wrap gap-2">{tools}</div>}
+      <ChipGroup title="Front matter" items={front} selectedKey={selectedKey} onSelect={onSelect} />
+      <SideLabel as="h3" className="mt-4!">
+        Chapters
+      </SideLabel>
+      {chapters.length === 0 ? (
+        <p className="text-small text-ink-2">No chapters in this version.</p>
+      ) : (
+        <ol aria-label="Chapters and word targets" className="grid gap-0.5">
+          {chapters.map((c) => (
+            // Keyed by title too, so a saved or restored title resets the field.
+            <ChapterRow key={`${c.key}:${c.title}`} chapter={c} longest={longest} on={c.key === selectedKey} onSelect={onSelect} onTitle={onTitle} />
+          ))}
+        </ol>
+      )}
+      <ChipGroup title="Back matter" items={back} selectedKey={selectedKey} onSelect={onSelect} />
+      {footer}
+    </Card>
+  );
+}
+
+function ChipGroup({
+  title,
+  items,
+  selectedKey,
+  onSelect,
+}: {
+  title: string;
+  items: OutlineChip[];
+  selectedKey: string | null;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <>
+      <SideLabel as="h3" className="mt-4!">
+        {title}
+      </SideLabel>
+      {items.length === 0 ? (
+        <p className="text-small text-ink-2">None in this version.</p>
+      ) : (
+        <ul className="flex flex-wrap gap-1.5">
+          {items.map((it) => {
+            const on = it.key === selectedKey;
             return (
-              <li key={c.key}>
+              <li key={it.key}>
                 <button
                   type="button"
                   aria-pressed={on}
-                  onClick={() => onSelect(c.key)}
+                  onClick={() => onSelect(it.key)}
                   className={cn(
-                    "grid min-h-11 w-full grid-cols-[28px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-sm px-2 py-2 text-left sm:grid-cols-[28px_minmax(0,1fr)_minmax(6rem,9rem)]",
-                    on ? "bg-select-wash" : "hover:bg-sunken",
+                    "hit-44 inline-flex items-center rounded-pill border px-2.5 py-1 text-[12px] transition-colors duration-(--vol-dur-fast) ease-out",
+                    on ? "border-mint bg-mint-wash text-mint-ink" : "border-line bg-soft text-ink hover:bg-panel-2",
+                    it.off && "text-ink-3 line-through",
                   )}
                 >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "num grid size-7 place-items-center rounded-control text-small font-semibold",
-                      on ? "bg-select text-canvas" : "bg-sunken text-ink-secondary",
-                    )}
-                  >
-                    {c.number}
-                  </span>
-                  <span className={cn("min-w-0 text-[14px] leading-5 [overflow-wrap:anywhere]", on ? "font-semibold text-ink" : "text-ink")}>
-                    <span className="sr-only">Chapter {c.number}: </span>
-                    {c.title || "Untitled"}
-                  </span>
-                  <span className="col-start-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:col-start-3">
-                    <span aria-hidden className="block h-1.5 overflow-hidden rounded-pill bg-sunken">
-                      <span
-                        className="block h-full origin-left rounded-pill bg-progress transition-transform duration-(--vol-dur-slow) ease-out"
-                        style={{ transform: `scaleX(${c.wordTarget / longest})` }}
-                      />
-                    </span>
-                    <span className="num text-small text-ink-secondary">
-                      {formatNumber(c.wordTarget)}
-                      <span className="sr-only"> words planned</span>
-                    </span>
-                  </span>
+                  {it.label}
+                  {it.off && <span className="sr-only">, switched off</span>}
                 </button>
               </li>
             );
           })}
-        </ol>
+        </ul>
+      )}
+    </>
+  );
+}
 
-        <div aria-live="polite" className="grid content-start gap-3 border-t border-border p-4 sm:p-5 @2xl:border-t-0 @2xl:border-l">
-          <div>
-            <p className="text-label font-semibold text-select">Chapter {chosen.number}</p>
-            <h3 className="mt-0.5 font-book text-[21px] leading-7 font-medium text-ink [overflow-wrap:anywhere]">{chosen.title || "Untitled"}</h3>
-          </div>
-          <dl className="grid gap-3">
-            <div className="grid gap-0.5">
-              <dt className="text-caption font-semibold text-ink-tertiary">Purpose</dt>
-              <dd className="text-small text-ink">{chosen.purpose || "No summary in this version."}</dd>
-            </div>
-            <div className="grid gap-0.5">
-              <dt className="text-caption font-semibold text-ink-tertiary">Word target</dt>
-              <dd className="num text-small text-ink">{formatNumber(chosen.wordTarget)} words</dd>
-            </div>
-            <div className="grid gap-0.5">
-              <dt className="text-caption font-semibold text-ink-tertiary">Sections, {chosen.sections.length}</dt>
-              <dd>
-                {chosen.sections.length === 0 ? (
-                  <p className="text-small text-ink-secondary">No subheadings planned.</p>
-                ) : (
-                  <ol className="grid list-decimal gap-1 pl-5 text-small text-ink marker:text-ink-tertiary">
-                    {chosen.sections.map((s, i) => (
-                      <li key={`${i}-${s}`}>{s}</li>
-                    ))}
-                  </ol>
-                )}
-              </dd>
-            </div>
-          </dl>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="ghost" onClick={() => onShow(chosen.key)}>
-              Show in the full plan
-            </Button>
-            {panelActions?.(chosen)}
-          </div>
-        </div>
-      </div>
-    </section>
+function ChapterRow({
+  chapter: c,
+  longest,
+  on,
+  onSelect,
+  onTitle,
+}: {
+  chapter: OutlineChapter;
+  longest: number;
+  on: boolean;
+  onSelect: (key: string) => void;
+  onTitle?: ((key: string, title: string) => void) | undefined;
+}) {
+  const [value, setValue] = useState(c.title);
+  function commit() {
+    const next = value.trim();
+    if (!onTitle) return;
+    if (!next) setValue(c.title);
+    else if (next !== c.title) onTitle(c.key, next);
+  }
+  return (
+    <li
+      className={cn(
+        "grid grid-cols-[34px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1 rounded-control px-1.5 py-1 sm:grid-cols-[34px_minmax(0,1fr)_140px]",
+        on ? "bg-mint-wash" : "hover:bg-soft",
+      )}
+    >
+      <button
+        type="button"
+        aria-pressed={on}
+        aria-label={`Show chapter ${c.number}${c.claims ? `, ${c.claims} ${c.claims === 1 ? "claim" : "claims"} to verify` : ""}`}
+        onClick={() => onSelect(c.key)}
+        className={cn(
+          "hit-44 num relative grid size-[30px] place-items-center rounded-[9px] border text-[12.5px] font-bold",
+          on ? "border-transparent bg-mint text-on-mint" : "border-line text-ink-2 hover:bg-panel-2",
+        )}
+      >
+        {c.number}
+        {c.claims ? <span aria-hidden className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-claim" /> : null}
+      </button>
+      {onTitle ? (
+        <input
+          value={value}
+          aria-label={`Chapter ${c.number} title`}
+          onChange={(e) => setValue(e.target.value)}
+          onFocus={() => onSelect(c.key)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "Escape") {
+              setValue(c.title);
+              e.currentTarget.blur();
+            }
+          }}
+          className="h-10 w-full min-w-0 rounded-[9px] border border-edge bg-panel-2 px-2.5 text-[13.5px] text-ink hover:border-line-2 focus:border-mint focus:bg-panel-2 focus:shadow-[0_0_0_3px_var(--vol-mint-wash)] focus:outline-none"
+        />
+      ) : (
+        <span className="min-w-0 px-2.5 py-2 text-[13.5px] text-ink [overflow-wrap:anywhere]">{c.title || "Untitled"}</span>
+      )}
+      <span className="col-start-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:col-start-3">
+        <span aria-hidden className="block h-[5px] overflow-hidden rounded-pill bg-track">
+          <span
+            className="block h-full origin-left rounded-pill bg-mint transition-transform duration-(--vol-dur-slow) ease-out"
+            style={{ transform: `scaleX(${c.wordTarget / longest})` }}
+          />
+        </span>
+        <span className="num min-w-10 text-right text-[12px] text-ink-2">
+          {formatNumber(c.wordTarget)}
+          <span className="sr-only"> words planned</span>
+        </span>
+      </span>
+    </li>
+  );
+}
+
+export interface VersionRow {
+  version: number;
+  note: string;
+  /** For example the cost of the run, or when it was saved. */
+  detail?: string | undefined;
+  approved?: boolean | undefined;
+}
+
+/** The Versions list of the right card (.ev-line rows): each old version has its action, the current one says so. */
+export function VersionList({
+  items,
+  current,
+  actionLabel,
+  onAction,
+  disabledReason,
+}: {
+  items: VersionRow[];
+  current: number;
+  actionLabel: string;
+  onAction: (version: number) => void;
+  disabledReason?: string | undefined;
+}) {
+  if (items.length === 0) return <p className="text-small text-ink-2">Only the current version is known so far.</p>;
+  return (
+    <ol aria-label="Blueprint versions" className="grid gap-3">
+      {[...items]
+        .sort((a, b) => a.version - b.version)
+        .map((v) => {
+          const here = v.version === current;
+          return (
+            <li key={v.version} className="flex items-center gap-2.5 rounded-control bg-soft px-3 py-2.5">
+              <span className="min-w-0 flex-1">
+                <b className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-ink">
+                  Version {v.version}
+                  {here ? " (this one)" : ""}
+                  {v.approved && (
+                    <span className="inline-flex items-center gap-1 text-small font-medium text-good">
+                      <Check size={13} strokeWidth={2.25} aria-hidden />
+                      approved
+                    </span>
+                  )}
+                </b>
+                <small className="block text-small text-ink-3 [overflow-wrap:anywhere]">{v.note}</small>
+              </span>
+              {here ? (
+                v.detail ? (
+                  <small className="num shrink-0 text-small text-ink-3">{v.detail}</small>
+                ) : null
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="shrink-0 font-semibold text-mint-ink"
+                  disabledReason={disabledReason}
+                  onClick={() => onAction(v.version)}
+                >
+                  {actionLabel}
+                  <span className="sr-only"> version {v.version}</span>
+                </Button>
+              )}
+            </li>
+          );
+        })}
+    </ol>
   );
 }
 
