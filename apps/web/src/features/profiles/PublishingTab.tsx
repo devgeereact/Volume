@@ -2,21 +2,24 @@ import { useRef } from "react";
 import { Chip, Input, Select, Switch, Textarea } from "../../components/ui";
 import { bookCategories, bookTypesIn, coverStyles, getBookType, interiorThemes } from "../../demo/config";
 import { formatNumber } from "../../lib/format";
+import { kdpTrims, kdpTrimsVersion } from "../../lib/kdpTrims";
 import { SectionTitle, type TabProps } from "./IdentityTab";
 import { ListEditor } from "./ListEditor";
 import { PLACEHOLDERS, PREVIEW_YEAR, copyrightHolder, errorFor } from "./profileRules";
 
-/** Trim sizes from config/kdp-rules/2026-10-06.json (verified paperback.trimSizes.list). */
-export const TRIM_OPTIONS = [
-  { value: "5 x 8 in", label: "5 x 8 in" },
-  { value: "5.25 x 8 in", label: "5.25 x 8 in" },
-  { value: "5.5 x 8.5 in", label: "5.5 x 8.5 in" },
-  { value: "6 x 9 in", label: "6 x 9 in", hint: "Most common" },
-  { value: "7 x 10 in", label: "7 x 10 in" },
-  { value: "8.5 x 8.5 in", label: "8.5 x 8.5 in", hint: "Picture books" },
-  { value: "8.5 x 11 in", label: "8.5 x 11 in", hint: "Workbooks" },
-];
-export const TRIM_HINT = "From the KDP rules file dated 3 October 2026. The trim list is still marked unverified there.";
+/** Volume's own notes beside some trims (not KDP facts). */
+const PROFILE_TRIM_HINTS: Record<string, string> = {
+  "6 x 9 in": "Most common",
+  "8.5 x 8.5 in": "Picture books",
+  "8.5 x 11 in": "Workbooks",
+};
+
+/** Trim sizes from the newest config/kdp-rules file (rule paperback.trimSizes.list), in its order. */
+export const TRIM_OPTIONS: { value: string; label: string; hint?: string }[] = kdpTrims.map((t) => {
+  const hint = PROFILE_TRIM_HINTS[t.value];
+  return hint ? { value: t.value, label: t.value, hint } : { value: t.value, label: t.value };
+});
+export const TRIM_HINT = `From the KDP rules file ${kdpTrimsVersion} (rule paperback.trimSizes.list).`;
 
 const themeOptions = interiorThemes.map((t) => ({ value: t.id, label: t.name }));
 const coverOptions = coverStyles.map((c) => ({ value: c.id, label: c.name }));

@@ -1,4 +1,4 @@
-import rulesFile from "@config/kdp-rules/2026-10-17.json";
+import { kdpRulesFile as rulesFile } from "../../lib/kdpRulesFile";
 import {
   defaultPictureBookPlan,
   interiorBleedSizeIn,
@@ -13,8 +13,8 @@ import {
 } from "@volume/core";
 import type { SpreadLayout } from "../../api/picture";
 
-/* Page geometry for the spreads board and the export step, from config/kdp-rules/2026-10-17.json (the newest
-   rules file, the one the server reads) through the same @volume/core maths the exporter uses: page size with
+/* Page geometry for the spreads board and the export step, from the newest config/kdp-rules file (lib/kdpRulesFile.ts:
+   the one the server reads) through the same @volume/core maths the exporter uses: page size with
    bleed (rule print.bleed) and the safe area (rule paperback.interiorMargins). Nothing is typed in from memory.
    This module loads @volume/core and zod, so it is only imported from the picture-book chunk. */
 

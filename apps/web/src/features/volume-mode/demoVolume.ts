@@ -1,5 +1,5 @@
 import { checkTitleSlot, parseKdpRules, titleCreationLimit } from "@volume/core";
-import rulesFile from "@config/kdp-rules/2026-10-17.json";
+import { kdpRulesFile as rulesFile } from "../../lib/kdpRulesFile";
 import { ApiError } from "../../api/client";
 import type { ApiBatchDetail, ApiBatchSummary, ApiTitleLimit, ApiTitleSlot, BatchInput, QualityGate, SlotInput, TitleLimitDetails } from "../../api/types";
 import { demoBatches, demoGate, demoSlots } from "../../demo/volume";
