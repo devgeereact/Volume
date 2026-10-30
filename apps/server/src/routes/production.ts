@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import type { RequestCtx } from '../auth/context.js';
 import { AppError, parse } from '../http/errors.js';
+import { coverPicture } from '../files/cover-picture.js';
 import { isPictureBook, pictureStructure } from '../jobs/picture-book.js';
 import { bookWritingComplete, buildExportBook, packHashOf } from '../jobs/book-data.js';
 import { KeyedLock } from '../lib/keyed-lock.js';
@@ -80,6 +81,8 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     const cover = await p.getCover(req.ctx, id);
     if (!cover || !cover.concepts.some((c) => c.assetId === body.assetId))
       throw new AppError('validation_failed', 'That concept does not belong to this book.');
+    // A background picture must be one of this book's pictures (uploaded with the existing POST /assets).
+    if (body.typography) await coverPicture(s.blobs, req.ctx, id, body.typography, true);
     const patch: Parameters<typeof p.upsertCover>[2] = { chosenAssetId: body.assetId, status: 'chosen' };
     if (body.typography) patch.typography = body.typography;
     return { cover: await p.upsertCover(req.ctx, id, patch) };
@@ -113,11 +116,13 @@ export function productionRoutes(app: FastifyInstance, s: AppServices): void {
     const exports = await p.listExports(req.ctx, id);
     const printed = exports.find((e) => e.kind === 'pdf_print' && e.status === 'done' && e.manuscriptHash === book.manuscriptHash)?.pageCount ?? null;
     const built = typeof cover.wrapSpec['pages'] === 'number' ? cover.wrapSpec['pages'] : null;
+    const typography = body.typography ?? cover.typography;
     return s.exporter.coverPreviewHtml(
       {
         book,
         artwork: { mime: art.meta.mime, data: art.data },
-        typography: body.typography ?? cover.typography,
+        typography,
+        backgroundImage: await coverPicture(s.blobs, req.ctx, id, typography, body.typography !== undefined),
         coverStyleId: book.coverStyleId,
         pageCount: body.pages ?? printed ?? built ?? 120,
         backBlurb: book.listing?.backBlurb ?? '',

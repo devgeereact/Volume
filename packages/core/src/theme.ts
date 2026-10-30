@@ -3,6 +3,8 @@
 // today (bodyFont, sizes.lineHeight, chapterOpener, palettes, layout in cover-width units) and common aliases, and
 // fill gaps from the defaults. Pure: the caller reads the files.
 
+import type { CoverArtwork, CoverBackground, CoverShape, CoverSpine } from './cover-layers.ts';
+
 export type TrimKey = '5x8' | '5.25x8' | '5.5x8.5' | '6x9' | '7x10' | '8.5x8.5' | '8.5x11' | (string & {});
 
 export interface MarginsIn {
@@ -447,6 +449,11 @@ export interface CoverStyle {
   imageOverlay: number;
   /** Ornament drawn in the open middle when there is no background image (name or inline SVG; "none" for nothing). */
   ornament: string;
+  /** Cover layers set in the cover studio (cover-layers.ts). Missing: the cover draws as it always has. */
+  background?: CoverBackground;
+  artwork?: CoverArtwork;
+  shapes?: CoverShape[];
+  spine?: CoverSpine;
 }
 
 export const DEFAULT_COVER_STYLE: CoverStyle = {

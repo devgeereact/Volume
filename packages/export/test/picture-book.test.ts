@@ -155,11 +155,11 @@ describe('picture-mini: preflight', () => {
     const rep = await runPreflight(preflightInput());
     const text = preflightText(rep, `Preflight: ${doc.meta.title}`);
     expect(rep.ok, text).toBe(true);
-    // paperback.colour.paper is a partial rule, so the colour page count passes with a check-before-use warning.
+    // paperback.colour.paper is confirmed from the 2026-10-29 rules file on, so the colour page count passes cleanly.
     const pageCount = rep.items.find((i) => i.id === 'picture.page-count');
-    expect(pageCount?.level).toBe('warn');
-    expect(pageCount?.detail).toContain('paperback.colour.paper is partial');
+    expect(pageCount?.detail).not.toContain('is partial');
     for (const id of [
+      'picture.page-count',
       'interior.bleed',
       'interior.fonts',
       'picture.spread-images',

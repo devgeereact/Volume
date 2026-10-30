@@ -64,4 +64,4 @@ export async function* sniffed(mime: string, source: AsyncIterable<Uint8Array | 
 }
 
 /** Upload kinds that hold pictures: they must declare an image type, never application/octet-stream. */
-export const IMAGE_KINDS: ReadonlySet<string> = new Set(['logo', 'interior_image', 'author_photo', 'cover_concept']);
+export const IMAGE_KINDS: ReadonlySet<string> = new Set(['logo', 'interior_image', 'author_photo', 'cover_concept', 'cover_background']);

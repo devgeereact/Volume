@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import rulesFile from "@config/kdp-rules/2026-10-17.json";
+import { kdpRulesFile as rulesFile } from "../../lib/kdpRulesFile";
 import { historyReducer, HISTORY_LIMIT, MERGE_MS, startHistory } from "./history";
 import { bookPalette, bookPalettes, contrast, coloursFromSaved, PALETTE_FAMILIES, sameColours } from "./palettes";
 import { pageCheck, pageRange, paperbackSize, paperFor, ruleTrims, trimInRules } from "./paperback";
@@ -78,7 +78,9 @@ describe("paperback numbers from the KDP rules", () => {
   it("offers exactly the trims in the rules file", () => {
     const list = (rule("paperback.trimSizes.list").values as { widthIn: number; heightIn: number }[]).map((t) => `${t.widthIn}x${t.heightIn}`);
     expect(ruleTrims.map((t) => `${t.w}x${t.h}`)).toEqual(list);
-    expect(trimInRules({ w: 8, h: 10 })).toBe(false);
+    expect(trimInRules({ w: 8, h: 10 })).toBe(true);
+    // 8.25 x 11 in is a KDP hardcover trim, not a paperback one.
+    expect(trimInRules({ w: 8.25, h: 11 })).toBe(false);
   });
 
   it("changes the spine with the ink and the paper", () => {
@@ -96,9 +98,15 @@ describe("paperback numbers from the KDP rules", () => {
     expect(pageRange({ w: 6, h: 9 }, "standard", "white")).toEqual({ min: 72, max: 600 });
     expect(pageCheck({ w: 6, h: 9 }, 60, "standard", "white").ok).toBe(false);
     expect(pageCheck({ w: 6, h: 9 }, 120, "black", "cream").ok).toBe(true);
-    expect(pageCheck({ w: 8, h: 10 }, 120, "black", "cream").ok).toBeNull();
-    expect(pagesFrom("60", 120, { trim: { w: 6, h: 9 }, ink: "standard", paper: "white" })).toEqual({ pages: 120, typedOk: false });
-    expect(pagesFrom("", 120, { trim: { w: 6, h: 9 }, ink: "black", paper: "white" })).toEqual({ pages: 120, typedOk: true });
+    expect(pageCheck({ w: 8.25, h: 11 }, 120, "black", "cream").ok).toBeNull();
+    // 8 x 10 in black ink on cream: "24 - 776" (rule paperback.trimAndPages, fact 13.2, 2026-10-29 file).
+    expect(pageRange({ w: 8, h: 10 }, "black", "cream")).toEqual({ min: 24, max: 776 });
+    // 8.27 x 11.69 in has no standard colour on KDP, so the studio has no range for it.
+    expect(pageRange({ w: 8.27, h: 11.69 }, "standard", "white")).toBeNull();
+    expect(pagesFrom("60", 120, { trim: { w: 6, h: 9 }, ink: "standard", paper: "white" })).toEqual({ pages: 120, typedOk: false, belowMin: false });
+    expect(pagesFrom("", 120, { trim: { w: 6, h: 9 }, ink: "black", paper: "white" })).toEqual({ pages: 120, typedOk: true, belowMin: false });
+    // A book shorter than the KDP minimum still gets a printable wrap preview, at the minimum.
+    expect(pagesFrom("", 2, { trim: { w: 6, h: 9 }, ink: "black", paper: "white" })).toEqual({ pages: 24, typedOk: true, belowMin: true });
   });
 });
 

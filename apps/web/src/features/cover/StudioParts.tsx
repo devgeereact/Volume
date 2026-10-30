@@ -214,13 +214,19 @@ export interface PaperbackState {
   paper: Paper;
 }
 
-/** The page count to use: the typed one when it fits the trim and ink, else `fallback` (the real or sample count). */
-export function pagesFrom(text: string, fallback: number, v: PaperbackState): { pages: number; typedOk: boolean } {
-  if (text === "") return { pages: fallback, typedOk: true };
-  const n = Number.parseInt(text, 10);
+/**
+ * The page count to use: the typed one when it fits the trim and ink, else `fallback` (the real or sample count),
+ * held inside the trim's KDP page range so the wrap preview always has a printable size. `belowMin` says the real
+ * count is under the range's minimum, so the preview shows the shortest printable wrap.
+ */
+export function pagesFrom(text: string, fallback: number, v: PaperbackState): { pages: number; typedOk: boolean; belowMin: boolean } {
   const range = pageRange(v.trim, v.ink, v.paper) ?? { min: 24, max: 828 };
+  const held = Math.min(range.max, Math.max(range.min, fallback));
+  const belowMin = fallback < range.min;
+  if (text === "") return { pages: held, typedOk: true, belowMin };
+  const n = Number.parseInt(text, 10);
   const ok = Number.isFinite(n) && n >= range.min && n <= range.max;
-  return { pages: ok ? n : fallback, typedOk: ok };
+  return { pages: ok ? n : held, typedOk: ok, belowMin: !ok && belowMin };
 }
 
 /** Ink to start with: picture books print in colour, everything else in black. */
@@ -411,6 +417,8 @@ export interface ChecksInput {
   /** Built files: null when nothing is built yet. */
   built: { stale: boolean } | null;
   show: (id: LayerId) => void;
+  /** Contrast checks for a cover with layers (layers.ts layerChecks); they replace the plain colour checks. */
+  layerChecks?: StudioCheck[] | null | undefined;
 }
 
 export function coverChecks(i: ChecksInput): StudioCheck[] {
@@ -435,7 +443,8 @@ export function coverChecks(i: ChecksInput): StudioCheck[] {
       onShow: () => i.show("title"),
     });
   }
-  if (!i.colours)
+  if (i.layerChecks) out.push(...i.layerChecks);
+  else if (!i.colours)
     out.push({
       status: "info",
       title: "Text colour over the art",
@@ -528,7 +537,7 @@ export function FixedLayerInfo({
             ? `The spine carries the title and ${author || "the author"}, sized by the build for a ${inches(spineIn, 3)} spine.`
             : `No spine text: KDP allows it from ${spineTextMinPages} pages and this book is shorter.`}
         </p>
-        <p className="text-[12px] leading-[1.45] text-ink-2">The spine colour follows the palette's band colour.</p>
+        <p className="text-[12px] leading-[1.45] text-ink-2">Without colours of its own, the spine follows the palette's band colour.</p>
       </Section>
     );
   if (id === "blurb")

@@ -1,3 +1,4 @@
+import { coverPicture } from '../../files/cover-picture.js';
 import type { ExportFile, ExportKind, PreflightReport } from '../../ports/export.js';
 import { EXPORT_KINDS } from '../../ports/export.js';
 import type { MarketingExtras } from '../../repos/production.js';
@@ -144,7 +145,12 @@ export const coverBuildHandler: JobHandler = async (jc) => {
     artwork: art ? { mime: art.meta.mime, data: art.data } : null,
     typography: cover?.typography ?? {},
     coverStyleId: book.coverStyleId,
+    // A picture that is gone (deleted, or not carried over by a project move) leaves the background colour; the build says so.
+    backgroundImage: await coverPicture(blobs, jc.ctx, projectId, cover?.typography),
+    ...(pageCount ? { pageCount } : {}),
+    ...(picture ? { ink: PICTURE_INK } : {}),
   };
+  const coverWarnings: string[] = [];
   let ebookAssetId = cover?.ebookAssetId ?? null;
   let wrapAssetId = cover?.wrapAssetId ?? null;
   let mock = false;
@@ -152,6 +158,7 @@ export const coverBuildHandler: JobHandler = async (jc) => {
     await jc.progress(0.3, 'Building the eBook cover');
     const ebook = await exporter.buildEbookCover(input, { signal: jc.signal });
     mock ||= ebook.mock;
+    coverWarnings.push(...(ebook.warnings ?? []));
     ebookAssetId = (
       await blobs.put(
         jc.ctx,
@@ -165,6 +172,7 @@ export const coverBuildHandler: JobHandler = async (jc) => {
     await jc.progress(0.6, 'Building the paperback wrap');
     const wrap = await exporter.buildWrapCover({ ...input, pageCount, backBlurb, ...(picture ? { ink: PICTURE_INK } : {}) }, { signal: jc.signal });
     mock ||= wrap.mock;
+    coverWarnings.push(...(wrap.warnings ?? []));
     wrapAssetId = (
       await blobs.put(
         jc.ctx,
@@ -189,6 +197,8 @@ export const coverBuildHandler: JobHandler = async (jc) => {
         chosen: cover?.chosenAssetId ?? null,
       },
       ...(typographic ? { typographic: true } : {}),
+      // What the build measured or noticed (text contrast on the real pixels, picture DPI), for the studio's checks.
+      ...(coverWarnings.length ? { warnings: [...new Set(coverWarnings)] } : {}),
       mock,
     },
     status: 'final',

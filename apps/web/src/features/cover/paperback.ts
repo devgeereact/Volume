@@ -1,4 +1,4 @@
-import rulesFile from "@config/kdp-rules/2026-10-17.json";
+import { kdpRulesFile as rulesFile } from "../../lib/kdpRulesFile";
 import { colourPageRange, parseKdpRules, spineTextAllowed, trimPageRange, trimSizes, wrapSizeIn, type ColourInk, type Paper } from "@volume/core";
 
 /* Paperback numbers for the cover studio's Paperback panel: trims, inks, page ranges, spine and wrap. Every
