@@ -1,0 +1,10 @@
+{
+  "host": "local.volume.gakinz.com",
+  "live": "https://volume.gakinz.com",
+  "api": ["/api/"],
+  "port": 5180,
+  "dev": ["npx", "vite"],
+  "cwd": "apps/web",
+  "clerkKey": "pk_live_Y2xlcmsudm9sdW1lLmdha2luei5jb20k",
+  "open": "/"
+}
