@@ -829,3 +829,9 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Wrap preview under 24 pages: `pagesFrom` in `StudioParts.tsx` holds the page count inside the trim's KDP range and returns `belowMin`; the paperback note says the preview shows the shortest printable wrap. Test added in `studio.test.tsx`.
 - 8.27 x 11.69 in premium colour: read the en_GB help page (raw saved in `../reports/volume/kdp-trims/raw/`); it shows the same kdp.amazon.com table with "24 - 590". The 780 is only in the kdp.amazon.co.jp table, for Japan. 590 stays; notes in `config/kdp-rules/2026-10-29.json` and KDP-RULES.md 13.3 updated. No number changed.
 - Checks PASS: typecheck, lint, format:check, docs:check, web 265, e2e 20/20.
+
+## 30 October 2026, Claude Code (Opus 5.5): deploy of the cover fixes
+
+- Owner: "merge and deploy". Merged #84 (release docs) and #85 (cover fixes; a HANDOFF conflict resolved by keeping both entries). Main `b57dbc3` deployed as `releases/20261030T023316Z` (was `20261029T192436Z`, now the rollback target). No migrations. Pruned `20261029T115250Z`.
+- Checks PASS: deploy script (health 200, sign-in enforced, `/assets/index-BQUCvBqd.js`); `/api/health` 200; `/api/v1/books` 401 signed out; `/`, `/library`, `/robots.txt` 200. Not checked: signed-in pages in a browser. Deploy SSH agent stopped.
+- Next: owner checks the signed-in app. No open items from the studio redesign.
