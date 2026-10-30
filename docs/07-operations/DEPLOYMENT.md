@@ -1,6 +1,6 @@
 # Deployment
 
-Volume runs on the owner's cPanel account as one CloudLinux Passenger Node.js app at https://volume.gakinz.com (D-037, D-038, D-039). Development stays local (see [development](DEVELOPMENT.md)). The lead agent deploys with `npm run deploy` after the owner's approval; nothing in this repository deploys by itself.
+Volume runs on the owner's cPanel account as one CloudLinux Passenger Node.js app at https://volume.gakinz.com (D-037, D-038, D-039). Development stays local (see [development](DEVELOPMENT.md)). Since 30 October 2026 (owner decision) a push to `main` deploys by itself: `.github/workflows/deploy.yml` runs the same `npm run deploy` over SSH (restricted deploy key, secrets `CPANEL_SSH_KEY` and `CPANEL_KNOWN_HOSTS`) once "Check Volume" has passed on that commit. It stops without going live when migrations are pending; run `npm run deploy -- --migrate` from the Mac after a database backup. `npm run deploy` from the Mac still works the same way.
 
 ## Current release
 

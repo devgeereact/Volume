@@ -1,0 +1,53 @@
+# Deploy main automatically once "Check Volume" has passed on it: the same `npm run deploy` as on the Mac
+# (scripts/deploy.mjs: CI check, build, upload to ~/apps/volume/releases/<utc>, atomic switch, live checks,
+# automatic rollback). It stops, uploading nothing live, when migrations are pending: run
+# `npm run deploy -- --migrate` from the Mac after a database backup.
+# Secrets (set by ~/Backups/scripts/setup-github-deploy.zsh --apply Volume): CPANEL_SSH_KEY, CPANEL_KNOWN_HOSTS.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Check Volume"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26.10.0"
+          cache: npm
+      - run: npm ci --include=optional --no-audit --no-fund
+      - name: SSH to cPanel
+        env:
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+          CPANEL_KNOWN_HOSTS: ${{ secrets.CPANEL_KNOWN_HOSTS }}
+        run: |
+          test -n "$CPANEL_SSH_KEY" || { echo "CPANEL_SSH_KEY is not set: run setup-github-deploy.zsh"; exit 1; }
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$CPANEL_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$CPANEL_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf 'Host cpanel\n  HostName premium17.web-hosting.com\n  Port 21098\n  User devgeereact\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n' > ~/.ssh/config
+      - name: Deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/deploy.mjs
+      - name: Remove the key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
