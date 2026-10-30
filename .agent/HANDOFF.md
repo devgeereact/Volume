@@ -816,6 +816,12 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Known bugs, not fixed: books with no subtitle show the cover as out of date after every build (`apps/web/src/api/adapters.ts:249` maps null to ""); the wrap preview is empty for books under 24 pages.
 - Next: PR, merge, deploy with the owner's key unlock.
 
+## 29 October 2026, Claude Code (Opus 5.5): deploy of cover layers and KDP trims
+
+- PR #83 merged after a fix for core coverage (new `packages/core/test/cover-layers.test.ts`, 20 tests; CI had stopped at 87.81% lines against the 90% threshold). Main `09f7075` deployed as `releases/20261029T192436Z` (was `20261029T142955Z`, now the rollback target). No migrations. Pruned `20261029T075300Z`.
+- Checks PASS: deploy script (health 200, sign-in enforced, `/assets/index-B5lCkV_f.js`); `/api/health` 200; `/api/v1/books` 401 signed out; `/`, `/library`, `/robots.txt` 200. Not checked: signed-in pages in a browser. Deploy SSH agent stopped.
+- Open: no-subtitle cover always shows out of date (`apps/web/src/api/adapters.ts:249`); wrap preview empty under 24 pages; 8.27 x 11.69 premium colour page limit (US 590, Japan 780; 590 kept).
+
 ## 29 October 2026, Claude Code (Opus 5.5): cover fixes and the A4 premium colour limit
 
 - Owner: "fix all". Branch `fix/cover-stale-and-preview`.
