@@ -10,7 +10,7 @@ Short index for agents. Each fact lives in the file linked here; this page does 
 
 ## Assumptions and open questions
 
-- Open owner decisions and remaining work: [known issues](../../KNOWN-ISSUES.md).
+- Open owner decisions and remaining work: [known issues](../KNOWN-ISSUES.md).
 - Profile facts about real people stay `owner to confirm` until the owner confirms them (D-018).
 
 ## Context

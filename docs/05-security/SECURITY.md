@@ -40,7 +40,7 @@ Volume holds unpublished books, author identities, possibly real people's storie
 ## Network policy
 
 - Outbound from the server: OpenRouter, Anthropic when `ANTHROPIC_API_KEY` is set (Claude models try it first, D-058), plus Clerk (JWKS or user lookups) when hosted.
-- Research link checking (opening cited URLs to see if they still work) would contact other sites, so it is off by default and needs a `docs/08-change-management/DECISIONS.md` entry and the owner's OK before it is built (`KNOWN-ISSUES.md`).
+- Research link checking (opening cited URLs to see if they still work) would contact other sites, so it is off by default and needs a `docs/08-change-management/DECISIONS.md` entry and the owner's OK before it is built (`docs/KNOWN-ISSUES.md`).
 - Fonts, icons and the app's own scripts are bundled. The hosted build also loads Clerk's script on every page (ClerkProvider wraps the app, so the public pages wait for it too) and Cloudflare Turnstile on sign-in (allowed in the CSP). No analytics, no telemetry, no error reporting service. Pages and API answers carry `X-Robots-Tag: noindex, nofollow` and `robots.txt` disallows everything.
 - Links to sources open in the system browser, outside the app.
 

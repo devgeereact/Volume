@@ -262,7 +262,7 @@ height_in = 0.125 + trim_h + 0.125
 
 - Spine text only at 80 pages or more (FACTS 3.10: KDP says both "at least 79" and "more than 79", so Volume uses 80).
 - `pages` is the interior PDF's real page count, read from the file, never estimated.
-- Back cover: blurb, short bio, and an empty area for KDP's barcode (size/clearance recorded, automatic placement still partial, `KNOWN-ISSUES.md`).
+- Back cover: blurb, short bio, and an empty area for KDP's barcode (size/clearance recorded, automatic placement still partial, `docs/KNOWN-ISSUES.md`).
 - Phase 4 check: sizes match KDP's cover calculator (FACTS 3.8) for 3 page counts on white and cream.
 
 ## Cover layers (studio redesign stage 5)

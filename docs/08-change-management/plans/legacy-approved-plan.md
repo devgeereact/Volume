@@ -162,7 +162,7 @@ Owner request (4 October 2026): save the plan and create the whole project works
 
 - `AGENTS.md` (single rule source for every AI, under 120 lines), `CLAUDE.md` (`@AGENTS.md` plus Claude notes), `GEMINI.md` (points to AGENTS.md). GEE OS adoption: `.agent/PROJECT.yml`, `.agent/CURRENT-TASK.md` (where the work is, next step), `.agent/HANDOFF.md` (dated log any AI appends to).
 - `README.md`, `.gitignore` (data/, .env, node_modules, dist), `.env.example` (key names only), `package.json` (npm workspaces), empty `apps/web`, `apps/server`, `packages/core|ai|export` with a README each saying what goes there and in which phase.
-- `docs/`: 00-VISION, 01-PRD (features, phases, acceptance), 02-ARCHITECTURE, 03-DATA-MODEL, 04-AI-PIPELINE (9 stages, models, guardrails), 05-PROMPTS (index), 06-EXPORT-SPEC (PDF, DOCX, EPUB, TXT, covers, pack, preflight), 07-KDP-RULES, 08-DESIGN-GUIDE, 09-UX-FLOWS (every screen and flow), 10-SECURITY-PRIVACY, 11-TESTING, 12-ROADMAP, GLOSSARY; `docs/08-change-management/DECISIONS.md` (ADR log starting with this plan's decisions), `CHANGELOG.md`, `KNOWN-ISSUES.md`.
+- `docs/`: 00-VISION, 01-PRD (features, phases, acceptance), 02-ARCHITECTURE, 03-DATA-MODEL, 04-AI-PIPELINE (9 stages, models, guardrails), 05-PROMPTS (index), 06-EXPORT-SPEC (PDF, DOCX, EPUB, TXT, covers, pack, preflight), 07-KDP-RULES, 08-DESIGN-GUIDE, 09-UX-FLOWS (every screen and flow), 10-SECURITY-PRIVACY, 11-TESTING, 12-ROADMAP, GLOSSARY; `docs/08-change-management/DECISIONS.md` (ADR log starting with this plan's decisions), `CHANGELOG.md`, `docs/KNOWN-ISSUES.md`.
 - `docs/source-drafts/`: the owner's six drafts saved verbatim, marked as source material, not rules.
 
 ### 0b. Config and prompt library

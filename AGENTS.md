@@ -38,7 +38,7 @@ This application adopts GEE OS 1.4.5 on the `cpanel` profile (D-040), keeping th
 | Moving a book between Volumes (project zip, D-051) | `docs/07-operations/DEPLOYMENT.md` ("Moving a book") |
 | Restoring Volume on a computer (setup, `.env` rules) | `docs/07-operations/SETUP.md` |
 | Tests | `docs/06-quality/TEST-STRATEGY.md` |
-| Decisions and open issues | `docs/08-change-management/DECISIONS.md`, `KNOWN-ISSUES.md` |
+| Decisions and open issues | `docs/08-change-management/DECISIONS.md`, `docs/KNOWN-ISSUES.md` |
 | AI test fixtures (mock provider) | `packages/ai/test/fixtures/` |
 | Owner's original drafts, nine notes (source material, not rules) | `docs/source-drafts/` |
 

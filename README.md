@@ -24,7 +24,7 @@ For a new session, read this file, then [AGENTS.md](AGENTS.md) (every rule) and 
 
 20 October 2026: live at https://volume.gakinz.com on release `20261020T035644Z` (main `072dec3`), with rollback target `20261020T021731Z`. Phases 0 to 8 are built; phases 6 to 8 were built on 17 October 2026 (D-041 to D-047). The owner gates for phases 5 to 8 are open. The live acceptance run of 18 October 2026 is not passed: no book has yet gone through to a postable pack end to end.
 
-GitHub Actions creates no runs because GitHub's spam filter flagged the owner's account on 18 October 2026 (see [known issues](KNOWN-ISSUES.md)), so deploys use `--no-ci-check` with the owner's OK. Open issues are in [known issues](KNOWN-ISSUES.md). The current release, deploy and rollback steps are in [deployment](docs/07-operations/DEPLOYMENT.md).
+GitHub Actions creates no runs because GitHub's spam filter flagged the owner's account on 18 October 2026 (see [known issues](docs/KNOWN-ISSUES.md)), so deploys use `--no-ci-check` with the owner's OK. Open issues are in [known issues](docs/KNOWN-ISSUES.md). The current release, deploy and rollback steps are in [deployment](docs/07-operations/DEPLOYMENT.md).
 
 ## Restore and run on macOS or Linux
 
@@ -120,7 +120,7 @@ Settings live in `.env` at the root (template in `.env.example`). With no OpenRo
 | `docs/00-foundation/GLOSSARY.md` | Terms used across the project |
 | `docs/08-change-management/DECISIONS.md` | Decision log |
 | `CHANGELOG.md` | User-visible changes |
-| `KNOWN-ISSUES.md` | Open questions and things to verify |
+| `docs/KNOWN-ISSUES.md` | Open questions and things to verify |
 | `docs/07-operations/BACKUP-RECOVERY.md` | Actual backup retention, restore and rollback procedure |
 | `docs/07-operations/SETUP.md` | Restoring Volume on macOS or Linux, and the `.env` rules |
 | `docs/07-operations/DEVELOPMENT.md` | Running and developing locally |

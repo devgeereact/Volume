@@ -29,7 +29,7 @@ Mark each criterion PASS, FAIL, PARTIAL, NOT TESTED or BLOCKED. Anything not PAS
 
 - `CHANGELOG.md`: a section for the phase with the user-visible changes.
 - `docs/08-change-management/DECISIONS.md`: every decision made in the phase has an ADR; mark superseded ones.
-- `KNOWN-ISSUES.md`: anything left open.
+- `docs/KNOWN-ISSUES.md`: anything left open.
 - `.agent/CURRENT-TASK.md`: Status "awaiting owner review of phase N", next step "owner review", blockers.
 - `.agent/HANDOFF.md`: append the gate entry with the evidence summary.
 - `.agent/PROJECT.yml`: leave `phase` unchanged until the owner approves.

@@ -136,7 +136,7 @@ The provider is chosen at start-up: `mock` when no key is set or in tests, `open
 
 - Server listens on `127.0.0.1` only. No `0.0.0.0`. On the host, Passenger fronts it and Cloudflare fronts Passenger (the docroot `.htaccess` refuses requests without `CF-RAY`).
 - Host header must be an allowed host (guards against DNS rebinding). Origin must match on every write. CORS is off. Security headers on every response; a Content Security Policy on pages; no stack traces in responses.
-- No outside network calls except OpenRouter. Fonts, scripts and images are bundled. Checking research links on the open web is off unless the owner turns it on (see `KNOWN-ISSUES.md`).
+- No outside network calls except OpenRouter. Fonts, scripts and images are bundled. Checking research links on the open web is off unless the owner turns it on (see `docs/KNOWN-ISSUES.md`).
 
 ## Multi-user readiness
 

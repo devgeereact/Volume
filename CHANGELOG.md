@@ -386,7 +386,7 @@ Rebuild candidate remains isolated. Mac execution and the existing Linux PDF ref
 - The owner's original drafts saved in `docs/source-drafts/` as source material.
 - KDP facts reference (`docs/reference/reference-kdp-facts-2026-10-03.md`) and OFL fonts in `assets/fonts/`.
 - Specification docs: vision, product requirements, architecture, data model, AI pipeline, export spec, design guide foundations, screens and flows, security and privacy, testing, roadmap and glossary.
-- `README.md`, `docs/08-change-management/DECISIONS.md` (D-001 to D-013) and `KNOWN-ISSUES.md`.
+- `README.md`, `docs/08-change-management/DECISIONS.md` (D-001 to D-013) and `docs/KNOWN-ISSUES.md`.
 - Phase 0 build: specs in docs/, config and 27 prompts, Claude agents, skills and hooks, three design direction boards in design/directions/. Waiting for the owner's design choice.
 - Fused design direction "Volume" accepted (D-014): tokens in packages/ui, full design guide.
 - Clickable prototype of every screen in prototype/ (light and dark, mock data), with screenshot and smoke scripts. Phase 0 ready for owner review.

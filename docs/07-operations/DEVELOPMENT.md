@@ -25,4 +25,4 @@ mise exec -- npm run build -w apps/web
 mise exec -- npm run e2e
 ```
 
-A passing dev server is not publishing acceptance. Known PDF, live AI and cPanel limitations remain in [known issues](../../KNOWN-ISSUES.md). External/live runs and deployment are separately authorised operations. The parent workspace launcher is optional and is not needed to restore or run this repository.
+A passing dev server is not publishing acceptance. Known PDF, live AI and cPanel limitations remain in [known issues](../KNOWN-ISSUES.md). External/live runs and deployment are separately authorised operations. The parent workspace launcher is optional and is not needed to restore or run this repository.

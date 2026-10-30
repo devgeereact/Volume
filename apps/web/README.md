@@ -267,7 +267,7 @@ Rules for mock data: realistic, British English, no lorem ipsum, no invented sta
 - The top bar (breadcrumb, search, demo badge, theme) is not on the board; it was asked for in the prototype brief. It holds the only search (D-016).
 - Screenshots go to `apps/web/screenshots/` (this brief) rather than `test-results/screens/` (the frontend agent file).
 - No ESLint or Prettier yet (needs approval). No unit tests; typecheck, the screenshot script and the smoke script are the checks.
-- Deferred prototype items (shared helpers still in screen folders, blueprint data, claim marks in editable text, cover fonts, lint, real TipTap, zip and server) are listed as K-P01 to K-P06 in `KNOWN-ISSUES.md`.
+- Deferred prototype items (shared helpers still in screen folders, blueprint data, claim marks in editable text, cover fonts, lint, real TipTap, zip and server) are listed as K-P01 to K-P06 in `docs/KNOWN-ISSUES.md`.
 
 ## Route follow-ups for the screen agents (round 2, D-016)
 

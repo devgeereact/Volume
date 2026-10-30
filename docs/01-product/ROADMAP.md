@@ -8,7 +8,7 @@ Phases 0 to 8 are built. Phases 6 to 8 (fiction and workbook, picture books, Vol
 
 ## Phase 0: workspace, rules, agents, design guide and demo
 
-- **Deliverables:** workspace and git repo (no commits until asked); `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agent/` files; all docs in `docs/`, `docs/08-change-management/DECISIONS.md`, `CHANGELOG.md`, `KNOWN-ISSUES.md`; `config/` (KDP rules, model defaults, house style, book templates); `prompts/` v1 for all stages; `.claude/` agents, skills and hooks with tests; three design direction boards; after the owner's pick, the full design guide and a clickable prototype of every main screen with mock data (a Harni book and Windowsill Herbs).
+- **Deliverables:** workspace and git repo (no commits until asked); `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agent/` files; all docs in `docs/`, `docs/08-change-management/DECISIONS.md`, `CHANGELOG.md`, `docs/KNOWN-ISSUES.md`; `config/` (KDP rules, model defaults, house style, book templates); `prompts/` v1 for all stages; `.claude/` agents, skills and hooks with tests; three design direction boards; after the owner's pick, the full design guide and a clickable prototype of every main screen with mock data (a Harni book and Windowsill Herbs).
 - **Acceptance:** any AI can read `AGENTS.md` and `.agent/CURRENT-TASK.md` and know the next step; hooks pass `npm run hooks:test`; the prototype covers Library, Profiles, New book wizard, Research, Titles, Blueprint, Writing, Editor, Cover studio, Export, Marketing and Settings; Playwright screenshots at 1440 and 390 wide; no console errors; keyboard navigation works.
 - **Owner gate:** pick a design direction (mid-phase), then review the prototype.
 
