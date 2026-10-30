@@ -320,12 +320,13 @@ function Studio({ book, apiBook, cover, author }: { book: Book; apiBook: ApiBook
   const builtWith = cover?.wrapSpec["builtWith"] as Record<string, unknown> | undefined;
   const styleStale =
     builtWith !== undefined &&
-    JSON.stringify([builtWith["typography"], builtWith["coverStyleId"], builtWith["title"], builtWith["subtitle"], builtWith["chosen"]]) !==
-      JSON.stringify([cover?.typography, apiBook?.coverStyleId, book.title, book.subtitle, cover?.chosenAssetId]);
+    // The server stores a missing subtitle as null and the web book holds it as "", so both sides compare as "".
+    JSON.stringify([builtWith["typography"], builtWith["coverStyleId"], builtWith["title"], builtWith["subtitle"] ?? "", builtWith["chosen"]]) !==
+      JSON.stringify([cover?.typography, apiBook?.coverStyleId, book.title, book.subtitle ?? "", cover?.chosenAssetId]);
   const bookTrim = parseTrim(book.trim);
   const serverPaper: Paper = apiBook?.paper === "white" ? "white" : "cream";
   const [paperback, setPaperback] = useState<PaperbackState>(() => ({ trim: bookTrim, ink: startInk(book.template), paper: serverPaper }));
-  const { pages, typedOk } = pagesFrom(pagesText, realPages ?? 120, paperback);
+  const { pages, typedOk, belowMin } = pagesFrom(pagesText, realPages ?? 120, paperback);
   const wrap = wrapSize(bookTrim, pages, serverPaper);
   const size = paperbackSize(paperback.trim, pages, paperback.ink, paperback.paper);
   const blurb = (() => {
@@ -898,7 +899,7 @@ function Studio({ book, apiBook, cover, author }: { book: Book; apiBook: ApiBook
               ? `The interior PDF has ${realPages} pages. Try other counts here; the build always uses the real one.`
               : "No interior PDF yet, so this uses 120 pages. Build covers makes the interior first and uses its real count."
           }
-          note={`The preview and the build use the book's settings: ${book.trim}, ${serverPaper} paper, and the interior PDF's real page count.`}
+          note={`The preview and the build use the book's settings: ${book.trim}, ${serverPaper} paper, and the interior PDF's real page count.${belowMin && realPages !== null ? ` The book is ${realPages} pages, under the KDP minimum of ${pages}, so the preview shows a ${pages} page wrap.` : ""}`}
         />
         {!blurb && front && <p className="pb-2 text-[12px] text-ink-2">No back blurb yet. It comes from the blueprint's listing.</p>}
         <OwnCoverPanel

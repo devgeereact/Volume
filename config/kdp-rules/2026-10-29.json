@@ -706,7 +706,7 @@
       "source": "https://kdp.amazon.com/en_US/help/topic/GVBQ3CMEQW3W2VL6",
       "verifiedOn": "2026-10-29",
       "status": "confirmed",
-      "note": "Columns \"Standard color ink and white paper\" and \"Premium color ink and white paper\" of the official kdp.amazon.com paperback table, read 29 October 2026, for all 16 trims. The seven earlier rows are unchanged. 8.27 x 11.69 in shows \"Not available\" for standard colour, so it is listed in standardColourNotAvailable and has no standard row. Caution: the US table gives 8.27 x 11.69 in premium colour as \"24 - 590\" while black ink on white paper is \"24 - 780\" and the kdp.amazon.co.jp table gives premium colour on the same size as \"24 - 780\"; Volume uses the US value (590) as stated. The page notes standard colour is unavailable for Amazon.co.jp."
+      "note": "Columns \"Standard color ink and white paper\" and \"Premium color ink and white paper\" of the official kdp.amazon.com paperback table, read 29 October 2026, for all 16 trims. The seven earlier rows are unchanged. 8.27 x 11.69 in shows \"Not available\" for standard colour, so it is listed in standardColourNotAvailable and has no standard row. 8.27 x 11.69 in premium colour is \"24 - 590\" in the kdp.amazon.com table (black ink on white paper on the same size is \"24 - 780\"). The en_GB help page, read 29 October 2026, shows the same kdp.amazon.com table with 590. Only the separate kdp.amazon.co.jp table gives \"24 - 780\", and it applies to Japan only, so 590 is the limit for Volume's marketplaces. The page notes standard colour is unavailable for Amazon.co.jp."
     },
     {
       "id": "paperback.colour.paper",
