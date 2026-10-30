@@ -108,3 +108,4 @@
 - Phase 5 to 8 owner gates, and whether to offer accounts to other self-publishers (phase 8).
 
 Older dated sections are in `.agent/HANDOFF.md`.
+- 30 Oct 2026: first automatic deploy: `8fc47e4` as `releases/20261030T194912Z` (Check Volume passed; health 200, sign-in enforced; migrations up to date; pruned `20261029T142955Z`).

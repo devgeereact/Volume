@@ -4,12 +4,12 @@ Volume runs on the owner's cPanel account as one CloudLinux Passenger Node.js ap
 
 ## Current release
 
-| Item | Value (29 October 2026) |
+| Item | Value (30 October 2026) |
 | --- | --- |
-| Live release | `20261029T192436Z`, built from main `09f7075` (approved design, cover layers D-067 and the 2026-10-29 KDP trims), deployed from the Ubuntu computer with its own host key |
-| Rollback target | `20261029T142955Z` (`npm run deploy -- --rollback`) |
+| Live release | `20261030T194912Z`, built from main `8fc47e4` by the first automatic deploy (Actions run 41118270156, after "Check Volume" passed on Linux, macOS and the Node 24 + MariaDB host job) |
+| Rollback target | `20261030T023316Z` (`npm run deploy -- --rollback`) |
 | Migrations applied in production | `0001` to `0011`. `0006`, `0008` and `0009` on 18 October 2026, `0010_listing_source` on 19 October 2026, `0011_version_author` on 19 October 2026 (evening) |
-| CI | GitHub Actions has created no runs since 18 October 2026 because GitHub's spam filter flagged the owner's account (run #38 annotation "owner marked spammy"; profile and repo 404 when signed out). Only GitHub can lift it; see KNOWN-ISSUES.md. Deploys therefore use `--no-ci-check` with the owner's OK; local evidence stands in (typecheck, lint, format, Vitest 1,176 passed and 4 skipped, e2e 17 of 17). |
+| CI | Runs again since 30 October 2026 (repository public). "Check Volume" runs on every push; a passing run on `main` starts `deploy.yml`. |
 
 To roll back: `npm run deploy -- --rollback` switches `current` to the release before it and stops the `lsnode` process. Migrations are additive, so the previous release still runs on the newer schema.
 
@@ -18,7 +18,7 @@ To roll back: `npm run deploy -- --rollback` switches `current` to the release b
 | Piece | Where |
 | --- | --- |
 | Release folders | `~/apps/volume/releases/<utc>/` (one per deploy, built on the Mac) |
-| Live release | `~/apps/volume/current` (symlink to one release) |
+| Live release | `20261030T194912Z`, built from main `8fc47e4` by the first automatic deploy (Actions run 41118270156, after "Check Volume" passed on Linux, macOS and the Node 24 + MariaDB host job) |
 | Settings | `~/apps/volume/shared/.env` (mode 600), names in [.env.example](../../.env.example) |
 | Backups folder | `~/apps/volume/shared/data` (`DATA_DIR`; SQLite backups only, MySQL uses cPanel backups) |
 | Chromium | `~/apps/volume/shared/browsers` (`PLAYWRIGHT_BROWSERS_PATH`, chromium-headless-shell 1243) |
