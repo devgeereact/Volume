@@ -38,3 +38,6 @@ packages/ui/tokens.json
 
 # Local graphify tool output (not in git)
 graphify-out/
+
+# Local editor workspace files (not in git)
+*.code-workspace
