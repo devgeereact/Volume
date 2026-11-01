@@ -130,7 +130,7 @@ Rules:
 - After the last book section: `AMAZON MARKETING PACKAGE` with `PRODUCT DESCRIPTION:` (HTML stripped to paragraphs), `CATEGORIES:` and `KEYWORDS:` numbered.
 - Ends with separator, `END OF BOOK`, `Total Word Count: N`, separator. N counts words (tokens with a letter or digit) in section bodies, including subheadings and list items, excluding headings, labels, the title page, copyright, contents and the marketing package.
 
-Exact example (golden fixture `tests/golden/txt/mini-book.txt`):
+Exact example (golden fixture `packages/export/test/golden/mini-book.txt`):
 
 ```text
 ================================================================================

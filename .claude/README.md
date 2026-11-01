@@ -36,6 +36,7 @@ Each file has front matter (`name`, `description`, `tools`, `model`) and a body 
 | `volume-house-style` | Checking book text, prompts, templates, docs or UI copy against `config/house-style.json`. Ships `scripts/check-style.mjs` (no dependencies). |
 | `volume-design-system` | Building or changing any UI: design guide first, tokens only, all states, accessibility floor, motion rules, screenshots at 1440 and 390. |
 | `volume-kdp-rules` | Any KDP number: only from `config/kdp-rules/<latest>.json`; how to add a rule with source and date. |
+| `volume-pen-name-style` | Reviewing, writing or prompting a draft, sample chapter or prompt for one pen name, or when a book's examples come from another profession or it does not sound like the author. |
 | `volume-phase-gate` | Closing a phase: acceptance from `docs/01-product/ROADMAP.md` with evidence, CHANGELOG, DECISIONS, the owner review message, then stop. |
 
 Run the style checker by hand:
@@ -52,9 +53,10 @@ Exit codes: 0 clean, 1 findings, 2 usage error or config missing. It always skip
 | Script | Event | What it does |
 |---|---|---|
 | `protect-secrets.sh` | PreToolUse on `Read`, `Edit`, `Write`, `MultiEdit`, `NotebookEdit`, `Bash`, `Grep`, `Glob` | Blocks (exit 2, reason to Claude) any file path, glob or shell command that touches `.env` or `.env.<anything>` inside the project (except `.env.example`) or the project's `data/` folder. Words like "environment" or `process.env` pass. |
-| `house-style-warn.sh` | PostToolUse on `Edit`, `Write`, `MultiEdit` | After edits under `prompts/`, `docs/` (not `docs/source-drafts/`), `config/book-templates/`, `apps/web/` and `prototype/`, runs the checker's `emdash`, `banned` and `agents` rules and returns warnings to Claude as `additionalContext`, plus a one-line `systemMessage` for you. Never blocks. |
+| `house-style-warn.sh` | PostToolUse on `Edit`, `Write`, `MultiEdit` | After edits under `prompts/`, `docs/` (not `docs/source-drafts/`), `config/book-templates/`, and `apps/web/`, runs the checker's `emdash`, `banned` and `agents` rules and returns warnings to Claude as `additionalContext`, plus a one-line `systemMessage` for you. Never blocks. |
 | `session-start.sh` | SessionStart (startup, resume, clear, compact) | Prints a short reminder and the first 25 lines of `.agent/CURRENT-TASK.md` as context, and records the session start time in `$TMPDIR/volume-claude/`. |
-| `stop-handoff-reminder.sh` | Stop | If project files changed since the session started and `.agent/HANDOFF.md` did not, reminds Claude once per session to update CURRENT-TASK and HANDOFF. Does nothing when `stop_hook_active` is true. Never blocks. |
+| `stop-handoff-reminder.sh` | Not wired | The Stop hook was removed from `settings.json` in commit `5ef1177` ("drop the stop-time handoff reminder hook"); the script and its tests stay. Whether to bring it back is an open owner question in `.agent/CURRENT-TASK.md`. When wired, it reminds Claude once per session to update CURRENT-TASK and HANDOFF if project files changed and HANDOFF did not. |
+| `scripts/agent_guard.py` | PreToolUse on the same tools, after `protect-secrets.sh` | GEE OS agent guard: answers allow, ask or deny for risky commands; never prints file contents or secrets. |
 | `test-hooks.sh` | (test) | Builds a throwaway sandbox project, feeds sample hook JSON to every hook and the checker, and asserts exit codes and messages. Run `npm run hooks:test`. |
 
 Every hook fails open on its own errors (exit 0 with a visible `systemMessage`), except the deliberate secret block. Node is used for JSON parsing; no `jq` needed.

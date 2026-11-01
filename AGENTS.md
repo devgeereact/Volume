@@ -64,7 +64,7 @@ npm run dev                   # dev: web 127.0.0.1:5180, API 127.0.0.1:5181
 npm run typecheck             # typecheck every workspace
 npm run lint                  # ESLint, whole repo
 npm run test                  # Vitest in every workspace
-npm run e2e                   # builds, then 17 Playwright tests in 9 specs on 127.0.0.1:5311 to 5318 (not 5314); 5313 must be free
+npm run e2e                   # builds, then 20 Playwright tests in 10 specs on 127.0.0.1:5311 to 5318; 5313 and 5314 must be free
 npm run build -w apps/server  # build the API
 npm run build -w apps/web     # build the web app
 npm run doctor                # runtime, native modules, pinned Chromium

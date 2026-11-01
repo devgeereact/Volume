@@ -37,7 +37,7 @@ v1 is built for one user, but every row carries a `workspace_id` and IDs are ULI
    - Real people are flagged; illustrative stories are labelled when the owner chooses.
 5. **The owner always has the final say.** Every stage can be regenerated, every AI change is a version that can be compared and rolled back, and no model is switched silently.
 6. **Rules are data, not memory.** KDP numbers come from `config/kdp-rules/` with fact IDs and dates. House style comes from `config/house-style.json`. Prompts are versioned files.
-7. **Local first, private by default.** The app binds to 127.0.0.1, data stays in `data/` on the owner's disk, and the only outside call is to OpenRouter.
+7. **Private by default.** The server binds to 127.0.0.1 behind Passenger and Cloudflare on the owner's own host (D-038), sign-in is required there (D-039), and the only outside calls are to the AI providers (OpenRouter, and Anthropic when its key is set, D-058) and Clerk. Locally, data stays in `data/` on the owner's disk. (First written as "local first"; hosting was added on 16 October 2026.)
 8. **Calm, visible progress.** Long jobs run in the background with live progress, costs and a clear next step.
 
 ## Long-term direction: Volume as a publishing operating system
@@ -62,7 +62,7 @@ In scope:
 - Library, new book wizard, research with cited sources, titles, blueprint, fully automatic writing, checkers and claims report, editor with versions.
 - Cover studio (eBook cover and paperback wrap), print PDF, DOCX, EPUB, TXT and Markdown exports, preflight and the upload pack.
 - Listing copy and marketing package (TikTok scripts, Instagram captions, launch email).
-- Settings with model choice per stage, prices, budgets and a key check.
+- Settings with model choice per stage, prices, spending and a key check.
 - The non-fiction template first.
 
 Out of scope for v1:
@@ -73,7 +73,7 @@ Out of scope for v1:
 - ISBN generation of any kind. ISBNs are typed in by the owner or left empty.
 - Sales and royalty tracking, business dashboard, series management, world building.
 - Audiobooks, translations, hardcover wraps.
-- Any AI provider other than OpenRouter, and any hosted or cloud deployment.
+- Any AI provider other than OpenRouter, and any hosted or cloud deployment. (Both changed later: owner-only hosting at volume.gakinz.com, D-038, and Anthropic first for Claude models, D-058.)
 - Mobile apps. The web app works at phone width for checking progress only.
 
 ## What success looks like
@@ -81,4 +81,4 @@ Out of scope for v1:
 - The owner goes from idea to a complete KDP pack for a 10-chapter non-fiction book in one sitting, with his attention needed only at title choice, blueprint approval, claims review and final preflight.
 - The pack is accepted by a KDP draft upload without changes (phase 5 acceptance).
 - No em dashes, no banned phrases, no invented sources and no open claims in any exported book.
-- Running cost per book is known before the run and never goes over the book's budget.
+- Running cost per book is estimated before the run and recorded as it goes. (Since D-057 there is no cap: a run can pass the book's budget figure, and a job pauses only when the AI provider runs out of credit.)

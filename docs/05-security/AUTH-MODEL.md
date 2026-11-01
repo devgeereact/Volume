@@ -26,19 +26,19 @@ The setting is a name in `.env.example` and the host's settings file (`docs/07-o
 
 | Role | Can do |
 |---|---|
-| owner | Everything in the workspace: books, settings, models, budgets, pen name bios and members. |
-| editor | Write books, research, blueprints, manuscripts, covers, jobs and exports. Not settings, budgets, members or pen name bios. |
+| owner | Everything in the workspace: books, settings, models, spending, pen name bios and members. |
+| editor | Write books, research, blueprints, manuscripts, covers, jobs and exports. Not settings, spending, members or pen name bios. |
 | viewer | Read only. Every write route answers 403. |
 
-Some actions reach past one workspace: whole-database backups and the OpenRouter key test. Only an owner of the instance owner's own workspace can use them, never the owner of another self-publisher's workspace (`assertInstanceOwner` in `apps/server/src/auth/context.ts`). All AI runs on the instance owner's OpenRouter key within each workspace's budgets. Keys per account are deferred.
+Some actions reach past one workspace: whole-database backups and the OpenRouter key test. Only an owner of the instance owner's own workspace can use them, never the owner of another self-publisher's workspace (`assertInstanceOwner` in `apps/server/src/auth/context.ts`). All AI runs on the instance owner's keys (Anthropic first for Claude models when `ANTHROPIC_API_KEY` is set, else OpenRouter, D-058). Keys per account are deferred.
 
 ### AI spending by other workspaces
 
 Every workspace other than the instance owner's spends the instance owner's OpenRouter key, so the instance owner holds one more cap over them:
 
 - `budget.guest_workspaces_monthly_cap_usd` is stored on the instance owner's workspace. It is the monthly AI spend allowed to each other workspace, in US dollars. The default is 0, which refuses every AI and image call from those workspaces: their jobs fail with error code `guest_ai_disabled` until the instance owner sets a cap.
-- The job runner checks it before every AI and image call (the same reservation path as the book budget and the workspace's monthly cap), counting that workspace's spend this month and its calls in flight. A call that would pass it pauses the job with `budget_exceeded`, like the other caps.
-- Only the instance owner sees it (`budgets.guestWorkspacesMonthlyCapUsd` in `GET /api/v1/settings`) or sets it (`PATCH /api/v1/settings`). Anyone else gets 403 when they try. A self-publisher's own caps still apply on top, but can never lift this one.
+- The job runner checks it before every AI and image call (the reservation path in `JobRunner.checkBudget`, `apps/server/src/jobs/runner.ts`), counting that workspace's spend this month and its calls in flight. A call that would pass it pauses the job with `budget_exceeded`. It is the only cap left: book and monthly caps were removed (D-057).
+- Only the instance owner sees it (`budgets.guestWorkspacesMonthlyCapUsd` in `GET /api/v1/settings`) or sets it (`PATCH /api/v1/settings`). Anyone else gets 403 when they try.
 - `GET /api/v1/settings` returns backup status to the instance owner only (`backups` is null for everyone else), because backups hold the whole database.
 
 ### Invitations

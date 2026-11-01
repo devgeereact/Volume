@@ -15,13 +15,22 @@ import { DemoStates, useScreenState } from "../research/DemoStates";
 import { RunModelModal } from "../research/RunModelModal";
 import { about, estimateFor, useSimulatedRun } from "../research/sim";
 import { BlueprintApi } from "./BlueprintApi";
-import type { Totals } from "./BlueprintInspector";
 import { buildOutline, groupLabels, insertedWords, regenAlternates, type OutlinePart } from "./blueprintExtras";
 import { CheckList, InspectorTabs, OutlineCard, PlanCounts, SideLabel, VersionChip, VersionList } from "./ChapterPlan";
 import { Galley, type Diff, type Note } from "./Galley";
 import { CATEGORIES_COUNT, DESCRIPTION_MAX, KEYWORDS_MAX } from "./ListingEditors";
 import { OutlineRail } from "./OutlineRail";
 import { TypeBlueprint } from "./TypeBlueprint";
+
+/** Word totals for the plan: the whole book, the chapters, the chapter range and the front and back matter. */
+interface Totals {
+  total: number;
+  chapters: number;
+  chapterMin: number;
+  chapterMax: number;
+  front: number;
+  back: number;
+}
 
 /* Blueprint screen (docs/03-design/UX-SPEC.md, M6; approved Volume Studio design, stBlueprint).
    Two columns: the Outline card (front matter, numbered chapters with editable titles and word-target

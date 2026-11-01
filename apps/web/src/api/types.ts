@@ -220,15 +220,6 @@ export interface ModelSettingsPutResponse {
 
 export type CatalogueName = "book-types" | "interior-themes" | "cover-styles";
 
-export interface CatalogueResponse {
-  /** False when the file is missing. */
-  available: boolean;
-  source: string;
-  /** Items as written in the config file; the prototype types them in data/config.ts. */
-  items: unknown[];
-  meta: Record<string, unknown>;
-}
-
 /* ---------- Profiles ---------- */
 
 export interface ProfileLink {

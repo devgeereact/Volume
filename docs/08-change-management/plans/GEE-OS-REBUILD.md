@@ -1,6 +1,6 @@
 # Volume: GEE OS migration audit and rebuild plan
 
-Date: 7 October 2026. Status: approved by the owner on 7 October 2026; implementation in progress. This is the first deliverable requested when selecting Volume. The approved move manifest is being applied in an isolated checkout. Destructive retirement remains separately gated.
+Date: 7 October 2026. Status: approved by the owner on 7 October 2026 and carried out: the rebuilt application in this repository runs live at volume.gakinz.com on the cPanel host (host decisions D-037 to D-040, first host deploy work 16 October 2026). Kept as the reference for the document hierarchy and the move manifest; current behaviour is in the product, architecture and design docs.
 
 ## Outcome and recommendation
 

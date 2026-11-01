@@ -1,6 +1,6 @@
 # Profiles
 
-One JSON file per author profile (D-018). A profile is either a real person writing under their own name or a pen name (a fictional persona). The prototype, the server and the prompts read these files; the app copies them into the database on first run and the owner edits them in Profiles.
+One JSON file per author profile (D-018). A profile is either a real person writing under their own name or a pen name (a fictional persona). The web app's demo data, the server and the prompts read these files; the app copies them into the database on first run and the owner edits them in Profiles.
 
 | File | Profile | Real person | Writes |
 |---|---|---|---|
@@ -61,4 +61,4 @@ One JSON file per author profile (D-018). A profile is either a real person writ
 
 ## Adding a profile
 
-Copy the closest file, change every field, keep the bio within 120 to 180 words, and check the defaults point at ids that exist. The prototype imports each file in `prototype/src/data/config.ts`; add the import there too until the server reads the folder.
+Copy the closest file, change every field, keep the bio within 120 to 180 words, and check the defaults point at ids that exist. The server copies every file in this folder into `author_profiles` on first run (`apps/server/src/seed/seed.ts`). The web app's demo data imports each file by name in `apps/web/src/demo/config.ts`; add the import there too.

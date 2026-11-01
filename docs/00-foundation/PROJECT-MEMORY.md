@@ -5,7 +5,7 @@ Short index for agents. Each fact lives in the file linked here; this page does 
 ## Confirmed
 
 - Product and scope: [product spec](../01-product/PRODUCT-SPEC.md), [roadmap](../01-product/ROADMAP.md).
-- Decisions D-001 to D-040, including hosting on cPanel (D-038), Node 24 in production (D-037), Clerk sign-in (D-039) and GEE OS 1.4.5 on the `cpanel` profile (D-040): [decisions](../08-change-management/DECISIONS.md).
+- Decisions D-001 to D-067, including hosting on cPanel (D-038), Node 24 in production (D-037), Clerk sign-in (D-039), GEE OS 1.4.5 on the `cpanel` profile (D-040), members and roles (D-047), no spending cap (D-057), Anthropic first (D-058) and the Volume Studio design (D-066): [decisions](../08-change-management/DECISIONS.md).
 - Hosting, Passenger settings and the deploy contract: [deployment](../07-operations/DEPLOYMENT.md).
 
 ## Assumptions and open questions

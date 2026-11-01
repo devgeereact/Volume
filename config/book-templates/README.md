@@ -13,7 +13,7 @@ Each file sets the default structure, word targets and rules for one kind of boo
 | `journal.json` | Guided journals, planners and children's activity books: pages built from page kinds (low-content) | 6 |
 | `poetry.json` | Poetry collections: poems on new pages, line breaks kept exactly | 6 |
 
-`config/book-types.json` maps about 30 book types onto these seven templates (D-017).
+`config/book-types.json` maps 36 book types (counted 1 November 2026) onto these eight templates (D-017).
 
 ## Section fields
 
@@ -33,7 +33,7 @@ Each file sets the default structure, word targets and rules for one kind of boo
 
 ## Book types
 
-`config/book-types.json` lists each type's front and back matter in order (`structure.frontMatter`, `structure.backMatter`), and every id there is a section in the type's `templateFile` (a server test checks all 35). New books get exactly those sections: AI pages switched on, pages built by the app at export, and pages only the owner can supply (a disclaimer, a map, practical information) switched off until the owner fills them. Required template sections a type leaves out count as switched off on purpose. The blueprint and the writer get the type's structure, word range and genre rules with the template rules.
+`config/book-types.json` lists each type's front and back matter in order (`structure.frontMatter`, `structure.backMatter`), and every id there is a section in the type's `templateFile` (`apps/server/test/round5.test.ts` checks every type). New books get exactly those sections: AI pages switched on, pages built by the app at export, and pages only the owner can supply (a disclaimer, a map, practical information) switched off until the owner fills them. Required template sections a type leaves out count as switched off on purpose. The blueprint and the writer get the type's structure, word range and genre rules with the template rules.
 
 ## Chapter rules
 

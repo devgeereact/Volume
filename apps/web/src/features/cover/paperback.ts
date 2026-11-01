@@ -7,7 +7,6 @@ import { colourPageRange, parseKdpRules, spineTextAllowed, trimPageRange, trimSi
    uses the book's own trim and the interior PDF's real page count. */
 
 const rules = parseKdpRules(rulesFile);
-export const paperbackRulesVersion: string = rules.version;
 
 export type Ink = "black" | ColourInk;
 export const INKS: readonly { value: Ink; label: string }[] = [

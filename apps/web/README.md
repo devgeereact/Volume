@@ -4,9 +4,9 @@ Vite, React, TypeScript strict, React Router, Tailwind v4, motion/react and TanS
 
 ## Live and demo modes
 
-The app has API-backed screens and a demo fallback. It began as the phase 0 prototype. It follows the fused Volume direction (D-014): `docs/03-design/DESIGN-SYSTEM.md`, the tokens in `packages/ui`, and the board at `design/final/volume-direction.html`. Its shared components now support the built application.
+The app has API-backed screens and a demo fallback. It began as the phase 0 prototype. Since 29 October 2026 it follows the approved Volume Studio design (D-066): `docs/03-design/DESIGN-SYSTEM.md` and the tokens in `packages/ui`.
 
-The shell shows a "Demo data" badge in fallback mode. API mode uses the local server for stored books, jobs and exports. The browser never reads the key or calls OpenRouter directly.
+The shell shows a "Demo data" badge in fallback mode. API mode uses the server (https://volume.gakinz.com on the host, 127.0.0.1:5181 locally) for stored books, jobs and exports. Sample data appears only in a local build that has never reached the API in that page session; after that a lost connection keeps the last real data under the Not connected banner (D-061). The hosted build never uses sample data. The browser never reads a key or calls an AI provider directly.
 
 ## Run it
 
@@ -31,14 +31,14 @@ Run `npm run lint` and `npm run format:check` from the repository root. ESLint a
 ### Screenshots
 
 ```sh
-npm run screenshot -w apps/web                                  # every route (21, see below)
+npm run screenshot -w apps/web                                  # every route (22, see below)
 npm run screenshot -w apps/web -- /library /components          # chosen routes
 npm run screenshot -w apps/web -- --no-build /books/handover/writing
 ```
 
 `scripts/screenshot.mjs` builds the app (skip with `--no-build`), starts its own `vite preview` on 127.0.0.1:5182 (strict, it refuses to run if the port is busy and never uses another one), visits each route in light and dark at 1440 x 900 and 390 x 844, and saves full-page PNGs to `apps/web/screenshots/` (git-ignored) as `<route>-<theme>-<width>.png`. It prints console errors and horizontal overflow (the element where the overflow starts), stops the server, and exits 1 if any route had either.
 
-The default list is every screen plus a few states: `/library`, `/library?view=ledger`, `/profiles`, `/profiles/harni-muharami`, `/profiles/new`, `/books/new`, `/new-book` (redirect), `/books/night-shift-survival/research` (running), `/books/the-calm-ward/research`, `/books/the-calm-ward/titles`, `/books/the-calm-ward/blueprint`, `/books/handover/writing`, `/books/the-new-charge-nurse/editor`, `/books/speaking-up-safely/cover`, `/books/sourdough-on-a-weeknight/export`, `/books/handover/marketing`, `/settings`, `/settings/models`, `/archive`, `/components` and `/nope` (not found). `SCREENSHOT_PORT` and `SCREENSHOT_OUTDIR` change the port and build folder when two runs must not collide.
+The default list is every screen plus a few states: `/library`, `/library?view=ledger`, `/published`, `/profiles`, `/profiles/harni-muharami`, `/profiles/new`, `/books/new`, `/new-book` (redirect), `/books/night-shift-survival/research` (running), `/books/the-calm-ward/research`, `/books/the-calm-ward/titles`, `/books/the-calm-ward/blueprint`, `/books/handover/writing`, `/books/the-new-charge-nurse/editor`, `/books/speaking-up-safely/cover`, `/books/sourdough-on-a-weeknight/export`, `/books/handover/marketing`, `/settings`, `/settings/models`, `/archive`, `/components` and `/nope` (not found). `SCREENSHOT_PORT` and `SCREENSHOT_OUTDIR` change the port and build folder when two runs must not collide.
 
 Full-page shots show the sticky job bar where the first viewport ends, part way down long pages. That is how Chromium captures sticky elements, not a layout bug.
 
@@ -62,16 +62,18 @@ apps/web/
   scripts/smoke.mjs        Playwright walk through the main flow, own preview server on 5182
   src/
     main.tsx               entry; mounts app/Application.tsx
-    app/                   Application.tsx (providers) and routes.tsx (every route is listed there)
+    app/                   Application.tsx, Providers.tsx, SignedInApp.tsx (lazy signed-in frame), router.tsx and routes.tsx (every route is listed there)
     auth/                  hosted sign-in (Clerk) for the hosted build
     site/                  public pages for signed-out visitors on a hosted build: PublicSite, landing, How it works, sign-in, bits/ (GSAP and Lenis, D-053)
     screens.ts             every screen: title, purpose line, route, owner, empty state, icon
-    styles/app.css         imports tailwindcss + @volume/ui tokens and theme, base layer, cover, caret, nib
-    styles/fonts.css       self-hosted Fontsource files under the token family names
+    api/                   API client, hooks and types (see its README)
+    styles/app.css         imports tailwindcss + @volume/ui tokens, theme and glass, base layer, cover, caret, nib
+    styles/fonts.css       interface fonts (Literata, Manrope, JetBrains Mono) from Fontsource
+    styles/book-fonts.css  book-content fonts for covers and interior themes
     components/ui/         shared components, one per file, index.ts re-exports them
-    data/                  typed mock data (index.ts re-exports everything)
-    lib/                   hooks and providers: theme, toast, job, pen name, command menu, focus trap, format, motion
-    shell/                 app shell: Spine, TopBar, CommandPalette, JobBar, BookLayout, ScreenPlaceholder, NotFound
+    demo/                  typed mock data (index.ts re-exports everything)
+    lib/                   hooks and providers: theme, toast, job, pen name, command menu, focus trap, format, motion, access
+    shell/                 app shell: AppShell, Spine, TopBar, CommandPalette, BookLayout, StepRail, StepHead, UpNext, PhoneFold, NotConnectedBanner, NotFound
     features/<screen>/       one folder per screen (see ownership)
 ```
 
@@ -84,7 +86,7 @@ The three screen agents have finished. Since the integration pass (4 October 202
 | Agent A | `library/`, `profiles/`, `settings/`, `archive/` | Library, Profiles, Profile editor, Settings, Archive |
 | Agent B | `new-book/`, `research/`, `titles/`, `blueprint/` | New book wizard, Research, Titles, Blueprint |
 | Agent C | `writing/`, `editor/`, `cover/`, `export/`, `marketing/` | Writing, Editor, Cover studio, Export, Marketing |
-| Foundation | everything else in `src/` (`components/ui`, `shell`, `lib`, `demo`, `styles`, `app/`, `site/`, `screens.ts`), `scripts/` | Shell, shared components, mock data, style guide (`features/components/`) |
+| Foundation | everything else in `src/` (`api/`, `components/ui`, `shell`, `lib`, `demo`, `styles`, `app/`, `site/`, `screens.ts`), `scripts/` | Shell, shared components, mock data, style guide (`features/components/`) |
 
 Rules:
 
@@ -108,6 +110,7 @@ Rules:
 | `/books/new` | New book wizard | `features/new-book/NewBookPage.tsx` |
 | `/new-book` | Redirects to `/books/new` | `app/routes.tsx` |
 | `/books/:bookId` | Opens the book at its current step | `features/books/BookIndexRedirect.tsx` |
+| `/books/:bookId/overview` | Book overview, the first stop in the step bar | `features/overview/OverviewPage.tsx` |
 | `/books/:bookId/research` | Research | `features/research/ResearchPage.tsx` |
 | `/books/:bookId/titles` | Titles | `features/titles/TitlesPage.tsx` |
 | `/books/:bookId/blueprint` | Blueprint | `features/blueprint/BlueprintPage.tsx` |
@@ -131,7 +134,7 @@ Settings tabs, in screen order (`settingsTabs` in `screens.ts`; Settings, the br
 |---|---|
 | `key` | OpenRouter |
 | `models` | Models |
-| `budgets` | Budgets |
+| `budgets` | Spending (month-to-date spend; the cap for other workspaces, instance owner only; D-047, D-057) |
 | `book-defaults` | Book defaults |
 | `appearance` | Appearance |
 | `backups` | Data and backups |
@@ -149,39 +152,35 @@ Profile ids (from `config/profiles/`): `gideon-akinlotan`, `harni-muharami`, `el
 
 ## How a screen is built
 
-Every page starts as `<ScreenPlaceholder screen="..." />` (title, purpose line, empty state). Replace it with the real screen. A typical book screen:
+Each page file under `features/<screen>/` has a default export that `app/routes.tsx` imports. A book screen reads its book with `useBook()` and registers its one main action with `useStepAction`:
 
 ```tsx
 import { useBook } from "../../lib/useBook";
+import { useStepAction } from "../../lib/stepAction";
 import { NotFound } from "../../shell/NotFound";
-import { calmWardBlueprint } from "../../data";
-import { Button, Inspector, InspectorSection, PageHeader, StageTrack } from "../../components/ui";
 
-export default function BlueprintPage() {
-  const { book, penName } = useBook();
+export default function ExamplePage() {
+  const { book } = useBook();
+  useStepAction(book ? { label: "Approve blueprint", onClick: () => {} } : null);
   if (!book) return <NotFound what="book" />;
-  return (
-    <div className="grid h-screen-fill grid-cols-1 lg:grid-cols-[272px_minmax(0,1fr)_auto]">
-      {/* outline rail, galley sheet, Inspector with footer actions */}
-    </div>
-  );
+  return <div className="grid grid-cols-1 gap-5">{/* the screen's cards */}</div>;
 }
 ```
 
 Layout notes:
 
-- The shell is a grid: spine (240 px; 64 px inside a book and on tablets; a drawer on phones), then a column with the 56 px top bar, `<main>` and the job bar. The document scrolls.
-- **Book screens (D-016).** Every `/books/:bookId/<step>` route renders inside `shell/BookLayout.tsx`, which adds, once: the **book bar** (56 px: mini cover, and on wide screens the title and profile, then `BookSteps`) above the screen, and the **StepFooter** (64 px: "Back: <previous step>", "Step n of 8", "Next: <next step>") below it. Do not render your own step bar, stage track, mini cover row, breadcrumb or "Library" back link.
-- **Your screen's main action goes in the footer.** Call `useStepAction({ label: "Approve blueprint", onClick, estimate, disabledReason })` (from `lib/stepAction`) and the footer's Next becomes that gilt button, with a quiet "Skip to <next step>" link beside it. Then remove the screen's own copy of that primary button, so there is one gilt button per screen. Pass `to` instead of `onClick` for a link. Pass null (or do not call it) to keep the plain "Next: <step>" link. Only label, link, estimate and disabled reason trigger an update; the click handler can change every render.
-- For screens with their own scrolling panes (Blueprint, Writing, Editor), use `h-screen-fill` (or `min-h-screen-fill`): the height between the top bar (and book bar) and the step footer (and job bar). They are Tailwind `@utility` rules, so variants work: `lg:h-screen-fill`, `xl:min-h-screen-fill`. CSS variables: `--shell-topbar`, `--shell-bookbar`, `--shell-stepfooter`, `--shell-jobbar` (the book ones are 0 outside a book; `data-book="on"` on `<html>` switches them on).
-- **Navigation (D-016).** Left nav: Library, Published, Profiles, New book, Archive, Settings (`globalNav` in `screens.ts`; the command menu reads it too). No book steps in the spine. Breadcrumbs: Library, then the book title only. One global search: the top bar (Cmd K or Ctrl K). Page-level lists use `FilterField` (labelled "Filter"), never a second search box. One small "Demo" badge in the top bar; screens do not add their own demo strips.
-- Page padding: `px-4 sm:px-8 lg:px-10`, `py-6 lg:py-7`. Grids that hold wide content need `grid-cols-1` (or `minmax(0,1fr)`) so they do not overflow on phones.
-- One `h1` per screen (`PageHeader`, or `titleHidden` when the book title is the visual heading). One gilt `variant="primary"` button per screen.
+- **Book screens (D-016, D-066).** Every `/books/:bookId/<step>` route renders inside `shell/BookLayout.tsx`, which adds, once: the **step bar** (`shell/StepRail.tsx`: Back, the eight steps with their state markers, and Next as a quiet outlined control) that sticks under the top bar, the **step head** (`shell/StepHead.tsx`: title, purpose line and the screen's one navy action) and the **Up next** card. Full-height steps (Writing, Editor, Cover) skip the head and the card and put their main action in the step bar. Do not render your own step bar, stage track, breadcrumb or "Library" back link.
+- **One navy primary per screen.** Call `useStepAction({ label, onClick, estimate, disabledReason })` (from `lib/stepAction.tsx`; pass `to` instead of `onClick` for a link, or null for none) and remove the screen's own copy of that button. Next in the step bar is never a second navy button.
+- **Phones.** Wrap secondary detail in `shell/PhoneFold.tsx`: under 761 px it becomes a closed disclosure row, on wider screens it renders its children unchanged.
+- For screens with their own scrolling panes, use `h-screen-fill` (or `min-h-screen-fill`): the height below the top bar and the step bar. They are Tailwind `@utility` rules, so variants work (`lg:h-screen-fill`). CSS variables: `--shell-topbar`, `--shell-bookbar` (0 outside a book; the step bar measures itself into it) and `--shell-sticky-top`.
+- **Navigation (D-016).** Side menu: Library, Published, Volume mode, Profiles, New book, Archive, Settings (`globalNav` in `screens.ts`; the command menu reads it too). No book steps in the side menu. One global search: the top bar (Cmd K or Ctrl K). Page-level lists use `FilterField` (labelled "Filter"), never a second search box. One small "Demo data" badge in the top bar; screens do not add their own demo strips.
+- Grids that hold wide content need `grid-cols-1` (or `minmax(0,1fr)`) so they do not overflow on phones. Card grids use fixed column counts so no row ends with a lone card (Library, Profiles with its Add profile tile, Published, New book, Cover).
+- One `h1` per screen (`PageHeader` or the step head).
 
 ## Styling conventions
 
-- **Tokens only.** Colours, type, radii, shadows and motion come from `@volume/ui`. `theme.css` clears Tailwind's defaults, so only Volume tokens exist: `bg-canvas`, `bg-sheet`, `bg-sunken`, `bg-raised`, `bg-spine`, `text-ink`, `text-ink-secondary`, `text-ink-tertiary`, `border-border`, `border-border-strong`, `bg-accent text-on-accent`, `text-accent-text`, `bg-accent-wash`, `bg-progress`, `text-select`, `bg-select-wash`, `text-claim`, `bg-claim-wash`, `text-success`, `bg-success-wash`; type `text-display`, `text-title`, `text-figure`, `text-heading`, `text-subhead`, `text-body`, `text-label`, `text-small`, `text-caption`, `text-prose`, `text-prose-sm`; fonts `font-book` (Literata), `font-ui` (Schibsted Grotesk), `font-mono` (JetBrains Mono, model IDs and keys only); radii `rounded-xs/sm/md/lg/pill/cover`; shadows `shadow-button/sheet/pop/modal/cover`; durations `duration-(--vol-dur-fast|base|slow)`; easing `ease-out`, `ease-in`, `ease-page`; animations `animate-page-turn`, `animate-ink-fill`, `animate-ink-in`, `animate-pencil`, `animate-pencil-x`.
-- **Figures.** `.num` gives lining figures. Schibsted Grotesk's tabular figures also space out commas and full stops ("21 ,340"), so `.num` stays proportional in the interface font and is tabular inside Literata. Use `.tnum` only for columns that must line up.
+- **Tokens only.** Colours, type, radii, shadows and motion come from `@volume/ui`. `theme.css` clears Tailwind's defaults, so only Volume tokens exist: `bg-canvas`, `bg-sheet`, `bg-sunken`, `bg-raised`, `bg-spine`, `text-ink`, `text-ink-secondary`, `text-ink-tertiary`, `border-border`, `border-border-strong`, `bg-accent text-on-accent`, `text-accent-text`, `bg-accent-wash`, `bg-progress`, `text-select`, `bg-select-wash`, `text-claim`, `bg-claim-wash`, `text-success`, `bg-success-wash`; type `text-display`, `text-title`, `text-figure`, `text-heading`, `text-subhead`, `text-body`, `text-label`, `text-small`, `text-caption`, `text-prose`, `text-prose-sm`; fonts `font-book` (Literata), `font-ui` (Manrope), `font-mono` (JetBrains Mono, model IDs and keys only); radii `rounded-xs/sm/md/lg/pill/cover`; shadows `shadow-button/sheet/pop/modal/cover`; durations `duration-(--vol-dur-fast|base|slow)`; easing `ease-out`, `ease-in`, `ease-page`; animations `animate-page-turn`, `animate-ink-fill`, `animate-ink-in`, `animate-pencil`, `animate-pencil-x`.
+- **Figures.** `.num` gives lining figures. `.num` stays proportional in the interface font and is tabular inside Literata (`styles/app.css`). Use `.tnum` only for columns that must line up.
 - **Helpers in `styles/app.css`:** `h-screen-fill`, `min-h-screen-fill` and `hit-44` (44 px hit area for compact controls) are `@utility` rules and take variants (`lg:`, `xl:`, `sm:hit-44`); `print-indent` (indent paragraphs after the first), `vol-pencil-edge` (blue pencil stroke on the selected item), `vol-claim-mark`, `vol-caret`, `vol-nib`, `opsz-display`, `opsz-title`.
 - **`cn()` joins, it does not merge.** `lib/cn.ts` only joins class names and skips falsy values; there is no tailwind-merge (no new package). A `className` you pass to a shared component is added after the component's own classes, and when two utilities set the same property Tailwind's stylesheet order decides, not the order in the string. So a conflicting override may not win. To override: use the component's prop when there is one (`Inspector width`, `Button fullWidth`, `Switch nowrap`); otherwise add Tailwind's important modifier at the end of the class (`w-full!`, `lg:border-l-0!`); or wrap the component in an element you style. Avoid passing a second value for something the component already sets unless you use one of these.
 - **Icons:** `lucide-react`. `LucideProvider` sets 18 px and stroke 1.75; use 16 px inline and 14 px with stroke 2 in chips. Icons are `aria-hidden`; icon-only buttons use `IconButton` (label and tooltip).
@@ -192,7 +191,7 @@ Layout notes:
 
 | Component | Use |
 |---|---|
-| `Button` | `variant` primary (gilt, one per screen), secondary, ghost (the guide's quiet), danger; `size` sm, md, lg; `icon`, `iconRight`, `estimate` ("about $0.04"), `loading` with `loadingLabel` (keeps width), `disabledReason` (focusable, tooltip says why), `fullWidth` |
+| `Button` | `variant` primary (navy, one per screen, D-066), secondary, ghost (the guide's quiet), danger; `size` sm, md, lg; `icon`, `iconRight`, `estimate` ("about $0.04"), `loading` with `loadingLabel` (keeps width), `disabledReason` (focusable, tooltip says why), `fullWidth` |
 | `IconButton` | `icon`, `label` (required), `variant` secondary, ghost, spine; `size` md (44) or sm (32 with 44 hit area); `pressed`; `shortcut`; `disabledReason` (aria-disabled, stays focusable, the tooltip adds the reason) |
 | `Input`, `Textarea` | `label`, `hint`, `error`, `disabledReason`; Input `icon`, `maxCount`; Textarea `prose` (Literata), `showWordCount` |
 | `Select` | custom listbox: `label`, `options` ({value, label, hint}), `value`, `onChange`. Arrow keys pressed while the list opens are queued and applied once it has focus |
@@ -215,11 +214,11 @@ Layout notes:
 | `Skeleton` | `variant` line, block, cover, circle; wrap groups in `role="status"` with a label |
 | `Banner` | `tone` error, attention, success, info; `title`, `action` |
 | `ModelPicker`, `ModelPickerRow` | radio table of models with example prices; `modelPrice(model)`. Long slugs wrap (never cut off) and carry the full slug in `title` |
-| `Cover` | typographic cover from `book.cover` data: `title`, `subtitle`, `author`, `design` (null draws "No cover yet"), `width`, `lift` (needs a `group` ancestor), `hideSubtitle`, `decorative`. Designs come from `config/cover-styles.json` through `coverFromStyle(styleId, paletteId, titleLines, overrides)` in `data/covers.ts`: 16 OFL title faces (`CoverTypeface`), 16 motifs (`CoverMotif`), plus optional `align`, `titleTracking`, `accentFamily`, `authorStyle`, `frame` and `band`. Hand-built designs (Cover studio concepts) still work |
+| `Cover` | typographic cover from `book.cover` data: `title`, `subtitle`, `author`, `design` (null draws "No cover yet"), `width`, `lift` (needs a `group` ancestor), `hideSubtitle`, `decorative`. Designs come from `config/cover-styles.json` through `coverFromStyle(styleId, paletteId, titleLines, overrides)` in `demo/covers.ts`: 16 OFL title faces (`CoverTypeface`), 16 motifs (`CoverMotif`), plus optional `align`, `titleTracking`, `accentFamily`, `authorStyle`, `frame` and `band`. Hand-built designs (Cover studio concepts) still work |
 | `BookSteps` | the one step bar for a book: `book`, `current` (the page you are on, highlighted with the pencil underline and `aria-current="page"`), `runningBookId`. Markers show each step's state from the book (done, in progress, needs attention, not started). The shell renders it; screens do not |
 | `FilterField` | page filter, 44 px, filter icon, clear button, Escape clears: `value`, `onChange`, `label` (default "Filter", screen-reader only unless `showLabel`), `placeholder`, `count` (announced as "4 shown") |
 | `ModelName` | friendly model name with the exact slug in a tooltip: `slug`, `withProvider`. Use it (or `formatModel`) wherever a model is named; never print raw slugs or the "~" prefix. `KeyValueList` items with `mono: true` and a slug value render through it automatically |
-| `buttonClasses(variant, size)` | classes that make a router `Link` look like a `Button` (StepFooter, Published shelf) |
+| `buttonClasses(variant, size)` | classes that make a router `Link` look like a `Button` (step bar, Published shelf) |
 | `ClaimFlag`, `ClaimMark` | proof red flag with count; wavy underline on a claim sentence |
 | `OutlineItem` | numbered outline row, at least 44 px tall: `current` (blue pencil), `claims`, `meta`, `subheadings`, `to` or `onSelect` |
 | `GalleySheet`, `MarginNote` | the white page with meta line; margin notes kind profile, selection, claim |
@@ -263,22 +262,11 @@ Rules for mock data: realistic, British English, no lorem ipsum, no invented sta
 
 ## Known gaps and deliberate differences
 
-- Book-content fonts (16 OFL families for covers and interior themes) are installed from Fontsource and loaded in `styles/book-fonts.css` (Latin only). The list and licences are in `assets/fonts/README.md`. The interface still uses only Literata, Schibsted Grotesk and JetBrains Mono.
-- The top bar (breadcrumb, search, demo badge, theme) is not on the board; it was asked for in the prototype brief. It holds the only search (D-016).
-- Screenshots go to `apps/web/screenshots/` (this brief) rather than `test-results/screens/` (the frontend agent file).
-- No ESLint or Prettier yet (needs approval). No unit tests; typecheck, the screenshot script and the smoke script are the checks.
-- Deferred prototype items (shared helpers still in screen folders, blueprint data, claim marks in editable text, cover fonts, lint, real TipTap, zip and server) are listed as K-P01 to K-P06 in `docs/KNOWN-ISSUES.md`.
+- Book-content fonts (16 OFL families for covers and interior themes) are installed from Fontsource and loaded in `styles/book-fonts.css` (Latin only). The list and licences are in `assets/fonts/README.md`. The interface uses only Literata, Manrope and JetBrains Mono.
+- The top bar (breadcrumb, search, demo badge, theme) holds the only search (D-016).
+- Screenshots go to `apps/web/screenshots/` (git-ignored, made by `npm run screenshot -w apps/web`).
+- Checks: ESLint and Prettier from the repository root (D-023), Vitest unit tests (`npm run test -w apps/web`, 267 on 1 November 2026), typecheck, and the screenshot and smoke scripts.
 
-## Route follow-ups for the screen agents (round 2, D-016)
+## Route follow-ups (round 2, D-016)
 
-The foundation (shell, shared components, data) is done. These duplicates and stale bits are still inside route files, which the foundation does not edit:
-
-- **Second step bar:** `blueprint/BlueprintPage.tsx:355` renders its own `StageTrack`; delete it. `cover/CoverPage.tsx:189` has a "Cover steps" sub-stepper (brief, concepts, choose, build); turn it into status text or section headings, not a second stepper.
-- **Page-level Library links:** `blueprint/OutlineRail.tsx:99` and `writing/SectionList.tsx:33` (`to="/library"`). The breadcrumb and the footer's Back cover this.
-- **Second search box:** `library/LibraryPage.tsx` with `library/SearchField.tsx` ("Search titles and pen names", with its own Cmd K hint) and `archive/ArchivePage.tsx`. Replace with `FilterField` (label "Filter", placeholder "Filter by title or profile"). The Library chip "All pen names" should read "All profiles" to match the spine.
-- **Primary actions into the footer:** call `useStepAction` on each book screen and drop the screen's own gilt button: Research "Choose titles", Titles "Use this title", Blueprint "Approve blueprint" (`BlueprintPage.tsx:608`; Regenerate part at `:570` is also gilt and should be secondary), Writing "Write book", Editor "Mark edit done", Cover "Use this cover", Export "Build pack", Marketing "Generate scripts".
-- **Editor word counts:** the section's words appear in the toolbar line (`editor/EditorPage.tsx:386`), in the manuscript tree and again in the inspector. Keep one per place: the total in the tree, the section count in the inspector.
-- **Raw model slugs:** replace with `<ModelName slug={...} />` or `formatModel()`: `library/LivePanel.tsx:89`, `research/ResearchPage.tsx:326`, `blueprint/BlueprintInspector.tsx:151`, `writing/WritingInspector.tsx:85` and `:87`, `writing/RetryDialog.tsx:57`, `settings/ModelsPanel.tsx:87` and `:97`, `settings/ModelStageDialog.tsx:91`, `profiles/ModelsTab.tsx:47`, `components/ComponentsPage.tsx:349`.
-- **Profiles store:** `profiles/profileStore.ts` still has seed data keyed by `ada-fenwick` and `sam-rowe` (lines 103, 123, 183, 236) and maps only the old `PenName` fields, so the editor shows empty legal name and location and the copyright preview prints the screen's own disclaimer. Read `penName.profile`: `legalName`, `location`, `voice` (tone, pov, rhythm, vocabulary, readingLevel, dialogueStyle, sampleParagraph, bannedPhrases), `publishing` (copyrightTemplate, copyrightName, disclaimer, illustrativeLine, defaultBookType, defaultWordTarget, defaultTrim, defaultInteriorTheme, defaultCoverStyle), `models` and `status`. Placeholders naming Sam Rowe or Larder Lane Books (`IdentityTab.tsx:89`, `PublishingTab.tsx:42`) need new examples.
-- **New book wizard:** offer the 35 book types by category (`bookTypes`, `bookCategories` in `data/config.ts`) instead of four template cards, and preselect the profile's default book type, interior theme, cover style, trim and word target. `TemplateId` now also has `cookbook`, `journal` and `poetry`. Wizard Back and Next stay in the wizard.
-- **Style guide (`/components`):** the Ink in card clips the newest line and the caret: the wrapper `div.h-24.overflow-hidden` at `components/ComponentsPage.tsx:548`. Drop the fixed height or show fewer chunks. `getPenName("ada-fenwick")` at line 88 now returns nothing; use `harni-muharami`.
+Done. Rechecked on 1 November 2026: no second step bar or Cover sub-stepper, no page-level Library links, no second search box (`SearchField.tsx` is gone), each book screen registers its action with `useStepAction`, the old `ada-fenwick` and `sam-rowe` seed ids are gone, the New book wizard offers every book type by category (`features/new-book/BookTypeStep.tsx`), and the file lines once listed for raw model slugs now render through `ModelName` or no longer hold a slug (`blueprint/BlueprintInspector.tsx:151` now prints a cost row; on `main` only a type is still imported from that file, and the current working tree deletes it). Not rechecked: where the Editor shows word counts.

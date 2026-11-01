@@ -1,5 +1,7 @@
 # Clean production implementation plan
 
+Status: complete. Done on 21 October 2026 (PRs #37 to #45); follow-ups in 2026-10-21-clean-production-follow-ups.md.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A freshly written book needs only unavoidable fixes, reads and looks like Harni Muharami's NHS Boundary Handbook, exports a Pages file for final retouching, and Harni's 16 past books sit on her pen name.

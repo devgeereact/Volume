@@ -1,6 +1,6 @@
 # apps/server
 
-Volume's local API. Fastify under `/api/v1`, Kysely over SQLite (local and tests) or the owner's cPanel MySQL (production, D-015), a database-backed job queue, live progress over SSE, and files stored in the database as 1 MB chunks. It binds to `127.0.0.1:5181` only.
+Volume's API, local in development and behind Passenger and Cloudflare at https://volume.gakinz.com. Fastify under `/api/v1`, Kysely over SQLite (local and tests) or the owner's cPanel MySQL (production, D-015), a database-backed job queue, live progress over SSE, and files stored in the database as 1 MB chunks. It binds to `127.0.0.1:5181` only.
 
 AI and export work go through two ports (`src/ports/ai.ts`, `src/ports/export.ts`). Each has a real adapter on the workspace packages (`@volume/ai`, `@volume/export` with `@volume/core`) and a mock adapter that returns deterministic content marked `[MOCK]`, so every flow also works with no key and no network call. See AI provider and Export provider below.
 
@@ -41,8 +41,10 @@ Read from the root `.env` (or the file named by `VOLUME_ENV_FILE`) with dotenv (
 | `JOBS_ENABLED`, `AUTO_MIGRATE` | `true` (`AUTO_MIGRATE` false in production) | |
 | `NODE_ENV` | | `production` on the host: needs `APP_ORIGIN` and Clerk, refuses `AUTH_MODE=local` |
 | `AUTH_MODE` | `local` (`clerk` in production) | `local` stub or Clerk sessions (D-039) |
+| `ACCOUNTS_MODE` | `owner-only` | `owner-only` admits only the allowlisted owner accounts; `invite` also admits invited accounts with their role (D-047) |
 | `APP_ORIGIN`, `ALLOWED_HOSTS` | | Public origin; Host values answered (default the origin's host) |
 | `TRUST_PROXY` | on in production | Proxy headers and `CF-Connecting-IP` for the visitor IP |
+| `CLOUDFLARE_ONLY` | `off` | Origin lock by Cloudflare's IP ranges: `report` logs requests that did not come through Cloudflare, `on` refuses them with 403 (D-062) |
 | `RATE_LIMIT_MAX`, `RATE_LIMIT_WRITE_MAX`, `RATE_LIMIT_HEALTH_MAX` | 600, 300, 30 in production; no practical limit in development | Per visitor IP per minute |
 | `WEB_DIST_DIR` | `web/` when present | Built web app served with an SPA fallback |
 | `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_JWT_KEY` | | Clerk keys; the secret and JWT key stay inside the verifier |
@@ -153,7 +155,7 @@ test/                 vitest suites (SQLite in memory; MySQL only with MYSQL_TES
 | `POST /books/import-project` | multipart/form-data with `profileId` (a pen name in this workspace) and `file` (the project zip, D-051). Always makes a new book under that pen name, with new ids; nothing existing changes. Owner or editor only. Limited to 5 imports per minute per visitor. Refused unless the request carries an Origin header or same-origin fetch metadata, so other pages cannot post a zip here |
 | `POST /projects/import?profileId` | Body: that zip (`Content-Type: application/zip`). Loads it into this workspace with new ids; links to rows that were not moved are cleared. Without `profileId` the matching active pen name in this workspace is used (same id, then same seeded source key, then one profile with the same pen name); only when none matches is a copy made. 201 `{ bookId, profileId, profileCreated, rows, assets, book }`; 400 for a file that is not a Volume project |
 | `DELETE /books/:id` | Owner-confirmed delete. Body `{ confirm: "<exact title>" }` (title, else idea, else Untitled). 409 unless archived, the title matches and no job is running. Everything under the book goes (cascade from `projects`, plus its files, jobs and events); AI spend rows stay, unlinked and with their output and error text cleared (D-050), so the month's spend is right. 204 |
-| `GET /books/:id/costs` | Budget, spend and prompt runs |
+| `GET /books/:id/costs` | Spend, the stored budget figure (a guide only, D-057) and prompt runs |
 | `POST /books/:id/research` (job), `GET /books/:id/research`, `GET /research-runs/:id`, `PATCH /research-sources/:id` | Research with url_citation sources; tick "use in book". Sources carry `domain` (no "www."; null for an unresolved redirect), `redirectUrl` (the grounding redirect the URL came from) and `unresolved`. Runs carry `promptRunId`, `model`, `costUsd` and `guardrails` (see below) |
 | `PATCH /title-sets/:id/options/:index` | Body `{ favourite }`. Stars or unstars one option; every option carries `favourite` (false by default). Returns `{ titleSet }` |
 | `POST /books/:id/title-sets` (job), `GET /books/:id/title-sets`, `POST /title-sets/:id/choose` | Titles. Sets carry `promptRunId`, `model`, `costUsd`, `guardrails`. Body (all optional): `instruction`; `directionKey` (a direction of the latest set, or of `titleSetId`) or `direction` (`{ label, key?, angle?, audience?, promise? }` the owner wrote). With neither, the job suggests directions and writes titles for the first. A chosen direction keeps the earlier set's directions on the new set |
@@ -199,10 +201,10 @@ SSE event types: `job.status` (writing children also carry `sectionId`), `job.pr
 ## Jobs
 
 - Claim is an atomic compare-and-set (`UPDATE jobs SET status='running' ... WHERE id=? AND status='queued'`), safe on both dialects without row locks. Ready means queued, `run_after` reached and any `depends_on_job_id` finished well.
-- Lanes: 2 AI jobs, 1 export job, 2 control jobs at once. Chapter jobs in one book are chained with `depends_on_job_id`, so they run in order.
+- Lanes: 2 AI jobs, 1 quick on-screen job (`QUICK_KINDS`: cover concepts, edit passes, note weaving, selection rewrites, claim fixes), 1 export job, 2 control jobs at once. Chapter jobs in one book are chained with `depends_on_job_id`, so they run in order.
 - Heartbeat every 15 s; a running job whose heartbeat is older than 60 s goes back to the queue (crash or restart), keeping its attempt count.
 - Retries: up to 3 attempts for retryable errors with 2 s, 10 s, 60 s backoff plus up to 20% jitter (`Retry-After` wins). Model unavailable, invalid AI output and bad input fail straight away.
-- Budget: before each AI call the runner compares spend plus the high estimate with the book budget and the monthly cap; over the limit the job becomes `paused_budget` and `budget.paused` is sent. Raise the budget, then resume.
+- Spending (D-057): no book or monthly cap. When the provider reports no credit (OpenRouter HTTP 402) the job becomes `paused_budget` with `errorCode: 'credits_exhausted'` and `budget.paused` is sent; top up, then Continue. A workspace other than the instance owner's is held to the instance owner's monthly cap for other workspaces (D-047; 0 refuses with `guest_ai_disabled`).
 - A child that fails or is cancelled cancels the jobs that depend on it (`errorCode: 'dependency_failed'`, "Not started: an earlier section failed."), so a parent never waits for ever. The parent then ends as `failed` with `errorCode: 'child_failed'` and a plain summary such as "1 of 3 sections failed. 2 sections after it were not started. Retry the failed section, then write the rest." Their sections go back to `empty` (or `done` when they already had text). Writing the book again queues only the sections not done.
 - Cancel aborts the running call and marks the job `cancelled`; pause stops between steps; resume re-queues. Children follow their parent.
 - Every AI call writes a `prompt_runs` row and adds its cost to the book and the job in one transaction.

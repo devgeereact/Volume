@@ -13,10 +13,3 @@ export function useMediaQuery(query: string): boolean {
     () => false,
   );
 }
-
-/** Breakpoints from 08-DESIGN-GUIDE: phone under 640, tablet 640 to 1023, laptop 1024 and up. */
-export function useBreakpoint(): "phone" | "tablet" | "laptop" {
-  const tablet = useMediaQuery("(min-width: 640px)");
-  const laptop = useMediaQuery("(min-width: 1024px)");
-  return laptop ? "laptop" : tablet ? "tablet" : "phone";
-}
