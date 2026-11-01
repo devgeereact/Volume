@@ -78,7 +78,7 @@ export function Book({ size = "md", delay = 0, interactive = true }: BookProps) 
             <div className="face pages" />
             <div className="face top" />
             <div className="face spine">
-              <span className="font-book text-caption text-accent italic">The Calm Ward · M. R. Hale</span>
+              <span className="font-book text-caption text-[#ebb241] italic">The Calm Ward · M. R. Hale</span>
             </div>
             <div className="face titlepage">
               <span className="font-mono text-[9px] tracking-[0.3em] text-[#5e6375] uppercase">A novel</span>

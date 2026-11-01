@@ -1,5 +1,12 @@
 # Current task
 
+## State on 1 November 2026 (later): sign-in heading, alerts, worktrees
+
+- Sign-in heading and 3D book gilt fixed on `fix/signin-heading` (PR, then automatic deploy). Gate PASS: typecheck, lint, format, web 267, e2e 20.
+- Dependabot alerts 1 (glob) and 2 (minimatch) dismissed with reasons: not reachable in Volume (docs/AUDIT.md, 1 November 2026).
+- Agent worktrees removed; docs check PASS.
+- Open, owner's call: Clerk production has the password method on and required, but the owner has no password, so the sign-in form shows an unusable Password box. Turning it off in Clerk would leave email code and Google. Not changed (Clerk changes need the owner's OK).
+
 ## State on 1 November 2026: design gap fixes live
 
 - PR #87 merged (main `069f5a5`), deployed automatically as `releases/20261101T062407Z`; rollback target `20261030T194912Z`. No migrations.

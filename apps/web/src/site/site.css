@@ -102,8 +102,11 @@
   background: radial-gradient(closest-side, rgb(235 178 65 / 0.16), transparent);
 }
 
-/* The 3D cloth-bound book. --t is the thickness, animated on the way in. */
+/* The 3D cloth-bound book. --t is the thickness, animated on the way in. Its gilt is content, like a cover
+   palette, so it stays the same in every theme (the accent token turned navy with D-066 and vanished on the cloth). */
 .site-book-stage {
+  --book-gilt: #ebb241;
+  --book-gilt-soft: rgb(235 178 65 / 0.45);
   perspective: 1400px;
 }
 .site-book-tilt,
@@ -224,10 +227,10 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   padding: 26px 18px 22px;
-  border: 1.5px solid var(--vol-accent);
-  outline: 1px solid rgb(235 178 65 / 0.45);
+  border: 1.5px solid var(--book-gilt);
+  outline: 1px solid var(--book-gilt-soft);
   outline-offset: 4px;
-  color: var(--vol-accent);
+  color: var(--book-gilt);
   text-align: center;
 }
 .site-book[data-size="sm"] .cover {
@@ -239,7 +242,7 @@
   width: 54px;
   height: 1px;
   margin: 14px auto 0;
-  background: var(--vol-accent);
+  background: var(--book-gilt);
 }
 .site-book .orn::after {
   content: "";
@@ -248,7 +251,7 @@
   left: 50%;
   width: 7px;
   height: 7px;
-  background: var(--vol-accent);
+  background: var(--book-gilt);
   transform: translate(-50%, -50%) rotate(45deg);
 }
 .site-book .foil {

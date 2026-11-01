@@ -2,6 +2,15 @@
 
 One audit file for this project. Every audit, check or review adds a dated section at the top; nothing is rewritten. Open work lives in `.agent/CURRENT-TASK.md`.
 
+## 1 November 2026: dependency alerts, sign-in page
+
+- **Dependabot alerts 1 and 2 (moderate).** `glob` 13.0.6 (AbortSignal bypass, fixed in 14.0.2) and `minimatch` 10.2.6 (pattern DoS, fixed in 11.0.1). Neither is reachable:
+  - `glob` comes in only through `@fastify/static`, which calls it only when `wildcard` is false. Volume registers it with `wildcard: true` (`apps/server/src/http/hosting.ts`), so glob never runs on the host.
+  - `minimatch` comes in through ESLint, typescript-eslint and glob; it runs only in local linting on the project's own patterns.
+  - The fixes are new majors (27 and 28 October 2026). `@fastify/static` still declares `glob ^13`, and `npm audit fix --force` would downgrade ESLint and Fastify by several majors. Not applied. Alerts dismissed on GitHub with this reason; revisit when `@fastify/static` and ESLint move to the patched majors.
+- **Sign-in page (live).** Clerk works: an unknown address gets "Couldn't find your account"; the owner's address reaches the email code step (factors: Google, email code). The page's CSP allows Clerk's scripts and frames. Clerk production has the password method on and required while the owner's account has no password, so the form shows a Password box that cannot be used; the email code path still works through "Continue". Recommended Clerk change, owner's call: turn the password method off.
+- **Sign-in heading fixed.** "studio." was invisible (accent token equals the panel colour since D-066) and the heading and line wrapped early at laptop widths. Now one line at 1024 to 1920, contrast 13.7:1 light and 13.1:1 dark, axe clean. The 3D book's gilt (landing and sign-in) used the same token and vanished on the navy cloth; it is now a fixed content colour.
+
 ## 30 October 2026: automatic deploy and docs tidy
 
 - Scope: the new `deploy.yml` (runs `npm run deploy` after "Check Volume" passes on `main`) and the docs layout.
