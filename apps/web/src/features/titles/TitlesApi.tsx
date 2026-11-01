@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useCanWrite } from "../../lib/access";
-import { ArrowDown, RefreshCw, RotateCcw, Sparkles } from "lucide-react";
+import { RefreshCw, RotateCcw, Sparkles } from "lucide-react";
 import {
   Banner,
   Button,
@@ -23,8 +23,8 @@ import { estimateWords, guardrailsOf, isFavourite, plainError, runMeta, useBookJ
 import { formatUsd } from "../../lib/format";
 import { GuardrailNote } from "../research/GuardrailNote";
 import { TITLE_SUBTITLE_MAX, titleLength, type Book, type TitleOption } from "../../demo";
-import { scrollBehavior } from "../../lib/motion";
 import { useStepAction } from "../../lib/stepAction";
+import { PhoneFold } from "../../shell/PhoneFold";
 import { bookStepPath } from "../../screens";
 import { ChooseTitleButton, DirectionCard, TitleRow, TitleSide } from "./TitleCard";
 import { checkTitle } from "./titlesExtras";
@@ -144,16 +144,6 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
   const cards = groupByDirection(visible, directions, filter === "all");
   const setDirectionKeys = new Set(options.map((o) => o.directionId));
   const forOneDirection = set !== null && setDirectionKeys.size === 1 && directions.length > 1;
-
-  function showChosen() {
-    if (!chosenHere) return;
-    if (filter !== "all") setFilter("all");
-    requestAnimationFrame(() => {
-      const el = document.getElementById(`title-${chosenHere.id}`);
-      el?.scrollIntoView({ block: "center", behavior: scrollBehavior() });
-      el?.focus({ preventScroll: true });
-    });
-  }
 
   return (
     <div className="grid gap-4 px-4 min-[861px]:px-6">
@@ -347,7 +337,7 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
 
           <aside
             aria-label="Titles details"
-            className="vol-glass grid min-w-0 content-start rounded-card p-[18px] min-[1180px]:sticky min-[1180px]:top-(--shell-sticky-top)"
+            className="vol-glass grid min-w-0 content-start rounded-card p-[18px] min-[1180px]:sticky min-[1180px]:top-(--shell-sticky-top) min-[1180px]:max-h-[calc(100dvh-var(--shell-sticky-top)-16px)] min-[1180px]:overflow-y-auto"
           >
             <TitleSide
               book={book}
@@ -366,25 +356,23 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
               }
             >
               <hr className="mt-4 border-line" />
-              <h3 className="mt-4 text-[14px] font-bold text-ink">Chosen title</h3>
-              {bookTitle ? (
-                <div className="mt-2 grid gap-2">
-                  <p className="font-book text-[14px] text-ink">
-                    <span className="block font-semibold">{bookTitle}</span>
-                    {apiBook.subtitle && <span className="block text-ink-2 italic">{apiBook.subtitle}</span>}
-                  </p>
-                  <p className="num text-small text-ink-3">
-                    {titleLength(bookTitle, apiBook.subtitle ?? "")} of {TITLE_SUBTITLE_MAX} characters. Saved to the book.
-                  </p>
-                  {chosenHere && (
-                    <Button size="sm" variant="ghost" icon={ArrowDown} className="justify-self-start" onClick={showChosen}>
-                      Show it in the list
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <p className="mt-2 text-small text-ink-2">Not set yet. Pick one with Use this title.</p>
+              {/* The chosen option carries its own Chosen title mark in the list. Only a saved title that is not in
+                  this set is shown here, as it has no card of its own. */}
+              {bookTitle && !chosenHere && (
+                <>
+                  <h3 className="mt-4 text-[14px] font-bold text-ink">Saved title</h3>
+                  <div className="mt-2 grid gap-2">
+                    <p className="font-book text-[14px] text-ink">
+                      <span className="block font-semibold">{bookTitle}</span>
+                      {apiBook.subtitle && <span className="block text-ink-2 italic">{apiBook.subtitle}</span>}
+                    </p>
+                    <p className="num text-small text-ink-3">
+                      {titleLength(bookTitle, apiBook.subtitle ?? "")} of {TITLE_SUBTITLE_MAX} characters. Not in this set.
+                    </p>
+                  </div>
+                </>
               )}
+              {!bookTitle && <p className="mt-4 text-small text-ink-2">Not set yet. Pick one with Use this title.</p>}
               {choose.isPending && (
                 <p className="mt-2 text-small text-ink-2" role="status">
                   Saving the title
@@ -395,29 +383,31 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
               </p>
               {/* Once the book has text, a new title only reaches the blueprint and chapters through a rebuild. */}
               {bookTitle && <RebuildBook bookId={bookId} title={bookTitle} onlyWithText className="mt-5" />}
-              <h3 className="mt-4 text-[14px] font-bold text-ink">This set</h3>
-              <div className="mt-2 grid gap-3">
-                {list.length > 1 && (
-                  <Select
-                    label="Set"
-                    value={set.id}
-                    onChange={setPickedSet}
-                    options={list.map((x, i) => ({ value: x.id, label: `Set ${list.length - i}, ${whenMs(x.createdAt)}` }))}
-                    disabled={active}
+              <PhoneFold label="This set" hint="Model, cost and earlier sets" className="mt-4">
+                <h3 className="mt-4 text-[14px] font-bold text-ink">This set</h3>
+                <div className="mt-2 grid gap-3">
+                  {list.length > 1 && (
+                    <Select
+                      label="Set"
+                      value={set.id}
+                      onChange={setPickedSet}
+                      options={list.map((x, i) => ({ value: x.id, label: `Set ${list.length - i}, ${whenMs(x.createdAt)}` }))}
+                      disabled={active}
+                    />
+                  )}
+                  <KeyValueList
+                    items={[
+                      { label: "Model", value: setModel ? <ModelName slug={setModel} /> : "Not recorded" },
+                      { label: "Cost", value: setCost === null ? "Not recorded" : formatUsd(setCost) },
+                      { label: "Options", value: `${options.length}, ${validCount} passing` },
+                      { label: "Written", value: whenMs(set.createdAt) },
+                    ]}
                   />
-                )}
-                <KeyValueList
-                  items={[
-                    { label: "Model", value: setModel ? <ModelName slug={setModel} /> : "Not recorded" },
-                    { label: "Cost", value: setCost === null ? "Not recorded" : formatUsd(setCost) },
-                    { label: "Options", value: `${options.length}, ${validCount} passing` },
-                    { label: "Written", value: whenMs(set.createdAt) },
-                  ]}
-                />
-                {forOneDirection && (
-                  <p className="text-small text-ink-2">Titles for {directions.find((d) => setDirectionKeys.has(d.key))?.label ?? "one direction"} only.</p>
-                )}
-              </div>
+                  {forOneDirection && (
+                    <p className="text-small text-ink-2">Titles for {directions.find((d) => setDirectionKeys.has(d.key))?.label ?? "one direction"} only.</p>
+                  )}
+                </div>
+              </PhoneFold>
             </TitleSide>
           </aside>
         </div>
@@ -425,7 +415,7 @@ export function TitlesApi({ book, apiBook }: { book: Book; apiBook: ApiBookDetai
 
       {!set && bookTitle && sets.isSuccess && (
         <aside aria-label="Titles details" className="vol-glass grid max-w-[420px] content-start rounded-card p-[18px]">
-          <TitleSide book={book} option={{ title: bookTitle, subtitle: apiBook.subtitle ?? "", checks: [], invalidReason: null }} chosen>
+          <TitleSide book={book} option={{ title: bookTitle, subtitle: apiBook.subtitle ?? "", checks: [], invalidReason: null }} chosen markChosen>
             <RebuildBook bookId={bookId} title={bookTitle} onlyWithText className="mt-5" />
           </TitleSide>
         </aside>

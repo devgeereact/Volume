@@ -108,7 +108,7 @@ function PublishedCard({
         decorative
         className="w-full self-start"
       />
-      <div className="grid min-w-0 content-start gap-2.5">
+      <div className="flex min-w-0 flex-col gap-2.5">
         <div>
           <h3 id={headingId} className="font-book text-[18px] leading-[1.25] font-semibold text-ink">
             {book.title}
@@ -137,7 +137,7 @@ function PublishedCard({
           </Link>
           {marketplace && <span className={pillClasses}>{marketplace}</span>}
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-auto flex flex-wrap gap-2">
           <Link to={`/books/${book.id}`} className={buttonClasses("secondary", "sm")}>
             <BookOpen size={14} strokeWidth={1.8} aria-hidden />
             Open<span className="sr-only"> {book.title}</span>
@@ -261,7 +261,7 @@ export default function PublishedPage() {
       {savedNote && <InlineStatus>{savedNote}</InlineStatus>}
 
       {state === "loading" ? (
-        <ul role="status" aria-label="Loading published books" className="grid grid-cols-[repeat(auto-fill,minmax(min(500px,100%),1fr))] gap-4.5">
+        <ul role="status" aria-label="Loading published books" className="grid gap-4.5 min-[1100px]:grid-cols-2">
           {Array.from({ length: 4 }, (_, i) => (
             <li key={i} className="vol-glass grid grid-cols-[132px_minmax(0,1fr)] gap-5 rounded-card p-4.5 max-[560px]:grid-cols-[90px_minmax(0,1fr)]">
               <Skeleton variant="cover" />
@@ -333,7 +333,7 @@ export default function PublishedPage() {
                 <span className="sr-only"> {list.length === 1 ? "book" : "books"}</span>
               </span>
             </h2>
-            <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(500px,100%),1fr))] gap-4.5">
+            <ul className="grid gap-4.5 min-[1100px]:grid-cols-2">
               {list.map((b) => (
                 <PublishedCard key={b.id} book={b} getPenName={getPenName} server={serverBooks.get(b.id)} onSaved={setSavedNote} />
               ))}

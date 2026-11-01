@@ -391,6 +391,15 @@ The approved "Volume Studio" artifact (frost edition) is the reference for every
 - **Up next:** a dashed glass card at the end of each step page with the next step, a short line, a status chip and "Open <step>". After Export it reads "Then publish on KDP".
 - **Status chips:** two new states, "In progress" and "Not started".
 
+### Gap fixes (31 October 2026, branch `design/gap-fixes`, not yet live)
+
+- **One primary per step page:** the step head's action is the only navy button. The step bar's Next is a secondary outlined control (an arrow only between 761 and 1499 px, named in its tooltip and label); Up next's "Open <step>" is secondary unless the step has no other action. Only Cover has no step head now.
+- **Even rows:** card grids use fixed column counts, not auto-fill, so the last row is never a lone card; an action tile (Add profile) completes a row where the count does not divide. The Library shows 3 columns, 4 from 1900 px and 5 from 2400 px, and its first page is whole rows only.
+- **No stretched cards:** columns of different content are separate stacks (Research), or end level with the last card growing only where it holds a list or a pinned action (Overview). A shorter side column that would leave empty space is sticky instead (Settings).
+- **Inspectors in tabs:** Blueprint's side card is tabbed (Chapter, Book, Claims, Versions) so it stays about as tall as the outline. Rebuild sits in Versions.
+- **Phones:** secondary detail folds behind a labelled toggle (`PhoneFold`), on phones only.
+- **Each fact once:** the chosen title is marked on its card only; the side menu leaves out spend and credit on the Library, where the tiles show them.
+
 ### Step pages (stage 4a)
 
 - **Research counts:** a row of plain figures (sources read, used, reader pains, angles, keyword ideas) above the results. Figures come from the run, never estimated.

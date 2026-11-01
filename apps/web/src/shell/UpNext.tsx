@@ -23,13 +23,26 @@ const card =
 const icon = "grid size-11 shrink-0 place-items-center rounded-[14px] bg-mint-wash text-mint-ink";
 const kicker = "num text-[11px] leading-[1.4] font-bold tracking-[0.08em] text-ink-3 uppercase";
 const actions = "col-span-2 flex flex-wrap items-center gap-2.5 min-[761px]:col-span-1 min-[761px]:justify-end";
-const open = cn(buttonClasses("primary", "md"), "max-[760px]:flex-1");
+const open = (primary: boolean) => cn(buttonClasses(primary ? "primary" : "secondary", "md"), "max-[760px]:flex-1");
 
 /**
  * The card at the end of a book step (.upnext in the approved design): the next step, what it is for, its
  * state and a link to open it. After Export, the last step, it points to publishing on KDP.
+ * The link is navy only when the step has no navy action of its own (one primary action per screen);
+ * otherwise it is a secondary button.
  */
-export function UpNext({ book, current, runningBookId }: { book: Book; current: BookStepId; runningBookId: string | null }) {
+export function UpNext({
+  book,
+  current,
+  runningBookId,
+  primary,
+}: {
+  book: Book;
+  current: BookStepId;
+  runningBookId: string | null;
+  /** True when the screen has no step action, so this link is the screen's one navy button. */
+  primary: boolean;
+}) {
   const headingId = useId();
   const i = bookSteps.findIndex((s) => s.id === current);
   const next = i >= 0 ? bookSteps[i + 1] : undefined;
@@ -48,7 +61,7 @@ export function UpNext({ book, current, runningBookId }: { book: Book; current: 
           <p className="text-[13px] text-ink-2">Upload the pack, then mark the book published.</p>
         </div>
         <div className={actions}>
-          <Link to="/published" className={open}>
+          <Link to="/published" className={open(primary)}>
             Open Published
             <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
           </Link>
@@ -78,7 +91,7 @@ export function UpNext({ book, current, runningBookId }: { book: Book; current: 
         <StatusChip status={chip[state].status} tone={chip[state].tone}>
           {chip[state].word}
         </StatusChip>
-        <Link to={bookStepPath(book.id, next.id)} className={open}>
+        <Link to={bookStepPath(book.id, next.id)} className={open(primary)}>
           Open {next.label}
           <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
         </Link>

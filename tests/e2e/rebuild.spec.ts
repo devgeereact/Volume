@@ -68,6 +68,8 @@ test("rebuilds the whole book for a new title with named versions, then goes bac
   // The book's step bar is up (the approved step bar has no cover; the Library card shows it).
   await expect(page.getByRole("navigation", { name: "Book steps" })).toBeVisible();
 
+  // Rebuild lives in the Blueprint side card's Versions tab, next to the version history it adds to.
+  await page.getByRole("tab", { name: "Versions" }).click();
   const panel = page.getByRole("region", { name: "Rebuild the whole book" });
   await panel.getByLabel("Title for the rebuild").fill("Calm Night Notes");
   await panel.getByRole("button", { name: "Rebuild for this title" }).click();
@@ -92,6 +94,7 @@ test("rebuilds the whole book for a new title with named versions, then goes bac
 
   // Go back to before the rebuild from the Blueprint step.
   await page.goto(`/books/${bookId}/blueprint`);
+  await page.getByRole("tab", { name: "Versions" }).click();
   await expect(panel).toContainText("Past rebuilds");
   await panel.getByRole("button", { name: "Go back to before this rebuild" }).click();
   const undo = page.getByRole("dialog", { name: "Go back to before this rebuild" });

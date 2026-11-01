@@ -107,7 +107,8 @@ function ProfileCard({ p, stats, covers }: { p: ProfileDraft; stats: CardStats; 
   );
 }
 
-const cardGrid = "grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4";
+/* Fixed column counts (1, 2, 3) so the cards and the Add tile fill whole rows; auto-fill left a lone card at some widths. */
+const cardGrid = "grid grid-cols-1 gap-4 min-[640px]:grid-cols-2 min-[1100px]:grid-cols-3";
 
 function ProfilesSkeleton() {
   return (
@@ -186,7 +187,7 @@ export default function ProfilesPage() {
             ? `${realCount === 1 ? "1 real person" : `${realCount} real people`} and ${penCount === 1 ? "1 pen name" : `${penCount} pen names`}. Each keeps its own bio, voice and defaults.`
             : undefined
         }
-        actions={add}
+        actions={ready ? undefined : add}
       />
       <ReadOnlyBanner />
       {state === "loading" && <ProfilesSkeleton />}
@@ -211,6 +212,21 @@ export default function ProfilesPage() {
           {list.map((p) => (
             <ProfileCard key={p.id} p={p} stats={statsFor(p.id)} covers={coversFor(p.id)} />
           ))}
+          {/* With profiles listed, adding one is a tile at the end of the grid, not a second button in the header. */}
+          {canWrite && (
+            <li className="min-w-0">
+              <Link
+                to="/profiles/new"
+                className="grid h-full min-h-[180px] place-content-center justify-items-center gap-2 rounded-card border border-dashed border-line-2 bg-panel/40 p-6 text-center text-ink-2 transition-colors hover:border-mint hover:text-ink"
+              >
+                <span aria-hidden className="grid size-11 place-items-center rounded-[14px] bg-mint-wash text-mint-ink">
+                  <Plus size={20} strokeWidth={1.8} />
+                </span>
+                <b className="text-[15px] font-bold text-ink">Add profile</b>
+                <span className="max-w-[28ch] text-small">A pen name or a real person, with its own bio, voice and defaults.</span>
+              </Link>
+            </li>
+          )}
         </ul>
       )}
     </div>

@@ -2,6 +2,16 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 31 October 2026 (branch design/gap-fixes, not deployed)
+
+#### Fixed
+- Every page passes an automated WCAG 2.2 AA check (axe) in light and dark, from phone to 2560 wide. The notifications area, the profile photo picker, the new book step list and the research citation numbers were fixed.
+- Book step pages have one main button; the step bar's Next is now a quieter control, and the last step is no longer hidden behind it at 1280 wide.
+- Book overview: the three columns end level, the step track is readable, and the card at the foot names the step the book is at.
+- Research no longer stretches the Audience card; Titles shows the chosen title once; the Blueprint side card is in tabs.
+- No lone last card on Library, Profiles, Published, New book or the Cover studio; Library shows 4 columns on large screens and 5 on very large ones.
+- Demo chapter targets now stay within the template's 2,000 to 4,000 words.
+
 ## 29 October 2026
 
 #### Fixed

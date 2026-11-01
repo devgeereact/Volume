@@ -641,7 +641,7 @@ export function InspectorPanel({ tab, children }: { tab: InspectorTab; children:
       role="tabpanel"
       id={`cv-panel-${tab}`}
       aria-labelledby={`cv-tab-${tab}`}
-      className="min-w-0 max-[1240px]:grid max-[1240px]:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] max-[1240px]:items-start max-[1240px]:gap-x-6 max-[760px]:flex max-[760px]:flex-col"
+      className="min-w-0 max-[1240px]:grid max-[1240px]:grid-cols-2 max-[1240px]:[&>*:last-child:nth-child(odd)]:col-span-2 max-[1240px]:items-start max-[1240px]:gap-x-6 max-[760px]:flex max-[760px]:flex-col"
     >
       {children}
     </div>

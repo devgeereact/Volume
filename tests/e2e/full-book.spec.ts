@@ -284,7 +284,8 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
     const use = page.getByRole("complementary", { name: "Titles details" }).getByRole("button", { name: "Use this title" });
     expect(chosenTitle.length).toBeGreaterThan(0);
     await use.click();
-    await expect(page.getByRole("complementary", { name: "Titles details" }).getByText(chosenTitle, { exact: true }).first()).toBeVisible();
+    // The chosen card carries the one "Chosen title" mark; the side card no longer repeats it.
+    await expect(main.locator("[data-title-option]", { hasText: chosenTitle }).first().getByText("Chosen title")).toBeVisible();
     await expect.poll(async () => (await getJson<Book>(request, `/books/${bookId}`)).title).toBe(chosenTitle);
     failNow();
   });

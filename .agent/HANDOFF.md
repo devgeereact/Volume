@@ -829,3 +829,32 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Wrap preview under 24 pages: `pagesFrom` in `StudioParts.tsx` holds the page count inside the trim's KDP range and returns `belowMin`; the paperback note says the preview shows the shortest printable wrap. Test added in `studio.test.tsx`.
 - 8.27 x 11.69 in premium colour: read the en_GB help page (raw saved in `../reports/volume/kdp-trims/raw/`); it shows the same kdp.amazon.com table with "24 - 590". The 780 is only in the kdp.amazon.co.jp table, for Japan. 590 stays; notes in `config/kdp-rules/2026-10-29.json` and KDP-RULES.md 13.3 updated. No number changed.
 - Checks PASS: typecheck, lint, format:check, docs:check, web 265, e2e 20/20.
+
+## 31 October 2026, Claude Code (Opus 5.5): design finalisation plan and reference artifact
+
+- Owner asked for gaps found by checking, not from the docs, and for the artifacts first. Ran the web app alone on demo data (Vite, 127.0.0.1:5180, stopped afterwards) and screenshotted 19 routes at 1440 and 390; measured suspected gaps in the DOM. Nine confirmed, one ruled out (Library side column is sticky by design).
+- Built and published "Volume Finalised" (https://claude.ai/artifact/NCtHuGLVkaU8PcAhRtswSX): landing with a pinned GSAP eight-step run, two-step sign-in, and every studio screen working on demo data. Checked in Playwright: 19 routes at 1440 and 390, no script errors, no sideways scroll, pinned run moves with scroll. Source files in the session scratchpad, not in the repo.
+- Files: `docs/08-change-management/plans/2026-10-31-design-finalisation.md` (new), `.agent/CURRENT-TASK.md`.
+- Checks: none on the codebase (no code changed). NOT TESTED: screen readers, real phones, dark mode screenshots of the artifact.
+- Next: owner answers the plan's three questions (label case, How it works page, Clerk component or hooks), then stage 1.
+
+## 31 October 2026 (later), Claude Code (Opus 5.5): design file and full prototype
+
+- Owner asked for every gap touched up and the artifact rebuilt as a design-portfolio file. Checked which AI features exist before drawing any: real ones (writer progress, suggestions, memory, version compare, models and fallbacks, spending, jobs, approvals, claims review, prompt versions, batches) are shown; no chat assistant, reasoning panel, confidence scores, audit log, comments or onboarding exist in Volume, so none were drawn.
+- Artifact https://claude.ai/artifact/NCtHuGLVkaU8PcAhRtswSX, version 1793443359-4675: `index.html` design file, `app.html` prototype. Model names per stage now match `config/models.defaults.json`.
+- Checks (Playwright, local server, stopped afterwards): 31 states at 1440 and 390 with no script errors, no sideways scroll and no text left at opacity 0; library at 834 and 2560; design file at 390, 834, 1280, 1920 and 3840 with no sideways scroll. 8 tiles at 7680 x 4320 in `../reports/volume/design-file-2026-10-31/`.
+- Not tested: screen readers, real devices, dark-mode pass of every frame. No repo code changed. Next: owner answers the plan's three questions.
+
+## 31 October 2026 (afternoon), Claude Code (Opus 5.5): Volume Rebrand proposal
+
+- Owner: landing is beautiful with just the hero; sign-in can be better; the studio needs a total rework (too much scrolling, too many buttons and cards with the same information). Asked for a rebrand in my own design.
+- Built "Volume Rebrand" (https://claude.ai/artifact/6LJ9T6cfgm3YyZqQ5ERoRr): hero-only landing, sign-in as a library lending card (email, six-digit date-stamp code, Google), studio that fills the window with no page scroll, Books as one list-and-detail screen, step tabs, one header action per book, live job only in the top bar, Releases (calendar plus batches), Pen names (identity, voice, memory), Settings (models, spending and jobs, members and roles, house style, KDP rules, connection, appearance), new book as a short dialog, Ctrl K search.
+- Checks (Playwright, local server stopped afterwards): every route at 1440, 834, 2560 and 390 with no script errors and no sideways scroll; no studio screen scrolls as a page at 834 and wider; phone columns do not overlap.
+- Not tested: screen readers, real devices. No repo code changed. Adopting it means a decision superseding D-066 and the owner's OK for Geist and Newsreader.
+
+## 31 October 2026 (evening), Claude Code (Opus 5.5): measured design gap fixes
+
+- Ran the product-design method on the built app: production build on demo data, axe-core 4.10 WCAG 2.2 AA and DOM measurements on 25 routes at 375 to 2560 wide. Found: toast region aria failure on every page, unlabelled profile photo input, unfocusable wizard scroll area, 16 px citation targets, two or three navy buttons per step page, clipped step bar at 1280, uneven Overview columns and a hard-coded Up next, stretched Research cards, triple chosen-title signal, Blueprint inspector 1,957 px beside a 716 px outline, repeated chips, lone last cards, demo chapter target above the template maximum.
+- Two volume-frontend agents fixed shell/library/settings and step pages in worktrees; merged on `design/gap-fixes` except a Settings card stretch (rejected: it created an empty band). Lead fixes: Overview rings and step grid, calendar, Up next, research counts grid, profile Add tile, fixed grids on Published, New book and Cover, Library first page in whole rows, side menu money lines on Library, demo targets, `VITE_HASH_ROUTER` preview switch in `apps/web/src/app/router.tsx` (design preview only).
+- Checks: see CURRENT-TASK. Artifact published. Nothing committed, pushed or deployed. `.claude/worktrees/` holds the two agent worktrees (untracked).
+

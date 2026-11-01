@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useCanWrite } from "../../lib/access";
-import { ArrowDown, RefreshCw, Sparkles } from "lucide-react";
+import { RefreshCw, Sparkles } from "lucide-react";
 import { Banner, Button, Chip, EmptyState, KeyValueList, LiveDot, ModelName, PageHeader, ProgressBar, Skeleton } from "../../components/ui";
 import { stageDefaults, TITLE_SUBTITLE_MAX, titleOptions, topicDirections, type Book, type TitleOption } from "../../demo";
 import { formatUsd } from "../../lib/format";
-import { scrollBehavior } from "../../lib/motion";
 import { useStepAction } from "../../lib/stepAction";
+import { PhoneFold } from "../../shell/PhoneFold";
 import { useBook } from "../../lib/useBook";
 import { bookStepPath } from "../../screens";
 import { NotFound } from "../../shell/NotFound";
@@ -135,16 +135,6 @@ function Titles({ book }: { book: Book }) {
           : undefined;
 
   useStepAction({ label: "Continue to blueprint", to: blueprintPath, disabledReason: continueReason });
-
-  function showChosen() {
-    if (!chosen) return;
-    if (filter !== "all") setFilter("all");
-    requestAnimationFrame(() => {
-      const el = document.getElementById(`title-${chosen.id}`);
-      el?.scrollIntoView({ block: "center", behavior: scrollBehavior() });
-      el?.focus({ preventScroll: true });
-    });
-  }
 
   return (
     <div className="grid gap-4 px-4 min-[861px]:px-6">
@@ -329,7 +319,7 @@ function Titles({ book }: { book: Book }) {
 
           <aside
             aria-label="Titles details"
-            className="vol-glass grid min-w-0 content-start rounded-card p-[18px] min-[1180px]:sticky min-[1180px]:top-(--shell-sticky-top)"
+            className="vol-glass grid min-w-0 content-start rounded-card p-[18px] min-[1180px]:sticky min-[1180px]:top-(--shell-sticky-top) min-[1180px]:max-h-[calc(100dvh-var(--shell-sticky-top)-16px)] min-[1180px]:overflow-y-auto"
           >
             <TitleSide
               book={book}
@@ -342,33 +332,22 @@ function Titles({ book }: { book: Book }) {
               }
             >
               <hr className="mt-4 border-line" />
-              <h3 className="mt-4 text-[14px] font-bold text-ink">Chosen title</h3>
-              {chosen ? (
-                <div className="mt-2 grid gap-2">
-                  <p className="font-book text-[14px] text-ink">
-                    <span className="block font-semibold">{chosen.title}</span>
-                    {chosen.subtitle && <span className="block text-ink-2 italic">{chosen.subtitle}</span>}
-                  </p>
-                  {chosen.invalidReason && <p className="text-small text-claim">It needs an edit before you continue.</p>}
-                  <Button size="sm" variant="ghost" icon={ArrowDown} className="justify-self-start" onClick={showChosen}>
-                    Show the chosen title
-                  </Button>
-                </div>
-              ) : (
-                <p className="mt-2 text-small text-ink-2">No title chosen yet. Pick one with Use this title.</p>
-              )}
-              <p className="mt-2 text-small text-ink-3">
+              {/* The chosen option carries its own Chosen title mark in the list; this card does not repeat it. */}
+              {!chosen && <p className="mt-4 text-small text-ink-2">No title chosen yet. Pick one with Use this title.</p>}
+              <p className="mt-4 text-small text-ink-3">
                 KDP allows up to {TITLE_SUBTITLE_MAX} characters for the title and subtitle together. Choosing sets the book's title.
               </p>
-              <h3 className="mt-4 text-[14px] font-bold text-ink">This run</h3>
-              <KeyValueList
-                className="mt-2"
-                items={[
-                  { label: "Model", value: <ModelName slug={model} /> },
-                  { label: "Options", value: `${options.length}, ${validCount} passing` },
-                  { label: "Titles cost so far", value: formatUsd(spent) },
-                ]}
-              />
+              <PhoneFold label="This run" hint="Model, options and cost" className="mt-4">
+                <h3 className="mt-4 text-[14px] font-bold text-ink">This run</h3>
+                <KeyValueList
+                  className="mt-2"
+                  items={[
+                    { label: "Model", value: <ModelName slug={model} /> },
+                    { label: "Options", value: `${options.length}, ${validCount} passing` },
+                    { label: "Titles cost so far", value: formatUsd(spent) },
+                  ]}
+                />
+              </PhoneFold>
             </TitleSide>
           </aside>
         </div>
@@ -376,7 +355,7 @@ function Titles({ book }: { book: Book }) {
 
       {shown === "empty" && !hasData && titleSet && (
         <aside aria-label="Titles details" className="vol-glass grid max-w-[420px] content-start rounded-card p-[18px]">
-          <TitleSide book={book} option={{ title: book.title, subtitle: book.subtitle, checks: [], invalidReason: null }} chosen />
+          <TitleSide book={book} option={{ title: book.title, subtitle: book.subtitle, checks: [], invalidReason: null }} chosen markChosen />
         </aside>
       )}
 

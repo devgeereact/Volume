@@ -36,7 +36,7 @@ function StepPage({ book, author, current, runningBookId }: { book: Book; author
       ) : (
         <StepHead book={book} current={current} runningBookId={runningBookId} action={action}>
           <Outlet />
-          <UpNext book={book} current={current} runningBookId={runningBookId} />
+          <UpNext book={book} current={current} runningBookId={runningBookId} primary={action === null} />
         </StepHead>
       )}
     </>

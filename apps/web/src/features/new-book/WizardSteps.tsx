@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import { cn } from "../../lib/cn";
+import { useMediaQuery } from "../../lib/useMediaQuery";
 
 export interface WizardStep {
   id: string;
@@ -23,9 +24,12 @@ interface WizardStepsProps {
  * are buttons; the rest are shown but cannot be opened yet. On phones the rail is one row that scrolls sideways.
  */
 export function WizardSteps({ steps, current, reached, onGo, className }: WizardStepsProps) {
+  // On phones the rail scrolls sideways, so it takes focus to let keyboard users scroll it (WCAG 2.1.1).
+  const scrolls = useMediaQuery("(max-width: 860px)");
   return (
     <nav
       aria-label="New book steps"
+      tabIndex={scrolls ? 0 : undefined}
       className={cn(
         "vol-glass min-w-0 rounded-card p-4 max-[860px]:overflow-x-auto max-[860px]:p-2 max-[860px]:[scrollbar-width:none] min-[861px]:sticky min-[861px]:top-[calc(var(--shell-topbar)+12px)]",
         className,

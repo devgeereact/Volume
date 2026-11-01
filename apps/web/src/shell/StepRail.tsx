@@ -35,12 +35,20 @@ export function railTargets(book: Book, current: BookStepId | "overview") {
   };
 }
 
+/* Which edge of the step list has more steps out of view: the fade shows only on that edge. */
+type Edge = "none" | "start" | "end" | "both";
+const edgeMask =
+  "data-[edge=none]:[mask-image:none] data-[edge=start]:[mask-image:linear-gradient(90deg,transparent,black_28px)] data-[edge=end]:[mask-image:linear-gradient(90deg,black_calc(100%-28px),transparent)]";
+
 /**
  * The book's step bar from the approved design (.srail): a strong glass bar that sticks under the top bar
- * on every book step. Back (the step before, or the Library), the eight steps with their markers, and the
- * navy Next button with the next step's name; on full-height steps also the screen's main action.
+ * on every book step. Back (the step before, or the Library), the eight steps with their markers, and a
+ * quiet outlined Next control; on full-height steps also the screen's main action. The screen's one navy
+ * action lives in the step head (or here, on full-height steps), so Next is never a second navy button.
+ * When the steps do not fit, the list scrolls sideways inside the bar: the current step is kept in view
+ * (also after a resize) and the fade shows only on the edge that has more steps.
  * It measures itself into --shell-bookbar, so h-screen-fill panes and sticky inspectors sit below it.
- * Under 761 px only the current step shows its name and Next says "Next".
+ * Under 1500 px Next is an arrow (its name in the tooltip and label); under 761 px it says "Next".
  */
 export function StepRail({ book, current, runningBookId, action }: StepRailProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -59,6 +67,44 @@ export function StepRail({ book, current, runningBookId, action }: StepRailProps
       root.style.removeProperty("--shell-bookbar");
     };
   }, []);
+
+  useLayoutEffect(() => {
+    const list = ref.current?.querySelector<HTMLOListElement>("ol");
+    if (!list) return;
+    let width = list.clientWidth;
+    const mark = () => {
+      const more = list.scrollWidth - list.clientWidth;
+      const start = more > 1 && list.scrollLeft > 1;
+      const end = more > 1 && list.scrollLeft < more - 1;
+      const edge: Edge = start && end ? "both" : start ? "start" : end ? "end" : "none";
+      list.dataset["edge"] = edge;
+    };
+    const keepCurrent = () => {
+      const el = list.querySelector<HTMLElement>('[aria-current="step"]');
+      if (el && list.scrollWidth > list.clientWidth) {
+        const left = el.offsetLeft;
+        const right = left + el.offsetWidth;
+        if (left < list.scrollLeft + 28) list.scrollLeft = Math.max(0, left - 28);
+        else if (right > list.scrollLeft + list.clientWidth - 28) list.scrollLeft = right - list.clientWidth + 28;
+      }
+      mark();
+    };
+    keepCurrent();
+    const ro =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            if (list.clientWidth === width) return mark();
+            width = list.clientWidth;
+            keepCurrent();
+          });
+    ro?.observe(list);
+    list.addEventListener("scroll", mark, { passive: true });
+    return () => {
+      ro?.disconnect();
+      list.removeEventListener("scroll", mark);
+    };
+  }, [current]);
 
   return (
     <div ref={ref} className="sticky top-(--shell-topbar) z-20 px-4 pt-1 pb-[18px] min-[861px]:px-6 max-[760px]:pb-3.5">
@@ -87,17 +133,19 @@ export function StepRail({ book, current, runningBookId, action }: StepRailProps
           <span className={cn(current !== "overview" && "max-[760px]:sr-only")}>Overview</span>
         </Link>
         <span aria-hidden className="h-[22px] w-px shrink-0 bg-line-2" />
-        <BookSteps book={book} current={current === "overview" ? null : current} runningBookId={runningBookId} className="flex-1 basis-0" />
+        <BookSteps book={book} current={current === "overview" ? null : current} runningBookId={runningBookId} className={cn("flex-1 basis-0", edgeMask)} />
         {action && <StepActionButton action={action} compact className="max-w-[40%] max-[760px]:order-last max-[760px]:max-w-none max-[760px]:basis-full" />}
-        <Link
-          to={t.nextTo}
-          aria-label={`Next: ${t.nextName}`}
-          className="inline-flex h-[38px] shrink-0 items-center justify-center gap-1.5 rounded-control bg-btn pr-3 pl-3.5 text-label font-semibold whitespace-nowrap text-on-btn transition-[background-color,transform] duration-(--vol-dur-fast) ease-out hover:bg-accent-hover active:scale-[.98] max-[760px]:h-9"
-        >
-          <span className="font-medium opacity-[.72] max-[1500px]:hidden max-[760px]:inline max-[760px]:font-semibold max-[760px]:opacity-100">Next</span>
-          <span className="max-[760px]:hidden">{t.nextName}</span>
-          <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
-        </Link>
+        <Tooltip content={`Next: ${t.nextName}`} side="bottom">
+          <Link
+            to={t.nextTo}
+            aria-label={`Next: ${t.nextName}`}
+            className="inline-flex h-[38px] shrink-0 items-center justify-center gap-1.5 rounded-control border border-line pr-3 pl-3.5 text-label font-medium whitespace-nowrap text-ink-2 transition-colors duration-(--vol-dur-fast) ease-out hover:bg-soft hover:text-ink max-[1500px]:w-[38px] max-[1500px]:px-0 max-[760px]:h-9 max-[760px]:w-auto max-[760px]:pr-2.5 max-[760px]:pl-3"
+          >
+            <span className="max-[1500px]:hidden max-[760px]:inline">Next</span>
+            <span className="text-ink max-[1500px]:hidden">{t.nextName}</span>
+            <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
+          </Link>
+        </Tooltip>
       </nav>
     </div>
   );

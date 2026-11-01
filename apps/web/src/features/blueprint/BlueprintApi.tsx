@@ -43,7 +43,7 @@ import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
 import { useCanWrite } from "../../lib/access";
 import { blueprintCreateInput } from "./blueprintRequest";
-import { CheckList, OutlineCard, PlanCounts, SideLabel, VersionChip, VersionList } from "./ChapterPlan";
+import { CheckList, InspectorTabs, OutlineCard, PlanCounts, SideLabel, VersionChip, VersionList } from "./ChapterPlan";
 import { NarrationEditor, StoryBibleEditor, StoryBibleView, StoryLedgerPanel, emptyBible, storyBibleOf, type Tense } from "./StoryBible";
 
 /* Blueprint for a book on the server (API mode), in the approved two-column layout: the Outline card
@@ -103,6 +103,8 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
   const [historyLoading, setHistoryLoading] = useState(false);
   // The part shown in the right card; null shows the first chapter.
   const [selected, setSelected] = useState<BlueprintPartKey | null>(null);
+  // The right card's tab: the chosen part, the whole book, or this version and the Versions list.
+  const [inspectorTab, setInspectorTab] = useState<"part" | "book" | "versions">("part");
   // A front or back matter chip that was clicked ("front:dedication"), so its row is marked in the card.
   const [chipKey, setChipKey] = useState<string | null>(null);
   const [edit, setEdit] = useState<EditTarget | null>(null);
@@ -164,6 +166,7 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
   function pick(key: BlueprintPartKey) {
     setChipKey(null);
     setSelected(key);
+    setInspectorTab("part");
   }
 
   /** A chapter title edited in the Outline card: saved as a new version on top of the one on screen. */
@@ -537,6 +540,7 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
                 back={matterRows(d.back).map((r) => ({ key: `back:${r.key}`, label: r.label }))}
                 selectedKey={chipKey ?? sel}
                 onSelect={(key) => {
+                  setInspectorTab("part");
                   if (key.startsWith("front:") || key.startsWith("back:")) {
                     setChipKey(key);
                     setSelected(key.startsWith("front:") ? "front" : "back");
@@ -587,107 +591,140 @@ export function BlueprintApi({ book, apiBook }: { book: Book; apiBook: ApiBookDe
 
             <aside
               aria-label="Blueprint details"
-              className="vol-glass grid min-w-0 content-start rounded-card p-[18px] min-[1180px]:sticky min-[1180px]:top-(--shell-sticky-top)"
+              className="vol-glass grid min-w-0 content-start rounded-card p-[18px] min-[1180px]:sticky min-[1180px]:top-(--shell-sticky-top) min-[1180px]:max-h-[calc(100dvh-var(--shell-sticky-top)-16px)] min-[1180px]:overflow-y-auto"
             >
-              <div aria-live="polite">
-                {selectedPart && (
-                  <SelectedPartView
-                    part={selectedPart}
-                    data={d}
-                    chipKey={chipKey}
-                    busy={busyFor(selectedPart.key)}
-                    fiction={fiction}
-                    workbook={workbook}
-                    onEdit={
-                      canWrite
-                        ? () => {
-                            const key = selectedPart.key;
-                            const c = key.startsWith("chapter:") ? d.chapters.find((x) => `chapter:${x.number}` === key) : undefined;
-                            const t = c ? editChapter(c) : key === "summary" ? editSummary() : key === "listing" ? editListing() : null;
-                            if (t) openEdit(t);
-                          }
-                        : undefined
-                    }
-                    onRegenerate={
-                      canWrite
-                        ? () => {
-                            setInstruction("");
-                            regen.reset();
-                            setRegenOpen(true);
-                          }
-                        : undefined
-                    }
-                    regenDisabledReason={active ? "Wait for the current run to finish." : undefined}
-                  />
-                )}
-              </div>
-
-              <hr className="mt-4 border-line" />
-              <SideLabel>The whole book</SideLabel>
-              <p className="text-[13.5px] leading-[1.55] text-ink-2">{d.summary || "No summary in this version."}</p>
-              <CheckList
-                items={[
+              <InspectorTabs
+                label="Blueprint details"
+                idBase="bp-inspector"
+                value={inspectorTab}
+                onChange={setInspectorTab}
+                tabs={[
                   {
-                    key: "chapters",
-                    ok: d.chapters.length > 0 && d.chapters.every((c) => c.summary.trim().length > 0),
-                    label: `${d.chapters.length} chapters with summaries`,
+                    id: "part",
+                    label: selectedPart?.key.startsWith("chapter:") ? "Chapter" : "Part",
+                    panel: (
+                      <>
+                        <div aria-live="polite">
+                          {selectedPart && (
+                            <SelectedPartView
+                              part={selectedPart}
+                              data={d}
+                              chipKey={chipKey}
+                              busy={busyFor(selectedPart.key)}
+                              fiction={fiction}
+                              workbook={workbook}
+                              onEdit={
+                                canWrite
+                                  ? () => {
+                                      const key = selectedPart.key;
+                                      const c = key.startsWith("chapter:") ? d.chapters.find((x) => `chapter:${x.number}` === key) : undefined;
+                                      const t = c ? editChapter(c) : key === "summary" ? editSummary() : key === "listing" ? editListing() : null;
+                                      if (t) openEdit(t);
+                                    }
+                                  : undefined
+                              }
+                              onRegenerate={
+                                canWrite
+                                  ? () => {
+                                      setInstruction("");
+                                      regen.reset();
+                                      setRegenOpen(true);
+                                    }
+                                  : undefined
+                              }
+                              regenDisabledReason={active ? "Wait for the current run to finish." : undefined}
+                            />
+                          )}
+                        </div>
+                      </>
+                    ),
                   },
-                  { key: "matter", ok: matterCount > 0, label: "Front and back matter set" },
-                  { key: "listing", ok: d.keywords.length > 0, label: `Listing drafted, ${d.keywords.length} keywords` },
-                  ...missing.map((m) => ({ key: m, ok: false, label: m })),
+                  {
+                    id: "book",
+                    label: "Book",
+                    count: missing.length > 0 ? missing.length : undefined,
+                    urgent: missing.length > 0,
+                    panel: (
+                      <>
+                        <SideLabel>The whole book</SideLabel>
+                        <p className="text-[13.5px] leading-[1.55] text-ink-2">{d.summary || "No summary in this version."}</p>
+                        <CheckList
+                          items={[
+                            {
+                              key: "chapters",
+                              ok: d.chapters.length > 0 && d.chapters.every((c) => c.summary.trim().length > 0),
+                              label: `${d.chapters.length} chapters with summaries`,
+                            },
+                            { key: "matter", ok: matterCount > 0, label: "Front and back matter set" },
+                            { key: "listing", ok: d.keywords.length > 0, label: `Listing drafted, ${d.keywords.length} keywords` },
+                            ...missing.map((m) => ({ key: m, ok: false, label: m })),
+                          ]}
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" variant="ghost" aria-pressed={sel === "summary"} onClick={() => pick("summary")}>
+                            Title and summary
+                          </Button>
+                          <Button size="sm" variant="ghost" aria-pressed={sel === "listing"} onClick={() => pick("listing")}>
+                            Listing
+                          </Button>
+                        </div>
+                      </>
+                    ),
+                  },
+                  {
+                    id: "versions",
+                    label: "Versions",
+                    panel: (
+                      <>
+                        <SideLabel>This version</SideLabel>
+                        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 text-[13px]">
+                          <dt className="text-ink-3">Made by</dt>
+                          <dd className="text-right font-medium text-ink">
+                            {version.source === "human" ? "You" : version.source.startsWith("ai") ? "The planner" : version.source}
+                          </dd>
+                          <dt className="text-ink-3">Model</dt>
+                          <dd className="text-right font-medium text-ink">
+                            {version.source === "human" ? "None, edited by you" : versionModel ? <ModelName slug={versionModel} /> : "Not recorded"}
+                          </dd>
+                          <dt className="text-ink-3">Saved</dt>
+                          <dd className="text-right font-medium text-ink">{whenMs(version.createdAt)}</dd>
+                          <dt className="text-ink-3">Cost</dt>
+                          <dd className="text-right font-medium text-ink">{meta.costUsd === null ? "Not recorded" : formatUsd(meta.costUsd)}</dd>
+                          <dt className="text-ink-3">Book target</dt>
+                          <dd className="text-right font-medium text-ink">
+                            {apiBook.wordTarget ? `${formatNumber(apiBook.wordTarget)} words` : "Not set yet"}
+                          </dd>
+                        </dl>
+
+                        <SideLabel>Versions</SideLabel>
+                        {versions.isPending ? (
+                          <Skeleton className="w-full" />
+                        ) : (
+                          <VersionList
+                            items={(versions.data ?? []).map((v) => ({
+                              version: v.version,
+                              note: v.note ?? (v.source === "human" ? "Edited by you." : "From the planner."),
+                              detail: v.version === version.version && meta.costUsd !== null ? formatUsd(meta.costUsd) : whenMs(v.createdAt),
+                              approved: v.status === "approved",
+                            }))}
+                            current={version.version}
+                            actionLabel={canWrite ? "Restore" : "Compare"}
+                            onAction={(n) => void compareVersion(n)}
+                            disabledReason={active ? "Wait for the current run to finish." : historyLoading ? "Opening a version." : undefined}
+                          />
+                        )}
+                        {approved && apiBook.approvedBlueprintId === version.id && (
+                          <Link to={writingPath} className={cn(buttonClasses("secondary", "md"), "mt-4 w-full")}>
+                            Go to writing
+                            <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
+                          </Link>
+                        )}
+                        {apiBook.approvedBlueprintId && apiBook.title && <RebuildBook bookId={bookId} title={apiBook.title} className="mt-5" />}
+                      </>
+                    ),
+                  },
                 ]}
               />
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="ghost" aria-pressed={sel === "summary"} onClick={() => pick("summary")}>
-                  Title and summary
-                </Button>
-                <Button size="sm" variant="ghost" aria-pressed={sel === "listing"} onClick={() => pick("listing")}>
-                  Listing
-                </Button>
-              </div>
-
-              <SideLabel>This version</SideLabel>
-              <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 text-[13px]">
-                <dt className="text-ink-3">Made by</dt>
-                <dd className="text-right font-medium text-ink">
-                  {version.source === "human" ? "You" : version.source.startsWith("ai") ? "The planner" : version.source}
-                </dd>
-                <dt className="text-ink-3">Model</dt>
-                <dd className="text-right font-medium text-ink">
-                  {version.source === "human" ? "None, edited by you" : versionModel ? <ModelName slug={versionModel} /> : "Not recorded"}
-                </dd>
-                <dt className="text-ink-3">Saved</dt>
-                <dd className="text-right font-medium text-ink">{whenMs(version.createdAt)}</dd>
-                <dt className="text-ink-3">Cost</dt>
-                <dd className="text-right font-medium text-ink">{meta.costUsd === null ? "Not recorded" : formatUsd(meta.costUsd)}</dd>
-                <dt className="text-ink-3">Book target</dt>
-                <dd className="text-right font-medium text-ink">{apiBook.wordTarget ? `${formatNumber(apiBook.wordTarget)} words` : "Not set yet"}</dd>
-              </dl>
-
-              <SideLabel>Versions</SideLabel>
-              {versions.isPending ? (
-                <Skeleton className="w-full" />
-              ) : (
-                <VersionList
-                  items={(versions.data ?? []).map((v) => ({
-                    version: v.version,
-                    note: v.note ?? (v.source === "human" ? "Edited by you." : "From the planner."),
-                    detail: v.version === version.version && meta.costUsd !== null ? formatUsd(meta.costUsd) : whenMs(v.createdAt),
-                    approved: v.status === "approved",
-                  }))}
-                  current={version.version}
-                  actionLabel={canWrite ? "Restore" : "Compare"}
-                  onAction={(n) => void compareVersion(n)}
-                  disabledReason={active ? "Wait for the current run to finish." : historyLoading ? "Opening a version." : undefined}
-                />
-              )}
-              {approved && apiBook.approvedBlueprintId === version.id && (
-                <Link to={writingPath} className={cn(buttonClasses("primary", "md"), "mt-4 w-full")}>
-                  Go to writing
-                  <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
-                </Link>
-              )}
-              {apiBook.approvedBlueprintId && apiBook.title && <RebuildBook bookId={bookId} title={apiBook.title} className="mt-5" />}
             </aside>
           </div>
         </>

@@ -54,7 +54,7 @@ export function RoyaltyCard({ book }: { book: Book }) {
   const pbPrice = pb?.listPriceGbp ?? null;
   const ebPrice = eb?.listPriceGbp ?? null;
   return (
-    <Card as="section" aria-labelledby={id}>
+    <Card as="section" aria-labelledby={id} className="flex flex-col">
       <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2.5">
         <h2 id={id} className="text-[15px] font-bold text-ink">
           Royalty summary
@@ -88,11 +88,11 @@ export function RoyaltyCard({ book }: { book: Book }) {
           </Line>
         )}
       </div>
-      <p className="mt-3 text-small text-ink-2">
+      <p className="my-3 text-small text-ink-2">
         KDP rules {rulesVersion}. {known ? "" : `Pages are a guide from the word target, ${WORDS_PER_PAGE} words a page. `}
         eBook assumes a {EBOOK_MB} MB file. Sales are not tracked in Volume.
       </p>
-      <Link to={bookStepPath(book.id, "export")} className={cn(buttonClasses("secondary", "md"), "mt-3 w-full")}>
+      <Link to={bookStepPath(book.id, "export")} className={cn(buttonClasses("secondary", "md"), "mt-auto w-full")}>
         <Package size={16} strokeWidth={1.8} aria-hidden />
         Open Export
       </Link>
@@ -105,7 +105,7 @@ const monthName = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numer
 const weekday = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 /** This month's calendar with today and the book's own dates (started, updated, went live). */
-export function ReleasesCard({ book, now }: { book: Book; now: string }) {
+export function ReleasesCard({ book, now, className }: { book: Book; now: string; className?: string }) {
   const id = useId();
   const nowIso = now;
   const [y, m, d] = dayKey.format(new Date(nowIso)).split("-").map(Number) as [number, number, number];
@@ -119,7 +119,7 @@ export function ReleasesCard({ book, now }: { book: Book; now: string }) {
     if (k.startsWith(prefix)) marks.add(Number(k.slice(8)));
   }
   return (
-    <Card as="section" aria-labelledby={id}>
+    <Card as="section" aria-labelledby={id} className={cn("flex flex-col", className)}>
       <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2.5">
         <h2 id={id} className="text-[15px] font-bold text-ink">
           Releases
@@ -163,7 +163,8 @@ export function ReleasesCard({ book, now }: { book: Book; now: string }) {
           })}
         </div>
       </div>
-      <p className="mt-3 flex flex-wrap gap-x-3.5 gap-y-1.5 text-small text-ink-2">
+      {/* The calendar keeps its natural rows; when the card is stretched to end level, the spare space sits above the key. */}
+      <p className="mt-auto flex flex-wrap gap-x-3.5 gap-y-1.5 pt-3 text-small text-ink-2">
         <span className="inline-flex items-center gap-1.5">
           <i aria-hidden className="size-[9px] rounded-[3px] bg-btn" />
           Today

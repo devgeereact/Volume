@@ -1053,7 +1053,7 @@ function ProfileStep({
 }) {
   if (state === "loading") {
     return (
-      <div role="status" aria-label="Loading profiles" className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2.5">
+      <div role="status" aria-label="Loading profiles" className="grid gap-2.5">
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="grid gap-2.5 rounded-[18px] border-[1.5px] border-edge bg-soft p-4">
             <div className="flex items-center gap-3">
@@ -1099,7 +1099,7 @@ function ProfileStep({
   return (
     <fieldset className="grid gap-3" aria-describedby={error ? "profile-error" : undefined}>
       <legend className="sr-only">Profile</legend>
-      <div id="field-profileId" tabIndex={-1} className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2.5 focus:outline-none">
+      <div id="field-profileId" tabIndex={-1} className="grid gap-2.5 focus:outline-none">
         {list.map((p) => {
           const count = countFor(p.id);
           const defType = getBookType(p.profile.publishing.defaultBookType);

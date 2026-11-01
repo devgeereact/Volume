@@ -34,12 +34,13 @@ import {
   type StageJob,
 } from "../../api/wire-b";
 import { GuardrailNote } from "./GuardrailNote";
-import { NoSourceMatch, ResearchCounts, SourceFilterBar, sourceMatches, useSourceFilter } from "./SourceTools";
+import { DossierColumns, NoSourceMatch, ResearchCounts, SourceFilterBar, sourceMatches, useSourceFilter } from "./SourceTools";
 import type { Book } from "../../demo";
 import { cn } from "../../lib/cn";
 import { formatUsd } from "../../lib/format";
 import { useStepAction } from "../../lib/stepAction";
 import { bookStepPath } from "../../screens";
+import { PhoneFold } from "../../shell/PhoneFold";
 
 /* Research for a book on the server (API mode). Start a run, follow its progress over the event
    stream, read the dossier and tick the sources the writer may use. Nothing here is demo data: an
@@ -276,45 +277,47 @@ export function ResearchApi({ book, apiBook }: { book: Book; apiBook: ApiBookDet
       {dossier && <DossierView dossier={dossier} />}
 
       {(research.isPending || run) && (
-        <Card as="section" aria-labelledby="sources-heading" className="grid gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 id="sources-heading" className="flex items-center gap-2 text-[15px] font-bold text-ink">
-              Sources
-              {state === "done" && sources.length > 0 && (
-                <span className="num text-small font-medium text-ink-3">
-                  {usedCount} of {sources.length} used
-                </span>
-              )}
-            </h2>
-            <p className="text-small text-ink-2">Only sources cited from a live web search are kept. Only ticked ones can appear in References.</p>
-          </div>
-          {research.isPending ? (
-            <div role="status" aria-label="Loading sources" className="grid gap-3 md:grid-cols-2">
-              {[0, 1].map((i) => (
-                <Skeleton key={i} variant="block" className="h-28" />
-              ))}
+        <PhoneFold label="Sources" hint={state === "done" && sources.length > 0 ? `${usedCount} of ${sources.length} used in the book` : undefined}>
+          <Card as="section" aria-labelledby="sources-heading" className="grid gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="sources-heading" className="flex items-center gap-2 text-[15px] font-bold text-ink">
+                Sources
+                {state === "done" && sources.length > 0 && (
+                  <span className="num text-small font-medium text-ink-3">
+                    {usedCount} of {sources.length} used
+                  </span>
+                )}
+              </h2>
+              <p className="text-small text-ink-2">Only sources cited from a live web search are kept. Only ticked ones can appear in References.</p>
             </div>
-          ) : state === "running" ? (
-            <p className="text-small text-ink-2">Sources appear here when this run finishes.</p>
-          ) : sources.length === 0 ? (
-            <p className="text-small text-ink-2">
-              {state === "done" ? "This run cited no sources. The writer will not add references for it." : "This run kept no sources."}
-            </p>
-          ) : (
-            <div className="grid gap-3">
-              <SourceFilterBar filter={filter} total={sources.length} used={usedCount} shown={shownSources.length} />
-              {shownSources.length === 0 ? (
-                <NoSourceMatch filter={filter} />
-              ) : (
-                <ul className="grid gap-3 md:grid-cols-2">
-                  {shownSources.map(({ src, number }) => (
-                    <ApiSourceCard key={src.id} bookId={bookId} source={src} number={number} />
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </Card>
+            {research.isPending ? (
+              <div role="status" aria-label="Loading sources" className="grid gap-3 md:grid-cols-2">
+                {[0, 1].map((i) => (
+                  <Skeleton key={i} variant="block" className="h-28" />
+                ))}
+              </div>
+            ) : state === "running" ? (
+              <p className="text-small text-ink-2">Sources appear here when this run finishes.</p>
+            ) : sources.length === 0 ? (
+              <p className="text-small text-ink-2">
+                {state === "done" ? "This run cited no sources. The writer will not add references for it." : "This run kept no sources."}
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                <SourceFilterBar filter={filter} total={sources.length} used={usedCount} shown={shownSources.length} />
+                {shownSources.length === 0 ? (
+                  <NoSourceMatch filter={filter} />
+                ) : (
+                  <ul className="grid gap-3 md:grid-cols-2">
+                    {shownSources.map(({ src, number }) => (
+                      <ApiSourceCard key={src.id} bookId={bookId} source={src} number={number} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </Card>
+        </PhoneFold>
       )}
 
       <Modal
@@ -511,92 +514,109 @@ function None({ children = "None in this run." }: { children?: ReactNode }) {
 function DossierView({ dossier: d }: { dossier: Dossier }) {
   const audience = [d.audience.who, d.audience.situation, d.audience.level ? `Level: ${d.audience.level}` : ""].filter(Boolean);
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <Block title="Audience">
-        {audience.length === 0 ? (
-          <None />
-        ) : (
-          <p className="max-w-[68ch] font-book text-prose-sm text-ink">{audience.map((x) => (/[.!?]$/.test(x) ? x : `${x}.`)).join(" ")}</p>
-        )}
-      </Block>
-
-      <Block title="Reader pains" aside={<span className="num text-small text-ink-tertiary">{d.problems.length}</span>}>
-        {d.problems.length === 0 ? (
-          <None />
-        ) : (
-          <ol className="grid gap-1.5">
-            {d.problems.map((p, i) => (
-              <li key={`${i}-${p}`} className="flex gap-3 rounded-control bg-soft px-3 py-2.5">
-                <span className="num w-4 shrink-0 text-small text-ink-tertiary">{i + 1}</span>
-                <span className="text-[13.5px] text-ink">{p}</span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </Block>
-
-      <Block title="Angles">
-        {d.angles.length === 0 ? (
-          <None />
-        ) : (
-          <ul className="grid gap-2">
-            {d.angles.map((a, i) => (
-              <li key={`${i}-${a.angle}`} className="grid content-start gap-1 rounded-control bg-soft px-3 py-2.5">
-                <h3 className="text-[13.5px] font-bold text-ink">{a.angle}</h3>
-                {a.why && <p className="text-[13px] leading-normal text-ink-2">{a.why}</p>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Block>
-
-      <Block title="Competing themes">
-        {d.competing.length === 0 ? (
-          <None />
-        ) : (
-          <ul className="grid gap-2.5">
-            {d.competing.map((t, i) => (
-              <li key={`${i}-${t}`} className="border-l-2 border-border-strong pl-3 text-body text-ink">
-                {t}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Block>
-      <Block title="Gaps this book can fill">
-        {d.gaps.length === 0 ? (
-          <None />
-        ) : (
-          <ul className="grid gap-2.5">
-            {d.gaps.map((g, i) => (
-              <li key={`${i}-${g}`} className="border-l-2 border-select pl-3 text-body text-ink">
-                {g}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Block>
-
-      <Block title="Keyword ideas" aside={<span className="text-small text-ink-tertiary">Starting points for the 7 KDP keywords</span>}>
-        {d.keywords.length === 0 ? (
-          <None />
-        ) : (
-          <ul className="flex flex-wrap gap-2">
-            {d.keywords.map((k) => (
-              <li key={k} className="inline-flex items-center rounded-pill bg-mint-wash px-2.5 py-1 text-[12px] text-mint-ink">
-                {k}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Block>
-
-      {d.notes && (
-        <Block title="Researcher's notes">
-          <p className="max-w-[68ch] text-body text-ink-secondary">{d.notes}</p>
-        </Block>
-      )}
-    </div>
+    <DossierColumns
+      left={
+        <>
+          <Block className="max-md:order-1" title="Audience">
+            {audience.length === 0 ? (
+              <None />
+            ) : (
+              <p className="max-w-[68ch] font-book text-prose-sm text-ink">{audience.map((x) => (/[.!?]$/.test(x) ? x : `${x}.`)).join(" ")}</p>
+            )}
+          </Block>
+          <Block className="max-md:order-3" title="Angles">
+            {d.angles.length === 0 ? (
+              <None />
+            ) : (
+              <ul className="grid gap-2">
+                {d.angles.map((a, i) => (
+                  <li key={`${i}-${a.angle}`} className="grid content-start gap-1 rounded-control bg-soft px-3 py-2.5">
+                    <h3 className="text-[13.5px] font-bold text-ink">{a.angle}</h3>
+                    {a.why && <p className="text-[13px] leading-normal text-ink-2">{a.why}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Block>
+          <PhoneFold label="Gaps this book can fill" hint="Where this book can stand out" className="max-md:order-5">
+            <Block className="max-md:order-5" title="Gaps this book can fill">
+              {d.gaps.length === 0 ? (
+                <None />
+              ) : (
+                <ul className="grid gap-2.5">
+                  {d.gaps.map((g, i) => (
+                    <li key={`${i}-${g}`} className="border-l-2 border-select pl-3 text-body text-ink">
+                      {g}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Block>
+          </PhoneFold>
+        </>
+      }
+      right={
+        <>
+          <Block className="max-md:order-2" title="Reader pains" aside={<span className="num text-small text-ink-tertiary">{d.problems.length}</span>}>
+            {d.problems.length === 0 ? (
+              <None />
+            ) : (
+              <ol className="grid gap-1.5">
+                {d.problems.map((p, i) => (
+                  <li key={`${i}-${p}`} className="flex gap-3 rounded-control bg-soft px-3 py-2.5">
+                    <span className="num w-4 shrink-0 text-small text-ink-tertiary">{i + 1}</span>
+                    <span className="text-[13.5px] text-ink">{p}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Block>
+          <PhoneFold label="Competing themes" hint="What similar books cover" className="max-md:order-4">
+            <Block className="max-md:order-4" title="Competing themes">
+              {d.competing.length === 0 ? (
+                <None />
+              ) : (
+                <ul className="grid gap-2.5">
+                  {d.competing.map((t, i) => (
+                    <li key={`${i}-${t}`} className="border-l-2 border-border-strong pl-3 text-body text-ink">
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Block>
+          </PhoneFold>
+          <PhoneFold label="Keyword ideas" hint="Starting points for the 7 KDP keywords" className="max-md:order-6">
+            <Block
+              className="max-md:order-6"
+              title="Keyword ideas"
+              aside={<span className="text-small text-ink-tertiary">Starting points for the 7 KDP keywords</span>}
+            >
+              {d.keywords.length === 0 ? (
+                <None />
+              ) : (
+                <ul className="flex flex-wrap gap-2">
+                  {d.keywords.map((k) => (
+                    <li key={k} className="inline-flex items-center rounded-pill bg-mint-wash px-2.5 py-1 text-[12px] text-mint-ink">
+                      {k}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Block>
+          </PhoneFold>
+        </>
+      }
+      after={
+        d.notes ? (
+          <PhoneFold label="Researcher's notes">
+            <Block title="Researcher's notes">
+              <p className="max-w-[68ch] text-body text-ink-secondary">{d.notes}</p>
+            </Block>
+          </PhoneFold>
+        ) : undefined
+      }
+    />
   );
 }
 
