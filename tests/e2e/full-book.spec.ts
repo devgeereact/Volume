@@ -285,7 +285,9 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
     expect(chosenTitle.length).toBeGreaterThan(0);
     await use.click();
     // The chosen card carries the one "Chosen title" mark; the side card no longer repeats it.
-    await expect(main.locator("[data-title-option]", { hasText: chosenTitle }).first().getByText("Chosen title")).toBeVisible();
+    // Match the title exactly: "Option 1" is also a substring of "Option 10".
+    const chosenCard = main.locator("[data-title-option]").filter({ has: page.locator("[data-title-text]").getByText(chosenTitle, { exact: true }) });
+    await expect(chosenCard.first().getByText("Chosen title")).toBeVisible();
     await expect.poll(async () => (await getJson<Book>(request, `/books/${bookId}`)).title).toBe(chosenTitle);
     failNow();
   });

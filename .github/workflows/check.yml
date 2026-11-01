@@ -37,7 +37,10 @@ jobs:
       - run: npm run docs:check
       - run: npm run test:tooling
       - run: npm run typecheck
+      # ESLint with type-aware rules ran out of the default ~2 GB heap on the macOS runner (1 November 2026, twice).
       - run: npm run lint
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
       - run: npm run format:check
       - run: npm run test:coverage
       - run: npm run build -w apps/web
