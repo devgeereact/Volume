@@ -17,7 +17,7 @@ import { about, estimateFor, useSimulatedRun } from "../research/sim";
 import { BlueprintApi } from "./BlueprintApi";
 import type { Totals } from "./BlueprintInspector";
 import { buildOutline, groupLabels, insertedWords, regenAlternates, type OutlinePart } from "./blueprintExtras";
-import { CheckList, OutlineCard, PlanCounts, SideLabel, VersionChip, VersionList } from "./ChapterPlan";
+import { CheckList, InspectorTabs, OutlineCard, PlanCounts, SideLabel, VersionChip, VersionList } from "./ChapterPlan";
 import { Galley, type Diff, type Note } from "./Galley";
 import { CATEGORIES_COUNT, DESCRIPTION_MAX, KEYWORDS_MAX } from "./ListingEditors";
 import { OutlineRail } from "./OutlineRail";
@@ -66,6 +66,12 @@ function BlueprintScreen({ book }: { book: Book }) {
   const [screen, setScreen] = useScreenState("ready");
   const [parts, setParts] = useState<OutlinePart[]>(buildOutline);
   const [selectedId, setSelectedId] = useState("chapter-4");
+  const [inspectorTab, setInspectorTab] = useState<"part" | "book" | "claims" | "versions">("part");
+  /** Picking a part (outline, claim) shows it in the right card's first tab. */
+  const selectPart = (id: string) => {
+    setSelectedId(id);
+    setInspectorTab("part");
+  };
   const [planOpen, setPlanOpen] = useState(false);
   const [version, setVersion] = useState(bp.version);
   const [versions, setVersions] = useState<Blueprint["versions"]>(bp.versions);
@@ -466,7 +472,7 @@ function BlueprintScreen({ book }: { book: Book }) {
                 chapters={outlineChapters}
                 back={outlineBack}
                 selectedKey={selectedId}
-                onSelect={setSelectedId}
+                onSelect={selectPart}
                 onTitle={canWrite && !busy ? (id, title) => setParts((ps) => ps.map((p) => (p.id === id ? { ...p, title } : p))) : undefined}
                 tools={
                   <>
@@ -484,176 +490,223 @@ function BlueprintScreen({ book }: { book: Book }) {
 
               <aside
                 aria-label="Blueprint details"
-                className="vol-glass grid min-w-0 content-start rounded-card p-[18px] min-[1180px]:sticky min-[1180px]:top-(--shell-sticky-top)"
+                className="vol-glass grid min-w-0 content-start rounded-card p-[18px] min-[1180px]:sticky min-[1180px]:top-(--shell-sticky-top) min-[1180px]:max-h-[calc(100dvh-var(--shell-sticky-top)-16px)] min-[1180px]:overflow-y-auto"
               >
-                <div aria-live="polite">
-                  <SideLabel>{selectedPart?.group === "chapters" ? selectedLabel : selectedPart ? groupLabels[selectedPart.group] : "The book"}</SideLabel>
-                  <h3 className="mt-0.5 mb-1.5 font-book text-[17px] leading-[1.3] font-semibold text-ink [overflow-wrap:anywhere]">
-                    {selectedPart?.title ?? bp.title}
-                  </h3>
-                  {regen.status === "running" && regenTarget?.id === selectedId && (
-                    <p role="status" className="mb-1.5 flex items-center gap-2 text-small font-semibold text-mint-ink">
-                      <LiveDot /> Rewriting, {formatUsd(regen.cost)} so far.
-                    </p>
-                  )}
-                  <p className="text-[13.5px] leading-[1.55] text-ink-2">
-                    {selectedPart ? <PlanText text={selectedPart.note} prev={diff?.partId === selectedId ? diff.prev : null} /> : bp.summary}
-                  </p>
-                  {selectedPart?.chapter && selectedPart.chapter.subheadings.length > 0 && (
-                    <>
-                      <SideLabel>Subheadings</SideLabel>
-                      <ol className="grid list-decimal gap-1.5 pl-[18px] text-[13px] text-ink-2 marker:text-ink-3">
-                        {selectedPart.chapter.subheadings.map((s) => (
-                          <li key={s}>{s}</li>
-                        ))}
-                      </ol>
-                    </>
-                  )}
-                  {selectedPart && !selectedPart.on && <p className="mt-2 text-small text-amber">This part is off. Switch it on in Arrange sections.</p>}
-                  {selectedPart && selectedPart.wordTarget !== null && (
-                    <div className="mt-3">
-                      {canWrite ? (
-                        <Input
-                          key={`${selectedId}-${selectedPart.wordTarget}`}
-                          label="Word target"
-                          inputMode="numeric"
-                          defaultValue={String(selectedPart.wordTarget)}
-                          onBlur={(e) => {
-                            const n = Number(e.target.value.replace(/[^\d]/g, ""));
-                            if (n > 0) setParts((ps) => ps.map((p) => (p.id === selectedId ? { ...p, wordTarget: n } : p)));
-                          }}
-                          hint={selectedPart.group === "chapters" ? "Chapters run 2,000 to 4,000 words. Each is written within 15% of its target." : undefined}
-                        />
-                      ) : (
-                        <p className="flex justify-between text-[13px]">
-                          <span className="text-ink-3">Word target</span>
-                          <span className="num font-medium text-ink">{formatNumber(selectedPart.wordTarget)}</span>
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  {selectedClaims.length > 0 && (
-                    <ul className="mt-3 grid gap-1.5">
-                      {selectedClaims.map((c) => (
-                        <li key={c.id} className="rounded-control bg-claim-wash px-2.5 py-2 text-small text-ink">
-                          <b className="block font-semibold">Claim to verify</b>
-                          {c.text} <span className="text-ink-2">{c.reason}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {canWrite && (
-                      <Button
-                        size="sm"
-                        icon={RefreshCw}
-                        estimate={regenEstimate}
-                        loading={regen.status === "running"}
-                        loadingLabel="Rewriting"
-                        disabledReason={busy && regen.status !== "running" ? "Wait for the blueprint to finish." : undefined}
-                        onClick={openRegen}
-                      >
-                        Regenerate {selectedPart?.group === "chapters" ? "chapter" : "part"}
-                      </Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={() => showInPlan(selectedId)}>
-                      Show in the full plan
-                    </Button>
-                  </div>
-                </div>
-
-                <hr className="mt-4 border-line" />
-                <SideLabel>The whole book</SideLabel>
-                <p className="text-[13.5px] leading-[1.55] text-ink-2">{bp.summary}</p>
-                <CheckList
-                  items={[
-                    { key: "chapters", ok: totals.chapters >= 6, label: `${totals.chapters} chapters with summaries` },
-                    { key: "matter", ok: !parts.some((p) => p.required && !p.on), label: "Front and back matter set" },
-                    { key: "listing", ok: listing.keywords.length === KEYWORDS_MAX, label: `Listing drafted, ${listing.keywords.length} keywords` },
+                <InspectorTabs
+                  label="Blueprint details"
+                  idBase="bp-inspector"
+                  value={inspectorTab}
+                  onChange={setInspectorTab}
+                  tabs={[
                     {
-                      key: "range",
-                      ok: inRange,
-                      label: `${formatNumber(totals.total)} words, template range ${formatNumber(RANGE.min)} to ${formatNumber(RANGE.max)}`,
+                      id: "part",
+                      label: selectedPart?.group === "chapters" ? "Chapter" : "Part",
+                      panel: (
+                        <>
+                          <div aria-live="polite">
+                            <SideLabel>
+                              {selectedPart?.group === "chapters" ? selectedLabel : selectedPart ? groupLabels[selectedPart.group] : "The book"}
+                            </SideLabel>
+                            <h3 className="mt-0.5 mb-1.5 font-book text-[17px] leading-[1.3] font-semibold text-ink [overflow-wrap:anywhere]">
+                              {selectedPart?.title ?? bp.title}
+                            </h3>
+                            {regen.status === "running" && regenTarget?.id === selectedId && (
+                              <p role="status" className="mb-1.5 flex items-center gap-2 text-small font-semibold text-mint-ink">
+                                <LiveDot /> Rewriting, {formatUsd(regen.cost)} so far.
+                              </p>
+                            )}
+                            <p className="text-[13.5px] leading-[1.55] text-ink-2">
+                              {selectedPart ? <PlanText text={selectedPart.note} prev={diff?.partId === selectedId ? diff.prev : null} /> : bp.summary}
+                            </p>
+                            {selectedPart?.chapter && selectedPart.chapter.subheadings.length > 0 && (
+                              <>
+                                <SideLabel>Subheadings</SideLabel>
+                                <ol className="grid list-decimal gap-1.5 pl-[18px] text-[13px] text-ink-2 marker:text-ink-3">
+                                  {selectedPart.chapter.subheadings.map((s) => (
+                                    <li key={s}>{s}</li>
+                                  ))}
+                                </ol>
+                              </>
+                            )}
+                            {selectedPart && !selectedPart.on && (
+                              <p className="mt-2 text-small text-amber">This part is off. Switch it on in Arrange sections.</p>
+                            )}
+                            {selectedPart && selectedPart.wordTarget !== null && (
+                              <div className="mt-3">
+                                {canWrite ? (
+                                  <Input
+                                    key={`${selectedId}-${selectedPart.wordTarget}`}
+                                    label="Word target"
+                                    inputMode="numeric"
+                                    defaultValue={String(selectedPart.wordTarget)}
+                                    onBlur={(e) => {
+                                      const n = Number(e.target.value.replace(/[^\d]/g, ""));
+                                      if (n > 0) setParts((ps) => ps.map((p) => (p.id === selectedId ? { ...p, wordTarget: n } : p)));
+                                    }}
+                                    hint={
+                                      selectedPart.group === "chapters"
+                                        ? "Chapters run 2,000 to 4,000 words. Each is written within 15% of its target."
+                                        : undefined
+                                    }
+                                  />
+                                ) : (
+                                  <p className="flex justify-between text-[13px]">
+                                    <span className="text-ink-3">Word target</span>
+                                    <span className="num font-medium text-ink">{formatNumber(selectedPart.wordTarget)}</span>
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {selectedClaims.length > 0 && (
+                              <ul className="mt-3 grid gap-1.5">
+                                {selectedClaims.map((c) => (
+                                  <li key={c.id} className="rounded-control bg-claim-wash px-2.5 py-2 text-small text-ink">
+                                    <b className="block font-semibold">Claim to verify</b>
+                                    {c.text} <span className="text-ink-2">{c.reason}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {canWrite && (
+                                <Button
+                                  size="sm"
+                                  icon={RefreshCw}
+                                  estimate={regenEstimate}
+                                  loading={regen.status === "running"}
+                                  loadingLabel="Rewriting"
+                                  disabledReason={busy && regen.status !== "running" ? "Wait for the blueprint to finish." : undefined}
+                                  onClick={openRegen}
+                                >
+                                  Regenerate {selectedPart?.group === "chapters" ? "chapter" : "part"}
+                                </Button>
+                              )}
+                              <Button size="sm" variant="ghost" onClick={() => showInPlan(selectedId)}>
+                                Show in the full plan
+                              </Button>
+                            </div>
+                          </div>
+                        </>
+                      ),
+                    },
+                    {
+                      id: "book",
+                      label: "Book",
+                      count: missing.length > 0 ? missing.length : undefined,
+                      urgent: missing.length > 0,
+                      panel: (
+                        <>
+                          <SideLabel>The whole book</SideLabel>
+                          <p className="text-[13.5px] leading-[1.55] text-ink-2">{bp.summary}</p>
+                          <CheckList
+                            items={[
+                              { key: "chapters", ok: totals.chapters >= 6, label: `${totals.chapters} chapters with summaries` },
+                              { key: "matter", ok: !parts.some((p) => p.required && !p.on), label: "Front and back matter set" },
+                              { key: "listing", ok: listing.keywords.length === KEYWORDS_MAX, label: `Listing drafted, ${listing.keywords.length} keywords` },
+                              {
+                                key: "range",
+                                ok: inRange,
+                                label: `${formatNumber(totals.total)} words, template range ${formatNumber(RANGE.min)} to ${formatNumber(RANGE.max)}`,
+                              },
+                            ]}
+                          />
+                          {missing.length > 0 && (
+                            <div className="rounded-control bg-amber-wash px-3 py-2.5">
+                              <p className="text-small font-semibold text-ink">Before you approve</p>
+                              <ul className="mt-1 grid gap-1">
+                                {missing.map((m) => (
+                                  <li key={m.text} className="text-small text-ink">
+                                    {m.partId ? (
+                                      <button type="button" onClick={() => showInPlan(m.partId)} className="text-left underline underline-offset-2">
+                                        {m.text}
+                                      </button>
+                                    ) : (
+                                      m.text
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          <SideLabel>Tone</SideLabel>
+                          <ul className="grid gap-1">
+                            {bp.toneNotes.map((t) => (
+                              <li key={t} className="font-book text-[13.5px] text-ink-2 italic">
+                                {t}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ),
+                    },
+                    {
+                      id: "claims",
+                      label: "Claims",
+                      count: openClaims.length,
+                      urgent: openClaims.length > 0,
+                      panel:
+                        openClaims.length > 0 ? (
+                          <>
+                            <SideLabel>Claims to verify, {openClaims.length}</SideLabel>
+                            <ul className="grid gap-1">
+                              {openClaims.map((c) => (
+                                <li key={c.id}>
+                                  <button
+                                    type="button"
+                                    onClick={() => selectPart(`chapter-${c.chapter}`)}
+                                    className="w-full rounded-sm py-1 text-left text-[13px] text-ink hover:text-mint-ink"
+                                  >
+                                    {c.location}
+                                    <span className="block text-small text-ink-2">{c.reason}</span>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                            <p className="mt-1.5 text-small text-ink-3">Claims stay open into writing. You resolve them in the Editor.</p>
+                          </>
+                        ) : (
+                          <p className="mt-3 text-small text-ink-2">No claims to verify in this plan.</p>
+                        ),
+                    },
+                    {
+                      id: "versions",
+                      label: "Versions",
+                      panel: (
+                        <>
+                          <SideLabel>Model and spend</SideLabel>
+                          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 text-[13px]">
+                            <dt className="text-ink-3">Model</dt>
+                            <dd className="text-right font-medium text-ink">
+                              <ModelName slug={modelSlug} />
+                              {model ? `, ${model.provider}` : ""}
+                            </dd>
+                            {costRows.map((r) => (
+                              <Fragment key={r.label}>
+                                <dt className="text-ink-3">{r.label}</dt>
+                                <dd className="num text-right font-medium text-ink">{formatUsd(r.usd)}</dd>
+                              </Fragment>
+                            ))}
+                            <dt className="font-semibold text-ink">Spent so far</dt>
+                            <dd className="num text-right font-semibold text-ink">{formatUsd(spent)}</dd>
+                          </dl>
+                          {canWrite && (
+                            <Button size="sm" variant="ghost" className="mt-2 justify-self-start" onClick={() => setModelOpen(true)}>
+                              Change model
+                            </Button>
+                          )}
+
+                          <SideLabel>Versions</SideLabel>
+                          <VersionList
+                            items={versions.map((v) => ({ version: v.version, note: v.note, detail: formatUsd(v.cost) }))}
+                            current={version}
+                            actionLabel="Restore"
+                            onAction={restore}
+                            disabledReason={busy ? "Wait for the current run to finish." : undefined}
+                          />
+                        </>
+                      ),
                     },
                   ]}
-                />
-                {missing.length > 0 && (
-                  <div className="rounded-control bg-amber-wash px-3 py-2.5">
-                    <p className="text-small font-semibold text-ink">Before you approve</p>
-                    <ul className="mt-1 grid gap-1">
-                      {missing.map((m) => (
-                        <li key={m.text} className="text-small text-ink">
-                          {m.partId ? (
-                            <button type="button" onClick={() => showInPlan(m.partId)} className="text-left underline underline-offset-2">
-                              {m.text}
-                            </button>
-                          ) : (
-                            m.text
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {openClaims.length > 0 && (
-                  <>
-                    <SideLabel>Claims to verify, {openClaims.length}</SideLabel>
-                    <ul className="grid gap-1">
-                      {openClaims.map((c) => (
-                        <li key={c.id}>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedId(`chapter-${c.chapter}`)}
-                            className="w-full rounded-sm py-1 text-left text-[13px] text-ink hover:text-mint-ink"
-                          >
-                            {c.location}
-                            <span className="block text-small text-ink-2">{c.reason}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="mt-1.5 text-small text-ink-3">Claims stay open into writing. You resolve them in the Editor.</p>
-                  </>
-                )}
-
-                <SideLabel>Model and spend</SideLabel>
-                <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3.5 gap-y-2 text-[13px]">
-                  <dt className="text-ink-3">Model</dt>
-                  <dd className="text-right font-medium text-ink">
-                    <ModelName slug={modelSlug} />
-                    {model ? `, ${model.provider}` : ""}
-                  </dd>
-                  {costRows.map((r) => (
-                    <Fragment key={r.label}>
-                      <dt className="text-ink-3">{r.label}</dt>
-                      <dd className="num text-right font-medium text-ink">{formatUsd(r.usd)}</dd>
-                    </Fragment>
-                  ))}
-                  <dt className="font-semibold text-ink">Spent so far</dt>
-                  <dd className="num text-right font-semibold text-ink">{formatUsd(spent)}</dd>
-                </dl>
-                {canWrite && (
-                  <Button size="sm" variant="ghost" className="mt-2 justify-self-start" onClick={() => setModelOpen(true)}>
-                    Change model
-                  </Button>
-                )}
-
-                <SideLabel>Tone</SideLabel>
-                <ul className="grid gap-1">
-                  {bp.toneNotes.map((t) => (
-                    <li key={t} className="font-book text-[13.5px] text-ink-2 italic">
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-
-                <SideLabel>Versions</SideLabel>
-                <VersionList
-                  items={versions.map((v) => ({ version: v.version, note: v.note, detail: formatUsd(v.cost) }))}
-                  current={version}
-                  actionLabel="Restore"
-                  onAction={restore}
-                  disabledReason={busy ? "Wait for the current run to finish." : undefined}
                 />
               </aside>
             </div>

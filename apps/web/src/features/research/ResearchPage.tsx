@@ -26,12 +26,13 @@ import { useStepAction } from "../../lib/stepAction";
 import { useBook } from "../../lib/useBook";
 import { bookStepPath } from "../../screens";
 import { NotFound } from "../../shell/NotFound";
+import { PhoneFold } from "../../shell/PhoneFold";
 import { DemoStates, useScreenState, type ScreenState } from "./DemoStates";
 import { audienceChunks, citations, plainSource, runSteps, secondRun, type RunRecord } from "./researchExtras";
 import { ResearchApi } from "./ResearchApi";
 import { RunModelModal } from "./RunModelModal";
 import { SourceCard } from "./SourceCard";
-import { NoSourceMatch, ResearchCounts, SourceFilterBar, sourceMatches, useSourceFilter, type SourceFilterState } from "./SourceTools";
+import { DossierColumns, NoSourceMatch, ResearchCounts, SourceFilterBar, sourceMatches, useSourceFilter, type SourceFilterState } from "./SourceTools";
 import { about, estimateFor, useSimulatedRun, type RunPlan } from "./sim";
 
 /* Research screen (docs/03-design/UX-SPEC.md, M4; approved Volume Studio design, stResearch).
@@ -112,6 +113,8 @@ function Research({ book }: { book: Book }) {
     if (filter.active) filter.clear();
     requestAnimationFrame(() => {
       const el = document.getElementById(`source-${id}`);
+      // On phones the sources and some dossier cards are folded; open the fold first.
+      el?.closest("details")?.setAttribute("open", "");
       el?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() });
       el?.focus({ preventScroll: true });
     });
@@ -119,6 +122,7 @@ function Research({ book }: { book: Book }) {
   function showCitation(anchor: string) {
     setFlash(anchor);
     const el = document.getElementById(`cite-${anchor}`);
+    el?.closest("details")?.setAttribute("open", "");
     el?.scrollIntoView({ block: "center", behavior: scrollBehavior() });
     el?.focus({ preventScroll: true });
   }
@@ -255,27 +259,29 @@ function Research({ book }: { book: Book }) {
       )}
 
       {shownState === "ready" && hasDossier && (
-        <Card as="section" aria-labelledby="sources-heading" className="grid gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 id="sources-heading" className="flex items-center gap-2 text-[15px] font-bold text-ink">
-              Sources
-              <span className="num text-small font-medium text-ink-3">
-                {usedCount} of {BASE.sources.length} used
-              </span>
-            </h2>
-            <p className="text-small text-ink-2">Only sources cited from a live web search are kept. Only ticked ones can appear in References.</p>
-          </div>
-          <SourcesPane
-            state={shownState}
-            hasDossier={hasDossier}
-            progress={sim.progress}
-            uses={uses}
-            onUse={(id, v) => setUses((u) => ({ ...u, [id]: v }))}
-            highlight={highlight}
-            onShowCitation={showCitation}
-            filter={filter}
-          />
-        </Card>
+        <PhoneFold label="Sources" hint={`${usedCount} of ${BASE.sources.length} used in the book`}>
+          <Card as="section" aria-labelledby="sources-heading" className="grid gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="sources-heading" className="flex items-center gap-2 text-[15px] font-bold text-ink">
+                Sources
+                <span className="num text-small font-medium text-ink-3">
+                  {usedCount} of {BASE.sources.length} used
+                </span>
+              </h2>
+              <p className="text-small text-ink-2">Only sources cited from a live web search are kept. Only ticked ones can appear in References.</p>
+            </div>
+            <SourcesPane
+              state={shownState}
+              hasDossier={hasDossier}
+              progress={sim.progress}
+              uses={uses}
+              onUse={(id, v) => setUses((u) => ({ ...u, [id]: v }))}
+              highlight={highlight}
+              onShowCitation={showCitation}
+              filter={filter}
+            />
+          </Card>
+        </PhoneFold>
       )}
 
       {shownState === "ready" && !hasDossier && (
@@ -515,19 +521,23 @@ function CiteMarks({ anchor, sourceNumber, onCite }: { anchor: string; sourceNum
   const ids = citations[anchor];
   if (!ids || ids.length === 0) return null;
   return (
-    <span className="ml-1 inline-flex gap-0.5 align-super">
+    <span className="ml-0.5 inline-flex align-super">
       {ids.map((id) => {
         const n = sourceNumber.get(id);
         const src = BASE.sources.find((s) => s.id === id);
+        // The button is a 24 x 24 px target (WCAG 2.5.8); the negative block margin keeps the line height,
+        // and the visible chip inside stays 16 px tall.
         return (
           <button
             key={id}
             type="button"
             onClick={() => onCite(id)}
             aria-label={`Source ${n}: ${src ? plainSource(src).publisher : ""}`}
-            className="hit-44 num grid h-4 min-w-4 place-items-center rounded-xs bg-select-wash px-1 font-ui text-[11px] leading-none font-semibold text-select hover:bg-select hover:text-sheet"
+            className="group -my-[5px] grid h-[24px] min-w-[24px] place-items-center rounded-xs"
           >
-            {n}
+            <span className="num grid h-4 min-w-4 place-items-center rounded-xs bg-select-wash px-1 font-ui text-[11px] leading-none font-semibold text-select group-hover:bg-select group-hover:text-sheet">
+              {n}
+            </span>
           </button>
         );
       })}
@@ -578,81 +588,99 @@ function Dossier({
   flash: string | null;
 }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <DossierBlock title="Audience">
-        <Cited anchor="audience" flash={flash} as="div">
-          <p className="max-w-[68ch] text-[14.5px] leading-[1.6] text-ink">
-            {BASE.audience}
-            <CiteMarks anchor="audience" sourceNumber={sourceNumber} onCite={onCite} />
-          </p>
-        </Cited>
-      </DossierBlock>
-
-      <DossierBlock title="Reader pains" aside={<span className="num text-small text-ink-tertiary">{BASE.problems.length}</span>}>
-        <ol className="grid gap-1.5">
-          {BASE.problems.map((p, i) => (
-            <Cited key={p} anchor={`pain-${i}`} flash={flash} className="flex gap-3 rounded-control bg-soft px-3 py-2.5">
-              <span className="num w-4 shrink-0 text-small text-ink-3">{i + 1}</span>
-              <span className="text-[13.5px] text-ink">
-                {p}
-                <CiteMarks anchor={`pain-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
-              </span>
+    <DossierColumns
+      left={
+        <>
+          <DossierBlock className="max-md:order-1" title="Audience">
+            <Cited anchor="audience" flash={flash} as="div">
+              <p className="max-w-[68ch] text-[14.5px] leading-[1.6] text-ink">
+                {BASE.audience}
+                <CiteMarks anchor="audience" sourceNumber={sourceNumber} onCite={onCite} />
+              </p>
             </Cited>
-          ))}
-        </ol>
-      </DossierBlock>
-
-      <DossierBlock title="Angles">
-        <ol className="grid gap-2.5">
-          {BASE.angles.map((a, i) => (
-            <Cited
-              key={a.title}
-              anchor={`angle-${i}`}
-              flash={flash}
-              className="grid grid-cols-[26px_minmax(0,1fr)] gap-x-2.5 gap-y-0.5 before:row-span-2 before:grid before:size-[26px] before:place-items-center before:rounded-[8px] before:bg-mint-wash before:text-[12px] before:font-bold before:text-mint-ink before:content-[attr(data-n)]"
-              n={i + 1}
+          </DossierBlock>
+          <DossierBlock className="max-md:order-3" title="Angles">
+            <ol className="grid gap-2.5">
+              {BASE.angles.map((a, i) => (
+                <Cited
+                  key={a.title}
+                  anchor={`angle-${i}`}
+                  flash={flash}
+                  className="grid grid-cols-[26px_minmax(0,1fr)] gap-x-2.5 gap-y-0.5 before:row-span-2 before:grid before:size-[26px] before:place-items-center before:rounded-[8px] before:bg-mint-wash before:text-[12px] before:font-bold before:text-mint-ink before:content-[attr(data-n)]"
+                  n={i + 1}
+                >
+                  <h3 className="text-[13.5px] font-bold text-ink">
+                    {a.title}
+                    <CiteMarks anchor={`angle-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
+                  </h3>
+                  <p className="text-[13px] leading-normal text-ink-2">{a.detail}</p>
+                </Cited>
+              ))}
+            </ol>
+          </DossierBlock>
+          <PhoneFold label="Gaps this book can fill" hint="Where this book can stand out" className="max-md:order-5">
+            <DossierBlock className="max-md:order-5" title="Gaps this book can fill">
+              <ul className="grid gap-2.5">
+                {gaps.map((g, i) => (
+                  <Cited key={g} anchor={`gap-${i}`} flash={flash} className="border-l-2 border-select pl-3 text-body text-ink">
+                    {g}
+                    <CiteMarks anchor={`gap-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
+                  </Cited>
+                ))}
+              </ul>
+            </DossierBlock>
+          </PhoneFold>
+        </>
+      }
+      right={
+        <>
+          <DossierBlock
+            className="max-md:order-2"
+            title="Reader pains"
+            aside={<span className="num text-small text-ink-tertiary">{BASE.problems.length}</span>}
+          >
+            <ol className="grid gap-1.5">
+              {BASE.problems.map((p, i) => (
+                <Cited key={p} anchor={`pain-${i}`} flash={flash} className="flex gap-3 rounded-control bg-soft px-3 py-2.5">
+                  <span className="num w-4 shrink-0 text-small text-ink-3">{i + 1}</span>
+                  <span className="text-[13.5px] text-ink">
+                    {p}
+                    <CiteMarks anchor={`pain-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
+                  </span>
+                </Cited>
+              ))}
+            </ol>
+          </DossierBlock>
+          <PhoneFold label="Competing themes" hint="What similar books cover" className="max-md:order-4">
+            <DossierBlock className="max-md:order-4" title="Competing themes">
+              <ul className="grid gap-2.5">
+                {BASE.competingThemes.map((t, i) => (
+                  <Cited key={t} anchor={`theme-${i}`} flash={flash} className="border-l-2 border-border-strong pl-3 text-body text-ink">
+                    {t}
+                    <CiteMarks anchor={`theme-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
+                  </Cited>
+                ))}
+              </ul>
+            </DossierBlock>
+          </PhoneFold>
+          <PhoneFold label="Keyword ideas" hint="Starting points for the 7 KDP keywords" className="max-md:order-6">
+            <DossierBlock
+              className="max-md:order-6"
+              title="Keyword ideas"
+              aside={<span className="text-small text-ink-tertiary">Starting points for the 7 KDP keywords</span>}
             >
-              <h3 className="text-[13.5px] font-bold text-ink">
-                {a.title}
-                <CiteMarks anchor={`angle-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
-              </h3>
-              <p className="text-[13px] leading-normal text-ink-2">{a.detail}</p>
-            </Cited>
-          ))}
-        </ol>
-      </DossierBlock>
-
-      <DossierBlock title="Competing themes">
-        <ul className="grid gap-2.5">
-          {BASE.competingThemes.map((t, i) => (
-            <Cited key={t} anchor={`theme-${i}`} flash={flash} className="border-l-2 border-border-strong pl-3 text-body text-ink">
-              {t}
-              <CiteMarks anchor={`theme-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
-            </Cited>
-          ))}
-        </ul>
-      </DossierBlock>
-      <DossierBlock title="Gaps this book can fill">
-        <ul className="grid gap-2.5">
-          {gaps.map((g, i) => (
-            <Cited key={g} anchor={`gap-${i}`} flash={flash} className="border-l-2 border-select pl-3 text-body text-ink">
-              {g}
-              <CiteMarks anchor={`gap-${i}`} sourceNumber={sourceNumber} onCite={onCite} />
-            </Cited>
-          ))}
-        </ul>
-      </DossierBlock>
-
-      <DossierBlock title="Keyword ideas" aside={<span className="text-small text-ink-tertiary">Starting points for the 7 KDP keywords</span>}>
-        <ul className="flex flex-wrap gap-2">
-          {keywordIdeas.map((k) => (
-            <li key={k} className="inline-flex items-center rounded-pill bg-mint-wash px-2.5 py-1 text-[12px] text-mint-ink">
-              {k}
-            </li>
-          ))}
-        </ul>
-      </DossierBlock>
-    </div>
+              <ul className="flex flex-wrap gap-2">
+                {keywordIdeas.map((k) => (
+                  <li key={k} className="inline-flex items-center rounded-pill bg-mint-wash px-2.5 py-1 text-[12px] text-mint-ink">
+                    {k}
+                  </li>
+                ))}
+              </ul>
+            </DossierBlock>
+          </PhoneFold>
+        </>
+      }
+    />
   );
 }
 

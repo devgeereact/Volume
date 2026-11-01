@@ -6,6 +6,7 @@ import { activity, bookSteps, currentStep, getBookType, stepState, type Book, ty
 import { cn } from "../../lib/cn";
 import { formatDate, formatNumber, formatRelative, formatUsd } from "../../lib/format";
 import { bookStepPath } from "../../screens";
+import { PhoneFold } from "../../shell/PhoneFold";
 import { stepCopy, stepIcons } from "../../shell/stepCopy";
 import { libraryCover } from "../library/draftCover";
 import { RoyaltyCard, ReleasesCard } from "./LedgerCards";
@@ -30,7 +31,7 @@ function Ring({ share, value, small }: { share: number | null; value: string; sm
   const c = 2 * Math.PI * r;
   const f = share === null ? 0 : Math.max(0, Math.min(1, share));
   return (
-    <svg viewBox="0 0 92 92" aria-hidden className="size-[92px] max-[560px]:size-[76px]">
+    <svg viewBox="0 0 92 92" aria-hidden className="aspect-square h-auto w-full max-w-[92px]">
       <circle cx="46" cy="46" r={r} fill="none" stroke="var(--vol-track)" strokeWidth="9" />
       {f > 0 && (
         <circle
@@ -149,9 +150,9 @@ export function BookOverview({ book, pen, runningBookId, now }: { book: Book; pe
 
   return (
     <div className="px-4 pb-6 min-[861px]:px-6">
-      <div className="grid items-start gap-4 min-[861px]:grid-cols-[270px_minmax(0,1fr)] min-[1280px]:grid-cols-[290px_minmax(0,1fr)_310px]">
+      <div className="grid gap-4 min-[861px]:grid-cols-[270px_minmax(0,1fr)] min-[1280px]:grid-cols-[290px_minmax(0,1fr)_310px]">
         {/* Profile column */}
-        <div className="grid min-w-0 content-start gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           <Card as="section" aria-label="The book" className="grid justify-items-center gap-1.5 pt-6 text-center">
             <span className="mb-2.5 block w-[158px]">
               <Cover title={book.title} subtitle={book.subtitle} author={author} design={design} image={image} hideSubtitle={draft} lift className="w-full" />
@@ -194,31 +195,33 @@ export function BookOverview({ book, pen, runningBookId, now }: { book: Book; pe
             </dl>
           </Card>
 
-          <Card as="section" aria-labelledby={ids.facts}>
-            <CardHead id={ids.facts} title="Book facts" />
-            <ul className="grid gap-0.5">
-              <Fact icon={<User size={17} strokeWidth={1.8} />} label={pen?.realPerson ? "Real person" : "Pen name"}>
-                {author || "Not set"}
-                {pen?.imprint ? `, ${pen.imprint}` : ""}
-              </Fact>
-              <Fact icon={<Globe size={17} strokeWidth={1.8} />} label="Language">
-                British English
-              </Fact>
-              <Fact icon={<ShieldCheck size={17} strokeWidth={1.8} />} label="KDP AI disclosure">
-                {disclosure}
-              </Fact>
-              <Fact icon={<KeyRound size={17} strokeWidth={1.8} />} label="ISBN">
-                {book.published ? "From KDP, entered by you" : "Not entered yet"}
-              </Fact>
-              <Fact icon={<FileText size={17} strokeWidth={1.8} />} label="About the author">
-                Profile bio, word for word
-              </Fact>
-            </ul>
-          </Card>
+          <PhoneFold label="Book facts" hint="Pen name, language, AI disclosure, ISBN">
+            <Card as="section" aria-labelledby={ids.facts} className="flex flex-1 flex-col">
+              <CardHead id={ids.facts} title="Book facts" />
+              <ul className="grid flex-1 content-between gap-0.5">
+                <Fact icon={<User size={17} strokeWidth={1.8} />} label={pen?.realPerson ? "Real person" : "Pen name"}>
+                  {author || "Not set"}
+                  {pen?.imprint ? `, ${pen.imprint}` : ""}
+                </Fact>
+                <Fact icon={<Globe size={17} strokeWidth={1.8} />} label="Language">
+                  British English
+                </Fact>
+                <Fact icon={<ShieldCheck size={17} strokeWidth={1.8} />} label="KDP AI disclosure">
+                  {disclosure}
+                </Fact>
+                <Fact icon={<KeyRound size={17} strokeWidth={1.8} />} label="ISBN">
+                  {book.published ? "From KDP, entered by you" : "Not entered yet"}
+                </Fact>
+                <Fact icon={<FileText size={17} strokeWidth={1.8} />} label="About the author">
+                  Profile bio, word for word
+                </Fact>
+              </ul>
+            </Card>
+          </PhoneFold>
         </div>
 
         {/* Working column */}
-        <div className="grid min-w-0 content-start gap-4">
+        <div className="flex min-w-0 flex-col gap-4 max-[860px]:order-first">
           <section aria-label="Next step" className="flex flex-wrap items-center gap-3.5 rounded-card bg-btn px-[18px] py-4 text-on-btn">
             <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-on-btn/12">
               {attention ? <Flag size={17} strokeWidth={1.8} /> : <ChevronRight size={17} strokeWidth={1.8} />}
@@ -261,7 +264,7 @@ export function BookOverview({ book, pen, runningBookId, now }: { book: Book; pe
 
           <Card as="section" aria-labelledby={ids.steps}>
             <CardHead id={ids.steps} title="Progress through the steps" aside={<small className="text-small text-ink-3">{stepLine}</small>} />
-            <ol className="grid grid-cols-4 gap-1.5 min-[561px]:grid-cols-8">
+            <ol className="grid grid-cols-4 gap-1.5">
               {bookSteps.map((s) => {
                 const st = states[s.id];
                 const Icon = stepIcons[s.id];
@@ -324,7 +327,7 @@ export function BookOverview({ book, pen, runningBookId, now }: { book: Book; pe
             </ul>
           </Card>
 
-          <Card as="section" aria-labelledby={ids.notes}>
+          <Card as="section" aria-labelledby={ids.notes} className="flex-1">
             <CardHead id={ids.notes} title="Notes from the jobs" />
             <ul className="grid gap-3">
               {notes.length > 0 ? (
@@ -347,13 +350,17 @@ export function BookOverview({ book, pen, runningBookId, now }: { book: Book; pe
         </div>
 
         {/* Ledger column */}
-        <div className="grid min-w-0 content-start gap-4 min-[861px]:col-span-2 min-[861px]:grid-cols-2 min-[1280px]:col-span-1 min-[1280px]:grid-cols-1">
-          <RoyaltyCard book={book} />
-          <ReleasesCard book={book} now={now} />
+        <div className="flex min-w-0 flex-col gap-4 min-[861px]:col-span-2 min-[861px]:grid min-[861px]:grid-cols-2 min-[1280px]:col-span-1 min-[1280px]:flex">
+          <PhoneFold label="Royalty summary" hint="KDP prices and royalty bands">
+            <RoyaltyCard book={book} />
+          </PhoneFold>
+          <PhoneFold label="Releases" hint="This month's calendar">
+            <ReleasesCard book={book} now={now} className="flex-1" />
+          </PhoneFold>
         </div>
       </div>
 
-      <UpNextResearch book={book} state={states.research} />
+      <UpNextStep book={book} states={states} />
     </div>
   );
 }
@@ -391,9 +398,18 @@ function Fact({ icon, label, children }: { icon: ReactNode; label: string; child
 }
 
 /** The Up next card for the Overview: step 1, Research (same look as the shell's Up next card). */
-function UpNextResearch({ book, state }: { book: Book; state: StepState }) {
+/** The card at the foot of the Overview names the step the book is at now, not always the first one. */
+function UpNextStep({ book, states }: { book: Book; states: Record<BookStepId, StepState> }) {
   const id = useId();
-  const Icon = stepIcons.research;
+  const stepId = currentStep(book);
+  const index = Math.max(
+    0,
+    bookSteps.findIndex((s) => s.id === stepId),
+  );
+  const step = bookSteps[index] ?? bookSteps[0];
+  if (!step) return null;
+  const state = states[step.id];
+  const Icon = stepIcons[step.id];
   return (
     <section
       aria-labelledby={id}
@@ -403,16 +419,18 @@ function UpNextResearch({ book, state }: { book: Book; state: StepState }) {
         <Icon size={20} strokeWidth={1.8} />
       </span>
       <div className="min-w-0">
-        <p className="num text-[11px] leading-[1.4] font-bold tracking-[0.08em] text-ink-3 uppercase">Up next, step 1 of {bookSteps.length}</p>
+        <p className="num text-[11px] leading-[1.4] font-bold tracking-[0.08em] text-ink-3 uppercase">
+          Where this book is, step {index + 1} of {bookSteps.length}
+        </p>
         <h2 id={id} className="my-px text-[16px] leading-[1.35] font-bold text-ink">
-          Research
+          {step.label}
         </h2>
-        <p className="text-[13px] text-ink-2">{stepCopy.research.short}</p>
+        <p className="text-[13px] text-ink-2">{stepCopy[step.id].short}</p>
       </div>
       <div className="col-span-2 flex flex-wrap items-center gap-2.5 min-[761px]:col-span-1 min-[761px]:justify-end">
         <StatusChip tone={stateTone[state]}>{stateWord[state]}</StatusChip>
-        <Link to={bookStepPath(book.id, "research")} className={cn(buttonClasses("primary", "md"), "max-[760px]:flex-1")}>
-          Open Research
+        <Link to={bookStepPath(book.id, step.id)} className={cn(buttonClasses("secondary", "md"), "max-[760px]:flex-1")}>
+          Open {step.label}
           <ChevronRight size={16} strokeWidth={1.8} aria-hidden />
         </Link>
       </div>

@@ -50,6 +50,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       <div
+        role="region"
         aria-live="polite"
         aria-label="Notifications"
         className="pointer-events-none fixed right-4 z-[55] grid w-[min(440px,calc(100vw-32px))] justify-items-end gap-2"

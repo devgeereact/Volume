@@ -273,14 +273,20 @@ export function TitleSide({
   book,
   option,
   chosen,
+  markChosen = false,
   action,
   children,
 }: {
   book: Book;
   /** The option on show, or the book's saved title. */
   option: { title: string; subtitle: string; checks: TitleOption["checks"]; invalidReason: string | null } | null;
-  /** The option on show is the book's chosen title. */
+  /** The option on show is the book's chosen title (then no Use this title button). */
   chosen: boolean;
+  /**
+   * Say "This is the chosen title" here. Only where no option list is on screen: next to the list, the
+   * option's own Chosen title mark is the one signal, so the side card does not repeat it.
+   */
+  markChosen?: boolean;
   /** Use this title, or nothing when it cannot be chosen here. */
   action?: ReactNode;
   children?: ReactNode;
@@ -316,13 +322,13 @@ export function TitleSide({
               {option.invalidReason}
             </p>
           )}
-          {chosen ? (
-            <p className="flex h-10 items-center justify-center gap-1.5 rounded-control bg-good-wash text-label font-semibold text-good">
-              <Check size={16} strokeWidth={2} aria-hidden /> This is the chosen title
-            </p>
-          ) : (
-            action
-          )}
+          {chosen
+            ? markChosen && (
+                <p className="flex h-10 items-center justify-center gap-1.5 rounded-control bg-good-wash text-label font-semibold text-good">
+                  <Check size={16} strokeWidth={2} aria-hidden /> This is the chosen title
+                </p>
+              )
+            : action}
         </>
       ) : (
         <p className="text-small text-ink-2">The preview appears when there is a title to show.</p>

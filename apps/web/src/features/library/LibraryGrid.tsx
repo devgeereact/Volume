@@ -5,14 +5,37 @@ import { Cover, LiveDot, Segbar, Skeleton } from "../../components/ui";
 import { getPenName } from "../../demo/penNames";
 import type { Book, PenName } from "../../demo/types";
 import { cn } from "../../lib/cn";
+import { useMediaQuery } from "../../lib/useMediaQuery";
 import { bookGroups, groupOf, stepLine, stepSegments, type BookGroup } from "./bookStatus";
 import { libraryCover } from "./draftCover";
 import { useLibraryMotion } from "./libraryMotion";
 import { BookStatusActions } from "../published/BookStatusActions";
 import { canMarkPublished } from "../published/publishDate";
 
-/** Books the grid shows before Show all: three rows of three (studio redesign stage 3). */
+/** Books the grid shows before Show all at three columns: three rows of three (studio redesign stage 3). */
 export const GRID_SHOWN = 9;
+
+/** Columns of the Covers grid: three, four from 1900 px wide, five from 2400 px (GRID_COLS matches). */
+export function useGridColumns(): 3 | 4 | 5 {
+  const four = useMediaQuery("(min-width: 1900px)");
+  const five = useMediaQuery("(min-width: 2400px)");
+  return five ? 5 : four ? 4 : 3;
+}
+
+/** Books shown before Show all: three whole rows, so the last row never holds a lone card (9, 12 or 15). */
+export function gridShown(columns: 3 | 4 | 5): number {
+  return columns * 3;
+}
+
+/** How many cards the first page shows: up to three rows, trimmed to whole rows when at least two whole rows remain. */
+export function firstPage(total: number, columns: 3 | 4 | 5): number {
+  const upTo = Math.min(total, gridShown(columns));
+  const whole = Math.floor(upTo / columns) * columns;
+  // Trim to whole rows only while at least two rows stay; a short list simply shows every book.
+  return whole >= columns * 2 ? whole : upTo;
+}
+
+const GRID_COLS = "grid-cols-3 min-[1900px]:grid-cols-4 min-[2400px]:grid-cols-5";
 
 const GROUP_ORDER: Record<BookGroup, number> = { progress: 0, ready: 1, published: 2 };
 
@@ -23,8 +46,10 @@ export function sortForGrid(books: readonly Book[]): Book[] {
   );
 }
 
-/* The stage tag on each cover (.bc-tag): the group's word in its own colour. */
-const tagTone: Record<BookGroup, string> = { progress: "text-blue", ready: "text-amber", published: "text-mint-ink" };
+/*
+ * The stage tag on a cover (.bc-tag) shows only Ready to publish. In progress and Published would repeat what the
+ * card already says in its step line ("Step 5 of 8") and status line ("Published 26 September").
+ */
 
 interface LibraryGridProps {
   /** The books after the profile, search and stage filters. */
@@ -78,14 +103,11 @@ function GridCard({
               decorative
             />
           </span>
-          <span
-            className={cn(
-              "absolute top-2 left-2 rounded-pill border border-line bg-panel-2 px-2 py-[3px] text-[10.5px] leading-none font-bold tracking-[0.02em] max-[860px]:top-[5px] max-[860px]:left-[5px] max-[860px]:px-1.5 max-[860px]:text-[9px] max-[560px]:hidden",
-              tagTone[group],
-            )}
-          >
-            {bookGroups.find((g) => g.id === group)?.title}
-          </span>
+          {group === "ready" && (
+            <span className="absolute top-2 left-2 rounded-pill border border-line bg-panel-2 px-2 py-[3px] text-[10.5px] leading-none font-bold tracking-[0.02em] text-amber max-[860px]:top-[5px] max-[860px]:left-[5px] max-[860px]:px-1.5 max-[860px]:text-[9px] max-[560px]:hidden">
+              {bookGroups.find((g) => g.id === "ready")?.title}
+            </span>
+          )}
         </span>
         <span className="grid min-w-0 content-start gap-[3px] px-0.5">
           <h3 className="line-clamp-2 min-h-[2.5em] font-book text-[15px] leading-[1.25] font-semibold text-ink max-[860px]:text-[13px] max-[560px]:text-[12px]">
@@ -117,16 +139,18 @@ function GridCard({
 }
 
 /**
- * Covers view: every book on one flat grid of equal cards, three to a row (the approved design's .books.b3). It shows
- * the first nine and a Show all button, so the page does not grow with every new book. Each card has the same height:
+ * Covers view: every book on one flat grid of equal cards, three to a row (the approved design's .books.b3; four from
+ * 1900 px and five from 2400 px). It shows the first three rows and a Show all button, so the page does not grow with every new book. Each card has the same height:
  * the cover sits in a fixed 5 by 6 frame with its stage tag, the title holds two lines and the rest one line each, and
  * every row takes the height of the tallest card. On phones the cards keep the cover, title and step bar only.
  */
 export function LibraryGrid({ books, group, live, penName = getPenName, statusActions = false }: LibraryGridProps) {
   const [all, setAll] = useState(false);
+  const columns = useGridColumns();
   const sorted = sortForGrid(books);
   const total = sorted.length;
-  const visible = all ? sorted : sorted.slice(0, GRID_SHOWN);
+  const shown = firstPage(total, columns);
+  const visible = all ? sorted : sorted.slice(0, shown);
   const heading = group ? (bookGroups.find((g) => g.id === group)?.title ?? "Books") : "All books";
   const hint = group ? bookGroups.find((g) => g.id === group)?.hint : "Books that need you come first, then the newest.";
   const root = useRef<HTMLElement>(null);
@@ -143,7 +167,7 @@ export function LibraryGrid({ books, group, live, penName = getPenName, statusAc
         </h2>
         {hint && <p className="text-caption text-ink-2">{hint}</p>}
       </div>
-      <ul className="grid auto-rows-fr grid-cols-3 gap-4 max-[860px]:gap-2.5">
+      <ul className={cn("grid auto-rows-fr gap-4 max-[860px]:gap-2.5", GRID_COLS)}>
         {visible.map((b) => (
           <GridCard
             key={b.id}
@@ -154,7 +178,7 @@ export function LibraryGrid({ books, group, live, penName = getPenName, statusAc
           />
         ))}
       </ul>
-      {total > GRID_SHOWN && (
+      {total > shown && (
         <div className="mt-5 flex justify-center">
           <button
             type="button"
@@ -170,7 +194,7 @@ export function LibraryGrid({ books, group, live, penName = getPenName, statusAc
             ) : (
               <>
                 Show all {total} books
-                <small className="text-caption font-medium text-ink-3">{total - GRID_SHOWN} more</small>
+                <small className="text-caption font-medium text-ink-3">{total - shown} more</small>
                 <ChevronDown size={16} strokeWidth={1.8} aria-hidden />
               </>
             )}
@@ -181,11 +205,12 @@ export function LibraryGrid({ books, group, live, penName = getPenName, statusAc
   );
 }
 
-/** Loading shape of the Covers view: nine card outlines. */
+/** Loading shape of the Covers view: three rows of card outlines. */
 export function LibraryGridSkeletonCards({ className }: { className?: string | undefined }) {
+  const shown = gridShown(useGridColumns());
   return (
-    <div className={cn("grid grid-cols-3 gap-4 max-[860px]:gap-2.5", className)}>
-      {Array.from({ length: GRID_SHOWN }, (_, i) => (
+    <div className={cn("grid gap-4 max-[860px]:gap-2.5", GRID_COLS, className)}>
+      {Array.from({ length: shown }, (_, i) => (
         <div key={i} className="grid gap-2.5 rounded-[18px] border border-edge bg-soft p-3">
           <Skeleton variant="block" className="aspect-5/6 rounded-[14px]" />
           <Skeleton className="w-4/5" />

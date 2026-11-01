@@ -76,6 +76,7 @@ export function IdentityTab({ draft, update, errors }: TabProps) {
               ref={fileInput}
               type="file"
               accept="image/jpeg,image/png"
+              aria-label="Author photo, JPEG or PNG"
               className="sr-only"
               tabIndex={-1}
               onChange={(event) => {

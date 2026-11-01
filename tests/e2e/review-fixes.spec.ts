@@ -81,7 +81,9 @@ test("blueprint comparison restores an older version as a new draft", async ({ p
   expect(edited.status()).toBe(200);
   await page.goto(`/books/${book.id}/blueprint`);
   const versions = page.getByRole("complementary", { name: "Blueprint details" });
-  // The Versions list runs oldest first; Restore on version 1 opens the comparison.
+  // The right card is split into tabs; the Versions list (oldest first) is on the Versions tab.
+  // Restore on version 1 opens the comparison.
+  await versions.getByRole("tab", { name: "Versions" }).click();
   await versions.getByRole("button", { name: "Restore version 1" }).click();
   const comparison = page.getByRole("dialog", { name: /Compare version/ });
   await expect(comparison).toBeVisible();

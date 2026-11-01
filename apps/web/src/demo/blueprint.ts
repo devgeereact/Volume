@@ -34,7 +34,7 @@ export const calmWardBlueprint: Blueprint = {
     "No blame on patients, relatives or colleagues",
     "Clinical and legal points go to the claims list until a source is added",
   ],
-  wordTargets: { total: 42000, chapterRange: [3600, 4400], frontMatter: 2400, backMatter: 1800 },
+  wordTargets: { total: 42000, chapterRange: [3600, 4000], frontMatter: 2400, backMatter: 1800 },
   frontMatter: [
     { id: "title-page", title: "Title page", source: "app", wordTarget: null, note: "Title, subtitle and pen name." },
     { id: "copyright", title: "Copyright", source: "profile", wordTarget: null, note: "From the profile template with {year}." },
@@ -75,7 +75,7 @@ export const calmWardBlueprint: Blueprint = {
       subheadings: ["Body Language And Non-Verbal Cues", "The Talk Down Approach", "Knowing When To Step Back", "Communication Barriers And Interpreters"],
       summary:
         "Opens with a scene at the nurses' station at three in the morning. Most incidents on a ward begin with an unmet need such as pain, fear or waiting. The chapter slows that moment down: what the body says before the words do, the talk down approach, and when stepping back is the safest choice.",
-      wordTarget: 4200,
+      wordTarget: 4000,
       claimIds: ["claim-1"],
     },
     {

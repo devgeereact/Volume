@@ -1,5 +1,20 @@
 # Current task
 
+## State on 31 October 2026 (evening): design gap fixes, waiting for approval
+
+- Owner: use /product-design, do not assume, test, give correct artifacts first, then build to live after approval; discard other artifacts and start from what is built. Volume Finalised and Volume Rebrand artifacts deleted.
+- Branch `design/gap-fixes` (local, uncommitted): measured gap fixes on the approved D-066 design. Review artifact "Volume Gap Fixes": https://claude.ai/artifact/QL1G4Sy7tmuwr8tXdS87cF (before and after, plus this branch's build running on demo data). Before audit saved in `../reports/volume/gap-fixes/`.
+- Gate PASS: typecheck, lint, format:check, web unit 267/267, e2e 20/20 (two e2e specs updated for the Versions tab and the single chosen-title mark). Audit PASS: 200 captures (6 widths plus dark), 0 axe violations, 0 sideways scroll, 0 orphan rows.
+- Next: owner approves; then commit, PR, merge, `npm run deploy -- --dry-run`, deploy with the owner's yes, live check. Not tested: API versions of Blueprint and Titles by eye on a server book, screen readers, real phones.
+
+
+- Latest (31 October, afternoon): owner liked the hero-only landing but asked for a better sign-in and a total rework of the studio (too much scrolling, too many buttons, cards repeating the same facts). Built a rebrand proposal, "Volume Rebrand": https://claude.ai/artifact/6LJ9T6cfgm3YyZqQ5ERoRr. Paper and ink, cobalt accent, bookmark-ribbon mark, Newsreader and Geist. Studio never scrolls as a page; four places (Books, Releases, Pen names, Settings); Books is one list-and-detail screen with the eight steps as tabs; one action per book in its header; running work only in the top-bar pill. Needs the owner's yes before it replaces D-066 (new decision, new fonts need the owner's OK).
+
+- Plan: `docs/08-change-management/plans/2026-10-31-design-finalisation.md` (proposed, waiting for the owner's OK). Nine gaps found and checked in the running app (demo data, 1440 and 390): invisible cover text on landing and sign-in, "studio." invisible on sign-in, public pages still in the D-014 look, uneven library card rows, Overview Up next hard-coded to Research, uneven Overview columns, Blueprint inspector three times the outline's height, uppercase labels, demo state strip.
+- Reference artifact "Volume Finalised": https://claude.ai/artifact/NCtHuGLVkaU8PcAhRtswSX (landing, sign-in and every studio screen on demo data; GSAP 3.15.0 and Lenis 1.3.27).
+- Next: owner answers the three questions in the plan, then stage 1 (public pages). No code in `apps/web` changed.
+- 31 October, later: the artifact is now a design file (design system left, 31 live screens and states right, 4 responsive widths) plus the full prototype (`app.html`) with the real features the first version missed: pipeline board, suggestions and memory, version compare, models with fallbacks, spending and jobs, members and roles, release calendar, batch detail, picture-book spreads, import and published dialogs. 8K tiles (7680 x 4320): `../reports/volume/design-file-2026-10-31/`.
+
 ## State on 28 October 2026 (studio redesign, stages 0 to 2)
 
 - Plan: `docs/08-change-management/plans/2026-10-28-studio-redesign.md` (owner approved, stage by stage, one PR each, every deploy needs the owner's yes).

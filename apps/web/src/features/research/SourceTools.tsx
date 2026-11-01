@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button, Chip, FilterField } from "../../components/ui";
 import { cn } from "../../lib/cn";
 
@@ -39,7 +39,8 @@ export function sourceMatches(f: Pick<SourceFilterState, "query" | "show">, used
 /** A row of figures over the dossier. Each value is counted from the loaded run. */
 export function ResearchCounts({ items, className }: { items: { label: string; value: number }[]; className?: string | undefined }) {
   return (
-    <dl aria-label="Research in numbers" className={cn("grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5", className)}>
+    // Two columns on phones (an odd last figure takes the whole row, so no orphan), five in one row from tablets up.
+    <dl aria-label="Research in numbers" className={cn("grid grid-cols-2 gap-2.5 md:grid-cols-5 max-md:[&>*:last-child:nth-child(odd)]:col-span-2", className)}>
       {items.map((it) => (
         <div key={it.label} className="vol-glass grid content-start rounded-[16px] px-3.5 py-3">
           <dt className="order-2 text-[12px] text-ink-2">{it.label}</dt>
@@ -78,6 +79,23 @@ export function NoSourceMatch({ filter }: { filter: SourceFilterState }) {
       <Button size="sm" variant="ghost" onClick={filter.clear}>
         Clear the filter
       </Button>
+    </div>
+  );
+}
+
+/**
+ * The dossier's two columns from 768 px: each column is its own stack (Audience, Angles, Gaps on the left;
+ * Reader pains, Competing themes, Keyword ideas on the right), so no card is stretched to its neighbour's
+ * height. The last card of each stack takes the leftover height, so both columns end level. On phones the
+ * stacks dissolve into one column and the cards read in their `max-md:order-*` order.
+ */
+export function DossierColumns({ left, right, after }: { left: ReactNode; right: ReactNode; after?: ReactNode }) {
+  const stack = "contents md:flex md:min-w-0 md:flex-col md:gap-4 md:[&>*:last-child]:flex-1";
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <div className={stack}>{left}</div>
+      <div className={stack}>{right}</div>
+      {after && <div className="max-md:order-last md:col-span-2">{after}</div>}
     </div>
   );
 }

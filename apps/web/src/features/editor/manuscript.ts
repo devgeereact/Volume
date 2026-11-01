@@ -170,7 +170,7 @@ function chargeNurse(): Manuscript {
     [
       "The First Shift in Charge",
       4210,
-      4200,
+      4000,
       [
         "Nobody feels ready for their first shift in charge. You will have watched others do it for months, and still the keys feel heavier than you expected when they are handed to you at half past seven.",
         "This chapter walks through that first shift hour by hour: what to look at first, who to speak to, and what can safely wait until the ward has settled.",
@@ -179,7 +179,7 @@ function chargeNurse(): Manuscript {
     [
       "Reading the Board",
       4380,
-      4200,
+      4000,
       [
         "The ward board tells you more than any single handover can. Bed numbers, names, arrows, coloured magnets and scribbled notes together make a map of the shift ahead.",
         "Learn to read it in the same order every time. Start with who is unwell, then who is going home, then who is waiting for something that only you can chase.",
@@ -188,7 +188,7 @@ function chargeNurse(): Manuscript {
     [
       "Allocating Staff Fairly",
       4290,
-      4200,
+      4000,
       [
         "Allocation is the first decision everyone sees you make, so it is the first one they judge. A fair allocation is not an equal one. It matches patients to skills and spreads the heavy work across the shift.",
         "Say out loud why you have made each choice. People accept a hard allocation far more readily when they can hear the reasoning behind it.",
@@ -197,7 +197,7 @@ function chargeNurse(): Manuscript {
     [
       "The Safety Huddle",
       4150,
-      4200,
+      4000,
       [
         "A good safety huddle takes five minutes and changes the whole shift. It is where you name the patients who worry you, the staff who are stretched and the risks that are already on the floor.",
         "Keep it standing, keep it short and end it with one clear question: is there anything anyone needs from me before we start?",
@@ -206,17 +206,17 @@ function chargeNurse(): Manuscript {
     [
       "Escalating Without Apology",
       4460,
-      4200,
+      4000,
       [
         "New charge nurses often apologise when they escalate, as if asking for help were a failure. It is the opposite. Escalating early is one of the most important things the nurse in charge does.",
         "You must escalate a NEWS2 score of 5 or more to a doctor within 30 minutes. Say what you see, what you think it means and what you want to happen next.",
       ],
     ],
-    ["Handling Conflict on the Floor", 4320, 4200, []],
+    ["Handling Conflict on the Floor", 4320, 4000, []],
     [
       "Supporting Students and New Starters",
       4410,
-      4200,
+      4000,
       [
         "Students and new starters remember the charge nurse who noticed them. A two minute check at the start of the shift, asking what they want to learn today, costs you very little.",
         "Pair them thoughtfully. The best mentor on a busy shift is not always the most senior nurse, but the one with the most patience left.",
@@ -225,7 +225,7 @@ function chargeNurse(): Manuscript {
     [
       "Documentation That Protects",
       4520,
-      4200,
+      4000,
       [
         "Good notes protect patients first and staff second. They tell the next nurse what happened, what was done and what still needs doing, in words anyone on the ward can follow.",
         "Notes written after the shift ends are not legally valid. Write as close to the event as you can, and sign and time every entry.",
@@ -234,7 +234,7 @@ function chargeNurse(): Manuscript {
     [
       "When Things Go Wrong",
       4630,
-      4200,
+      4000,
       [
         "Sooner or later something will go wrong on a shift you are running. A fall, a missed dose, a family who feels unheard. How you respond in the first hour shapes everything that follows.",
         "Look after the patient, then the staff involved, then the paperwork. In that order, every time.",
@@ -243,7 +243,7 @@ function chargeNurse(): Manuscript {
     [
       "Looking After Yourself",
       4380,
-      4200,
+      4000,
       [
         "The nurse in charge is often the last to take a break and the first to stay late. Over a year that adds up, and it shows in your judgement long before it shows in your mood.",
         "Protect one break a shift as if it were a patient's medication. Hand over the keys, leave the ward and eat something that is not from a vending machine.",

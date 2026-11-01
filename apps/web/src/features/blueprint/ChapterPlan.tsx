@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type ReactNode } from "react";
 import { AlertCircle, Check, History } from "lucide-react";
-import { Button, Card, Modal, StatusChip } from "../../components/ui";
+import { Button, Card, Modal, StatusChip, Tabs, tabPanelProps } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { formatNumber } from "../../lib/format";
 
@@ -413,6 +413,56 @@ export function VersionChip({ version, total, approved, items, actionLabel, onAc
           </ol>
         )}
       </Modal>
+    </>
+  );
+}
+
+export interface InspectorTab<T extends string> {
+  id: T;
+  label: string;
+  /** A count beside the label (open claims, things to fix before approving). Left out when undefined. */
+  count?: number | undefined;
+  /** Show the count in proof red: something still needs you. */
+  urgent?: boolean | undefined;
+  panel: ReactNode;
+}
+
+/**
+ * The blueprint's right card split into tabs (the chosen part, the whole book, claims, versions), so the
+ * card is about as tall as the outline beside it and never leaves the outline column mostly empty.
+ * Every section is still here, one tab away. Arrow keys, Home and End move between tabs (Tabs).
+ */
+export function InspectorTabs<T extends string>({
+  label,
+  idBase,
+  tabs,
+  value,
+  onChange,
+}: {
+  label: string;
+  idBase: string;
+  tabs: InspectorTab<T>[];
+  value: T;
+  onChange: (id: T) => void;
+}) {
+  const current = tabs.find((t) => t.id === value) ?? tabs[0];
+  if (!current) return null;
+  return (
+    <>
+      <Tabs
+        label={label}
+        idBase={idBase}
+        value={current.id}
+        onChange={(id) => {
+          const next = tabs.find((t) => t.id === id);
+          if (next) onChange(next.id);
+        }}
+        items={tabs.map((t) => ({ id: t.id, label: t.label, count: t.count, countTone: t.urgent ? "claim" : "default" }))}
+        className="-mx-1.5 -mt-1.5 mb-1 [&>button]:px-2"
+      />
+      <div {...tabPanelProps(idBase, current.id)} className="grid min-w-0 content-start rounded-control">
+        {current.panel}
+      </div>
     </>
   );
 }

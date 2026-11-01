@@ -3,7 +3,7 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import { books } from "../../demo/books";
 import { groupOf, stepLine, stepSegments } from "./bookStatus";
-import { GRID_SHOWN, LibraryGrid, sortForGrid } from "./LibraryGrid";
+import { GRID_SHOWN, LibraryGrid, firstPage, gridShown, sortForGrid } from "./LibraryGrid";
 import { LibraryTiles } from "./LibraryTiles";
 
 function render(list = books) {
@@ -25,6 +25,30 @@ describe("Library grid view", () => {
     expect(html).toContain(`${active.length - GRID_SHOWN} more`);
     // Every row takes the height of the tallest card, so all cards are the same size.
     expect(html).toContain("auto-rows-fr");
+  });
+
+  it("shows three whole rows before Show all at three, four and five columns", () => {
+    expect(gridShown(3)).toBe(GRID_SHOWN);
+    for (const cols of [3, 4, 5] as const) expect(gridShown(cols) % cols).toBe(0);
+    // 14 books at 5 columns: two whole rows first, not 5+5+4; fewer books than one row show as they are.
+    expect(firstPage(14, 5)).toBe(10);
+    expect(firstPage(14, 3)).toBe(9);
+    expect(firstPage(4, 5)).toBe(4);
+    for (const total of [1, 6, 9, 13, 20])
+      for (const cols of [3, 4, 5] as const) {
+        const n = firstPage(total, cols);
+        expect(n === total || n % cols === 0).toBe(true);
+      }
+    expect(render()).toContain("min-[1900px]:grid-cols-4");
+  });
+
+  it("tags only books ready to publish, since the step and status lines already say the rest", () => {
+    const html = render(sortForGrid(books).filter((b) => groupOf(b) !== "ready"));
+    expect(html).not.toContain(">In progress<");
+    expect(html).not.toContain(">Published<");
+    const ready = books.filter((b) => groupOf(b) === "ready");
+    expect(ready.length).toBeGreaterThan(0);
+    expect(render(ready)).toContain(">Ready to publish<");
   });
 
   it("has no Show all button with nine books or fewer", () => {

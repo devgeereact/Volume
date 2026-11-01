@@ -165,7 +165,8 @@ function OpenVolume({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
 const checkIcon = <Check size={13} strokeWidth={2} aria-hidden className="shrink-0 text-good" />;
 
 /** The status box: demo values in demo mode, the server's settings and running jobs otherwise. */
-export function SideStatus({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
+/** `hideMoney` leaves out the month spend and credit lines where the screen already shows them (the Library tiles). */
+export function SideStatus({ onNavigate, hideMoney = false }: { onNavigate?: (() => void) | undefined; hideMoney?: boolean | undefined }) {
   const mode = useWireMode();
   const api = mode === "api";
   const settings = useApiSettings(api);
@@ -182,8 +183,8 @@ export function SideStatus({ onNavigate }: { onNavigate?: (() => void) | undefin
             {openRouter.connected ? "OpenRouter connected" : "OpenRouter not connected"}
           </span>
         </div>
-        <Money label={`${spend.monthLabel} spend`} value={spend.spentUsd} />
-        {openRouter.creditUsd !== null && <Money label="Credit left" value={openRouter.creditUsd} />}
+        {!hideMoney && <Money label={`${spend.monthLabel} spend`} value={spend.spentUsd} />}
+        {!hideMoney && openRouter.creditUsd !== null && <Money label="Credit left" value={openRouter.creditUsd} />}
         <OpenVolume onNavigate={onNavigate} />
       </div>
     );
@@ -224,8 +225,8 @@ export function SideStatus({ onNavigate }: { onNavigate?: (() => void) | undefin
           {keyLine}
         </span>
       </Link>
-      <Money label={`${month} spend`} value={s.budgets.monthSpendUsd} />
-      {credit !== null && <Money label="Credit left" value={credit} />}
+      {!hideMoney && <Money label={`${month} spend`} value={s.budgets.monthSpendUsd} />}
+      {!hideMoney && credit !== null && <Money label="Credit left" value={credit} />}
       <OpenVolume onNavigate={onNavigate} />
     </div>
   );

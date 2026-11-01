@@ -158,7 +158,8 @@ export function Spine({ onNavigate, variant = "float", className }: SpineProps) 
       </nav>
 
       <div className="mt-auto grid gap-3 pt-4">
-        <SideStatus onNavigate={onNavigate} />
+        {/* On the Library the tiles already show this month's spend and the credit left. */}
+        <SideStatus onNavigate={onNavigate} hideMoney={pathname === "/library"} />
       </div>
     </aside>
   );
