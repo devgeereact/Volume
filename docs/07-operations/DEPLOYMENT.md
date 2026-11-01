@@ -6,8 +6,8 @@ Volume runs on the owner's cPanel account as one CloudLinux Passenger Node.js ap
 
 | Item | Value (1 November 2026) |
 | --- | --- |
-| Live release | `20261101T062407Z`, built from main `069f5a5` (PR #87, design gap fixes) by the automatic deploy (Actions run 41280644217). "Check Volume" on main first failed when ESLint ran out of memory on the macOS runner; the failed job was re-run and passed. |
-| Rollback target | `20261030T194912Z` (`npm run deploy -- --rollback`) |
+| Live release | `20261101T081309Z`, built from main `138aaf0` by the automatic deploy (Actions run 41287882304): design gap fixes (PR #87), sign-in heading and 3D book gilt (PR #88), CI lint memory (PR #89) and the clean-up (PR #90). |
+| Rollback target | `20261101T075221Z` (`npm run deploy -- --rollback`) |
 | Migrations applied in production | `0001` to `0011`. `0006`, `0008` and `0009` on 18 October 2026, `0010_listing_source` on 19 October 2026, `0011_version_author` on 19 October 2026 (evening) |
 | CI | Runs again since 30 October 2026 (repository public). "Check Volume" runs on every push; a passing run on `main` starts `deploy.yml`. |
 
@@ -18,7 +18,7 @@ To roll back: `npm run deploy -- --rollback` switches `current` to the release b
 | Piece | Where |
 | --- | --- |
 | Release folders | `~/apps/volume/releases/<utc>/` (one per deploy, built on the Mac) |
-| Live release | `20261101T062407Z`, built from main `069f5a5` (PR #87, design gap fixes) by the automatic deploy (Actions run 41280644217). "Check Volume" on main first failed when ESLint ran out of memory on the macOS runner; the failed job was re-run and passed. |
+| Live release | `20261101T081309Z`, built from main `138aaf0` by the automatic deploy (Actions run 41287882304): design gap fixes (PR #87), sign-in heading and 3D book gilt (PR #88), CI lint memory (PR #89) and the clean-up (PR #90). |
 | Settings | `~/apps/volume/shared/.env` (mode 600), names in [.env.example](../../.env.example) |
 | Backups folder | `~/apps/volume/shared/data` (`DATA_DIR`; SQLite backups only, MySQL uses cPanel backups) |
 | Chromium | `~/apps/volume/shared/browsers` (`PLAYWRIGHT_BROWSERS_PATH`, chromium-headless-shell 1243) |

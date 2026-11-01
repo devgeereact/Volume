@@ -4,9 +4,9 @@ Current state only. Dated history is in `.agent/HANDOFF.md`; audits in `docs/AUD
 
 ## State on 1 November 2026
 
-- **Live:** design gap fixes (PR #87). The sign-in heading and 3D book gilt fix (PR #88) is merged but not yet deployed: "Check Volume" on main failed on the macOS runner (ESLint out of memory, then a full-book e2e substring match). PR #89 (`ci/lint-memory`) fixes both; merging it deploys main with #88 included.
-- **Clean-up (in progress, uncommitted on `ci/lint-memory`'s working tree):** dead code removed (`BlueprintInspector.tsx`, nine unused exports, the unused Schibsted Grotesk font package); 37 merged remote branches and 2 local ones deleted; agent worktrees and regenerable build output removed; docs being brought up to date. Next: gate, PR, merge.
-- **Checks to run after deploy:** live `/sign-in` heading on one line and "studio." visible; signed-in Blueprint and Titles on a real book (owner).
+- **Live:** release `20261101T081309Z` (main `138aaf0`): design gap fixes (#87), sign-in heading and 3D book gilt (#88, checked live: one line, "studio." 13.7:1 light and 13.1:1 dark), CI lint memory and exact e2e title match (#89), clean-up (#90). Rollback target `20261101T075221Z`.
+- **Clean-up done:** dead code, merged branches, worktrees, build output and outdated docs (docs/AUDIT.md, 1 November). Only `main` and the owner's `docs/release-20261030` remain on GitHub.
+- **To check by hand:** signed-in Blueprint and Titles on a real book (owner).
 
 ## Open owner decisions
 
