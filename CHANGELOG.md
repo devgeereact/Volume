@@ -2,6 +2,12 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 1 November 2026
+
+#### Fixed
+- Sign-in page: "Welcome back to the studio." now shows in full on one line on laptop and desktop screens; the word "studio." was invisible in both themes.
+- The cloth-bound book on the landing and sign-in pages shows its gold title and border again.
+
 ## 31 October 2026 (branch design/gap-fixes, not deployed)
 
 #### Fixed

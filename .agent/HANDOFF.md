@@ -864,3 +864,10 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - "Check Volume" on main failed once: ESLint ran out of memory on the macOS runner (the same code passed macOS lint twice on the PR). Re-ran the failed job; it passed and `deploy.yml` deployed `releases/20261101T062407Z` (run 41280644217). Rollback target `20261030T194912Z`.
 - Live checks: see CURRENT-TASK. Docs: DEPLOYMENT.md current release updated.
 
+## 1 November 2026 (later), Claude Code (Opus 5.5): sign-in check, alerts, worktrees
+
+- Owner: "sign in not working", "fix the text, no reason to break on a laptop screen", plus the two follow-ups.
+- Live sign-in tested in a headless browser: Clerk form loads, CSP allows Clerk, unknown address gets "Couldn't find your account", owner's address reaches the email code step (a code email went to the owner during the test). Clerk config: password on and required; owner has no password. Recommended turning the password method off; not changed.
+- Fixed the heading (invisible "studio.", early wraps) and the 3D book gilt (`SignInPage.tsx`, `Book.tsx`, `site.css`). Measured one line at 1024 to 1920, contrast 13.7 and 13.1, axe clean.
+- Dependabot alerts dismissed (not reachable; details in docs/AUDIT.md). Worktrees removed. Docs check PASS.
+

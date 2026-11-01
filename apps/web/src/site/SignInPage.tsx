@@ -74,12 +74,12 @@ export default function SignInPage({ mode }: SignInPageProps) {
         <div className="relative h-[380px]">
           <Book size="sm" delay={0.2} interactive={false} />
         </div>
-        <div className="grid max-w-[30em] gap-3">
-          <p className="m-0 font-book text-[clamp(30px,3vw,42px)] leading-[1.08] font-medium tracking-[-0.02em]">
+        <div className="grid gap-3">
+          <p className="m-0 font-book text-[clamp(30px,2.8vw,42px)] leading-[1.08] font-medium tracking-[-0.02em] text-balance min-[1180px]:whitespace-nowrap">
             <SplitText text="Welcome back to the" effect="blur" stagger={0.06} />{" "}
-            <SplitText text="studio." effect="blur" stagger={0.06} delay={0.3} className="font-normal text-accent italic" />
+            <SplitText text="studio." effect="blur" stagger={0.06} delay={0.3} className="font-normal text-ink-on-spine italic" />
           </p>
-          <p className="in-rise m-0 text-ink-on-spine-muted">Your books, pen names and upload packs are where you left them.</p>
+          <p className="in-rise m-0 max-w-[44em] text-ink-on-spine-muted">Your books, pen names and upload packs are where you left them.</p>
         </div>
       </aside>
 
