@@ -1,3 +1,3 @@
 # Notifications Spec
 
-Existing in-app toasts, job progress and SSE event replay remain supported. No external push, email or messaging service is introduced.
+In-app only: toasts for background work that finished elsewhere, job progress in the side menu's status box, notices such as "AI credits have run out" on the book page (D-057), and SSE event replay after a reconnect. No external push, email or messaging service is used; there is no service worker for push.

@@ -871,3 +871,11 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Fixed the heading (invisible "studio.", early wraps) and the 3D book gilt (`SignInPage.tsx`, `Book.tsx`, `site.css`). Measured one line at 1024 to 1920, contrast 13.7 and 13.1, axe clean.
 - Dependabot alerts dismissed (not reachable; details in docs/AUDIT.md). Worktrees removed. Docs check PASS.
 
+## 1 November 2026 (afternoon), Claude Code (Opus 5.5): clean-up
+
+- Owner: clean up cluttered files, bring files up to date, delete dead code and unused worktrees, clean up outdated Markdown.
+- Dead code removed (details in docs/AUDIT.md, 1 November clean-up): BlueprintInspector.tsx, nine unused exports, the unused Schibsted Grotesk package. 37 merged remote branches and 2 local ones deleted; agent worktrees and regenerable build output removed. `docs/release-20261030` kept (unmerged commits).
+- Docs: a volume-architect agent corrected 39 Markdown files against the code (spot-checked: roles, ACCOUNTS_MODE, 90-day event retention). Plan statuses updated; CURRENT-TASK.md cut to current state and open decisions; AGENTS.md e2e line fixed (20 tests in 10 specs, 5313 and 5314 free).
+- CI: lint memory raised to 4 GB and the full-book e2e exact title match (PR #89, merged); unblocks the deploy of #88.
+- Checks: typecheck, lint, format, docs PASS; tests core 210, ai 265, export 245, server 566, web 267; e2e 20/20.
+

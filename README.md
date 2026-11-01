@@ -2,7 +2,7 @@
 
 Volume is a book production app. It takes a rough idea or a working title and turns it into a finished, KDP-ready book: research with real sources, title options, an approved blueprint, a fully written manuscript in the author's voice, editing passes, covers, and an upload pack with print PDF, Word, EPUB, plain text, covers, listing copy and a claims-to-verify report.
 
-Each book belongs to an author profile (a pen name or a real person), with its own voice, bio, brand and model choices. All AI work goes through one OpenRouter account, and the owner picks the model for every job.
+Each book belongs to an author profile (a pen name or a real person), with its own voice, bio, brand and model choices. AI work goes through the owner's OpenRouter account; when `ANTHROPIC_API_KEY` is set, Claude models try Anthropic first and fall back to OpenRouter (D-058). The owner picks the model for every job.
 
 Owner: Gideon (Gakinz, London). Hosted for the owner at https://volume.gakinz.com (cPanel, Passenger, MariaDB, Clerk sign-in; see [deployment](docs/07-operations/DEPLOYMENT.md)) and developed on macOS or Linux. Built so other self-publishers can have accounts later.
 
@@ -22,9 +22,7 @@ For a new session, read this file, then [AGENTS.md](AGENTS.md) (every rule) and 
 
 ## Status
 
-20 October 2026: live at https://volume.gakinz.com on release `20261020T035644Z` (main `072dec3`), with rollback target `20261020T021731Z`. Phases 0 to 8 are built; phases 6 to 8 were built on 17 October 2026 (D-041 to D-047). The owner gates for phases 5 to 8 are open. The live acceptance run of 18 October 2026 is not passed: no book has yet gone through to a postable pack end to end.
-
-GitHub Actions creates no runs because GitHub's spam filter flagged the owner's account on 18 October 2026 (see [known issues](docs/KNOWN-ISSUES.md)), so deploys use `--no-ci-check` with the owner's OK. Open issues are in [known issues](docs/KNOWN-ISSUES.md). The current release, deploy and rollback steps are in [deployment](docs/07-operations/DEPLOYMENT.md).
+Live at https://volume.gakinz.com. The current release, its commit and the rollback target are in [deployment](docs/07-operations/DEPLOYMENT.md) ("Current release"). Since 30 October 2026 GitHub Actions runs again: "Check Volume" runs on every push and a passing run on `main` deploys automatically. Phases 0 to 8 are built; phases 6 to 8 were built on 17 October 2026 (D-041 to D-047). The owner gates for phases 5 to 8 are open, and no book has yet gone through a live run to a postable pack end to end. Open issues are in [known issues](docs/KNOWN-ISSUES.md).
 
 ## Restore and run on macOS or Linux
 
@@ -71,12 +69,13 @@ npm run lint          # ESLint, type-aware, whole repo
 npm run format:check  # Prettier; npm run format rewrites the files
 npm run test          # Vitest in every workspace
 npm run test:coverage # measured core, AI, export and server thresholds
-npm run e2e           # 17 browser tests in 9 specs, mock AI; Playwright uses ports 5311 to 5318 (not 5314), and 5313 must be free
+npm run e2e           # 20 browser tests in 10 specs, mock AI; Playwright uses ports 5311 to 5318, so all of them must be free
+npm run verify        # every Check Volume step on your Mac before you push
 npm run build:release # release folder for the cPanel host (docs/07-operations/DEPLOYMENT.md)
 mise exec -- npm run deploy -- --dry-run  # host preflight only; a real `npm run deploy` needs the owner's approval
 ```
 
-Settings live in `.env` at the root (template in `.env.example`). With no OpenRouter key the app uses the mock AI and spends nothing. The web app falls back to its built-in demo data when the server is not running.
+Settings live in `.env` at the root (template in `.env.example`). With no OpenRouter key the app uses the mock AI and spends nothing. A local web app that has never reached the server shows its built-in demo data under a Demo badge (D-061). `local-live.json` describes running the web app locally against the live API and live Clerk sign-in.
 
 ## Folder map
 
@@ -84,6 +83,8 @@ Settings live in `.env` at the root (template in `.env.example`). With no OpenRo
 |---|---|
 | `.agent/` | Project card, current task and handoff log, for any AI |
 | `.claude/` | Claude Code agents, skills and hooks |
+| `.github/` | GitHub Actions: `check.yml` (Check Volume) and `deploy.yml` |
+| `.githooks/` | GEE OS guard hooks (`scripts/guard.py`); enable once per clone with `git config core.hooksPath .githooks` |
 | `docs/` | Specifications (index below), the plan, KDP facts, owner's source drafts |
 | `config/` | KDP rules, model defaults, house style, book templates |
 | `prompts/` | Versioned prompt files, one folder per pipeline stage |
@@ -92,11 +93,13 @@ Settings live in `.env` at the root (template in `.env.example`). With no OpenRo
 | `packages/core/` | Book model, Markdown parser, house style, checkers, KDP maths |
 | `packages/ai/` | OpenRouter client, mock provider, model registry, prompt loader, guardrails |
 | `packages/export/` | PDF, DOCX, EPUB, TXT, MD, covers, preflight, upload pack |
-| `packages/ui/` | Design tokens and shared components |
-| `design/directions/` | Original design boards; fused direction lives in design/final/ (D-014 accepted) |
+| `packages/ui/` | Design tokens (`tokens.json`, `tokens.css`, `theme.css`, `glass.css`); the shared React components are in `apps/web/src/components/ui/` |
+| `design/` | Design boards: `directions/` (the first boards), `final/` (the D-014 board and the token build script `final/src/build.mjs`), `research/`. The current look is the approved Volume Studio design (D-066) |
 | `assets/fonts/` | OFL fonts with their licence files |
-| `tests/` | Unit, golden and end-to-end tests |
-| `scripts/` | Portable setup, runtime checks, development launcher and documentation checks |
+| `tests/` | End-to-end (Playwright), tooling and smoke tests; unit tests and golden files live in each workspace ([tests/README.md](tests/README.md)) |
+| `scripts/` | Setup, doctor, development launcher, docs check, release build and deploy ([scripts/README.md](scripts/README.md)) |
+| `deploy/` | Host files: Passenger settings, docroot `.htaccess`, production settings ([deploy/README.md](deploy/README.md)) |
+| `qa/` | Rebuild records from 7 October 2026 (document and source move lists, checks) |
 | `data/` | Database, project files, exports and backups (git-ignored, never read by AI) |
 
 ## Documentation index
@@ -139,5 +142,7 @@ Settings live in `.env` at the root (template in `.env.example`). With no OpenRo
 - KDP AI disclosure is set automatically when AI wrote the text or made the images.
 - Volume mode (many books at once) comes later, with KDP's weekly title limit built in.
 - The fused Volume direction is implemented and accepted (D-014, 7 October 2026).
+
+Later decisions changed some of these: hosting at volume.gakinz.com with Clerk sign-in (D-038, D-039), invited members with roles (D-047), Anthropic first for Claude models (D-058), no book or monthly spending cap (D-057) and the Volume Studio design (D-066).
 
 The full log is in `docs/08-change-management/DECISIONS.md`.

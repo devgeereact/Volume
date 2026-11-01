@@ -1,6 +1,6 @@
 # Plan: Studio redesign into the real app (28 October 2026)
 
-Status: approved by the owner on 28 October 2026. Stage 0 merged (PR #76), stage 1 in PR #77, stage 2 in its own PR.
+Status: complete. Approved by the owner on 28 October 2026; stages 0 to 6 merged (PRs #76 to #83) and live by 29 October 2026 (release `20261029T192436Z`). Kept as history; the current look is D-066 in DESIGN-SYSTEM.md.
 
 ## Goal
 

@@ -1,5 +1,7 @@
 # Clean production follow-ups implementation plan
 
+Status: complete. All five follow-ups checked done on the live site on 22 October 2026.
+
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Close the five items left open by the clean production work of 21 October 2026, each only after the owner's answer.

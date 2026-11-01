@@ -1,6 +1,6 @@
 # 09 Screens and flows
 
-Every screen uses the app shell from `docs/03-design/DESIGN-SYSTEM.md`: left nav, main canvas, right inspector, and a job bar while work runs. Requirements behind each screen are in `docs/01-product/PRODUCT-SPEC.md` (module numbers in brackets).
+Every screen uses the app shell from `docs/03-design/DESIGN-SYSTEM.md`: side menu with its status box, top bar and main canvas; book steps add the step bar. There is no bottom job bar (D-066): running work shows in the side menu's status box. Requirements behind each screen are in `docs/01-product/PRODUCT-SPEC.md` (module numbers in brackets).
 
 ## Route map
 
@@ -39,7 +39,7 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 
 ### Library [M2]
 - **Purpose:** see every book by pen name and status; open or start one.
-- **Regions:** header with filter, Grid, Shelves or Ledger, and "New book"; Grid shows 9 equal book cards with Show all; a side column with a By stage filter (All books, In progress, Ready to publish, Published, with real counts) and Today; pen name filter in the side menu's profile switcher.
+- **Regions:** four stage tiles that narrow the list to one stage; header with filter, Covers, Shelves or Ledger, and "New book"; Covers is one grid of equal cards, 3 to a row, 4 from 1900 px and 5 from 2400 px, showing the first three whole rows with Show all; from 1201 px a side column with Needs you and Releases in the next 7 days; pen name filter in the side menu's profile switcher (`features/library/LibraryGrid.tsx`, `LibraryPage.tsx`).
 - **Components:** book card (cover thumbnail, title, pen name, status chip, words, spend, live progress), filter chips, view toggle.
 - **Primary action:** New book.
 - **Empty:** "No books yet. Start one from an idea or a working title." with New book. If no profile exists, the action is "Add a pen name first".
@@ -47,21 +47,21 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 
 ### Profiles [M1]
 - **Purpose:** manage pen names and real-person profiles.
-- **Regions:** list of profile cards (pen name, real-person badge, books count, default writer model); inspector shows bio preview.
-- **Primary action:** Add pen name.
+- **Regions:** grid of profile cards (pen name, real-person badge, books count, default writer model) with an Add profile tile at the end of the grid, so the last row is never a lone card (`features/profiles/ProfilesPage.tsx`).
+- **Primary action:** Add profile.
 - **Empty:** "No pen names yet. Add your first one." **Loading:** card skeletons. **Error:** retry banner.
 
 ### Profile editor [M1]
-- **Purpose:** edit one profile's identity, bio, voice, brand, templates and models.
-- **Regions:** tabs (Identity, Bio, Voice DNA, Brand, Templates, Models, Memory); inspector shows a live preview of the copyright page and About the Author as they will print.
+- **Purpose:** edit one profile's identity, bio, voice, publishing defaults and models.
+- **Regions:** tabs (Identity, Voice DNA, Publishing defaults, Models, Memory; `features/profiles/ProfileEditorPage.tsx`); inspector shows a live preview of the copyright page and About the Author as they will print.
 - **Components:** text fields with counts, credential and link lists, sample editor with word counts, real-person switch with explanation, template fields with placeholder chips (`{year}`, `{pen_name}`, `{title}`, `{edition}`, `{isbn_line}`), per-stage model rows, memory list with switches.
-- **Primary action:** Save profile.
+- **Primary action:** Save profile (Add profile for a new one).
 - **Empty:** each tab explains what to add (for example "Paste a few paragraphs that sound like this author").
 - **Error:** inline field errors, for example "Use {year} instead of a fixed year."
 
 ### New book wizard [M3]
 - **Purpose:** start a book in under a minute.
-- **Regions:** step header (1 Profile, 2 Template, 3 Idea, 4 Format and budget, 5 Review); single-column form; inspector hidden.
+- **Regions:** step header (1 Profile, 2 Book type, 3 Idea, 4 Details, 5 Review; `features/new-book/NewBookPage.tsx`); single-column form; inspector hidden.
 - **Primary action:** per step "Next"; last step "Start research" (secondary: "Skip to titles").
 - **Empty:** not applicable. **Error:** inline; network failure keeps entered values.
 
@@ -77,12 +77,12 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 - **Purpose:** pick a title and subtitle.
 - **Regions:** 5 direction columns or rows; 10 option cards grouped by direction; inspector shows the chosen option with character count, checks and a store listing preview (no store name, logo, ratings or reviews). An eye button on each card previews it without choosing it.
 - **Components:** option card (title, subtitle, length bar "N of 199" (KDP fact 5.4, from `config/kdp-rules/`; it counts the ": " between title and subtitle, which errs on the safe side), check badges, edit, choose), direction header with "More like this".
-- **Primary action:** Use this title.
+- **Primary action:** Use this title. The chosen title is marked once, on its own card ("Chosen title", `features/titles/TitleCard.tsx`); the side card does not repeat it.
 - **Empty:** "Generate title options" with cost. **Error:** invalid options are greyed with the reason.
 
 ### Blueprint [M6]
 - **Purpose:** shape and approve the whole plan.
-- **Regions:** outline tree (front, parts and chapters, back, listing) on the left of the canvas; selected part's form on the right of the canvas; inspector shows validation, word total against range, and versions.
+- **Regions:** outline tree (front, parts and chapters, back, listing) on the left; a side card in tabs: Chapter (or Part) for the selected item, Book (validation and word total against range) and Versions, with Rebuild the book in Versions once a blueprint is approved. The demo build also has a Claims tab (`features/blueprint/BlueprintApi.tsx`, `BlueprintPage.tsx`).
 - **Components:** chapter card (title, subheadings, summary with word count, target), "Regenerate this part" with optional instruction, version compare, approve bar.
 - **Primary action:** Approve blueprint (disabled with the list of what is missing).
 - **Empty:** "Build the blueprint" with cost. **Loading:** parts fill in as they arrive. **Error:** schema failure shows "The plan came back incomplete. Try again or pick another model."
@@ -91,14 +91,16 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 - Every screen follows the approved Volume Studio artifact. Where a section below disagrees on layout, the artifact and D-066 win; the functions listed below all stay.
 - **Shell:** labelled side card with a status box (Writing now or Nothing running, OpenRouter, month spend, credit left when known, Pause or Resume, Open Volume mode). No bottom job bar.
 - **Library:** four tiles, a Writing now card, All books (filter, All profiles, Covers, Shelves and Ledger), Needs you and Releases, next 7 days.
-- **Blueprint:** Outline card and a right card with the chosen chapter, the whole book, claims and versions. Arrange sections and the full plan open as dialogs.
+- **Step pages:** one navy primary action per step page, in the step head. The step bar (`shell/StepRail.tsx`) carries Back, the eight steps and Next as a quiet secondary control, never a second navy button.
+- **Phones:** under 761 px, secondary detail on Overview, Research and Titles folds into a closed disclosure row (`shell/PhoneFold.tsx`); nothing is removed.
+- **Blueprint:** Outline card and a tabbed side card (see Blueprint above). Arrange sections and the full plan open as dialogs.
 - **Writing:** five figure tiles, sections, the live page and a checks card. **Editor:** manuscript list, page with find, focus mode and undo, and Style, Claims and Notes tabs.
 - **Marketing:** a launch kit in the cover colours with generic previews and Copy; no counts or logos. **Export:** preflight rows, files grid, KDP pack and the royalty calculator.
 - **Cover studio:** concepts, layers, a canvas that fits, Edit and Checks tabs, palettes (saved as `typography.colours`) and a paperback what-if from `config/kdp-rules/`. Gradient, image and shape layers wait for print parity.
 
 ### Writing [M7]
 - **Purpose:** watch the book being written and handle anything that needs attention.
-- **Regions:** section list with status (queued, writing, checking, done, needs attention); live preview of the current section; inspector shows words so far, checks, cost so far against budget, model.
+- **Regions:** section list with status (queued, writing, checking, done, needs attention); live preview of the current section; inspector shows words so far, checks, cost so far, model. Budget caps were removed (D-057).
 - **Components:** progress header (sections done of total, time running), streamed text pane, check badges, pause, resume, cancel, regenerate section.
 - **Primary action:** Write book (with estimate) before the run; Open editor after it.
 - **Empty:** "Approve the blueprint first" with a link, or "Ready to write 12 sections".
@@ -149,7 +151,7 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 ### New book to export
 
 1. Library: New book.
-2. Wizard: pick profile, template, enter idea, trim, paper, budget; Start research.
+2. Wizard: pick profile, book type, enter idea, details (words, chapters, trim); Start research (or Skip to titles).
 3. Research runs (job, SSE). Owner ticks sources to use; Choose titles.
 4. Titles: generate, compare, edit one; Use this title.
 5. Blueprint: generate; regenerate any part; fix validation; Approve blueprint.
@@ -179,10 +181,9 @@ Implemented corrections: Library imports Markdown into a new book or a project Z
 
 ### Add a pen name
 
-1. Profiles: Add pen name.
-2. Identity: pen name, imprint, real-person switch (explains the illustrative line).
-3. Bio: third-person bio, short bio, credentials, links.
-4. Voice DNA: characteristics, samples that sound like and do not sound like the author.
-5. Templates: review the copyright and disclaimer defaults with `{year}`.
-6. Models: keep workspace defaults or choose a different writer.
-7. Save profile; it appears in the wizard.
+1. Profiles: Add profile.
+2. Identity: name and photo, real-person switch (explains the illustrative line), third-person bio, short bio, credentials and links.
+3. Voice DNA: characteristics, samples that sound like and do not sound like the author.
+4. Publishing defaults: book type, length, trim, interior theme, cover style, imprint, and the copyright and disclaimer defaults with `{year}`.
+5. Models: keep workspace defaults or choose a different writer.
+6. Add profile; it appears in the wizard.

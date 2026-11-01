@@ -1,10 +1,10 @@
 # Fonts
 
-All fonts here are under the SIL Open Font License 1.1 (licence files beside them). Copied from the AI Starter Library engine on 4 October 2026. Serif book fonts (Literata, EB Garamond, Source Serif 4) are added in phase 1 with their OFL files.
+All fonts here are under the SIL Open Font License 1.1 (licence files beside them). The static TTF files in this folder (IBM Plex Mono, Plus Jakarta Sans, Source Sans 3) were copied from the AI Starter Library engine on 4 October 2026; `packages/export/src/fonts.ts` prefers them, then the Fontsource packages below. The interface fonts (Literata, Manrope, JetBrains Mono) are Fontsource packages loaded by `apps/web/src/styles/fonts.css`.
 
 ## Book-content fonts for covers and interior themes (4 October 2026, D-017)
 
-Installed from Fontsource (npm, exact version 5.3.0) into the `prototype` workspace (now `apps/web`) at the owner's request, so every book can have its own interior theme and cover style. All are SIL Open Font License 1.1 (checked with `npm view <package> license`, which returns `OFL-1.1` for each). The licence text ships in each package as `node_modules/<package>/LICENSE`. Only the Latin subset is loaded (`prototype/src/styles/book-fonts.css`); Latin Extended files are not referenced. The interface never uses these fonts: they belong to the books. `config/interior-themes.json` and `config/cover-styles.json` name the same families.
+Installed from Fontsource (npm, exact version 5.3.0) into the `apps/web` workspace (then called `prototype`) at the owner's request, so every book can have its own interior theme and cover style. All are SIL Open Font License 1.1 (checked with `npm view <package> license`, which returns `OFL-1.1` for each). The licence text ships in each package as `node_modules/<package>/LICENSE`. Only the Latin subset is loaded (`apps/web/src/styles/book-fonts.css`); Latin Extended files are not referenced. The interface never uses these fonts: they belong to the books. `config/interior-themes.json` and `config/cover-styles.json` name the same families.
 
 | Family | Package | Files used (latin) | Weights and styles | Used for |
 |---|---|---|---|---|
@@ -25,7 +25,7 @@ Installed from Fontsource (npm, exact version 5.3.0) into the `prototype` worksp
 | Atkinson Hyperlegible Next | `@fontsource-variable/atkinson-hyperlegible-next` | wght normal, wght italic | 200 to 800 | Covers: workbook blocks. Themes: healthcare practical, workbook, journal minimal (body) |
 | Space Grotesk | `@fontsource-variable/space-grotesk` | wght normal | 300 to 700 | Covers: tech grid. Themes: tech guide, workbook headings |
 
-Phase 1 export (`packages/export`) embeds the same families in PDFs and EPUBs; copy each family's WOFF2 or TTF files and its `LICENSE` (OFL) here when the export pipeline needs local files.
+`packages/export` reads fonts from this folder and from the Fontsource packages in `node_modules` (`packages/export/src/fonts.ts`); print PDFs use the static packages below.
 
 ## Static print fonts
 

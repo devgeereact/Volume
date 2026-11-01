@@ -5,7 +5,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { ConfigError } from './errors.ts';
-import { asObject, type OpenString } from './util.ts';
+import { asObject } from './util.ts';
 
 const nullableNumber = z.number().nullable().optional();
 
@@ -57,14 +57,6 @@ export const ModelsDefaultsSchema = z.looseObject({
   stages: z.record(z.string(), StageConfigSchema),
 });
 export type ModelsDefaults = z.infer<typeof ModelsDefaultsSchema>;
-
-export interface GuardrailPattern {
-  id: string;
-  pattern: string;
-  flags?: string | undefined;
-  message: string;
-  action: 'block' | 'claims-report' | 'autofix' | OpenString;
-}
 
 export const HouseStyleSchema = z.looseObject({
   rules: z.array(z.looseObject({ id: z.string(), description: z.string() })),

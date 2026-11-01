@@ -39,4 +39,4 @@ Checked on 4 October 2026: `theme.css` compiled with Tailwind 4.3.2 (`@tailwindc
 
 ## Fonts
 
-All SIL OFL 1.1: Literata (book text and titles), Manrope (interface), JetBrains Mono (model IDs and keys only). Self-host the WOFF2 files and each `OFL.txt` in `assets/fonts/`. Icons: Lucide (ISC).
+All SIL OFL 1.1: Literata (book text and titles), Manrope (interface), JetBrains Mono (model IDs and keys only). The web app self-hosts them from the Fontsource packages (`apps/web/src/styles/fonts.css`); licences are listed in `assets/fonts/README.md`. Icons: Lucide (ISC).

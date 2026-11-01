@@ -118,7 +118,7 @@ AC:
 - AC7.4 The story ledger records examples, anecdotes, people, places, metaphors and promises used in each chapter; later chapters receive it and must not repeat entries.
 - AC7.5 Each chapter receives earlier chapter summaries and the end of the previous chapter, so bridges connect.
 - AC7.6 Pause, resume and cancel work. After a server restart, unfinished jobs resume from the next unfinished section.
-- AC7.7 The job pauses (not fails) when the book budget would be exceeded, and says how much more is needed.
+- AC7.7 The job pauses (not fails) when the AI provider reports no credit, says so with a top-up link and Continue, and keeps finished work. (Changed by D-057: the book budget no longer pauses a job.)
 - AC7.8 Regenerate one chapter, with optional instructions, creates a new version and leaves others untouched.
 - AC7.9 Phase 3 acceptance: a 3-chapter test book completes with zero em dashes and zero banned phrases, chapters within 15% of target, and resumes after a restart.
 
@@ -174,7 +174,7 @@ AC:
 - AC13.1 OpenRouter key check: shows present or missing, valid or invalid, and remaining credit or limit when OpenRouter returns it. The key itself is never shown, logged or sent to the browser, not even in part.
 - AC13.2 Model picker per stage key from `config/models.defaults.json` (research, titles, blueprint, writing, summarise, checks, editing, matter_metadata, cover_brief, cover_image, marketing), filled from `GET /api/v1/models`, filtered by capability (text, image output, web search), showing input and output price per million tokens and context length.
 - AC13.3 Choices saved at workspace level here; profile and book levels override (book wins over profile, profile over workspace, workspace over `config/models.defaults.json`).
-- AC13.4 Budgets: default book budget, monthly cap, warning threshold (default 80%). Month-to-date spend shown.
+- AC13.4 Spending: month-to-date spend shown; the instance owner sets the monthly cap for other workspaces (D-047). (Changed by D-057: no default book budget, monthly cap or warning threshold.)
 - AC13.5 Backups: on or off, time, last backup, "back up now", folder path.
 - AC13.6 House style viewer (read only in v1), KDP rules version and date, with a reminder when the rules are more than 90 days old.
 

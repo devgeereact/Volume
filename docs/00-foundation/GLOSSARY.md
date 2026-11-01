@@ -14,7 +14,7 @@ Terms used across Volume's docs, code and screens. FACTS refers to `docs/referen
 | Blueprint | The full plan of a book: title, summary, audience, chapters with subheadings and summaries, front and back matter plans, listing drafts. Versioned and approved before writing |
 | Body | The chapters, optionally grouped into Parts |
 | Bridge | The closing lines of a chapter that lead into the next one |
-| Budget | Spending limit in US dollars for a book or a month. Jobs pause before passing it |
+| Budget | A book's spending figure in US dollars. Since D-057 it is a guide only: no job pauses for a book or monthly cap. A job pauses when the AI provider runs out of credit |
 | Checker gate | The sequence after each write: code checks, automatic fixes, model checks, one targeted rewrite, then done or needs attention |
 | Claims report | List of medical, clinical, legal, safety, financial and statistical statements for the owner to verify, soften or remove. Included in the pack |
 | Context packing | Building an AI request from prioritised blocks (rules, voice, task, book frame, continuity, ledger, allowed facts) that fit the model |

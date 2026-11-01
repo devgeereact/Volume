@@ -109,7 +109,7 @@ Code first, then a small model for what code cannot judge. See "Checker gate" be
 
 ## Context packing
 
-`packages/ai/context` builds each request from labelled blocks, in this order, and trims from the bottom of the priority list until it fits 60% of the model's context length (the rest is left for output).
+`packages/ai/src/context.ts` builds each request from labelled blocks, in this order, and trims from the bottom of the priority list until it fits 60% of the model's context length (the rest is left for output).
 
 | Priority | Block | Writing stage contents |
 |---|---|---|
@@ -165,7 +165,7 @@ Two live books on the owner's key changed these rules. Code: `packages/ai` and `
 - **Sampling settings.** `modelRules` in `config/models.defaults.json` leaves out temperature, top_p and top_k for models that reject them (Opus 4.7 and later, Sonnet 5 and later, and the `~anthropic/*-latest` aliases; Anthropic's Opus 5.5 migration guide). A 400 that names an unsupported parameter is retried once without it. OpenRouter's model list is not trusted for this.
 - **Schema refusals.** When a provider refuses a structured-output schema (seen: Azure "compiled grammar is too large" on the blueprint), the call is retried with OpenRouter told to skip that provider, then with JSON by instruction and the schema in the repair prompt (`system/json-repair.v2`). The provider's own words reach the job message.
 - **Cut-off answers.** `finish_reason` length (or a native max-tokens reason) raises `OutputTruncatedError`; one retry with twice the max tokens and low reasoning effort where supported, else a plain `output_truncated` error. Cut-off text is never repaired, parsed or saved. Stage max tokens were raised (writing 32k).
-- **Spend on failures.** Known usage from completed internal calls is retained when a later call fails and counts against the book budget. A failed provider request may return no usage, so its actual charge cannot always be recovered.
+- **Spend on failures.** Known usage from completed internal calls is retained when a later call fails and counts in the book's spend. A failed provider request may return no usage, so its actual charge cannot always be recovered.
 - **Estimates.** Research and blueprint highs cover the full output allowance plus web searches; writing highs are twice the expected output from the section's word target, capped at max tokens.
 - **Research sources.** A search that returns no sources is retried once with Exa. Google grounding redirects are resolved to real URLs (D-020).
 - **Word targets.** The blueprint receives the book word target; the server rescales section targets when the plan is more than 10% off. A section under 85% of its target gets one extend pass (`writing.extend-section.v1`), kept only if longer; over 115% gets a warning.
@@ -205,11 +205,11 @@ Live run 3 ("Small Offer, Real Customers") added these rules. Code: `packages/co
 | Model missing or 404 | Stop, offer the next fallback model to the owner (never silent). The failed job's result names the stage and the fallback; the screen shows "Use the Settings model and try again", which removes the withdrawn model from the book, pen name and workspace choices (`POST /books/:id/models/withdraw`) and reruns |
 | Content refusal | Mark `needs_attention` with the refusal text; owner edits the plan or picks another model |
 
-## Cost meter and budgets
+## Cost meter and spending
 
 - **Before a run:** estimate = input tokens (counted from the packed context) x input price + expected output tokens (word target x 1.4) x output price, with a high estimate at 1.5 times. Shown on every "Run" button that costs money.
 - **During:** each `prompt_runs` row stores the cost reported by OpenRouter (or computed from the registry); `projects.cost_to_date_usd` and the job's `cost_usd` update and stream as `cost.update`.
-- **Limits:** book budget (default from Settings), monthly workspace cap, warning at 80%. Each internal request, retry and repair checks remaining allowance; shared reservations protect overlapping jobs. A call estimated to exceed a limit is not sent; the job pauses as `paused_budget`. Estimates depend on model prices and returned usage.
+- **Limits (D-057):** no book or monthly cap. The book's budget figure is a guide only: the writing cost confirm still uses it. When the provider reports no credit (OpenRouter HTTP 402), the job pauses as `paused_budget` with `credits_exhausted`, finished work is kept and the book page offers a top-up link and Continue. The one cap left is the instance owner's monthly cap for other workspaces (D-047), checked before each call with shared reservations for overlapping jobs. Estimates depend on model prices and returned usage.
 - **Live test runs** need `LIVE_AI=1` and a run budget (`docs/06-quality/TEST-STRATEGY.md`).
 
 ## Prompt versioning

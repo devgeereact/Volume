@@ -1,6 +1,6 @@
 # Plan: design finalisation (31 October 2026)
 
-Status: proposed, waiting for the owner's OK. Nothing in `apps/web` has changed yet.
+Status: closed 1 November 2026. Gaps 1, 2 and 4 to 7 were fixed and deployed (PRs #87 and #88). Not done: gap 3 (public pages in the Studio look; the owner kept the landing hero as it is), gap 8 (uppercase small labels, owner question open) and gap 9 (the demo state strip, demo mode only). The questions below were not answered and are carried in `.agent/CURRENT-TASK.md`.
 
 Reference artifact: "Volume Finalised" (claude.ai, private to the owner): the landing, sign-in and every studio screen, working on demo data. It keeps the approved Volume Studio look (D-066): frost scene, glass, navy for the one primary action, Manrope for the interface, Literata for book content.
 

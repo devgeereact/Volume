@@ -99,16 +99,11 @@ export const writeBookHandler: JobHandler = async (jc) => {
 /** Saved instead of AI text when the owner has named nobody to thank. Preflight blocks the pack until it is replaced. */
 export const ACKNOWLEDGEMENTS_PLACEHOLDER =
   "Acknowledgements to come. Add the names of the people you want to thank in this book's settings, then write this section again, or switch the section off.";
-/** Saved instead of AI text when no research source is ticked for the book. Preflight blocks the pack until it is replaced. */
-export const RESOURCES_PLACEHOLDER =
-  'Resources to come. Tick the sources you want listed in Research, then write this section again, or switch the section off.';
 /** Key on a section's plan that records the app switched Resources off because no research source was ticked. */
 export const RESOURCES_AUTO_OFF_KEY = 'autoSwitchedOff';
 /** What the owner is told when Resources is switched off for lack of sources. */
 export const RESOURCES_AUTO_OFF_NOTE =
   'Resources was switched off because no research sources are ticked. To list sources, tick them in Research, switch Resources back on, then write it.';
-/** The preflight and check message for resources with no ticked sources. */
-export const RESOURCES_NEED_SOURCES = 'Resources needs sources: tick sources in Research';
 /** Version source of an owner placeholder (preflight blocks while it is the current text). */
 export const PLACEHOLDER_SOURCE = OWNER_PLACEHOLDER_SOURCE;
 

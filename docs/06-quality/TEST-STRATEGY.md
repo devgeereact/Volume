@@ -10,12 +10,15 @@ Every change is checked with typecheck, lint and the relevant tests before anyon
 | Lint | ESLint, Prettier | `npm run lint` |
 | Unit and integration | Vitest | `npm test` (all workspaces) or `npm test -w packages/core` |
 | Coverage | Vitest V8, enforced line thresholds | `npm run test:coverage` |
-| Golden files | Vitest with fixtures in `tests/golden/` | `npm test -w packages/export` |
-| End to end | Playwright with the mock AI provider | `npm run e2e` (added in phase 1) |
+| Golden files | Vitest with references in `packages/export/test/golden/` | `npm test -w packages/export` |
+| End to end | Playwright with the mock AI provider | `npm run e2e` |
+| Tooling | Node test runner (`tests/integration/runtime.test.mjs`) | `npm run test:tooling` |
+| Smoke | Playwright walk on a scratch database (`tests/smoke/smoke.mjs`) | `BASE_URL=... node tests/smoke/smoke.mjs` |
+| Everything CI runs, on your Mac | doctor, docs, tooling, typecheck, lint, format, coverage, web build, e2e | `npm run verify` |
 | Live AI | Budgeted owner run, separate from automated checks | No root live-test script exists. Agree the budget and set `LIVE_AI=1` before a live run |
 | Hooks | Bash test script | `npm run hooks:test` |
 
-Unit tests sit next to the code (`*.test.ts`) or in `tests/unit/`. Fixtures: `tests/golden/` (manuscripts and expected exports), `packages/ai/test/fixtures/` (mock provider answers).
+Unit tests sit in each workspace's `test/` folder or next to the code (`*.test.ts`); there is no `tests/unit/`. Fixtures: `packages/export/test/fixtures/` and `packages/export/test/golden/` (manuscripts and expected exports), `packages/core/test/fixtures/`, `packages/ai/test/fixtures/` (mock provider answers). The root `tests/` folder holds e2e, integration and smoke only ([tests/README.md](../../tests/README.md)).
 
 Coverage targets: `packages/core` 90% lines, `packages/ai` and `packages/export` 80%, `apps/server` services 80%. Coverage is a floor, not a goal; every bug fix adds a test that failed before the fix.
 
@@ -36,13 +39,13 @@ The coverage command includes every `src/**/*.ts` file in core, AI, export and s
 **packages/ai**
 - Context packer: priority order, trimming steps, refusal when blocks 1 to 3 do not fit.
 - Model resolution: project over profile over workspace over config.
-- Cost estimate and budget gate: a call that would pass the book budget is not sent.
+- Cost estimate and cap gate: a call that would pass a cap it is given is not sent. Book and monthly caps were removed (D-057); the server still passes the cap for other workspaces (D-047).
 - Retry and fallback with the mock provider's fault scenarios (`rate_limit`, `server_error`, `invalid_json`, `stream_cut`, `model_missing`); no silent model switch.
 - Sources: only `url_citation` annotations become sources; URLs in plain text are ignored.
 - Prompt loader: highest version chosen, pinned version honoured, missing placeholder fails.
 
 **apps/server**
-- Job queue: claim, retry with backoff, dependency order, resume after a simulated crash (stale lock), cancel, pause on budget.
+- Job queue: claim, retry with backoff, dependency order, resume after a simulated crash (stale lock), cancel, pause when the provider reports no credit (`credits_exhausted`, D-057) or another workspace reaches its cap.
 - SSE: events in order, replay from `Last-Event-ID`.
 - Repositories refuse queries without `workspace_id`; cross-workspace read returns `not_found`.
 - Security: wrong Host rejected, wrong Origin on POST rejected, path traversal on downloads rejected, logger redacts keys.
@@ -51,7 +54,7 @@ The coverage command includes every `src/**/*.ts` file in core, AI, export and s
 
 | Export | Comparison |
 |---|---|
-| TXT | Exact bytes against `tests/golden/txt/*.txt` (includes the example in `docs/book-production/EXPORT-SPEC.md`) |
+| TXT | Exact bytes against `packages/export/test/golden/*.txt` (`mini-book.txt` is the example in `docs/book-production/EXPORT-SPEC.md`) |
 | MD | Exact bytes |
 | DOCX | Unzipped, XML normalised (sorted attributes, ids and timestamps removed), compared per part |
 | PDF | Page count, page size per trim, every font embedded, extracted text per page (pdfjs-dist), plus a pixel comparison of 4 pages (title, contents, a chapter opening, a body page) with a small tolerance |
@@ -77,12 +80,12 @@ Runs against the real server and web app with `AI_PROVIDER=mock` and a temporary
 6. Editor: accept a suggestion, compare and restore a version, find and replace across the book.
 7. Claims: resolve all; preflight shows no claim warning.
 8. Cover: concepts, choose, build; export pack; unzip and check the file list.
-9. Accessibility smoke: keyboard-only path through the wizard; focus visible on every step. An axe-based scan is proposed but needs the owner's OK to install.
+9. Accessibility smoke: keyboard-only path through the wizard; focus visible on every step. axe-core is not a project dependency; the axe scans so far ran from a script outside the repository ([accessibility](../03-design/ACCESSIBILITY.md)).
 Screenshots at 1440 and 390 px wide on every screen; no console errors allowed.
 
 ## Latest acceptance evidence
 
-On 6 October, 499 local tests and all measured coverage thresholds passed; five mock browser scenarios passed. See LOCAL-VALIDATION-2026-10-06.md. The browser suite has since grown to 17 tests in 9 specs (`npm run e2e`). It uses ports 5311 to 5318 (not 5314), and port 5313 must be free for the restart spec. On 20 October 2026, Vitest gave 1,176 passed and 4 skipped, and e2e 17 of 17 on main `ed416b2`. Free live testing was separately authorised through the existing server with only verified zero-priced models: titles/blueprint pass, full writing fails, and both Gemma routes fail upstream. This does not validate paid defaults, research or covers. See FREE-AI-VALIDATION-2026-10-06.md. MySQL is deferred by the owner.
+On 6 October, 499 local tests and all measured coverage thresholds passed; five mock browser scenarios passed. See LOCAL-VALIDATION-2026-10-06.md. The browser suite has since grown to 20 tests in 10 specs (`npm run e2e`, counted 1 November 2026). It uses ports 5311 to 5318: 5313 for the restart spec and 5314 for the batch-failure spec must be free too. On 20 October 2026, Vitest gave 1,176 passed and 4 skipped, and e2e 17 of 17 on main `ed416b2`. Free live testing was separately authorised through the existing server with only verified zero-priced models: titles/blueprint pass, full writing fails, and both Gemma routes fail upstream. This does not validate paid defaults, research or covers. See FREE-AI-VALIDATION-2026-10-06.md. MySQL (MariaDB) is the production database since 18 October 2026 and is tested by `apps/server/test/mysql.test.ts` in the `node24-host` CI job. Latest gate, 1 November 2026 (`fix/signin-heading`): typecheck, lint, format, web unit 267, e2e 20 of 20 (`.agent/CURRENT-TASK.md`).
 
 ## Live AI runs
 
