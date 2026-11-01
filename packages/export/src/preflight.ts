@@ -1,7 +1,8 @@
 // Preflight (docs/book-production/EXPORT-SPEC.md, Preflight): pass / warn / fail items before the upload pack is built.
 import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFArray, PDFBool, PDFDocument, PDFName, PDFNumber, PDFRef, PDFStream, type PDFObject } from 'pdf-lib';
-import sharp, { type Metadata } from 'sharp';
+import type { Metadata } from 'sharp';
+import { openImage } from './image.ts';
 import {
   curlQuotes,
   bleedPageSizeIn,
@@ -687,7 +688,7 @@ export async function runPreflight(input: PreflightInput): Promise<PreflightRepo
   if (input.ebookCover && input.ownCovers?.ebook) add(await ownEbookCoverItem(input.ebookCover, rules));
   else if (input.ebookCover) {
     const spec = ebookCoverSpec(rules);
-    const meta = await sharp(input.ebookCover).metadata();
+    const meta = await openImage(input.ebookCover).metadata();
     const ok =
       meta.format === 'jpeg' &&
       meta.width === spec.widthPx &&
@@ -941,7 +942,7 @@ export async function ownEbookCoverItem(cover: Buffer, rules: KdpRules): Promise
   const base = { id: 'ebook.cover', label: 'eBook cover (your own)', factIds: ['10.5'] };
   let meta: Metadata;
   try {
-    meta = await sharp(cover).metadata();
+    meta = await openImage(cover).metadata();
   } catch {
     return { ...base, level: 'fail', detail: 'The file could not be read as an image. Upload a JPEG or TIFF.' };
   }

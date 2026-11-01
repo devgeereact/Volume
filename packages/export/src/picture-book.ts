@@ -5,7 +5,7 @@
 // printed by Chromium at the bleed page size (no Paged.js). After layout, each text box is measured in the page DOM
 // and checked against the safe area.
 import { PDFDocument } from 'pdf-lib';
-import sharp from 'sharp';
+import { openImage } from './image.ts';
 import type { Browser } from 'playwright';
 import {
   DEFAULT_INTERIOR_THEME,
@@ -90,7 +90,7 @@ interface SpreadArt {
 /** Crop a picture to the spread's shape (both pages with bleed) around its centre and split it at the gutter. */
 async function splitSpreadImage(buf: Buffer, g: PictureBookGeometry): Promise<SpreadArt> {
   const aspect = (2 * g.page.widthIn) / g.page.heightIn;
-  const meta = await sharp(buf).metadata();
+  const meta = await openImage(buf).metadata();
   const w = meta.width ?? 0;
   const h = meta.height ?? 0;
   if (!w || !h) throw new Error('A spread picture has no size.');
@@ -103,7 +103,7 @@ async function splitSpreadImage(buf: Buffer, g: PictureBookGeometry): Promise<Sp
   const half = Math.floor(cw / 2);
   const part = async (left: number, width: number) =>
     `data:image/jpeg;base64,${(
-      await sharp(buf)
+      await openImage(buf)
         .extract({ left, top: y, width, height: ch })
         .flatten({ background: '#ffffff' })
         .jpeg({ quality: 90, chromaSubsampling: '4:4:4' })

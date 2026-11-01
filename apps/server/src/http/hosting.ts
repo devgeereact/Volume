@@ -93,7 +93,8 @@ export function viaCloudflare(req: FastifyRequest): boolean {
  * `%61pi` to `api` before matching, so sign-in and other path checks must look at the same decoded form.
  */
 export function requestPath(url: string): string {
-  const raw = url.split('?')[0] ?? url;
+  // An absolute-form request line (GET http://host/api/...) routes by its path, so it is read the same way here.
+  const raw = (url.split('?')[0] ?? url).replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, '');
   try {
     return decodeURIComponent(raw).toLowerCase();
   } catch {
@@ -178,6 +179,8 @@ export function baseSecurityHeaders(url: string, config: AppConfig): Record<stri
 export function applySecurityHeaders(req: FastifyRequest, reply: FastifyReply, config: AppConfig, csp: string | null): void {
   const api = isApiPath(req.url);
   void reply.headers(baseSecurityHeaders(req.url, config));
+  // Say nothing about the software or its version (Fastify adds neither; this keeps a plugin from adding them).
+  void reply.removeHeader('X-Powered-By').removeHeader('Server');
   if (!reply.hasHeader('Cache-Control')) {
     // Hashed bundles never change; pages and everything else are checked on every load. The API is never cached.
     const path = req.url.split('?')[0] ?? '';

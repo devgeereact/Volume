@@ -8,6 +8,11 @@ User-visible changes, newest first. Dates in British format.
 - Search engines may now index the landing page and How it works (D-068). Both have a canonical address, there is a sitemap, and robots.txt still keeps every app page, sign-in and the API out.
 
 #### Security
+- Sign-in cannot be switched off by a wrong setting on the host: a hosted build always asks for Clerk sign-in unless local sign-in is chosen on purpose.
+- Only the workspace owner chooses AI models for books and pen names.
+- Limits on live update connections per person and on waiting jobs per workspace, so one account cannot slow Volume down for others.
+- Imported projects bring no built files, claim verdicts (unless the owner imports) or authors from the other Volume, and research links must be web addresses.
+- Very large pictures are refused before they are decoded; server errors no longer show internal details; the server no longer names its software.
 - Book exports (print PDF, covers, picture books, page previews) can no longer load anything from the network, and an image address in a chapter can no longer add markup to the print file.
 - The monthly AI cap for other workspaces holds even when a model's price is listed as negative.
 

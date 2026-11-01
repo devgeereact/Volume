@@ -61,7 +61,8 @@ async function run(): Promise<void> {
   const sqlitePath = resolve(from);
   if (!existsSync(sqlitePath)) throw new Error(`No SQLite file at ${sqlitePath}.`);
 
-  const config = loadConfig({ env: { ...process.env, DB_CLIENT: 'mysql' } });
+  // A one-off command that serves no requests: local sign-in unless set (a MySQL build otherwise defaults to Clerk, D-069).
+  const config = loadConfig({ env: { AUTH_MODE: 'local', ...process.env, DB_CLIENT: 'mysql' } });
   if (config.db.client !== 'mysql') throw new Error('MySQL settings are missing.');
   const user = process.env['MYSQL_MIGRATE_USER']?.trim();
   const mysqlCfg = user ? { ...config.db.mysql, user, password: process.env['MYSQL_MIGRATE_PASSWORD'] ?? '' } : config.db.mysql;

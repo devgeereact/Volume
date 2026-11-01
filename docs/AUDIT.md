@@ -2,6 +2,54 @@
 
 One audit file for this project. Every audit, check or review adds a dated section at the top; nothing is rewritten. Open work lives in `.agent/CURRENT-TASK.md`.
 
+## 1 November 2026 (evening): open findings fixed and the go-live checklist
+
+Branch `golive/2026-11`, after the audit below. Every finding the code alone can close is fixed with a test written first (red, then green). Nothing was pushed, deployed or changed on the host, Clerk, OpenRouter, Cloudflare or GitHub.
+
+**Fixed**
+
+| # | Fix | Test |
+|---|---|---|
+| M1 | A hosted build (an `https` `APP_ORIGIN`, or MySQL) uses Clerk unless `AUTH_MODE=local` is set on purpose, whatever `NODE_ENV` says; missing Clerk keys stop the start instead of opening the stub (`apps/server/src/config/env.ts`). Local MySQL drills now need `AUTH_MODE=local` written out (SETUP.md). | `hosting.test.ts` "fail closed on a hosted build" |
+| M2 | Models are the owner's: an editor's new book or pen name drops `models`; an editor's change to them is refused (403), the same value sent back passes; a non-owner's project import drops book models (`routes/common.ts` `guardModels`, `routes/books.ts`, `routes/profiles.ts`, `repos/transfer.ts`). D-069. | `review-fixes.test.ts` "model choice is the owner's"; `move-book.test.ts` |
+| M3, L7 | At most 8 open event streams per user (429 beyond); replay waits for the socket to drain; a socket that does not drain in 30 s is closed; every stream ends after an hour and the browser reconnects through sign-in with Last-Event-ID (`apps/server/src/sse/stream.ts`, `routes/jobs.ts`). | `sse.test.ts` "SSE limits" |
+| M4 | A workspace may have 12 jobs that people started waiting or running, 3 of them builds (print, cover, picture book), plus up to 200 section reruns; more answers 429. Child jobs (a book's sections, a batch's books) never count (`jobs/queue.ts`). D-069. | `queue.test.ts` "active jobs per workspace" |
+| L1 | `/projects/import` has the same one-at-a-time guard and 5-per-minute limit as `/books/import-project`. | `move-book.test.ts` |
+| L2 | Imports ignore `exports` rows, clear `createdBy`, and a non-owner's import resets claim verdicts to open. | `move-book.test.ts` |
+| L3 | Every decoded picture goes through `openImage` (`packages/export/src/image.ts`) with a 100 MP limit (sharp's default is 268 MP). | `image-limits.test.ts` (a 4 KB PNG claiming 400 MP is refused) |
+| L4 | Text inside a prompt data fence cannot open or close one (`<data` written as `&lt;data`). | `prompts.test.ts` |
+| L5 | A job error from a database driver, the file system or the network is stored and streamed as a plain message; the detail goes to the server log only. Errors Volume raises keep their messages. | `queue.test.ts` "unexpected job errors" |
+| L9 | Research sources are kept only with an `http(s)` link; an import with any other link is refused. | `source-links.test.ts`, `move-book.test.ts` |
+| Info | An absolute-form request line (`GET http://host/api/...`) is read as its path, so both sign-in checks agree. | `hosting.test.ts` |
+| Headers | The app removes `X-Powered-By` and `Server` from every answer (it sends neither today). `deploy/htaccess.volume` now unsets `X-Powered-By` and LiteSpeed's `X-Turbo-Charged-By`. | `hosting.test.ts` "never names the server software" |
+
+**Independent review of these fixes** (volume-reviewer agent, read-only) found two bugs and one regression risk in them, all fixed with tests before the commit: the job limit stopped "Fix everything" on books of 13 or more sections (section reruns now have their own room of 200 and do not count against the 12); an editor's import could still bring models on a copied pen name (cleared now); the plain-message rule hid messages people act on, such as "The EPUB cover must be a JPEG" (now only errors carrying a driver or system `code`, `errno`, `sql` or `syscall` are replaced). Also taken: a socket that never drains is destroyed rather than ended; the fence escape also catches `< /data` with spaces; the one-off SQLite-to-MySQL copy runs with local sign-in unless set. Left as is: an editor whose open form holds models the owner has since changed gets a 403 on save and must reload (safe, rare).
+
+**Still open, with the reason**
+
+- M5 and L8 (rate-limit IP and origin lock): the fix is the host step `CLOUDFLARE_ONLY` `report` then `on` (DEPLOYMENT.md). A code change was not made: whether LiteSpeed passes the Cloudflare hop in `X-Forwarded-For` is a host fact, and if it does not, keying on it would put every visitor in one rate-limit bucket and could answer 429 on the live site.
+- L6 (failed image calls record no spend): whether OpenRouter charges a failed image call is not known; recording a guess would misstate spend. Reservations are per process, and the host runs one.
+- Live headers (read-only check of `https://volume.gakinz.com/`, 1 November 2026): `server: cloudflare`, no `X-Powered-By`, and `x-turbo-charged-by: LiteSpeed`. The `.htaccess` lines take effect only when the owner copies them into the docroot `.htaccess` on the host; LiteSpeed may still add the header, in which case a Cloudflare response header rule (remove `X-Turbo-Charged-By`) is the sure fix. Neither is done.
+
+**Checklist evidence**
+
+- Secrets in git: `gitleaks git --redact`, 314 commits, no leaks. No tracked secrets files, keys, certificates or databases.
+- Keys: OpenRouter, Anthropic and Clerk secret keys are read only by the server; the web bundle reads only the Clerk publishable key and `VITE_HASH_ROUTER`; tests check API answers carry no `sk-or-` key.
+- Environment: every setting is checked by zod at start (`config/env.ts`); production needs `APP_ORIGIN` and full Clerk settings. The settings file itself was not read (house rule).
+- Admin routes and access: settings, models, members, budgets and bios need owner; backups, the key test and the guest cap need the instance owner; writes need editor (audit below). Sign-in: Clerk on every `/api` route, now fail closed.
+- Forms: every body, query and parameter goes through a zod schema; uploads have size limits, magic-byte checks and a strict multipart reader.
+- XSS: no `dangerouslySetInnerHTML` or `innerHTML` in the web app; page CSP `script-src 'self'` with hashes; export HTML escaped and network-blocked; research links `http(s)` only.
+- CORS: off; no `Access-Control-Allow-Origin` is ever sent; Origin checked on every write.
+- Security headers: CSP, HSTS, `nosniff`, `X-Frame-Options: DENY`, `frame-ancestors 'none'`, Referrer-Policy, Permissions-Policy, COOP, `X-Robots-Tag` on private pages.
+- Rate limiting: per IP for reads, writes and health; per route for imports and workspace export; now also streams per user and jobs per workspace.
+- Debug: no debug routes; log level `info`; source maps off in both builds; error answers carry no stack or SQL.
+- Database: Kysely binds every value (raw SQL only constant statements and a bound backup path); the runtime user has SELECT, INSERT, UPDATE and DELETE only, migrations use their own user; TLS verified for remote MySQL.
+- Passwords: none stored. Clerk holds sign-in; `users.password_hash` is always null.
+- Exposed files: static serving only from the web build with dotfiles refused; nothing else in the docroot; `.local-test/` and `.local-state/` added to `.gitignore`.
+- Dependencies: within-range updates applied (Anthropic and OpenAI SDKs, Kysely, mysql2, dotenv, pdfjs, TipTap, Vitest, types) plus patch bumps of pinned `@fastify/static` 10.1.8, React 19.3.1 and `@vitejs/plugin-react` 6.1.2. Held: `docx` at 9.8.1 (9.15 adds a default table style to every DOCX, which changes the approved golden files; review in Word first), Playwright 1.63.0 (it carries the pinned Chromium the PDF goldens depend on), Clerk 3.24.0 and 6.17.8 (sign-in SDK: needs a live sign-in check), Prettier (would reformat the repo), and other pinned minors. `npm audit`: 14 moderate, all the `glob`/`minimatch` chain assessed as not reachable (section below); fixes only in new majors.
+- Unused packages: none. Every declared package is imported, or found by folder scan (the fontsource fonts), or is a type or test tool.
+- Semgrep (`p/typescript`, `p/nodejs`, `p/secrets`, `p/security-audit`, metrics off): 50 results, all read and false positives. 49 in `packages/export/src/covers.ts` (values in the cover HTML are escaped text, numbers, `HEX`-checked colours or library font names, and the page is network-blocked); 1 ReDoS in `apps/web/src/features/editor/textTools.ts` (the query passes `escapeRe` first). Not marked inline: the lines are inside template literals, where a comment would print into the cover. Semgrep could not parse 1,350 spots (newer TypeScript syntax), so its coverage is partial. Neither Semgrep nor gitleaks runs in this project's CI, unlike the house standard.
+
 ## 1 November 2026: go-live security audit and public page indexing
 
 Branch `golive/2026-11`. Scoped source audit (security-audit skill at guidance depth, not the full six-phase run): five read-only hunters, one per area, then each High candidate checked again in the code and reproduced in a local test before the fix. No live host, Clerk, OpenRouter or Cloudflare call was made. Severity follows the skill: high means an explicit control fully defeated with real consequences.

@@ -2,6 +2,7 @@ export * from './txt.ts';
 export * from './md.ts';
 export * from './fonts.ts';
 export * from './browser.ts';
+export * from './image.ts';
 export * from './print-html.ts';
 export * from './pdf.ts';
 export * from './picture-book.ts';

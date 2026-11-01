@@ -53,12 +53,12 @@ function rezip(entries: ZipEntry[], change: (entries: ZipEntry[]) => ZipEntry[])
 }
 
 /** Changes project.json (and, optionally, files) and writes a manifest that matches, as a careful forger would. */
-function forge(change: (file: { project: Obj; tables: Record<string, Obj[]>; assets: Obj[] }, files: Map<string, Buffer>) => void): Buffer {
+function forge(change: (file: { project: Obj; profile: Obj; tables: Record<string, Obj[]>; assets: Obj[] }, files: Map<string, Buffer>) => void): Buffer {
   const entries = readZip(zip);
   const files = new Map(entries.filter((e) => e.name.startsWith('assets/')).map((e) => [e.name, Buffer.from(e.data)]));
   const projectEntry = entries.find((e) => e.name === 'project.json');
   if (!projectEntry) throw new Error('No project.json');
-  const file = JSON.parse(Buffer.from(projectEntry.data).toString()) as { project: Obj; tables: Record<string, Obj[]>; assets: Obj[] };
+  const file = JSON.parse(Buffer.from(projectEntry.data).toString()) as { project: Obj; profile: Obj; tables: Record<string, Obj[]>; assets: Obj[] };
   change(file, files);
   const out: ZipEntry[] = [{ name: 'project.json', data: Buffer.from(JSON.stringify(file)) }, ...[...files].map(([name, data]) => ({ name, data }))];
   const manifest = JSON.parse(Buffer.from(entries.find((e) => e.name === 'manifest.json')?.data ?? []).toString()) as ProjectManifest;
@@ -88,7 +88,8 @@ async function rowsOf(t: TestApp, table: string, projectId: string, drop: string
     .map((r) => {
       const out: Obj = {};
       for (const [k, v] of Object.entries(r)) {
-        if (['id', 'workspaceId', 'updatedAt', 'promptRunId', 'jobId', 'parentJobId', ...drop].includes(k)) continue;
+        // createdBy names a user of the Volume the row was written on; imports clear it (audit L2, tested below).
+        if (['id', 'workspaceId', 'updatedAt', 'promptRunId', 'jobId', 'parentJobId', 'createdBy', ...drop].includes(k)) continue;
         if (k.endsWith('Id')) out[k] = v !== null;
         else out[k] = typeof v === 'string' ? v.replace(ULID, '<id>') : v;
       }
@@ -412,6 +413,38 @@ describe('import hardening (D-051 review)', () => {
     expect((owner.body['book'] as Obj)['budgetUsd']).toBe(10000);
   });
 
+  it('refuses research sources whose link is not a web address (audit L9)', async () => {
+    // A research source whose link is not a web address (audit L9).
+    const withSource = (url: string): Buffer =>
+      forge((f) => {
+        const t = now();
+        const base = { workspaceId: String(f.project['workspaceId']), projectId: String(f.project['id']), createdAt: t, updatedAt: t };
+        const runId = newId();
+        f.tables['researchRuns'] = [{ ...base, id: runId, jobId: null, promptRunId: null, status: 'succeeded', input: '{}', output: '{}' }];
+        f.tables['researchSources'] = [
+          {
+            ...base,
+            id: newId(),
+            researchRunId: runId,
+            url,
+            urlHash: 'h',
+            title: 'Source',
+            domain: null,
+            excerpt: null,
+            startIndex: null,
+            endIndex: null,
+            useInBook: 1,
+            linkStatus: 'unchecked',
+            checkedAt: null,
+            redirectUrl: null,
+            unresolved: 0,
+          },
+        ];
+      });
+    expect((await importZip(target, withSource('javascript:alert(1)'), targetProfileId)).status).toBe(400);
+    expect((await importZip(target, withSource('https://example.com/page'), targetProfileId)).status).toBe(201);
+  });
+
   it('refuses a book row that breaks the book rules or a link to the wrong kind of row', async () => {
     const before = await counts(target);
     const badStage = forge((f) => {
@@ -455,6 +488,101 @@ describe('import hardening (D-051 review)', () => {
     expect((await send({})).statusCode).toBe(403);
     expect((await send({ 'sec-fetch-site': 'cross-site' })).statusCode).toBe(403);
     expect((await send({ 'sec-fetch-site': 'same-origin' })).statusCode).toBe(201);
+  });
+
+  it('brings no built exports or version authors, and gives an editor no models or claim verdicts (audit M2, L2)', async () => {
+    const forged = forge((f) => {
+      const t = now();
+      const projectId = String(f.project['id']);
+      f.tables['exports'] = [
+        {
+          id: newId(),
+          workspaceId: String(f.project['workspaceId']),
+          projectId,
+          kind: 'pack',
+          trim: null,
+          paper: null,
+          status: 'succeeded',
+          assetId: null,
+          bytes: 1,
+          pageCount: 1,
+          sha256: null,
+          manuscriptHash: null,
+          preflight: '{}',
+          jobId: null,
+          mock: 0,
+          error: null,
+          createdAt: t,
+          updatedAt: t,
+        },
+      ];
+      for (const v of f.tables['sectionVersions'] ?? []) v['createdBy'] = 'user_someone_else';
+      for (const c of f.tables['claims'] ?? []) {
+        c['status'] = 'verified';
+        c['resolvedAt'] = t;
+      }
+      const raw = f.project['settings'];
+      const settings = (typeof raw === 'string' ? JSON.parse(raw) : {}) as Obj;
+      f.profile['models'] = JSON.stringify({ writing: 'dear/model' });
+      f.project['settings'] = JSON.stringify({ ...settings, models: { writing: 'dear/model' } });
+    });
+    const check = async (t: TestApp, profileId: string): Promise<{ settings: Obj; claims: string[] }> => {
+      const res = await importZip(t, forged, profileId);
+      expect(res.status).toBe(201);
+      const id = str(res.body['bookId']);
+      const db = t.handle.db;
+      expect(await db.selectFrom('exports').select('id').where('projectId', '=', id).execute()).toEqual([]);
+      const versions = await db.selectFrom('sectionVersions').select('createdBy').where('projectId', '=', id).execute();
+      expect(versions.length).toBeGreaterThan(0);
+      expect(versions.every((v) => v.createdBy === null)).toBe(true);
+      const claims = await db.selectFrom('claims').select(['status', 'resolvedAt']).where('projectId', '=', id).execute();
+      expect(claims.length).toBeGreaterThan(0);
+      return { settings: (res.body['book'] as Obj)['settings'] as Obj, claims: claims.map((c) => c.status) };
+    };
+    const owner = await check(target, targetProfileId);
+    expect(owner.settings['models']).toEqual({ writing: 'dear/model' });
+    expect(owner.claims.every((s) => s === 'verified')).toBe(true);
+    const editor = await testApp({ auth: (o) => ({ resolve: () => Promise.resolve({ ...o, role: 'editor' }) }) });
+    try {
+      const p = await editor.services.repos.profiles.create(editor.owner, { penName: 'Editor pen' });
+      const ed = await check(editor, p.id);
+      expect(ed.settings).not.toHaveProperty('models');
+      // Importing with no pen name chosen copies the zip's pen name: an editor's copy brings no models either.
+      const copied = await editor.app.inject({
+        method: 'POST',
+        url: '/api/v1/projects/import',
+        headers: { host: HOST, origin: ORIGIN, 'content-type': 'application/zip' },
+        payload: forged,
+        remoteAddress: nextIp(),
+      });
+      expect(copied.statusCode).toBe(201);
+      const copiedProfile = await editor.services.repos.profiles.require(editor.owner, str(copied.json<Obj>()['profileId']));
+      expect(copiedProfile.models).toEqual({});
+      expect(ed.claims.every((s) => s === 'open')).toBe(true);
+    } finally {
+      await editor.close();
+    }
+  });
+
+  it('applies the same one-at-a-time guard and rate limit to the older zip route (audit L1)', async () => {
+    const t = await testApp();
+    try {
+      const statuses: number[] = [];
+      for (let i = 0; i < 6; i += 1) {
+        const res = await t.app.inject({
+          method: 'POST',
+          url: '/api/v1/projects/import',
+          headers: { host: HOST, origin: ORIGIN, 'content-type': 'application/zip' },
+          payload: Buffer.from('nope'),
+          remoteAddress: '192.0.2.9',
+        });
+        statuses.push(res.statusCode);
+      }
+      expect(statuses.slice(0, 5).every((s) => s !== 429)).toBe(true);
+      expect(statuses[5]).toBe(429);
+    } finally {
+      await t.close();
+    }
   });
 
   it('runs one import at a time per workspace', async () => {

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { AppServices } from '../app.js';
 import { parse } from '../http/errors.js';
 import { MemoryInputSchema, MemoryPatchSchema, ProfileInputSchema, ProfilePatchSchema, SampleInputSchema, SamplePatchSchema } from '../repos/profiles.js';
-import { idOf, owner, writer } from './common.js';
+import { guardModels, idOf, isOwner, owner, writer } from './common.js';
 
 const SubParams = z.object({ id: z.string().min(1).max(64), subId: z.string().min(1).max(64) });
 
@@ -26,6 +26,8 @@ export function profileRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const body = parse(ProfileInputSchema, req.body);
     if (touchesBio(body)) owner(req);
+    // Models are the owner's (audit M2): an editor's new pen name starts with none.
+    if (body.models !== undefined && !isOwner(req)) delete body.models;
     void reply.code(201);
     return r.create(req.ctx, body);
   });
@@ -36,6 +38,10 @@ export function profileRoutes(app: FastifyInstance, s: AppServices): void {
     writer(req);
     const patch = parse(ProfilePatchSchema, req.body);
     if (touchesBio(patch)) owner(req);
+    if (patch.models !== undefined) {
+      const models = guardModels(req, patch.models, (await r.require(req.ctx, idOf(req))).models);
+      patch.models = models as typeof patch.models;
+    }
     return r.update(req.ctx, idOf(req), patch);
   });
 

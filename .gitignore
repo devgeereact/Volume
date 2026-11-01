@@ -18,3 +18,7 @@ playwright-report/
 
 # Python bytecode from scripts/agent_guard.py
 __pycache__/
+
+# Local scratch and recovery folders (house rule)
+.local-test/
+.local-state/

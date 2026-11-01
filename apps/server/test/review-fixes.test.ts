@@ -319,3 +319,67 @@ describe('SSE membership re-check (finding 17)', () => {
     }
   });
 });
+
+describe("model choice is the owner's (audit M2, 1 November 2026)", () => {
+  let t: TestApp;
+  let profileId: string;
+  let bookId: string;
+  beforeAll(async () => {
+    t = await invited();
+    await t.call('POST', '/api/v1/invitations', { email: 'ed@example.test', role: 'editor' }, as('user_owner'));
+    const p = await t.call<Obj>(
+      'POST',
+      '/api/v1/profiles',
+      { penName: 'Owner Pen', bioThirdPerson: 'Owner Pen writes.', models: { writing: 'owner/pick' } },
+      as('user_owner'),
+    );
+    profileId = str(p.body['id']);
+    const b = await t.call<Obj>(
+      'POST',
+      '/api/v1/books',
+      { profileId, idea: 'Idea', settings: { audience: 'A', models: { writing: 'owner/book' } } },
+      as('user_owner'),
+    );
+    bookId = str(b.body['id']);
+  });
+  afterAll(async () => t.close());
+
+  const settingsOf = async (id: string): Promise<Obj> => (await t.call<Obj>('GET', `/api/v1/books/${id}`, undefined, as('user_owner'))).body['settings'] as Obj;
+
+  it('drops the models an editor sends with a new book or pen name', async () => {
+    const b = await t.call<Obj>(
+      'POST',
+      '/api/v1/books',
+      { profileId, idea: 'Ed idea', settings: { audience: 'B', models: { writing: 'dear/model' } } },
+      as('user_ed'),
+    );
+    expect(b.status).toBe(201);
+    const s = await settingsOf(str(b.body['id']));
+    expect(s['audience']).toBe('B');
+    expect(s).not.toHaveProperty('models');
+    const p = await t.call<Obj>('POST', '/api/v1/profiles', { penName: 'Ed Pen', models: { writing: 'dear/model' } }, as('user_ed'));
+    expect(p.status).toBe(201);
+    expect(p.body['models'] ?? {}).toEqual({});
+  });
+
+  it("refuses an editor who changes a book's or pen name's models, and lets other edits through", async () => {
+    const change = await t.call('PATCH', `/api/v1/books/${bookId}`, { settings: { audience: 'A', models: { writing: 'dear/model' } } }, as('user_ed'));
+    expect(change.status).toBe(403);
+    const same = await t.call('PATCH', `/api/v1/books/${bookId}`, { settings: { audience: 'C', models: { writing: 'owner/book' } } }, as('user_ed'));
+    expect(same.status).toBe(200);
+    const s = await settingsOf(bookId);
+    expect(s['audience']).toBe('C');
+    expect(s['models']).toEqual({ writing: 'owner/book' });
+    const dropped = await t.call('PATCH', `/api/v1/books/${bookId}`, { settings: { audience: 'D' } }, as('user_ed'));
+    expect(dropped.status).toBe(200);
+    expect((await settingsOf(bookId))['models']).toEqual({ writing: 'owner/book' });
+    expect((await t.call('PATCH', `/api/v1/profiles/${profileId}`, { models: { writing: 'dear/model' } }, as('user_ed'))).status).toBe(403);
+    expect((await t.call('PATCH', `/api/v1/profiles/${profileId}`, { models: { writing: 'owner/pick' }, voice: { tone: 'warm' } }, as('user_ed'))).status).toBe(
+      200,
+    );
+    expect((await t.call('PATCH', `/api/v1/books/${bookId}`, { settings: { audience: 'E', models: { writing: 'owner/new' } } }, as('user_owner'))).status).toBe(
+      200,
+    );
+    expect((await settingsOf(bookId))['models']).toEqual({ writing: 'owner/new' });
+  });
+});

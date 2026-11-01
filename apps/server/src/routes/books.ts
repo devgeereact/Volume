@@ -9,7 +9,7 @@ import { assertQualityGate } from '../jobs/quality-gate.js';
 import type { RequestCtx } from '../auth/context.js';
 import { BookInputSchema, BookListQuerySchema, BookPatchSchema, type Book } from '../repos/books.js';
 import type { BookExtras } from '../repos/library.js';
-import { idOf, owner, writer } from './common.js';
+import { guardModels, idOf, isOwner, owner, writer } from './common.js';
 
 /** UTC+14 (Kiribati), the furthest ahead any time zone is. */
 const LATEST_OFFSET_MS = 14 * 60 * 60 * 1000;
@@ -79,6 +79,12 @@ export function bookRoutes(app: FastifyInstance, s: AppServices): void {
     const body = parse(BookInputSchema, req.body);
     // Budgets are the owner's (D-047); an editor's new book takes the workspace default.
     if (body.budgetUsd !== undefined) owner(req);
+    // Models are the owner's (audit M2): an editor's new book uses the workspace and pen name choices.
+    if (body.settings && !isOwner(req) && 'models' in body.settings) {
+      const { models: _dropped, ...rest } = body.settings;
+      void _dropped;
+      body.settings = rest;
+    }
     const profile = await s.repos.profiles.require(req.ctx, body.profileId);
     if (profile.status !== 'active') throw new AppError('invalid_state', 'Restore this pen name before starting a book with it.');
     const settings = await s.repos.settings.all(req.ctx);
@@ -121,6 +127,13 @@ export function bookRoutes(app: FastifyInstance, s: AppServices): void {
     const id = idOf(req);
     const patch = parse(BookPatchSchema, req.body);
     if (patch.budgetUsd !== undefined) owner(req);
+    if (patch.settings !== undefined) {
+      const current = (await r.require(req.ctx, id)).settings['models'];
+      const models = guardModels(req, patch.settings['models'], current);
+      const { models: _sent, ...rest } = patch.settings;
+      void _sent;
+      patch.settings = models === undefined ? rest : { ...rest, models };
+    }
     if (patch.profileId) await s.repos.profiles.require(req.ctx, patch.profileId);
     return full(req.ctx, await r.update(req.ctx, id, patch));
   });

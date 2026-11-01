@@ -88,36 +88,51 @@ export function transferRoutes(app: FastifyInstance, s: AppServices): void {
     return reply.code(201).send(result);
   });
 
+  // One import at a time per workspace and a few at once on the instance, on both import routes (audit L1).
+  const importing = new Set<string>();
+  const guarded = async <T>(req: FastifyRequest, run: () => Promise<T>): Promise<T> => {
+    const workspaceId = req.ctx.workspaceId;
+    if (importing.has(workspaceId)) throw new AppError('conflict', 'An import is already running in this workspace. Wait for it to finish.');
+    if (importing.size >= MAX_IMPORTS_RUNNING) throw new AppError('conflict', 'Volume is busy with other imports. Try again in a minute.');
+    importing.add(workspaceId);
+    try {
+      return await run();
+    } finally {
+      importing.delete(workspaceId);
+    }
+  };
+
   void app.register((scope) => {
     scope.addContentTypeParser(['application/zip', 'application/octet-stream'], (_req, payload, done) => done(null, payload));
 
     // Body: the zip from export-project (Content-Type application/zip). Optional ?profileId= puts the book under an
     // existing pen name instead of a copy of the exported one.
-    scope.post('/projects/import', { bodyLimit: s.config.maxUploadBytes }, async (req, reply) => {
-      writer(req);
-      const q = parse(z.object({ profileId: z.string().min(1).max(64).optional() }), req.query);
-      const type = (req.headers['content-type'] ?? '').split(';')[0]?.trim().toLowerCase();
-      if (type !== 'application/zip' && type !== 'application/octet-stream')
-        throw new AppError('unsupported_media_type', 'Send the project zip with Content-Type: application/zip.');
-      const parts: Buffer[] = [];
-      let size = 0;
-      for await (const chunk of req.body as Readable) {
-        const b = typeof chunk === 'string' ? Buffer.from(chunk) : (chunk as Buffer);
-        size += b.length;
-        if (size > s.config.maxUploadBytes) throw new AppError('payload_too_large', 'The project file is larger than the allowed size.');
-        parts.push(b);
-      }
-      const result = await transfer.importProject(req.ctx, Buffer.concat(parts), { profileId: q.profileId ?? null });
-      void reply.code(201);
-      return { ...result, book: await s.repos.books.require(req.ctx, result.bookId) };
-    });
+    scope.post('/projects/import', { bodyLimit: s.config.maxUploadBytes, config: { rateLimit: PROJECT_IMPORT_RATE } }, async (req, reply) =>
+      guarded(req, async () => {
+        writer(req);
+        const q = parse(z.object({ profileId: z.string().min(1).max(64).optional() }), req.query);
+        const type = (req.headers['content-type'] ?? '').split(';')[0]?.trim().toLowerCase();
+        if (type !== 'application/zip' && type !== 'application/octet-stream')
+          throw new AppError('unsupported_media_type', 'Send the project zip with Content-Type: application/zip.');
+        const parts: Buffer[] = [];
+        let size = 0;
+        for await (const chunk of req.body as Readable) {
+          const b = typeof chunk === 'string' ? Buffer.from(chunk) : (chunk as Buffer);
+          size += b.length;
+          if (size > s.config.maxUploadBytes) throw new AppError('payload_too_large', 'The project file is larger than the allowed size.');
+          parts.push(b);
+        }
+        const result = await transfer.importProject(req.ctx, Buffer.concat(parts), { profileId: q.profileId ?? null });
+        void reply.code(201);
+        return { ...result, book: await s.repos.books.require(req.ctx, result.bookId) };
+      }),
+    );
     return Promise.resolve();
   });
 
   // Moving a book from another Volume (D-051). multipart/form-data with two parts: profileId (a pen name in the
   // caller's workspace) and file (the project zip from export-project). Always makes a new book; nothing existing
   // is changed. Owner or editor. Nothing from the zip is logged.
-  const importing = new Set<string>();
   void app.register((scope) => {
     // Fastify collects the body as one buffer and answers 413 past the limit, before this parser runs.
     const bodyLimit = s.config.maxUploadBytes + 64 * 1024;
@@ -129,15 +144,7 @@ export function transferRoutes(app: FastifyInstance, s: AppServices): void {
       // request starts) or Sec-Fetch-Site same-origin. Without either, refuse, so no other page can send a zip here.
       if (req.headers.origin === undefined && req.headers['sec-fetch-site'] !== 'same-origin')
         throw new AppError('forbidden', 'Import a project from the Volume app.');
-      const workspaceId = req.ctx.workspaceId;
-      if (importing.has(workspaceId)) throw new AppError('conflict', 'An import is already running in this workspace. Wait for it to finish.');
-      if (importing.size >= MAX_IMPORTS_RUNNING) throw new AppError('conflict', 'Volume is busy with other imports. Try again in a minute.');
-      importing.add(workspaceId);
-      try {
-        return await importOne(req, reply);
-      } finally {
-        importing.delete(workspaceId);
-      }
+      return guarded(req, () => importOne(req, reply));
     });
 
     const importOne = async (req: FastifyRequest, reply: FastifyReply) => {

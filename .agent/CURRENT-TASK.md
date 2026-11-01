@@ -13,7 +13,7 @@ Current state only. Dated history is in `.agent/HANDOFF.md`; audits in `docs/AUD
 ## Open owner decisions
 
 - **Clerk sign-in methods:** owner decided on 1 November 2026 to leave Password on (email code still works through Continue).
-- **Go-live security (branch `golive/2026-11`, not pushed):** two High findings fixed (export Chromium injection, negative price past the guest cap). Five Medium findings open in docs/AUDIT.md; recommended next: M1 (fail closed when `AUTH_MODE` is not explicit on a hosted build), then M2 (models owner-only).
+- **Go-live security (branch `golive/2026-11`, not pushed):** all code-closable findings fixed (High S1 and S2, Medium M1 to M4, Low L1 to L5, L7, L9). Owner steps left: `CLOUDFLARE_ONLY` report then on (M5, L8); copy the new header lines from `deploy/htaccess.volume` into the docroot `.htaccess`, or add a Cloudflare rule removing `X-Turbo-Charged-By`; review `docx` 9.15 (adds a default table style) and the Clerk SDK minors before upgrading them.
 - **Public page indexing:** decided 1 November 2026 (D-068): `/` and `/how-it-works` indexed, sitemap and robots built on `golive/2026-11`. Live after the owner approves push and deploy; then run Google's Rich Results Test and submit the sitemap in Search Console.
 - **Unconfirmed since 25 October:** the pack gate blocks only on needs-check claims; the loosened house-style and invented-content rules (see that PR's audit table).
 - **Origin lock:** `CLOUDFLARE_ONLY` ships off; the one-off host steps (`report`, read the log, then `on`) are in DEPLOYMENT.md and not recorded as done.

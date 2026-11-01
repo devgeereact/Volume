@@ -510,3 +510,11 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
 - **Options considered:** keep D-053 as it was (nothing found in search).
 - **Consequences:** the two pages can appear in search results after the next deploy. Undo by emptying both lists; the tests switch back with them.
 
+## D-069, 1 November 2026: model choice owner-only, and limits per user and per workspace
+
+- **Status:** Accepted (owner asked for every audit finding to be fixed, "make the best call", 1 November 2026).
+- **Context:** the go-live audit (docs/AUDIT.md) found that editors could set models per book or pen name on the owner's key, that one user could hold unlimited event streams, and that one workspace could fill the shared job lanes.
+- **Decision:** `models` on books and pen names is an owner field: an editor's create drops it and an editor's change is refused, while forms that send the stored value back still work. Each user may hold 8 open event streams; streams end after an hour and reconnect. Each workspace may have 12 jobs that people started waiting or running, at most 3 of them builds, plus up to 200 section reruns ("Fix everything" sends one per section); child jobs never count. Hosted builds fail closed to Clerk sign-in.
+- **Options considered:** refuse every editor request that carries `models` (would break the New book wizard, which always sends it); round-robin job claims across workspaces (a larger change to the queue).
+- **Consequences:** an editor's model choice in the New book wizard is ignored (the workspace and pen name models apply); a busy workspace sees "jobs are already waiting" past the limits. Undo by removing `guardModels`, `StreamLimit` and `assertRoom`.
+

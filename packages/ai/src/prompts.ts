@@ -156,7 +156,8 @@ export function renderTemplate(
       }
     }
     used[name] = v;
-    if (ctx.fence?.has(name) && v !== 'None') return `<data label="${name}">\n${v}\n</data>`;
+    // Text inside a fence cannot open or close one (audit L4): "<data" and "</data" (spaces too) are written as "&lt;data".
+    if (ctx.fence?.has(name) && v !== 'None') return `<data label="${name}">\n${v.replace(/<(\s*\/?\s*data\b)/gi, '&lt;$1')}\n</data>`;
     return v;
   });
   if (missing.size > 0) throw new MissingVariableError(ctx.promptId, [...missing]);

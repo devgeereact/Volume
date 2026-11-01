@@ -11,3 +11,12 @@
 # The cPanel Node.js selector writes its own "CLOUDLINUX PASSENGER CONFIGURATION" block below this line.
 # Keep the origin lock above it, and keep nothing else in this docroot.
 Options -Indexes
+
+# Do not name the web server or its version (audit, 1 November 2026). LiteSpeed adds X-Turbo-Charged-By; Cloudflare
+# already replaces Server with "cloudflare". The app sends neither header itself.
+<IfModule mod_headers.c>
+  Header always unset X-Powered-By
+  Header always unset X-Turbo-Charged-By
+  Header unset X-Powered-By
+  Header unset X-Turbo-Charged-By
+</IfModule>

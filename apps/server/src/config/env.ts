@@ -276,7 +276,10 @@ export function loadConfig(opts: LoadConfigOptions = {}): AppConfig {
   const explicitHosts = list(e.ALLOWED_HOSTS).map((h) => h.toLowerCase());
   const allowedHosts = explicitHosts.length > 0 ? [...new Set(explicitHosts)] : [...new Set(allowedOrigins.map((o) => o.replace(/^https?:\/\//, '')))];
 
-  const authMode = e.AUTH_MODE ?? (production ? 'clerk' : 'local');
+  // Fail closed (audit M1): a hosted build (an https APP_ORIGIN or MySQL) signs in through Clerk unless AUTH_MODE=local is
+  // set on purpose, whatever NODE_ENV says, so a wrong NODE_ENV on the host can never fall back to the open stub.
+  const hosted = appOrigin?.startsWith('https://') === true || e.DB_CLIENT === 'mysql';
+  const authMode = e.AUTH_MODE ?? (production || hosted ? 'clerk' : 'local');
   if (production && authMode === 'local') throw new ConfigError('AUTH_MODE=local is for development only. Production needs AUTH_MODE=clerk.');
   const publishableKey = e.CLERK_PUBLISHABLE_KEY?.trim() ?? null;
   const clerk: ClerkSettings = {

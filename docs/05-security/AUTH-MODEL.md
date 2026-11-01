@@ -27,7 +27,7 @@ The setting is a name in `.env.example` and the host's settings file (`docs/07-o
 | Role | Can do |
 |---|---|
 | owner | Everything in the workspace: books, settings, models, spending, pen name bios and members. |
-| editor | Write books, research, blueprints, manuscripts, covers, jobs and exports. Not settings, spending, members or pen name bios. |
+| editor | Write books, research, blueprints, manuscripts, covers, jobs and exports. Not settings, spending, models (on the workspace, a book or a pen name, D-069), members or pen name bios. |
 | viewer | Read only. Every write route answers 403. |
 
 Some actions reach past one workspace: whole-database backups and the OpenRouter key test. Only an owner of the instance owner's own workspace can use them, never the owner of another self-publisher's workspace (`assertInstanceOwner` in `apps/server/src/auth/context.ts`). All AI runs on the instance owner's keys (Anthropic first for Claude models when `ANTHROPIC_API_KEY` is set, else OpenRouter, D-058). Keys per account are deferred.

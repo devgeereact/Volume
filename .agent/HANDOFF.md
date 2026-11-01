@@ -888,3 +888,12 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Checks: `npm run verify` before each commit (results in the commit session report). Not tested: anything live.
 - Next: owner reviews, approves push and deploy; then M1 and M2.
 
+## 1 November 2026 (night), Claude Code (Opus 5.5): every open finding, go-live checklist
+
+- Owner: "make the best call", fix everything, including a 19-item security checklist; remove X-Powered-By and hide the server version.
+- Fixed with tests written first: M1 fail-closed sign-in, M2 models owner-only (D-069), M3 and L7 stream limits, M4 jobs per workspace, L1 import guard, L2 import resets, L3 100 MP picture limit, L4 fence escaping, L5 plain job errors, L9 web-only source links, absolute-form paths, software headers (app and `deploy/htaccess.volume`).
+- Not changed, with reasons in docs/AUDIT.md: M5 and L8 (host facts), L6 (OpenRouter billing unknown). `ServerSignature Off` left out of the `.htaccess` template on purpose (a refused directive would take the site down).
+- Dependencies: within-range updates and three pinned patch bumps; `docx` held at 9.8.1 after its 9.15 output changed the DOCX goldens; Playwright, Clerk and Prettier held. gitleaks clean (314 commits); Semgrep 50 false positives, coverage partial.
+- Checks: `npm run verify` before the commit (result in the commit and the session report).
+- Next: owner reviews; approval for push and deploy; the host steps above.
+

@@ -29,7 +29,10 @@ beforeAll(async () => {
   mkdirSync(join(webDir, 'assets'));
   writeFileSync(join(webDir, 'index.html'), SHELL);
   writeFileSync(join(webDir, 'assets', 'literata-latin-opsz-normal-abc.woff2'), 'x');
-  const config = loadConfig({ dotenv: false, env: { WEB_DIST_DIR: webDir, APP_ORIGIN: ORIGIN, LOG_LEVEL: 'silent', JOBS_ENABLED: 'false' } });
+  const config = loadConfig({
+    dotenv: false,
+    env: { AUTH_MODE: 'local', WEB_DIST_DIR: webDir, APP_ORIGIN: ORIGIN, LOG_LEVEL: 'silent', JOBS_ENABLED: 'false' },
+  });
   t = await testApp({ config });
 });
 

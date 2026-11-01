@@ -98,6 +98,16 @@ export type HandlerMap = Partial<Record<JobKind, JobHandler>>;
  */
 export const QUICK_KINDS: JobKind[] = ['cover_concepts', 'edit_pass', 'weave_notes', 'rewrite_selection', 'claim_fix'];
 
+/** What a job failed by an unexpected error says; the detail is in the server log under the job id. */
+export const UNEXPECTED_JOB_ERROR = 'Something went wrong on the server while running this step. The details are in the server log.';
+
+/** True for errors from a database driver, the file system or the network (they carry code, errno, sql or syscall). */
+export function isSystemError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const e = err as Error & Record<string, unknown>;
+  return ['code', 'errno', 'sql', 'sqlMessage', 'syscall'].some((k) => e[k] !== undefined);
+}
+
 /** Concurrency lanes (docs: 2 AI jobs at once plus 1 for quick on-screen jobs, 1 export job). */
 const LANES: { name: string; max: number; kinds: JobKind[] }[] = [
   { name: 'quick', max: 1, kinds: QUICK_KINDS },
@@ -456,9 +466,12 @@ export class JobRunner {
       await queue.finish(job.id, job.lockToken, { status: 'failed', error: err.message, errorCode: err instanceof AppError ? err.code : 'validation_failed' });
       return;
     }
+    // A database, file system or network error carries driver details (user names, paths, addresses): those go to the
+    // server log only, and every member of the workspace (viewers too) sees a plain message (audit L5). Errors Volume
+    // raises itself keep their message, which says what to change.
     const message = err instanceof Error ? err.message : String(err);
     this.opts.log?.warn({ jobId: job.id, kind: job.kind, err: { message } }, 'job attempt failed');
-    await queue.retryOrFail(job.id, job.lockToken, message, { retryable: true });
+    await queue.retryOrFail(job.id, job.lockToken, isSystemError(err) ? UNEXPECTED_JOB_ERROR : message, { retryable: true });
   }
 
   private async emitCost(ctx: RequestCtx, job: Job, addedUsd: number): Promise<void> {

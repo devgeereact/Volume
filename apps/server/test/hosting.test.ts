@@ -1,10 +1,11 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
+import Fastify from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ClerkAuthProvider, type ClerkUserLookup, type ClerkVerifier } from '../src/auth/clerk.js';
 import { clerkFrontendApiHost, loadConfig } from '../src/config/env.js';
-import { inlineScriptHashes } from '../src/http/hosting.js';
+import { applySecurityHeaders, inlineScriptHashes, isApiPath, isPublicHealth } from '../src/http/hosting.js';
 import { buildApp } from '../src/app.js';
 import { memoryDb, testApp, type TestApp } from './helpers.js';
 
@@ -81,6 +82,21 @@ describe('production settings', () => {
     expect(() => loadConfig({ dotenv: false, env: { ...prodEnv(webDir), APP_ORIGIN: 'https://volume.example.com/app' } })).toThrow(/no path/);
   });
 
+  it('fail closed on a hosted build whatever NODE_ENV says: no AUTH_MODE means Clerk, never the open stub (audit M1)', () => {
+    const { AUTH_MODE: _a, NODE_ENV: _n, ...hosted } = prodEnv(webDir);
+    void _a;
+    void _n;
+    for (const nodeEnv of [undefined, 'development', 'prod']) {
+      const env = nodeEnv ? { ...hosted, NODE_ENV: nodeEnv } : hosted;
+      expect(loadConfig({ dotenv: false, env }).authMode, String(nodeEnv)).toBe('clerk');
+      expect(() => loadConfig({ dotenv: false, env: { ...env, CLERK_SECRET_KEY: '' } }), String(nodeEnv)).toThrow(/CLERK_SECRET_KEY/);
+    }
+    const mysql = { DB_CLIENT: 'mysql', MYSQL_HOST: 'localhost', MYSQL_DATABASE: 'v', MYSQL_USER: 'v', LOG_LEVEL: 'silent' };
+    expect(() => loadConfig({ dotenv: false, env: mysql })).toThrow(/AUTH_MODE=clerk needs/);
+    expect(loadConfig({ dotenv: false, env: { ...mysql, AUTH_MODE: 'local' } }).authMode).toBe('local');
+    expect(loadConfig({ dotenv: false, env: { LOG_LEVEL: 'silent' } }).authMode).toBe('local');
+  });
+
   it('default to Clerk, no auto-migrate, proxy trust and APP_ORIGIN only', () => {
     const { AUTH_MODE: _unused, ...rest } = prodEnv(webDir);
     void _unused;
@@ -104,11 +120,17 @@ describe('production settings', () => {
     expect(dev.production).toBe(false);
     expect(dev.trustProxy).toBe(false);
     expect(dev.rateLimit.writeMax).toBeGreaterThan(100000);
-    const local = loadConfig({ dotenv: false, env: { DB_CLIENT: 'mysql', MYSQL_HOST: 'localhost', MYSQL_DATABASE: 'd', MYSQL_USER: 'u' } });
+    const local = loadConfig({ dotenv: false, env: { AUTH_MODE: 'local', DB_CLIENT: 'mysql', MYSQL_HOST: 'localhost', MYSQL_DATABASE: 'd', MYSQL_USER: 'u' } });
     expect(local.db.client === 'mysql' && local.db.mysql.ssl).toBe('off');
-    const remote = loadConfig({ dotenv: false, env: { DB_CLIENT: 'mysql', MYSQL_HOST: 'db.example.com', MYSQL_DATABASE: 'd', MYSQL_USER: 'u' } });
+    const remote = loadConfig({
+      dotenv: false,
+      env: { AUTH_MODE: 'local', DB_CLIENT: 'mysql', MYSQL_HOST: 'db.example.com', MYSQL_DATABASE: 'd', MYSQL_USER: 'u' },
+    });
     expect(remote.db.client === 'mysql' && remote.db.mysql.ssl).toBe('verify');
-    const socket = loadConfig({ dotenv: false, env: { DB_CLIENT: 'mysql', MYSQL_SOCKET: '/var/lib/mysql/mysql.sock', MYSQL_DATABASE: 'd', MYSQL_USER: 'u' } });
+    const socket = loadConfig({
+      dotenv: false,
+      env: { AUTH_MODE: 'local', DB_CLIENT: 'mysql', MYSQL_SOCKET: '/var/lib/mysql/mysql.sock', MYSQL_DATABASE: 'd', MYSQL_USER: 'u' },
+    });
     expect(socket.db.client === 'mysql' && socket.db.mysql.socketPath).toBe('/var/lib/mysql/mysql.sock');
   });
 
@@ -189,6 +211,35 @@ describe('public hosting', () => {
       expect([401, 404], url).toContain(res.status);
     }
     expect((await t.call('GET', '/%61pi/v1/health', undefined, as(null))).status).toBe(401);
+  });
+
+  it('reads an absolute-form request line as its path, so both sign-in checks agree (audit, 1 November 2026)', () => {
+    expect(isApiPath('http://volume.example.com/api/v1/books')).toBe(true);
+    expect(isApiPath('HTTPS://volume.example.com/%61pi/v1/books?x=1')).toBe(true);
+    expect(isPublicHealth('https://volume.example.com/api/health')).toBe(true);
+    expect(isApiPath('/library')).toBe(false);
+    expect(isApiPath('/api')).toBe(true);
+  });
+
+  it('never names the server software or its version, even when a plugin adds the headers', async () => {
+    for (const url of ['/', '/api/health', '/api/v1/books', '/assets/app-abc123.js']) {
+      const res = await t.call('GET', url, undefined, as(null));
+      expect(res.headers['x-powered-by'], url).toBeUndefined();
+      expect(res.headers['server'], url).toBeUndefined();
+    }
+    const mini = Fastify();
+    mini.addHook('onSend', async (req, reply, payload) => {
+      applySecurityHeaders(req, reply, t.services.config, null);
+      return payload;
+    });
+    mini.get('/api/x', async (_req, reply) => {
+      void reply.header('X-Powered-By', 'Something/1.0').header('Server', 'Something/1.0');
+      return { ok: true };
+    });
+    const res = await mini.inject({ method: 'GET', url: '/api/x' });
+    expect(res.headers['x-powered-by']).toBeUndefined();
+    expect(res.headers['server']).toBeUndefined();
+    await mini.close();
   });
 
   it('answers only the configured host, including loopback', async () => {

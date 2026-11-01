@@ -80,7 +80,7 @@ Migration order: `0006_picture_books`, `0008_volume_mode` and `0009_invitations`
 
 - Create the database and two users in cPanel MySQL Databases: runtime user with SELECT, INSERT, UPDATE, DELETE; migration user with those plus CREATE, ALTER, INDEX, DROP, REFERENCES. Passwords are generated on the server and typed into `shared/.env` only.
 - Install chromium-headless-shell 1243 into `~/apps/volume/shared/browsers` and the two libraries into `~/apps/volume/shared/chromium-libs`.
-- Docroot `.htaccess`: start with the Cloudflare origin-lock block exactly as given in [deploy/htaccess.volume](../../deploy/htaccess.volume); the Node.js selector adds its own Passenger block after it.
+- Docroot `.htaccess`: start with the Cloudflare origin-lock block and the header lines (unset `X-Powered-By` and `X-Turbo-Charged-By`, added 1 November 2026, not yet copied to the host) exactly as given in [deploy/htaccess.volume](../../deploy/htaccess.volume); the Node.js selector adds its own Passenger block after it.
 - Origin lock by Cloudflare's IP ranges (D-062), after the release that carries it is live. It is off until you set it, so a wrong host setting cannot lock the site:
   1. Add `CLOUDFLARE_ONLY=report` to `shared/.env` and restart (stop `lsnode`).
   2. Open the site normally a few times, then read the app log. There must be no `request did not come through Cloudflare` lines for your own visits. If there are, LiteSpeed is not passing the Cloudflare hop in `X-Forwarded-For`: leave it on `report` and say so in `docs/KNOWN-ISSUES.md`.
@@ -142,7 +142,7 @@ A local Volume on the Mac can add the file to every pack it builds: start it wit
 
 ## What the server enforces in production
 
-`NODE_ENV=production` requires `APP_ORIGIN`, `AUTH_MODE=clerk` (local is refused), `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` and an allowlist (`OWNER_EMAILS` or `CLERK_ALLOWED_USER_IDS`). It answers only the `ALLOWED_HOSTS` (default: the `APP_ORIGIN` host), refuses writes from other origins, trusts the proxy and takes the visitor IP from `CF-Connecting-IP`, rate limits per IP (reads, writes and the health check separately) and never returns stack traces.
+`NODE_ENV=production` (and, since D-069, any build with an https `APP_ORIGIN` or MySQL, whatever `NODE_ENV` says) requires `APP_ORIGIN`, `AUTH_MODE=clerk` (local is refused in production), `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` and an allowlist (`OWNER_EMAILS` or `CLERK_ALLOWED_USER_IDS`). It answers only the `ALLOWED_HOSTS` (default: the `APP_ORIGIN` host), refuses writes from other origins, trusts the proxy and takes the visitor IP from `CF-Connecting-IP`, rate limits per IP (reads, writes and the health check separately) and never returns stack traces.
 
 ### Accounts setting (D-047)
 
