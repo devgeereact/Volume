@@ -858,3 +858,9 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Two volume-frontend agents fixed shell/library/settings and step pages in worktrees; merged on `design/gap-fixes` except a Settings card stretch (rejected: it created an empty band). Lead fixes: Overview rings and step grid, calendar, Up next, research counts grid, profile Add tile, fixed grids on Published, New book and Cover, Library first page in whole rows, side menu money lines on Library, demo targets, `VITE_HASH_ROUTER` preview switch in `apps/web/src/app/router.tsx` (design preview only).
 - Checks: see CURRENT-TASK. Artifact published. Nothing committed, pushed or deployed. `.claude/worktrees/` holds the two agent worktrees (untracked).
 
+## 1 November 2026, Claude Code (Opus 5.5): design gap fixes live
+
+- Owner: "Build this to live". Committed `851d0bd` on `design/gap-fixes`, PR #87, all checks passed on Linux, macOS and node24-host, merged as `069f5a5`.
+- "Check Volume" on main failed once: ESLint ran out of memory on the macOS runner (the same code passed macOS lint twice on the PR). Re-ran the failed job; it passed and `deploy.yml` deployed `releases/20261101T062407Z` (run 41280644217). Rollback target `20261030T194912Z`.
+- Live checks: see CURRENT-TASK. Docs: DEPLOYMENT.md current release updated.
+

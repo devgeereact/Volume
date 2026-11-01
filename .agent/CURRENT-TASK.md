@@ -1,6 +1,12 @@
 # Current task
 
-## State on 31 October 2026 (evening): design gap fixes, waiting for approval
+## State on 1 November 2026: design gap fixes live
+
+- PR #87 merged (main `069f5a5`), deployed automatically as `releases/20261101T062407Z`; rollback target `20261030T194912Z`. No migrations.
+- Live checks PASS: deploy script (health 200, sign-in enforced, `/assets/index-DVqwm1BB.js`); `/`, `/library`, `/how-it-works`, `/robots.txt`, `/api/health` 200; `/api/v1/books` 401 signed out; new code confirmed in the served chunks (toast region role, Add profile tile, PhoneFold).
+- Not checked: signed-in pages in a browser on real data (owner to look at Blueprint and Titles on a server book). `.claude/worktrees/` holds two finished agent worktrees; remove when convenient (`git worktree remove`).
+
+## State on 31 October 2026 (evening): design gap fixes, approved and deployed (see above)
 
 - Owner: use /product-design, do not assume, test, give correct artifacts first, then build to live after approval; discard other artifacts and start from what is built. Volume Finalised and Volume Rebrand artifacts deleted.
 - Branch `design/gap-fixes` (local, uncommitted): measured gap fixes on the approved D-066 design. Review artifact "Volume Gap Fixes": https://claude.ai/artifact/QL1G4Sy7tmuwr8tXdS87cF (before and after, plus this branch's build running on demo data). Before audit saved in `../reports/volume/gap-fixes/`.
