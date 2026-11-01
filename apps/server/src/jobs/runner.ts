@@ -471,7 +471,9 @@ export class JobRunner {
     });
   }
 
-  private async reserveBudget(jobId: string, ctx: RequestCtx, projectId: string | null, usd: number): Promise<void> {
+  private async reserveBudget(jobId: string, ctx: RequestCtx, projectId: string | null, quoted: number): Promise<void> {
+    // A reservation is never a credit: a negative or broken quote would cancel recorded spend in the guest cap check.
+    const usd = Number.isFinite(quoted) && quoted > 0 ? quoted : 0;
     const check = this.budgetChecks.then(async () => {
       const others = [...this.reservations.entries()].filter(([id, value]) => id !== jobId && value.workspaceId === ctx.workspaceId).map(([, value]) => value);
       await this.checkBudget(

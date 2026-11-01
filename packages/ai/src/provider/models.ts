@@ -1,14 +1,16 @@
 import type { ModelInfo, ModelPricing, Usage } from '../types.ts';
 import { asArray, asNumber, asObject, asString } from '../util.ts';
 
+// A negative price (OpenRouter lists "-1" for routers such as openrouter/auto, whose price depends on the model they
+// pick) means unknown, never a credit.
 function perMillion(v: unknown): number | null {
   const n = asNumber(v);
-  return n === undefined ? null : Math.round(n * 1_000_000 * 1e6) / 1e6;
+  return n === undefined || n < 0 ? null : Math.round(n * 1_000_000 * 1e6) / 1e6;
 }
 
 function plain(v: unknown): number | null {
   const n = asNumber(v);
-  return n === undefined ? null : n;
+  return n === undefined || n < 0 ? null : n;
 }
 
 /** Map one entry of GET /api/v1/models `data[]` to ModelInfo. Prices there are USD per token (strings). */

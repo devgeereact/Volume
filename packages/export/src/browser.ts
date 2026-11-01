@@ -1,5 +1,5 @@
 // One shared headless Chromium (Playwright) for PDF, cover and preview work.
-import { chromium, type Browser } from 'playwright';
+import { chromium, type Browser, type BrowserContext, type BrowserContextOptions } from 'playwright';
 
 let shared: Browser | undefined;
 let users = 0;
@@ -54,4 +54,16 @@ export async function withBrowser<T>(given: Browser | undefined, fn: (b: Browser
   } finally {
     await releaseBrowser();
   }
+}
+
+/**
+ * A browser context for export work that can reach nothing outside the page. Every export page is built from data:
+ * URLs (fonts, images, ornaments), so any request at all is refused: text from a book, an import or a model can never
+ * make the host's Chromium load an internal or outside address. Routes added later on the context (the page preview's
+ * own origin) take precedence over this one.
+ */
+export async function newIsolatedContext(browser: Browser, options: BrowserContextOptions = {}): Promise<BrowserContext> {
+  const ctx = await browser.newContext({ ...options, serviceWorkers: 'block' });
+  await ctx.route('**/*', (route) => route.abort('blockedbyclient'));
+  return ctx;
 }

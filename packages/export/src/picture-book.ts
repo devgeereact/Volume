@@ -30,7 +30,7 @@ import {
   type TextBoxIn,
   type TrimKey,
 } from '@volume/core';
-import { withBrowser } from './browser.ts';
+import { withBrowser, newIsolatedContext } from './browser.ts';
 import { fontFaceCss, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
 import { normalisePrintStrings } from './print-glyphs.ts';
 
@@ -255,7 +255,7 @@ export async function exportPictureBookPdf(doc: PictureBookDoc, rules: KdpRules,
   const fonts = opts.fonts ?? loadFontLibrary();
   const built = await buildPictureBookHtml(normalisePrintStrings(doc), g, { ...opts, fonts }); // symbols the fonts lack print as Type 3
   const { pdf, layout } = await withBrowser(opts.browser, async (browser) => {
-    const ctx = await browser.newContext();
+    const ctx = await newIsolatedContext(browser);
     try {
       const page = await ctx.newPage();
       await page.setContent(built.html, { waitUntil: 'load', timeout: opts.timeoutMs ?? 120_000 });

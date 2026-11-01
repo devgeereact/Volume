@@ -502,3 +502,11 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
 - **Options considered:** CSS patterns (printed wrongly in the PDF); a separate cover table (needs a migration).
 - **Consequences:** old covers render byte for byte as before (hash test). Golden files cover each mode for the eBook JPEG and the wrap PDF. Not built: per-line typeface and spacing, dragging shapes on the canvas.
 
+## D-068, 1 November 2026: index the landing page and How it works
+
+- **Status:** Accepted (owner chose "Index / and /how-it-works" during the go-live work, 1 November 2026). Supersedes D-053 item 5 for these two pages only.
+- **Context:** D-053 kept every page `noindex` while the public pages were new; indexing was proposed on 25 October and left open. The go-live brief asked for titles, descriptions, schema, a sitemap and robots rules for the public pages.
+- **Decision:** `INDEXABLE_KEYS` (`apps/server/src/http/seo.ts`) and `INDEXABLE` (`apps/web/src/site/seo.ts`) list `home` and `how-it-works`. Those pages are `index, follow` with a canonical; `/sitemap.xml` lists them; robots.txt allows them, `/assets/`, the favicons, the logo and the share image, and disallows everything else. `/welcome` stays a redirect to `/`. Sign-in, app screens, 404s and the API stay `noindex` and disallowed. The page copy still says Volume is a private studio with access by invitation.
+- **Options considered:** keep D-053 as it was (nothing found in search).
+- **Consequences:** the two pages can appear in search results after the next deploy. Undo by emptying both lists; the tests switch back with them.
+

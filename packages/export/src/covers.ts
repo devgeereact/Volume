@@ -39,7 +39,7 @@ import {
   shapesOn,
   wrapWindow,
 } from '@volume/core';
-import { withBrowser } from './browser.ts';
+import { withBrowser, newIsolatedContext } from './browser.ts';
 import { fontFaceCss, isVariableOnly, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
 import { normalisePrintStrings, normalisePrintText, symbolFallbackCss, withSymbolFallback } from './print-glyphs.ts';
 import { ornamentSvg } from './ornaments.ts';
@@ -412,7 +412,7 @@ ${frontCss(front, f, ink)}${layerCss(style)}</style></head><body>${frontHtml(met
     };
   const measure = hasLayers(style);
   const { png, fitted, subtitlePushed, behind } = await withBrowser(opts.browser, async (browser) => {
-    const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+    const ctx = await newIsolatedContext(browser, { viewport: { width: W, height: H }, deviceScaleFactor: 1 });
     try {
       const page = await ctx.newPage();
       await page.setContent(html, { waitUntil: 'load' });
@@ -643,7 +643,7 @@ ${wide ? bgMarkup : ''}<div class="back"><div class="text">${blurbHtml(opts.blur
   const page = out.addPage([W, H]);
   if (rasterised) {
     const png = await withBrowser(opts.browser, async (browser) => {
-      const ctx = await browser.newContext({
+      const ctx = await newIsolatedContext(browser, {
         viewport: { width: Math.ceil(size.widthIn * 96), height: Math.ceil(size.heightIn * 96) },
         deviceScaleFactor: minDpi / 96,
       });
@@ -661,7 +661,7 @@ ${wide ? bgMarkup : ''}<div class="back"><div class="text">${blurbHtml(opts.blur
     page.drawImage(img, { x: 0, y: 0, width: W, height: H });
   } else {
     const raw = await withBrowser(opts.browser, async (browser) => {
-      const ctx = await browser.newContext();
+      const ctx = await newIsolatedContext(browser);
       try {
         const p = await ctx.newPage();
         await p.setContent(html, { waitUntil: 'load' });

@@ -4,6 +4,13 @@ User-visible changes, newest first. Dates in British format.
 
 ## 1 November 2026
 
+#### Changed
+- Search engines may now index the landing page and How it works (D-068). Both have a canonical address, there is a sitemap, and robots.txt still keeps every app page, sign-in and the API out.
+
+#### Security
+- Book exports (print PDF, covers, picture books, page previews) can no longer load anything from the network, and an image address in a chapter can no longer add markup to the print file.
+- The monthly AI cap for other workspaces holds even when a model's price is listed as negative.
+
 #### Fixed
 - Sign-in page: "Welcome back to the studio." now shows in full on one line on laptop and desktop screens; the word "studio." was invisible in both themes.
 - The cloth-bound book on the landing and sign-in pages shows its gold title and border again.

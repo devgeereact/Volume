@@ -180,7 +180,7 @@ AC:
 
 ## Features added after the plan (October 2026)
 
-- **Public landing, How it works and sign-in (D-053, D-054).** Signed-out visitors on the hosted app see the landing hero at `/`, How it works at `/how-it-works` and the branded sign-in at `/sign-in`. Signing in leads to the Library at `/library`, and deep links return to their own page. `/welcome` redirects to `/`.
+- **Public landing, How it works and sign-in (D-053, D-054).** Signed-out visitors on the hosted app see the landing hero at `/`, How it works at `/how-it-works` and the branded sign-in at `/sign-in`. Signing in leads to the Library at `/library`, and deep links return to their own page. `/welcome` redirects to `/`. The landing page and How it works are indexed by search engines (D-068); every other page stays noindex.
 - **Move a book by project zip (D-051).** Export > Move this book > Download project writes a zip with the book's rows and files, never the legal name, location, jobs, AI call records or spend. Library > Import project makes a new book under a chosen pen name. Nothing that is already there changes.
 - **Claim fixes, autosave and previous version (D-052).** The book Claims screen (`/books/:id/claims`) offers fix options for each claim and one-click pack fixes. The editor autosaves, and it has a previous-version action.
 - **Own cover upload.** Upload your own cover instead of generating one. Print symbols are checked for KDP safety, and the listing and blurb get preflight checks.

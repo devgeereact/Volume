@@ -879,3 +879,12 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - CI: lint memory raised to 4 GB and the full-book e2e exact title match (PR #89, merged); unblocks the deploy of #88.
 - Checks: typecheck, lint, format, docs PASS; tests core 210, ai 265, export 245, server 566, web 267; e2e 20/20.
 
+## 1 November 2026 (evening), Claude Code (Opus 5.5): go-live security audit and indexing
+
+- Owner: get the project ready for live on `golive/2026-11`; security audit, fix Critical and High, SEO on the public pages; no push, deploy, server, Clerk, OpenRouter, Cloudflare or GitHub changes.
+- Audit: five read-only hunter agents (auth and isolation, AI pipeline and budget, uploads and exports, jobs/SSE/outbound requests, hosting and web). Findings with severity in docs/AUDIT.md. No Critical. Two High fixed with tests written first: S1 export Chromium HTML injection and network access (`imageSrc` allow-list, escaped `src`, `newIsolatedContext` aborting every request in pdf, covers, picture-book and preview); S2 negative model price past the guest cap (`mapModel` negative = unknown, reservation floor 0). Five Medium and nine Low left open with recommendations.
+- SEO: owner chose to index `/` and `/how-it-works` (D-068). Canonicals, sitemap, robots allow-list, logo and share image crawlable, How it works schema defines the nodes it references, static robots.txt names the live sitemap.
+- Docs: AUDIT.md, DECISIONS.md (D-068), CHANGELOG.md, KNOWN-ISSUES.md, SECURITY.md, PRIVACY-INVENTORY.md, PRODUCT-SPEC.md, CURRENT-TASK.md.
+- Checks: `npm run verify` before each commit (results in the commit session report). Not tested: anything live.
+- Next: owner reviews, approves push and deploy; then M1 and M2.
+

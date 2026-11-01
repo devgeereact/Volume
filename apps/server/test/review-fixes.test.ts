@@ -90,6 +90,18 @@ describe('instance-owner cap for other workspaces (finding 1) and Settings visib
     await t.call('PATCH', '/api/v1/settings', { [CAP]: 0.000001 }, as('user_owner'));
     expect(await research(t, 'user_pub', pubBook)).toMatchObject({ status: 'paused_budget', errorCode: 'budget_exceeded' });
   });
+
+  it('keeps the cap when a model is listed with a negative price (openrouter/auto lists -1; audit 1 November 2026)', async () => {
+    // Spend is already past the tiny cap set above; a negative estimate must not cancel it out.
+    const ai = t.services.ai;
+    const real = ai.estimate.bind(ai);
+    ai.estimate = () => Promise.resolve({ lowUsd: -10_000, highUsd: -15_000 });
+    try {
+      expect(await research(t, 'user_pub', pubBook)).toMatchObject({ status: 'paused_budget', errorCode: 'budget_exceeded' });
+    } finally {
+      ai.estimate = real;
+    }
+  });
 });
 
 describe('pen name bios from editors (findings 3 and 15)', () => {
