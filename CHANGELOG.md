@@ -2,6 +2,11 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 8 November 2026
+
+#### Fixed
+- Clicking Sign in on the landing page or on How it works showed "Page not found" at the sign-in address, and only a reload got you to the sign-in screen. It now opens sign-in straight away.
+
 ## 1 November 2026
 
 #### Fixed
