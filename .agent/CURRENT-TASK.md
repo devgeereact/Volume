@@ -2,7 +2,13 @@
 
 Current state only. Dated history is in `.agent/HANDOFF.md`; audits in `docs/AUDIT.md`; the live release in `docs/07-operations/DEPLOYMENT.md`.
 
-## State on 1 November 2026
+## State on 8 November 2026
+
+- **Phase 1 (land the go-live work), in progress:** `golive/2026-11` is verified locally and waits for the owner. Work branch `phase-1/evidence` (from `golive/2026-11`) holds only the evidence records. `npm run verify` PASS (exit 0, 20 e2e), web unit tests PASS (43 files), migrations and MySQL test PASS on a throwaway MariaDB 11.4.13. See the 8 November section of docs/AUDIT.md. CI, the live site and the PDF export on the host are NOT TESTED.
+- **Waiting for the owner, in order (merging is the deploy, because `deploy.yml` deploys `main` once CI passes):** (1) `git fetch` to confirm `main` has not moved; (2) push the branch for CI; (3) check no AI job is running, then merge the pull request with a merge commit; (4) the host session after the deploy: the `.htaccess` lines from `deploy/htaccess.volume`, `CLOUDFLARE_ONLY=report`, restart; (5) public checks, a short PDF export and a sign-in test; (6) `CLOUDFLARE_ONLY=on` if the log is clean; (7) a `[skip ci]` record commit of the new release; (8) delete the go-live branches so only `main` remains. Nothing has been pushed.
+- **Found, not changed:** `npm run verify` does not run the 43 web unit-test files (`apps/web` has no `test:coverage` script).
+
+## Earlier state, 1 November 2026
 
 - **Branch `golive/2026-11`:** go-live audit and SEO work, committed locally, not pushed or deployed (owner approval needed). See the 1 November go-live section of docs/AUDIT.md.
 
