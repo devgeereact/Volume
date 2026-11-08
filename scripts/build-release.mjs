@@ -15,9 +15,10 @@
  * Options: --out <dir> (default build/release), --require-clerk (fail without VITE_CLERK_PUBLISHABLE_KEY).
  */
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { build } from 'esbuild';
+import { installedVersion } from './installed-version.mjs';
 import { root } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -39,19 +40,12 @@ function run(command, argv, cwd, env = process.env) {
   if (r.status !== 0) throw new Error(`${command} ${argv.join(' ')} failed in ${path.relative(root, cwd) || '.'}`);
 }
 
-/** The exact installed version of a dependency (what the tests ran against). */
-function installedVersion(name) {
-  const file = path.join(root, 'node_modules', name, 'package.json');
-  if (!existsSync(file)) throw new Error(`${name} is not installed. Run npm run setup first.`);
-  return readJson(file).version;
-}
-
 function releaseDependencies() {
   const deps = {};
   for (const ws of WORKSPACES) {
     for (const name of Object.keys(readJson(path.join(root, ws, 'package.json')).dependencies ?? {})) {
       if (name.startsWith('@volume/') || DEV_ONLY.has(name)) continue;
-      deps[name] = installedVersion(name);
+      deps[name] = installedVersion(root, ws, name);
     }
   }
   return Object.fromEntries(Object.entries(deps).sort(([a], [b]) => a.localeCompare(b)));

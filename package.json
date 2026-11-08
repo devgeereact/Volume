@@ -27,7 +27,7 @@
     "test:coverage": "npm run test:coverage --workspaces --if-present",
     "setup": "node scripts/setup.mjs",
     "doctor": "node scripts/doctor.mjs",
-    "test:tooling": "node --test tests/integration/runtime.test.mjs",
+    "test:tooling": "node --test tests/integration/*.test.mjs",
     "docs:check": "node scripts/check-docs.mjs",
     "build:release": "node scripts/build-release.mjs",
     "deploy": "node scripts/deploy.mjs",
