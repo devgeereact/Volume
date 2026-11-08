@@ -1,9 +1,10 @@
 # Known issues and open questions
 
-Updated 1 November 2026 (rows rechecked against the code and git log; first written 6 October after the local correction pass). Evidence and original findings: [project review](../../reports/volume/qa/reports/PROJECT-REVIEW-2026-10-06.md).
+Updated 1 November 2026 (go-live audit row added; rows rechecked against the code and git log; first written 6 October after the local correction pass). Evidence and original findings: [project review](../../reports/volume/qa/reports/PROJECT-REVIEW-2026-10-06.md).
 
 | Item | Remaining work | Status |
 |---|---|---|
+| Go-live security audit (1 November 2026) | Fixed on `golive/2026-11`: both High findings, M1 to M4, L1 to L5, L7, L9 (docs/AUDIT.md, evening section). Open: M5 and L8 need the host's `CLOUDFLARE_ONLY` steps; L6 needs OpenRouter's billing rule for failed image calls; the `.htaccess` header lines need copying to the host. | Open (host steps) |
 | PR #21 (`chore/agent-guard-gh`) | Merged 20 October 2026 at the owner's request: `scripts/agent_guard.py` no longer asks before some `gh` commands, and `__pycache__/` is ignored. | Closed |
 | Two failing e2e specs (19 October 2026) | `phase8-batch-failure` and `restart` failed while port 5313 was held by another project's PHP test server (the restart spec needs it). With the port free, e2e is 17 of 17 on main a7bff19 and on the rebased landing branch. | Closed |
 | Branded sign-in on the host | Live since 19 October 2026: the themed Clerk form renders on `/sign-in`. The duplicate "Sign in to Volume" heading fix went live with release `20261020T021731Z` (20 October 2026). | Closed (deployed 20 October 2026) |

@@ -50,6 +50,16 @@ export const JOB_KINDS = [
 ] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
+/** Jobs people start (no parent) that one workspace may have waiting or running at once (audit M4). */
+export const MAX_ACTIVE_JOBS = 12;
+/** Of those, print, cover and picture-book builds (one export lane for the whole instance). */
+export const MAX_ACTIVE_EXPORT_JOBS = 3;
+/** Section reruns started one per section (a long book has up to about 100 sections). */
+export const MAX_ACTIVE_SECTION_JOBS = 200;
+const SECTION_KINDS: ReadonlySet<JobKind> = new Set<JobKind>(['write_section']);
+const EXPORT_KINDS: ReadonlySet<JobKind> = new Set<JobKind>(['export_pack', 'cover_build', 'picture_export']);
+const ACTIVE_STATUSES = ['queued', 'running', 'waiting'] as const;
+
 export const JOB_STATUSES = ['queued', 'running', 'waiting', 'paused', 'paused_budget', 'succeeded', 'needs_attention', 'failed', 'cancelled'] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 export const TERMINAL: ReadonlySet<string> = new Set(['succeeded', 'needs_attention', 'failed', 'cancelled']);
@@ -156,6 +166,7 @@ export class JobQueue {
   }
 
   async enqueue(ctx: RequestCtx, input: EnqueueInput): Promise<Job> {
+    if (!input.parentId) await this.assertRoom(ctx, input.kind);
     const t = now();
     const id = newId();
     await this.db
@@ -192,6 +203,37 @@ export class JobQueue {
     await this.emitStatus(job);
     this.wake?.();
     return job;
+  }
+
+  /**
+   * Jobs people start (no parent) are limited per workspace, so one workspace cannot fill the shared lanes and hold up
+   * everyone else's (audit M4). A job's own children (a book's sections, a batch's books) are never counted. The count
+   * and the insert are two steps, so two requests at the same moment can pass the limit by one; it is a fairness
+   * limit, not a spending one.
+   */
+  private async assertRoom(ctx: RequestCtx, kind: JobKind): Promise<void> {
+    const active = await this.db
+      .selectFrom('jobs')
+      .select('kind')
+      .where('workspaceId', '=', ctx.workspaceId)
+      .where('parentId', 'is', null)
+      .where('status', 'in', ACTIVE_STATUSES)
+      .execute();
+    // Section reruns ("Fix everything" sends one per section) have their own, larger room, so a long book can be fixed
+    // in one go and the reruns do not use up the room for other work.
+    if (SECTION_KINDS.has(kind)) {
+      if (active.filter((j) => SECTION_KINDS.has(j.kind as JobKind)).length >= MAX_ACTIVE_SECTION_JOBS) {
+        throw new AppError('rate_limited', `${MAX_ACTIVE_SECTION_JOBS} section reruns are already waiting in this workspace. Wait for some to finish.`);
+      }
+      return;
+    }
+    const others = active.filter((j) => !SECTION_KINDS.has(j.kind as JobKind));
+    if (EXPORT_KINDS.has(kind) && others.filter((j) => EXPORT_KINDS.has(j.kind as JobKind)).length >= MAX_ACTIVE_EXPORT_JOBS) {
+      throw new AppError('rate_limited', `${MAX_ACTIVE_EXPORT_JOBS} builds are already waiting or running in this workspace. Wait for one to finish.`);
+    }
+    if (others.length >= MAX_ACTIVE_JOBS) {
+      throw new AppError('rate_limited', `${MAX_ACTIVE_JOBS} jobs are already waiting or running in this workspace. Wait for some to finish.`);
+    }
   }
 
   async get(ctx: RequestCtx, id: string): Promise<Job | null> {

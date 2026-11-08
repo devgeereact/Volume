@@ -7,7 +7,7 @@ import type { AppConfig } from '../config/env.js';
  * Search-engine facing pages of the hosted app: robots.txt, sitemap.xml, the head tags of the public pages in the
  * first response, and honest status codes (a real 404 for an address that matches nothing).
  *
- * Volume is a private studio (D-053). Only the landing page and How it works are public and indexable; every
+ * Volume is a private studio (D-053). Only the landing page and How it works are public and indexable (D-068); every
  * other page, file and API answer stays noindex and is disallowed in robots.txt. The page copy below mirrors
  * apps/web/src/site/seo-pages.json (the web app keeps the tags right while a visitor moves between pages);
  * test/seo.test.ts fails when the two drift apart.
@@ -49,12 +49,18 @@ type SeoKey = keyof typeof SEO_PAGES;
 /** The pages search engines may index, in sitemap order. */
 export type PublicKey = 'home' | 'how-it-works';
 
-// D-053 item 5: noindex stays. To index the landing page and How it works, add 'home' and 'how-it-works' here and in the web seo.ts, after a superseding decision.
-export const INDEXABLE_KEYS: readonly PublicKey[] = [];
+// D-068 (supersedes D-053 item 5): the landing page and How it works are indexed. Keep in step with the web seo.ts.
+export const INDEXABLE_KEYS: readonly PublicKey[] = ['home', 'how-it-works'];
+
+/** The live site's address, for the static robots.txt fallback in apps/web/public. */
+export const PRODUCTION_ORIGIN = 'https://volume.gakinz.com';
+
+/** Images the public pages name in their structured data and share tags (logo, share card). */
+const PUBLIC_IMAGES: readonly string[] = ['/icon-512.png', '/og-image.png'];
 
 /** Paths whose answers carry no noindex header: the indexable pages, plus the files crawlers must read. */
 export function indexablePaths(keys: readonly PublicKey[] = INDEXABLE_KEYS): string[] {
-  return ['/robots.txt', ...(keys.length > 0 ? ['/sitemap.xml', ...keys.map((k) => SEO_PAGES[k].path)] : [])];
+  return ['/robots.txt', ...(keys.length > 0 ? ['/sitemap.xml', ...PUBLIC_IMAGES, ...keys.map((k) => SEO_PAGES[k].path)] : [])];
 }
 
 /** First path segments that belong to the signed-in app (and sign-in). They answer 200 with the app shell, noindex. */
@@ -150,7 +156,7 @@ export function robotsTxt(origin: string, keys: readonly PublicKey[] = INDEXABLE
     'Allow: /assets/',
     'Allow: /favicon.ico',
     'Allow: /favicon.svg',
-    'Allow: /og-image.png',
+    ...PUBLIC_IMAGES.map((p) => `Allow: ${p}`),
     'Disallow: /',
     '',
     `Sitemap: ${origin}/sitemap.xml`,
@@ -208,6 +214,8 @@ export function structuredData(key: PublicKey, origin: string): Record<string, u
   return {
     '@context': 'https://schema.org',
     '@graph': [
+      org,
+      site,
       {
         '@type': 'WebPage',
         '@id': `${origin}${page.path}#webpage`,

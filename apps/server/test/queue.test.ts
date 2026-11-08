@@ -4,8 +4,8 @@ import { MockExportAdapter } from '../src/adapters/mock-export.js';
 import { ensureOwner } from '../src/auth/context.js';
 import { BlobStore } from '../src/files/blob-store.js';
 import { BudgetPaused, JobCancelled, JobFailed } from '../src/jobs/errors.js';
-import { JobQueue } from '../src/jobs/queue.js';
-import { JobRunner, type HandlerMap, type JobServices } from '../src/jobs/runner.js';
+import { JobQueue, MAX_ACTIVE_EXPORT_JOBS, MAX_ACTIVE_JOBS, MAX_ACTIVE_SECTION_JOBS } from '../src/jobs/queue.js';
+import { JobRunner, UNEXPECTED_JOB_ERROR, type HandlerMap, type JobServices } from '../src/jobs/runner.js';
 import { AiRetryableError } from '../src/ports/ai.js';
 import { createRepos } from '../src/repos/index.js';
 import { EventBus } from '../src/sse/bus.js';
@@ -240,6 +240,76 @@ describe('job queue', () => {
     await vi.waitFor(async () => expect((await queue.require(ctx, cover.id)).status).toBe('succeeded'));
     release();
     await runner.stop();
+    await handle.close();
+  });
+});
+
+describe('active jobs per workspace (audit M4, 1 November 2026)', () => {
+  it('refuses a workspace that already has too many jobs started by people, and never counts child jobs', async () => {
+    const { memoryDb } = await import('./helpers.js');
+    const { EventBus } = await import('../src/sse/bus.js');
+    const handle = await memoryDb();
+    const ctx = await ensureOwner(handle.db);
+    const other = await ensureOwner(handle.db, 'other', 'Other');
+    const queue = new JobQueue(handle.db, new EventBus(handle.db));
+    for (let i = 0; i < MAX_ACTIVE_EXPORT_JOBS; i += 1) await queue.enqueue(ctx, { kind: 'export_pack', projectId: null });
+    await expect(queue.enqueue(ctx, { kind: 'cover_build', projectId: null })).rejects.toMatchObject({ code: 'rate_limited' });
+    // Another workspace is not held up, and a job's own children are never refused.
+    await queue.enqueue(other, { kind: 'export_pack', projectId: null });
+    const parent = await queue.enqueue(ctx, { kind: 'write_book', projectId: null });
+    for (let i = 0; i < MAX_ACTIVE_JOBS + 5; i += 1) await queue.enqueue(ctx, { kind: 'write_section', projectId: null, parentId: parent.id });
+    while (
+      (await handle.db.selectFrom('jobs').select('id').where('workspaceId', '=', ctx.workspaceId).where('parentId', 'is', null).execute()).length <
+      MAX_ACTIVE_JOBS
+    )
+      await queue.enqueue(ctx, { kind: 'research', projectId: null });
+    await expect(queue.enqueue(ctx, { kind: 'titles', projectId: null })).rejects.toMatchObject({ code: 'rate_limited' });
+    // Finished jobs free their place.
+    await handle.db.updateTable('jobs').set({ status: 'succeeded' }).where('workspaceId', '=', ctx.workspaceId).where('kind', '=', 'research').execute();
+    await queue.enqueue(ctx, { kind: 'titles', projectId: null });
+  });
+});
+
+describe('unexpected job errors (audit L5, 1 November 2026)', () => {
+  it('stores and streams a plain message, never the internal error text', async () => {
+    const secretish = 'ER_ACCESS_DENIED_ERROR: Access denied for user vol_app@localhost (using password: YES) at /home/x/apps/volume/server.mjs:1';
+    const driverError = Object.assign(new Error(secretish), { code: 'ER_ACCESS_DENIED_ERROR', errno: 1045 });
+    const { handle, ctx, queue, runner, bus } = await setup({ noop: () => Promise.reject(driverError) });
+    const seen: unknown[] = [];
+    bus.subscribe(ctx.workspaceId, null, (e) => seen.push(e.data));
+    const job = await queue.enqueue(ctx, { kind: 'noop', maxAttempts: 1 });
+    await runner.runUntilIdle();
+    const j = await queue.require(ctx, job.id);
+    expect(j.status).toBe('failed');
+    expect(j.error).toBe(UNEXPECTED_JOB_ERROR);
+    expect(JSON.stringify(seen)).not.toContain('ER_ACCESS_DENIED');
+    await handle.close();
+  });
+});
+
+describe('readable job errors stay readable (review of audit L5)', () => {
+  it('keeps the message of an error Volume itself raised', async () => {
+    const { handle, ctx, queue, runner } = await setup({ noop: () => Promise.reject(new Error('The EPUB cover must be a JPEG.')) });
+    const job = await queue.enqueue(ctx, { kind: 'noop', maxAttempts: 1 });
+    await runner.runUntilIdle();
+    expect((await queue.require(ctx, job.id)).error).toBe('The EPUB cover must be a JPEG.');
+    await handle.close();
+  });
+});
+
+describe('section reruns and the job limit (review of audit M4)', () => {
+  it('lets "Fix everything" rerun every section of a long book, and still bounds a flood', async () => {
+    const { memoryDb } = await import('./helpers.js');
+    const { EventBus } = await import('../src/sse/bus.js');
+    const handle = await memoryDb();
+    const ctx = await ensureOwner(handle.db);
+    const queue = new JobQueue(handle.db, new EventBus(handle.db));
+    for (let i = 0; i < 60; i += 1) await queue.enqueue(ctx, { kind: 'write_section', projectId: null });
+    // Section reruns do not use up the room for other work.
+    await queue.enqueue(ctx, { kind: 'research', projectId: null });
+    while ((await handle.db.selectFrom('jobs').select('id').where('kind', '=', 'write_section').execute()).length < MAX_ACTIVE_SECTION_JOBS)
+      await queue.enqueue(ctx, { kind: 'write_section', projectId: null });
+    await expect(queue.enqueue(ctx, { kind: 'write_section', projectId: null })).rejects.toMatchObject({ code: 'rate_limited' });
     await handle.close();
   });
 });

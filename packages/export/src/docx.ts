@@ -26,7 +26,7 @@ import {
   type IParagraphStylePropertiesOptions,
 } from 'docx';
 import JSZip from 'jszip';
-import sharp from 'sharp';
+import { openImage } from './image.ts';
 import {
   clampLines,
   DEFAULT_INTERIOR_THEME,
@@ -225,7 +225,7 @@ async function imageParagraph(b: Extract<Block, { type: 'image' }>, images: Reco
   if (b.src.startsWith('data:')) buf = Buffer.from(b.src.slice(b.src.indexOf(',') + 1), 'base64');
   else buf = images?.[b.src];
   if (!buf) return null;
-  const meta = await sharp(buf).metadata();
+  const meta = await openImage(buf).metadata();
   const w = meta.width ?? 600;
   const h = meta.height ?? 400;
   const scale = Math.min(1, maxWidthPx / w);

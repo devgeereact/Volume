@@ -261,7 +261,7 @@ describe('migrations on SQLite in memory', () => {
     expect(() => loadConfig({ dotenv: false, env: { DB_CLIENT: 'mysql' } })).toThrow(/MYSQL_HOST/);
     const cfg = loadConfig({
       dotenv: false,
-      env: { DB_CLIENT: 'mysql', MYSQL_HOST: 'db.example.test', MYSQL_DATABASE: 'vol', MYSQL_USER: 'u', MYSQL_PASSWORD: 'p' },
+      env: { AUTH_MODE: 'local', DB_CLIENT: 'mysql', MYSQL_HOST: 'db.example.test', MYSQL_DATABASE: 'vol', MYSQL_USER: 'u', MYSQL_PASSWORD: 'p' },
     });
     expect(cfg.db.client).toBe('mysql');
     if (cfg.db.client === 'mysql') expect(cfg.db.mysql.ssl).toBe('verify');

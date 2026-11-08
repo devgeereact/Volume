@@ -14,7 +14,7 @@ import {
   type KdpRules,
   type TrimKey,
 } from '@volume/core';
-import { withBrowser } from './browser.ts';
+import { withBrowser, newIsolatedContext } from './browser.ts';
 import { loadFontLibrary, type FontLibrary } from './fonts.ts';
 import { buildPrintHtml } from './print-html.ts';
 
@@ -160,7 +160,7 @@ export async function exportPrintPdf(book: BookDoc, theme: InteriorTheme = DEFAU
     // function replacer: the polyfill source contains $& and $' sequences
     const html = built.html.replace('</head>', () => inject);
     const out = await withBrowser(opts.browser, async (browser) => {
-      const ctx = await browser.newContext();
+      const ctx = await newIsolatedContext(browser);
       try {
         const page = await ctx.newPage();
         const errors: string[] = [];

@@ -23,7 +23,7 @@
   "dependencies": {
     "@clerk/backend": "3.24.0",
     "@fastify/rate-limit": "11.2.1",
-    "@fastify/static": "10.1.6",
+    "@fastify/static": "10.1.8",
     "@volume/ai": "*",
     "@volume/core": "*",
     "@volume/export": "*",

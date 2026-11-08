@@ -502,3 +502,19 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
 - **Options considered:** CSS patterns (printed wrongly in the PDF); a separate cover table (needs a migration).
 - **Consequences:** old covers render byte for byte as before (hash test). Golden files cover each mode for the eBook JPEG and the wrap PDF. Not built: per-line typeface and spacing, dragging shapes on the canvas.
 
+## D-068, 1 November 2026: index the landing page and How it works
+
+- **Status:** Accepted (owner chose "Index / and /how-it-works" during the go-live work, 1 November 2026). Supersedes D-053 item 5 for these two pages only.
+- **Context:** D-053 kept every page `noindex` while the public pages were new; indexing was proposed on 25 October and left open. The go-live brief asked for titles, descriptions, schema, a sitemap and robots rules for the public pages.
+- **Decision:** `INDEXABLE_KEYS` (`apps/server/src/http/seo.ts`) and `INDEXABLE` (`apps/web/src/site/seo.ts`) list `home` and `how-it-works`. Those pages are `index, follow` with a canonical; `/sitemap.xml` lists them; robots.txt allows them, `/assets/`, the favicons, the logo and the share image, and disallows everything else. `/welcome` stays a redirect to `/`. Sign-in, app screens, 404s and the API stay `noindex` and disallowed. The page copy still says Volume is a private studio with access by invitation.
+- **Options considered:** keep D-053 as it was (nothing found in search).
+- **Consequences:** the two pages can appear in search results after the next deploy. Undo by emptying both lists; the tests switch back with them.
+
+## D-069, 1 November 2026: model choice owner-only, and limits per user and per workspace
+
+- **Status:** Accepted (owner asked for every audit finding to be fixed, "make the best call", 1 November 2026).
+- **Context:** the go-live audit (docs/AUDIT.md) found that editors could set models per book or pen name on the owner's key, that one user could hold unlimited event streams, and that one workspace could fill the shared job lanes.
+- **Decision:** `models` on books and pen names is an owner field: an editor's create drops it and an editor's change is refused, while forms that send the stored value back still work. Each user may hold 8 open event streams; streams end after an hour and reconnect. Each workspace may have 12 jobs that people started waiting or running, at most 3 of them builds, plus up to 200 section reruns ("Fix everything" sends one per section); child jobs never count. Hosted builds fail closed to Clerk sign-in.
+- **Options considered:** refuse every editor request that carries `models` (would break the New book wizard, which always sends it); round-robin job claims across workspaces (a larger change to the queue).
+- **Consequences:** an editor's model choice in the New book wizard is ignored (the workspace and pen name models apply); a busy workspace sees "jobs are already waiting" past the limits. Undo by removing `guardModels`, `StreamLimit` and `assertRoom`.
+

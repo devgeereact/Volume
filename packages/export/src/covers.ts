@@ -2,7 +2,7 @@
 // Typography is HTML in Playwright Chromium; sharp writes the JPEG; pdf-lib fixes the wrap's exact page size.
 
 import { PDFDocument } from 'pdf-lib';
-import sharp from 'sharp';
+import { openImage } from './image.ts';
 import type { Browser } from 'playwright';
 import {
   barcodeArea,
@@ -39,7 +39,7 @@ import {
   shapesOn,
   wrapWindow,
 } from '@volume/core';
-import { withBrowser } from './browser.ts';
+import { withBrowser, newIsolatedContext } from './browser.ts';
 import { fontFaceCss, isVariableOnly, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
 import { normalisePrintStrings, normalisePrintText, symbolFallbackCss, withSymbolFallback } from './print-glyphs.ts';
 import { ornamentSvg } from './ornaments.ts';
@@ -92,7 +92,7 @@ const ownAlign = (a: CoverAlign | undefined): string => (a ? ` a-${alignWord(a)}
 /** What the palette's colours do over this art: measured the same way the studio preview measures it (a 32 by 48 stretch). */
 async function artInkFor(bg: Buffer, c: CoverStyle['colours']): Promise<ArtInk | undefined> {
   try {
-    const { data } = await sharp(bg).removeAlpha().resize(32, 48, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
+    const { data } = await openImage(bg).removeAlpha().resize(32, 48, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
     const z = zoneLuminance(data, 32, 48);
     return chooseArtInk({ background: c.background, title: c.title, subtitle: c.subtitle, author: c.author }, z.top, z.bottom);
   } catch {
@@ -324,7 +324,7 @@ async function contrastBehind(bare: Buffer, boxesJson: string, W: number, H: num
     const width = Math.min(W - left, Math.ceil(b.w));
     const height = Math.min(H - top, Math.ceil(b.h));
     if (!ink || width < 2 || height < 2) continue;
-    const { data, info } = await sharp(bare)
+    const { data, info } = await openImage(bare)
       .extract({ left, top, width, height })
       .resize({ width: Math.min(width, 96), fit: 'fill' })
       .removeAlpha()
@@ -412,7 +412,7 @@ ${frontCss(front, f, ink)}${layerCss(style)}</style></head><body>${frontHtml(met
     };
   const measure = hasLayers(style);
   const { png, fitted, subtitlePushed, behind } = await withBrowser(opts.browser, async (browser) => {
-    const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+    const ctx = await newIsolatedContext(browser, { viewport: { width: W, height: H }, deviceScaleFactor: 1 });
     try {
       const page = await ctx.newPage();
       await page.setContent(html, { waitUntil: 'load' });
@@ -435,7 +435,7 @@ ${frontCss(front, f, ink)}${layerCss(style)}</style></head><body>${frontHtml(met
       warnings.push(
         `The ${c.part} reads at about ${c.ratio.toFixed(1)} to 1 against what is behind it (${c.need} to 1 wanted). Change its colour, the background or the shapes.`,
       );
-  const jpeg = await sharp(png)
+  const jpeg = await openImage(png)
     .removeAlpha()
     .toColourspace('srgb')
     .withIccProfile('srgb')
@@ -511,7 +511,7 @@ export async function exportPaperbackWrap(source: BookMeta, style: CoverStyle = 
   const barcodeInset = Math.max(inset, bc.insetFromTrimIn);
   let imageDpi: number | undefined;
   if (opts.background) {
-    const meta2 = await sharp(opts.background).metadata();
+    const meta2 = await openImage(opts.background).metadata();
     if (meta2.width) {
       imageDpi = meta2.width / (trim.widthIn + b);
       const min = coverMinDpi(opts.rules);
@@ -521,7 +521,7 @@ export async function exportPaperbackWrap(source: BookMeta, style: CoverStyle = 
   // An uploaded background picture is held to the same DPI rule across what it covers (zoom spreads it further).
   const pic = style.background?.mode === 'image' ? style.background.image : undefined;
   if (pic?.assetId && opts.backgroundImage) {
-    const m = await sharp(opts.backgroundImage).metadata();
+    const m = await openImage(opts.backgroundImage).metadata();
     const across = style.background?.span === 'wrap' ? size.widthIn : trim.widthIn + b;
     if (m.width && m.height) {
       // object-fit: cover fills the box by its tighter side.
@@ -643,7 +643,7 @@ ${wide ? bgMarkup : ''}<div class="back"><div class="text">${blurbHtml(opts.blur
   const page = out.addPage([W, H]);
   if (rasterised) {
     const png = await withBrowser(opts.browser, async (browser) => {
-      const ctx = await browser.newContext({
+      const ctx = await newIsolatedContext(browser, {
         viewport: { width: Math.ceil(size.widthIn * 96), height: Math.ceil(size.heightIn * 96) },
         deviceScaleFactor: minDpi / 96,
       });
@@ -656,12 +656,12 @@ ${wide ? bgMarkup : ''}<div class="back"><div class="text">${blurbHtml(opts.blur
         await ctx.close();
       }
     });
-    const jpg = await sharp(png).removeAlpha().toColourspace('srgb').withIccProfile('srgb').jpeg({ quality: 92, chromaSubsampling: '4:4:4' }).toBuffer();
+    const jpg = await openImage(png).removeAlpha().toColourspace('srgb').withIccProfile('srgb').jpeg({ quality: 92, chromaSubsampling: '4:4:4' }).toBuffer();
     const img = await out.embedJpg(jpg);
     page.drawImage(img, { x: 0, y: 0, width: W, height: H });
   } else {
     const raw = await withBrowser(opts.browser, async (browser) => {
-      const ctx = await browser.newContext();
+      const ctx = await newIsolatedContext(browser);
       try {
         const p = await ctx.newPage();
         await p.setContent(html, { waitUntil: 'load' });

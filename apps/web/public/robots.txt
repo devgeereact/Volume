@@ -1,3 +1,12 @@
-# Volume is a private studio. Nothing here is for search engines.
+# Volume is a private studio. Only the listed public pages may be indexed.
 User-agent: *
+Allow: /$
+Allow: /how-it-works$
+Allow: /assets/
+Allow: /favicon.ico
+Allow: /favicon.svg
+Allow: /icon-512.png
+Allow: /og-image.png
 Disallow: /
+
+Sitemap: https://volume.gakinz.com/sitemap.xml

@@ -26,8 +26,8 @@ describe("public page metadata", () => {
     }
   });
 
-  it("indexes nothing while D-053 item 5 stands", () => {
-    expect([...INDEXABLE]).toEqual([]);
+  it("indexes only the landing page and How it works (D-068)", () => {
+    expect([...INDEXABLE]).toEqual(["home", "how-it-works"]);
   });
 });
 

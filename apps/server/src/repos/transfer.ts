@@ -10,6 +10,7 @@ import { readZip, writeZip, type ZipEntry, type ZipReadLimits } from '../lib/zip
 import { newId, now } from '../lib/util.js';
 import { APP_VERSION } from '../lib/version.js';
 import { AiDisclosureSchema, BOOK_STATUSES, BookSettingsSchema, isValidIsbn, ListPricesSchema, STAGES, TRIMS } from './books.js';
+import { isWebUrl } from './planning.js';
 import { SettingsRepo } from './settings.js';
 
 /**
@@ -465,6 +466,8 @@ export class ProjectTransfer {
         const profile: Row = { ...map(file.profile), sourceKey: null, status: 'active', archivedAt: null };
         // Only the owner confirms a bio (D-047): a pen name an editor brings in waits for the owner's confirmation.
         if (ctx.role !== 'owner') profile['bioStatus'] = 'to_confirm';
+        // Model choice is the owner's (audit M2): an editor's copy of the pen name brings no models.
+        if (ctx.role !== 'owner') profile['models'] = '{}';
         await trx
           .insertInto('authorProfiles')
           .values(profile as never)
@@ -479,7 +482,8 @@ export class ProjectTransfer {
         costToDateUsd: 0,
         budgetUsd,
         approvedBlueprintId: approvedOk ? map(file.project)['approvedBlueprintId'] : null,
-        settings: withOrigin(file.project['settings'], t),
+        // Model choice spends the owner's key (audit M2): only the owner brings a book's models along.
+        settings: withOrigin(file.project['settings'], t, ctx.role === 'owner'),
       };
       await trx
         .insertInto('projects')
@@ -516,10 +520,16 @@ export class ProjectTransfer {
         if (typeof brand === 'string') await trx.updateTable('authorProfiles').set({ brand }).where('id', '=', profileId).execute();
       }
       for (const table of CHILD_TABLES) {
+        // Built export files are made again here (export-project leaves them out); a zip that carries them is ignored
+        // so it cannot show a finished pack this Volume never built (audit L2).
+        if (table === 'exports') continue;
         for (const r of file.tables[table] ?? []) {
+          const row = map(r);
+          // Only the owner's import keeps claim verdicts: an editor's zip cannot mark claims checked (audit L2).
+          if (table === 'claims' && ctx.role !== 'owner') Object.assign(row, { status: 'open', resolvedAt: null });
           await trx
             .insertInto(table)
-            .values(map(r) as never)
+            .values(row as never)
             .execute();
           rows += 1;
         }
@@ -578,6 +588,9 @@ export class ProjectTransfer {
     }
     if (file.project['profileId'] !== file.profile['id']) throw new AppError('validation_failed', 'This project has an invalid author reference.');
     if (!ImportedProjectSchema.safeParse(file.project).success) throw new AppError('validation_failed', 'This project has invalid book settings.');
+    // Research links are shown as <a href>: only web addresses (audit L9).
+    if ((file.tables.researchSources ?? []).some((r) => typeof r['url'] !== 'string' || !isWebUrl(r['url'])))
+      throw new AppError('validation_failed', 'This project has a research source that is not a web address.');
     const idsOf = new Map(groups.map((g) => [g.name, new Set(g.rows.map((r) => String(r['id'])))]));
     for (const group of groups)
       for (const row of group.rows)
@@ -616,6 +629,8 @@ export class ProjectTransfer {
       else if (k === 'id') out[k] = ids.get(String(v)) ?? newId();
       else if (k.endsWith('Id') && !KEEP_IDS.has(k)) out[k] = typeof v === 'string' ? (ids.get(v) ?? null) : null;
       else if (k === 'approvedBy') out[k] = v === null ? null : ctx.userId;
+      // A user id from another Volume names nobody here (audit L2).
+      else if (k === 'createdBy') out[k] = null;
       else if (JSON_KEYS.has(k) && typeof v === 'string') out[k] = remapJson(v, ids);
       else out[k] = v;
     }
@@ -625,14 +640,15 @@ export class ProjectTransfer {
 }
 
 /** The book's settings with the origin note added (or replaced), so the owner can see where it came from. */
-function withOrigin(settings: unknown, at: number): string {
+function withOrigin(settings: unknown, at: number, keepModels: boolean): string {
   let parsed: unknown;
   try {
     parsed = typeof settings === 'string' ? JSON.parse(settings) : {};
   } catch {
     parsed = {};
   }
-  const base = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+  const base = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? { ...(parsed as Record<string, unknown>) } : {};
+  if (!keepModels) delete base['models'];
   return JSON.stringify({ ...base, origin: { note: originNote(at), movedAt: at } });
 }
 

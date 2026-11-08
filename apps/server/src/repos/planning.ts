@@ -93,6 +93,16 @@ function domainOf(url: string): string | null {
 }
 
 /** The source's own domain wins; an unresolved redirect link has none. */
+/** True for an absolute http or https address. */
+export function isWebUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return (u.protocol === 'http:' || u.protocol === 'https:') && url.trim() === url;
+  } catch {
+    return false;
+  }
+}
+
 function sourceDomain(s: AiSource): string | null {
   if (s.domain !== undefined) return s.domain;
   return s.unresolved ? null : domainOf(s.url);
@@ -223,6 +233,8 @@ export class PlanningRepo {
         .executeTakeFirstOrThrow();
       const seen = new Set<string>();
       for (const s of sources) {
+        // Links are shown as <a href>: only web addresses are kept (audit L9).
+        if (!isWebUrl(s.url)) continue;
         const urlHash = sha256Hex(s.url);
         if (seen.has(urlHash)) continue;
         seen.add(urlHash);

@@ -52,8 +52,11 @@ function sniffMime(buf: Buffer): string {
   return 'image/svg+xml';
 }
 
+/** A data: URL a book may carry inline: a base64 raster image and nothing else (book text is untrusted). */
+const INLINE_IMAGE = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/;
+
 export function imageSrc(src: string, images: Record<string, Buffer> | undefined): string | undefined {
-  if (src.startsWith('data:')) return src;
+  if (src.startsWith('data:')) return INLINE_IMAGE.test(src) ? src : undefined;
   const buf = images?.[src];
   return buf ? `data:${sniffMime(buf)};base64,${buf.toString('base64')}` : undefined;
 }
@@ -120,7 +123,7 @@ function blocksHtml(s: Section, theme: InteriorTheme, opts: PrintHtmlOptions, wa
           warnings.push(`Image "${b.src}" in ${s.id} has no data; left out.`);
           return '';
         }
-        return `<figure><img src="${src}" alt="${escapeHtml(b.alt)}">${b.caption ? `<figcaption>${inlineToHtml(b.caption)}</figcaption>` : ''}</figure>`;
+        return `<figure><img src="${escapeHtml(src)}" alt="${escapeHtml(b.alt)}">${b.caption ? `<figcaption>${inlineToHtml(b.caption)}</figcaption>` : ''}</figure>`;
       }
       case 'pageBreak':
         return '<div class="pagebreak"></div>';

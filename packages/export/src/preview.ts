@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { Browser } from 'playwright';
-import { withBrowser } from './browser.ts';
+import { withBrowser, newIsolatedContext } from './browser.ts';
 
 const require = createRequire(import.meta.url);
 const ORIGIN = 'http://volume-preview.local';
@@ -24,7 +24,7 @@ export interface RenderPagesOptions {
 export async function renderPdfPages(pdf: Buffer, pages: number[], opts: RenderPagesOptions = {}): Promise<Buffer[]> {
   const scale = opts.scale ?? 1.5;
   return withBrowser(opts.browser, async (browser) => {
-    const ctx = await browser.newContext();
+    const ctx = await newIsolatedContext(browser);
     try {
       await ctx.route(`${ORIGIN}/**`, async (route) => {
         const url = new URL(route.request().url());

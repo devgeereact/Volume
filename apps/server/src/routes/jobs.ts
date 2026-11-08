@@ -1,10 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { AppServices } from '../app.js';
-import { parse } from '../http/errors.js';
+import { AppError, parse } from '../http/errors.js';
 import { JobInsights } from '../jobs/eta.js';
 import { baseSecurityHeaders } from '../http/hosting.js';
-import { openSseStream } from '../sse/stream.js';
+import { openSseStream, StreamLimit } from '../sse/stream.js';
 import { idOf, writer } from './common.js';
 
 /** How often an open event stream re-checks that the caller is still a member of the workspace. */
@@ -62,13 +62,18 @@ export function jobRoutes(app: FastifyInstance, s: AppServices): void {
 
   // ---------- SSE ----------
 
+  const streams = new StreamLimit();
   const stream = async (req: FastifyRequest, reply: FastifyReply, projectId: string | null): Promise<void> => {
     const q = parse(z.object({ lastEventId: z.string().max(64).optional() }), req.query);
     const header = req.headers['last-event-id'];
     const lastEventId = (typeof header === 'string' ? header : undefined) ?? q.lastEventId ?? null;
-    reply.hijack();
     const ctx = req.ctx;
+    // A few open streams per user (audit M3); more answers 429 before the stream starts.
+    const release = streams.take(ctx.userId);
+    if (!release) throw new AppError('rate_limited', 'Too many live update connections are open. Close some Volume tabs.');
+    reply.hijack();
     await openSseStream(reply.raw, {
+      onClose: release,
       bus: s.bus,
       workspaceId: ctx.workspaceId,
       projectId,

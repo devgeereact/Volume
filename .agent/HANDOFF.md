@@ -879,3 +879,34 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - CI: lint memory raised to 4 GB and the full-book e2e exact title match (PR #89, merged); unblocks the deploy of #88.
 - Checks: typecheck, lint, format, docs PASS; tests core 210, ai 265, export 245, server 566, web 267; e2e 20/20.
 
+## 1 November 2026 (evening), Claude Code (Opus 5.5): go-live security audit and indexing
+
+- Owner: get the project ready for live on `golive/2026-11`; security audit, fix Critical and High, SEO on the public pages; no push, deploy, server, Clerk, OpenRouter, Cloudflare or GitHub changes.
+- Audit: five read-only hunter agents (auth and isolation, AI pipeline and budget, uploads and exports, jobs/SSE/outbound requests, hosting and web). Findings with severity in docs/AUDIT.md. No Critical. Two High fixed with tests written first: S1 export Chromium HTML injection and network access (`imageSrc` allow-list, escaped `src`, `newIsolatedContext` aborting every request in pdf, covers, picture-book and preview); S2 negative model price past the guest cap (`mapModel` negative = unknown, reservation floor 0). Five Medium and nine Low left open with recommendations.
+- SEO: owner chose to index `/` and `/how-it-works` (D-068). Canonicals, sitemap, robots allow-list, logo and share image crawlable, How it works schema defines the nodes it references, static robots.txt names the live sitemap.
+- Docs: AUDIT.md, DECISIONS.md (D-068), CHANGELOG.md, KNOWN-ISSUES.md, SECURITY.md, PRIVACY-INVENTORY.md, PRODUCT-SPEC.md, CURRENT-TASK.md.
+- Checks: `npm run verify` before each commit (results in the commit session report). Not tested: anything live.
+- Next: owner reviews, approves push and deploy; then M1 and M2.
+
+## 1 November 2026 (night), Claude Code (Opus 5.5): every open finding, go-live checklist
+
+- Owner: "make the best call", fix everything, including a 19-item security checklist; remove X-Powered-By and hide the server version.
+- Fixed with tests written first: M1 fail-closed sign-in, M2 models owner-only (D-069), M3 and L7 stream limits, M4 jobs per workspace, L1 import guard, L2 import resets, L3 100 MP picture limit, L4 fence escaping, L5 plain job errors, L9 web-only source links, absolute-form paths, software headers (app and `deploy/htaccess.volume`).
+- Not changed, with reasons in docs/AUDIT.md: M5 and L8 (host facts), L6 (OpenRouter billing unknown). `ServerSignature Off` left out of the `.htaccess` template on purpose (a refused directive would take the site down).
+- Dependencies: within-range updates and three pinned patch bumps; `docx` held at 9.8.1 after its 9.15 output changed the DOCX goldens; Playwright, Clerk and Prettier held. gitleaks clean (314 commits); Semgrep 50 false positives, coverage partial.
+- Checks: `npm run verify` before the commit (result in the commit and the session report).
+- Next: owner reviews; approval for push and deploy; the host steps above.
+
+
+## 8 November 2026 (night), Claude Code (Sonnet 5.5): Phase 1 verification of the go-live branch
+
+- Owner: run phase 1 (land the go-live work) on a branch; commit in small steps; do not push, deploy, change a database or delete files without asking; run `npm run verify` before reporting.
+- Before this: a read-only audit of the whole app, a GSD baseline (`.planning/`, uncommitted and untracked by design), a roadmap of seven phases and a register of open questions with recommended answers. Those are not part of this change.
+- Done: work branch `phase-1/evidence` from `golive/2026-11` (`8be0057`). Ran the checks; recorded them in docs/AUDIT.md (8 November section) and CURRENT-TASK.md. No product code changed, so no new logic and no test was written first.
+- Checks: `npm run verify` PASS (exit 0, 4 min 43 s, 20 e2e). Web unit tests PASS (43 files, 267 tests; `verify` does not run them). `mysql` and `migrations` tests PASS on a throwaway MariaDB 11.4.13, started and removed during the check. CI on the branch, the live site, Clerk and the PDF export on the host: NOT TESTED.
+- Found, not changed: `npm run verify` skips the web unit tests (no `test:coverage` script in `apps/web`).
+- Files: docs/AUDIT.md, .agent/CURRENT-TASK.md, .agent/HANDOFF.md, scripts/installed-version.mjs, scripts/build-release.mjs, tests/integration/installed-version.test.mjs, package.json (script). CHANGELOG.md not changed (nothing user-visible).
+- CI: with the owner's OK I ran `git fetch` (main unmoved at `b86c9e3`) and pushed `phase-1/evidence` only. "Check Volume" FAILED on `4aee76b`: ubuntu and macos passed, `node24-host` failed in `build:release` ("docx is not installed"): the branch's lockfile nests `docx` 9.8.1 under `packages/export` and `scripts/build-release.mjs` only looked in the root. Not present on `main`. Fixed in `2c500a1`, test first (red: the two nested-layout cases failed with CI's message; green: 4 of 4), new `scripts/installed-version.mjs`, `test:tooling` now globs `tests/integration/*.test.mjs`. `npm run build:release` PASS locally. With the owner's OK the fix and records (`862a5a1`) were pushed to `phase-1/evidence`; "Check Volume" is green on all three jobs (run 42461054566) and the Deploy workflow did not run.
+- Flake: one `npm run verify` on `680d710` failed 8 e2e tests (41 min, Mac asleep and load about 13, unit stages passed); the same commit then passed (exit 0, 20 of 20, 2.4 min). Recorded in docs/AUDIT.md. Run e2e with the Mac awake and quiet.
+- Not done, waiting for the owner: `git fetch`, push, the merge (which deploys), the host session, the public checks, the release record commit and branch deletion. Ready text is in the session scratchpad (pull request body and command sheet).
+- Next: owner opens the pull request and approves the merge (which deploys); then the host session, public checks, PDF export, release record and branch deletion.

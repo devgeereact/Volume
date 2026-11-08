@@ -74,7 +74,7 @@ No analytics or advertising tags exist, so no consent banner is built. A short c
 
 | Stage | Needed before it starts |
 |---|---|
-| Owner only (now) | This inventory, noindex (done 17 October 2026), the OpenRouter data policy decision |
+| Owner only (now) | This inventory, noindex (done 17 October 2026; the landing page and How it works are indexed since D-068, 1 November 2026), the OpenRouter data policy decision |
 | Invited people | Published privacy notice linked from the sign-in screen; operator contact; a note of what invitees can see (editors and viewers share the owner's workspace with their role; an owner invitation gets a workspace of its own, D-047); web screens for leaving, removal and workspace deletion (server routes exist, D-050); lawful basis confirmed |
 | Public sign-ups | Everything above, plus terms of use, one workspace per account, self-service deletion and export in the web app, a data request route, budgets and keys per account, legal review of transfers |
 
