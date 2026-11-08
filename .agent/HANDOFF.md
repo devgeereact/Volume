@@ -897,3 +897,14 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Checks: `npm run verify` before the commit (result in the commit and the session report).
 - Next: owner reviews; approval for push and deploy; the host steps above.
 
+
+## 8 November 2026 (night), Claude Code (Sonnet 5.5): Phase 1 verification of the go-live branch
+
+- Owner: run phase 1 (land the go-live work) on a branch; commit in small steps; do not push, deploy, change a database or delete files without asking; run `npm run verify` before reporting.
+- Before this: a read-only audit of the whole app, a GSD baseline (`.planning/`, uncommitted and untracked by design), a roadmap of seven phases and a register of open questions with recommended answers. Those are not part of this change.
+- Done: work branch `phase-1/evidence` from `golive/2026-11` (`8be0057`). Ran the checks; recorded them in docs/AUDIT.md (8 November section) and CURRENT-TASK.md. No product code changed, so no new logic and no test was written first.
+- Checks: `npm run verify` PASS (exit 0, 4 min 43 s, 20 e2e). Web unit tests PASS (43 files, 267 tests; `verify` does not run them). `mysql` and `migrations` tests PASS on a throwaway MariaDB 11.4.13, started and removed during the check. CI on the branch, the live site, Clerk and the PDF export on the host: NOT TESTED.
+- Found, not changed: `npm run verify` skips the web unit tests (no `test:coverage` script in `apps/web`).
+- Files: docs/AUDIT.md, .agent/CURRENT-TASK.md, .agent/HANDOFF.md. CHANGELOG.md not changed (verification only, nothing user-visible).
+- Not done, waiting for the owner: `git fetch`, push, the merge (which deploys), the host session, the public checks, the release record commit and branch deletion. Ready text is in the session scratchpad (pull request body and command sheet).
+- Next: owner approves step 1 of the command sheet; then CI result; then the merge.
