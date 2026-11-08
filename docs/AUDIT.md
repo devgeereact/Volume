@@ -2,6 +2,28 @@
 
 One audit file for this project. Every audit, check or review adds a dated section at the top; nothing is rewritten. Open work lives in `.agent/CURRENT-TASK.md`.
 
+## 8 November 2026: Phase 1 verification of `golive/2026-11`
+
+Read-only checks of the go-live branch before any merge. Work branch `phase-1/evidence` (from `golive/2026-11` at `8be0057`); `main` is at `b86c9e3`. Nothing was pushed, merged, deployed or changed on the host, Clerk, Cloudflare or any database. The only database used was a throwaway local MariaDB 11.4.13, started and removed during the check.
+
+| Check | Command | Result |
+|---|---|---|
+| Whole chain | `npm run verify` | PASS, exit 0, 4 min 43 s |
+| Environment | `npm run doctor` (Node 26.10.0, native modules, pinned Chromium) | PASS |
+| Docs links | `npm run docs:check` | PASS, 98 documents; 10 links into `../reports/volume` skipped on purpose |
+| Typecheck, lint, format | inside `verify` | PASS |
+| Unit tests with coverage thresholds | core 19 files / 210 tests; ai 23 / 268; export 27 / 251 (1 skipped); server 60 files / 584 tests (1 file and 3 tests skipped) | PASS |
+| Web unit tests | `npm run test -w apps/web` | PASS, 43 files / 267 tests |
+| Web build | `vite build` inside `verify` | PASS |
+| End to end | `tests/e2e/run.mjs` | PASS, 20 of 20 in 2.3 min |
+| MariaDB 11.4.13 | `mysql` and `migrations` test files with `MYSQL_TEST_URL` on a throwaway instance | PASS, 2 files / 11 tests, the MySQL test ran (not skipped) |
+| CI on the branch | "Check Volume" | NOT TESTED (needs a push, which waits for the owner) |
+| Live site, Clerk sign-in, PDF export on the host | | NOT TESTED (after the deploy, with the owner) |
+
+**Finding.** `npm run verify` does not run the 43 web unit-test files, because `apps/web` has a `test` script but no `test:coverage` script. They were run separately above. Suggested for a later phase: include them in `verify`. Not changed here.
+
+**Notes.** The first MariaDB attempt failed because macOS limits unix socket paths to about 103 characters; the socket now sits in the short OS temp directory. The branch adds no migration, so no database backup or `--migrate` is needed to deploy it. Merging to `main` starts the automatic deploy (`deploy.yml`), so the owner's go on the merge is the deploy approval.
+
 ## 1 November 2026 (evening): open findings fixed and the go-live checklist
 
 Branch `golive/2026-11`, after the audit below. Every finding the code alone can close is fixed with a test written first (red, then green). Nothing was pushed, deployed or changed on the host, Clerk, OpenRouter, Cloudflare or GitHub.
