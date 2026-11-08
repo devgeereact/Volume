@@ -25,6 +25,8 @@ Read-only checks of the go-live branch before any merge. Work branch `phase-1/ev
 
 **Finding 2.** `npm run verify` does not run the 43 web unit-test files, because `apps/web` has a `test` script but no `test:coverage` script. They were run separately above. Suggested for a later phase: include them, and `build:release`, in `verify` so this class of failure shows locally. Not changed here.
 
+**Flaky run, not a code failure.** One `npm run verify` on `680d710` (started 08:12) failed 8 of 20 e2e tests with element waits timing out, after 41 minutes. The Mac entered Maintenance Sleep at 08:53 during it and its load average was about 13 (other applications). Unit and tooling stages passed. The same commit passed on the next run (09:10 to 09:14, exit 0, 20 of 20 e2e in 2.4 min), as did `4aee76b`, `862a5a1` and CI on clean runners. The e2e suite is timing-sensitive: run it with the Mac awake and quiet.
+
 **Notes.** The first MariaDB attempt failed because macOS limits unix socket paths to about 103 characters; the socket now sits in the short OS temp directory. The branch adds no migration, so no database backup or `--migrate` is needed to deploy it. Merging to `main` starts the automatic deploy (`deploy.yml`), so the owner's go on the merge is the deploy approval.
 
 ## 1 November 2026 (evening): open findings fixed and the go-live checklist
