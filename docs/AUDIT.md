@@ -17,10 +17,13 @@ Read-only checks of the go-live branch before any merge. Work branch `phase-1/ev
 | Web build | `vite build` inside `verify` | PASS |
 | End to end | `tests/e2e/run.mjs` | PASS, 20 of 20 in 2.3 min |
 | MariaDB 11.4.13 | `mysql` and `migrations` test files with `MYSQL_TEST_URL` on a throwaway instance | PASS, 2 files / 11 tests, the MySQL test ran (not skipped) |
-| CI on the branch | "Check Volume" | NOT TESTED (needs a push, which waits for the owner) |
+| CI on the branch, first push (`4aee76b`) | "Check Volume" | FAIL: `checks (ubuntu-latest)` and `checks (macos-latest)` passed, `node24-host` failed at "Release folder installs without dev dependencies and boots on MariaDB" (run 42457594379) |
+| CI after the fix (`2c500a1`) | "Check Volume" | NOT TESTED (the fix is committed locally, not pushed; needs the owner's OK) |
 | Live site, Clerk sign-in, PDF export on the host | | NOT TESTED (after the deploy, with the owner) |
 
-**Finding.** `npm run verify` does not run the 43 web unit-test files, because `apps/web` has a `test` script but no `test:coverage` script. They were run separately above. Suggested for a later phase: include them in `verify`. Not changed here.
+**Finding 1, found by CI and caused by this branch.** `npm run build:release` stopped with "docx is not installed. Run npm run setup first." On `main` the lockfile hoists `docx` 9.8.1 to `node_modules/docx`; on this branch the same version sits at `packages/export/node_modules/docx`, and `scripts/build-release.mjs` looked only in the root. `main`'s `node24-host` job passed at `138aaf0`, so this is new. Local `verify` could not see it because it never runs `build:release`. Fixed in `2c500a1` with a test written first (four cases; the two nested-layout cases failed with CI's own message, then passed): `scripts/installed-version.mjs` checks the workspace's own `node_modules` first, then the root. `npm run build:release` now exits 0 locally and pins `docx` 9.8.1. `test:tooling` now runs every `tests/integration/*.test.mjs` so CI runs the new test. Without this fix "Check Volume" would fail on `main`, so the automatic deploy would never have started.
+
+**Finding 2.** `npm run verify` does not run the 43 web unit-test files, because `apps/web` has a `test` script but no `test:coverage` script. They were run separately above. Suggested for a later phase: include them, and `build:release`, in `verify` so this class of failure shows locally. Not changed here.
 
 **Notes.** The first MariaDB attempt failed because macOS limits unix socket paths to about 103 characters; the socket now sits in the short OS temp directory. The branch adds no migration, so no database backup or `--migrate` is needed to deploy it. Merging to `main` starts the automatic deploy (`deploy.yml`), so the owner's go on the merge is the deploy approval.
 
