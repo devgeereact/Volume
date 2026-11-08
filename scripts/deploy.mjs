@@ -21,6 +21,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { robotsProblems } from './live-robots.mjs';
 import { root } from './runtime.mjs';
 
 const args = new Set(process.argv.slice(2));
@@ -135,7 +136,9 @@ async function liveChecks(expectBundle, release) {
   const page = await get('/');
   if (page.status !== 200) problems.push(`page answered ${page.status}`);
   if (expectBundle && !page.body.includes(expectBundle)) problems.push(`page does not load ${expectBundle} (old process still serving?)`);
-  if (!page.body.includes('noindex')) problems.push('page has no noindex meta');
+  const signIn = await get('/sign-in');
+  if (signIn.status !== 200) problems.push(`sign-in page answered ${signIn.status}`);
+  problems.push(...robotsProblems(page.body, signIn.body));
   if (release) {
     const cwd = remote(`for p in $(pgrep -f '^${lsnodeTitle}' || true); do readlink /proc/$p/cwd; done`, { allowFail: true }).out;
     if (cwd && !cwd.split('\n').every((l) => l.endsWith(`/releases/${release}`))) problems.push(`app process runs from ${cwd.replace(/\n/g, ', ')}`);
