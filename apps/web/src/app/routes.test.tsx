@@ -103,9 +103,24 @@ describe("route list", () => {
     expect(hosted).not.toContain("/components");
   });
 
-  it("gives signed-out visitors the landing hero, how it works and sign-in for any other path", async () => {
+  it("gives signed-out visitors the landing hero, how it works, sign-in at every app path and not-found for the rest", async () => {
     const { publicRoutes } = await import("../site/PublicSite");
-    expect(routePaths(publicRoutes)).toEqual(["/", "/how-it-works", "/welcome", "*"]);
+    expect(routePaths(publicRoutes)).toEqual([
+      "/",
+      "/how-it-works",
+      "/welcome",
+      "/sign-in/*",
+      "/library/*",
+      "/published/*",
+      "/profiles/*",
+      "/books/*",
+      "/settings/*",
+      "/archive/*",
+      "/volume/*",
+      "/new-book/*",
+      "/components/*",
+      "*",
+    ]);
     expect(layoutsWithoutBoundary(publicRoutes)).toEqual([]);
   });
 });
