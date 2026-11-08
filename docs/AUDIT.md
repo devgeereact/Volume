@@ -2,6 +2,19 @@
 
 One audit file for this project. Every audit, check or review adds a dated section at the top; nothing is rewritten. Open work lives in `.agent/CURRENT-TASK.md`.
 
+## 8 November 2026 (late night): sign-in 404, and the go-live deploy rolled back by its own live check
+
+Two production findings, both found by the owner or by the deploy, both fixed test first.
+
+| Finding | Cause | Evidence | Status |
+|---|---|---|---|
+| Clicking Sign in on the landing page showed "Page not found" at `/sign-in` (reload worked) | `apps/web/src/site/PublicSite.tsx` chose its screen in a lazy route that read `window.location.pathname`; React Router changes the address only after a navigation completes (`history.push` inside `completeNavigation`), so a click at `/` was judged `/`. Introduced 25 October (`d950900`). | 4 of 5 new tests failed with the symptom, then passed; web tests 44 files / 272 tests; a real browser on a production-style local build showed the sign-in screen after the click; live public GETs of `/sign-in` were always 200 | Fixed in PR #92 (`a803d17`), live as release `20261108T230459Z`, owner confirmed |
+| The release with the go-live security fixes failed its deploy and rolled back | `scripts/deploy.mjs` required "noindex" on `/`, but D-068 makes `/` indexable. The check ran only at deploy time, so CI could not see it. | Deploy run 42535571560: "Live checks failed: page has no noindex meta", then "rolled back to 20261108T230459Z"; the site stayed healthy | Fix `11c2f59` on `fix/deploy-live-check-robots` (not pushed): sign-in must be noindex, landing page must carry a robots meta. PR #91 (`015d266`) is on `main` but not live. |
+
+The red CI job on Ubuntu and node24-host in `packages/export/test/cover-layers.test.ts` ("Unable to capture screenshot") failed 4 times and passed on each re-run: a flaky headless browser, not a layout fault. It once stopped a deploy (the Deploy workflow skipped).
+
+Live site checks I ran (public GETs only): `/`, `/sign-in`, `/library`, `/how-it-works` and `/api/health` answered 200; `/sign-up`, `/sso-callback`, `/login` and `/signin` answered 404 (unrelated to the click bug, noted only).
+
 ## 8 November 2026: Phase 1 verification of `golive/2026-11`
 
 Read-only checks of the go-live branch before any merge. Work branch `phase-1/evidence` (from `golive/2026-11` at `8be0057`); `main` is at `b86c9e3`. Nothing was pushed, merged, deployed or changed on the host, Clerk, Cloudflare or any database. The only database used was a throwaway local MariaDB 11.4.13, started and removed during the check.
