@@ -5,6 +5,7 @@ import { Banner, Button, EmptyState, Modal, modKey, PageHeader } from "../../com
 import { buttonClasses } from "../../components/ui/Button";
 import { stepBody } from "../writing/studio";
 import { EditorFrame, EditorPageCard, EditorStatus, EditorToolbar, ToolButton } from "./EditorFrame";
+import { claimResultMessage } from "./claimMessages";
 import type { Book, PenName } from "../../demo";
 import { isApiError } from "../../api/client";
 import {
@@ -880,17 +881,14 @@ function Body({
     if (action === "undo") return;
     if (action !== "verify" && !(await saveFirst())) return;
     try {
-      if (action === "verify") await resolveClaim.mutateAsync({ bookId, claimId: claim.id, action, input: note ? { note } : {} });
-      else if (action === "soften") await resolveClaim.mutateAsync({ bookId, claimId: claim.id, action, input: { replacement: note ?? claim.sentence } });
-      else await resolveClaim.mutateAsync({ bookId, claimId: claim.id, action, input: {} });
-      setProblem(null);
-      setAnnounce(
+      const done =
         action === "verify"
-          ? "Claim marked verified."
+          ? await resolveClaim.mutateAsync({ bookId, claimId: claim.id, action, input: note ? { note } : {} })
           : action === "soften"
-            ? "Softer wording saved as a new version."
-            : "Sentence removed and saved as a new version.",
-      );
+            ? await resolveClaim.mutateAsync({ bookId, claimId: claim.id, action, input: { replacement: note ?? claim.sentence } })
+            : await resolveClaim.mutateAsync({ bookId, claimId: claim.id, action, input: {} });
+      setProblem(null);
+      setAnnounce(claimResultMessage(action, done.textChanged));
     } catch (e) {
       setProblem({ conflict: false, text: errorText(e) });
     }
