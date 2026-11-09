@@ -7,6 +7,7 @@ User-visible changes, newest first. Dates in British format.
 #### Fixed
 - Softening a claim whose sentence is no longer in the section now says so and leaves the claim open. Before, it was marked softened while the sentence stayed in the book, and came back after a refresh.
 - After a claim is softened or removed, the message says whether the text really changed. Removing a sentence that was already gone says the text did not change.
+- "Fix everything" no longer clears claims that then come back after a refresh. The house-style fix rewrites dashes inside claim sentences, and the claim now follows that edit instead of being closed and filed again as a new claim.
 - "Fix house style" now says what it could not fix. Banned phrases need your own wording, so when they still block the pack the message lists them, instead of reporting the book as fixed or already clean.
 
 ## 8 November 2026
