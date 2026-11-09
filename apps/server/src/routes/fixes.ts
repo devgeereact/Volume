@@ -305,6 +305,13 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
         type: 'section.saved',
         data: { sectionId: sec.id, versionId: version.id, version: version.version, wordCount: version.wordCount, source: version.source },
       });
+      // A claim is filed against the sentence as it was. The same fix is applied to that sentence, and the claim moves
+      // onto the result, so the checks that follow neither retire it as gone nor file it again as a new claim.
+      for (const claim of await m.listClaims(req.ctx, { sectionId: sec.id, status: 'open' })) {
+        if (!cur.bodyMd.includes(claim.sentence)) continue;
+        const moved = fixHouseStyle(claim.sentence, style, { protect: ownerTexts(profile) }).text;
+        if (moved !== claim.sentence && fix.text.includes(moved)) await m.retargetClaim(req.ctx, claim.id, moved, version.id);
+      }
       sections++;
       dashes += fix.dashes;
       spellings += fix.spellings;

@@ -1252,6 +1252,21 @@ export class ManuscriptRepo {
     return n;
   }
 
+  /**
+   * Moves an open claim onto the sentence as the house-style fix rewrote it (a dash became a comma, a spelling became
+   * British), and onto the version that holds it. The claim stays one claim: the checks that run next find its sentence
+   * in the text, so it is neither retired as gone nor filed again as a new claim (8 November 2026).
+   */
+  async retargetClaim(ctx: RequestCtx, id: string, sentence: string, versionId: string): Promise<Claim> {
+    await this.db
+      .updateTable('claims')
+      .set({ sentence, versionId, updatedAt: now() })
+      .where('id', '=', id)
+      .where('workspaceId', '=', ctx.workspaceId)
+      .execute();
+    return this.requireClaim(ctx, id);
+  }
+
   async requireClaim(ctx: RequestCtx, id: string): Promise<Claim> {
     const r = await this.db.selectFrom('claims').selectAll().where('id', '=', id).where('workspaceId', '=', ctx.workspaceId).executeTakeFirst();
     if (!r) throw notFound('Claim');
