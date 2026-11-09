@@ -579,6 +579,12 @@ export function manuscriptRoutes(app: FastifyInstance, s: AppServices): void {
         const section = await m.requireSection(req.ctx, claim.sectionId);
         const cur = await currentText(s, req.ctx, section);
         const next = replaceOnce(cur.bodyMd, claim.sentence, action === 'soften' ? replacement : '');
+        // A softer wording needs the sentence it replaces. Without it nothing was fixed, so the claim stays open
+        // instead of being called done (8 November 2026). Removing a sentence that is already gone is fine: the text is
+        // as the owner wants it, and `textChanged: false` in the reply says no new version was made.
+        if (next === null && action === 'soften') {
+          throw new AppError('invalid_state', 'That sentence is no longer in this section, so there is nothing to soften. Use Clear to retire the claim.');
+        }
         if (next !== null) {
           version = await m.saveVersion(req.ctx, section.id, {
             bodyMd: next.replace(/ {2,}/g, ' '),

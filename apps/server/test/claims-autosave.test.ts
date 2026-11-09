@@ -593,7 +593,13 @@ describe('claims are not filed twice', () => {
     ]);
     expect(added).toEqual([]);
 
-    const fresh = await t.services.repos.manuscript.addClaims(t.owner, bookId, chapterId, cur.id, [
+    // The sentence must really be in the chapter: softening a sentence that is not there is refused (8 November 2026).
+    const withSecond = await t.call<{ id: string }>('POST', `/api/v1/sections/${chapterId}/versions`, {
+      bodyMd: `${cur.bodyMd}\n\nA second claim, 70% of people.`,
+      baseVersionId: cur.id,
+    });
+    expect(withSecond.status).toBe(201);
+    const fresh = await t.services.repos.manuscript.addClaims(t.owner, bookId, chapterId, withSecond.body.id, [
       { sentence: 'A second claim, 70% of people.', category: 'statistical', checkNeeded: 'x', start: null, end: null },
     ]);
     const second = fresh[0]!;
