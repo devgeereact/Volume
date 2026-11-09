@@ -918,3 +918,12 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Go-live security release: PR #91 merged as `015d266`. Deploy run 42535571560 failed its live check ("page has no noindex meta") and rolled back automatically to `20261108T230459Z`; the site stayed healthy. Cause: the live check predates D-068. Fix on `fix/deploy-live-check-robots` (`11c2f59`): `scripts/live-robots.mjs`, tested first (the D-068 case and four others failed against the old rule; 6 of 6 pass). Not pushed.
 - Checks: `npm run verify` PASS on the sign-in branch (exit 0, 20 e2e) and earlier on the go-live branch; web unit tests 44 files / 272 tests PASS; tooling tests 13 of 13. The cover screenshot test is flaky in CI (4 failures, each green on re-run).
 - Next: owner approves pushing `fix/deploy-live-check-robots` and merging it (that deploys the security release); then the host session and live checks; then the error-fixing work, the cover work and the quality checks (findings in docs and in the owner's notes).
+
+## 9 November 2026 (just after midnight), Claude Code (Sonnet 5.5): go-live security release live
+
+- Owner approved, in turn: push and PR for the deploy-check fix, merge once CI was green.
+- PR #93 (`4b00fd2`): the deploy live check now requires `/sign-in` to be noindex and `/` to carry a robots meta (either policy). CI green on both runs. Deploy run 42538480840 succeeded: release `20261109T000812Z`, health 200, sign-in enforced.
+- Public GETs after the deploy: indexing policy correct on `/`, `/how-it-works`, `/sign-in`, `/library`; sitemap has the two public pages; API 401 signed out; `X-Powered-By` gone; `X-Turbo-Charged-By` still sent (needs the owner's `.htaccess` lines). Live `robots.txt` is Cloudflare's managed block plus Volume's allow-list.
+- Not done, owner steps: host session (`.htaccess`, `CLOUDFLARE_ONLY` report then on), PDF export and sign-in test on the live site, Rich Results Test and sitemap submission. Claude: re-run the public checks after the host session, tidy branches with approval.
+- Not started: error-fixing, cover and quality work (causes and tests to write first are in `docs/AUDIT.md` and the owner's notes).
+
