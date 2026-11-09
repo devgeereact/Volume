@@ -10,6 +10,7 @@ import { cn } from "../../lib/cn";
 import { useBook } from "../../lib/useBook";
 import { ErrorPanel, LoadingBlock } from "../writing/screenState";
 import { ClaimRewrite } from "./ClaimRewrite";
+import { claimResultMessage } from "./claimMessages";
 import { FixWholeBook } from "./FixWholeBook";
 import { claimNeedsCheck } from "./claimTier";
 import { categoryLabel, FILTERS, filterCount, groupBySection, splitByTier, toMsClaim, type ClaimTierView } from "./claimsOverview";
@@ -265,17 +266,14 @@ function ClaimRow({
   async function act(action: "verify" | "soften" | "remove") {
     setProblem(null);
     try {
-      if (action === "verify") await resolve.mutateAsync({ bookId, claimId: claim.id, action, input: { note: note.trim() || "marked as checked by you" } });
-      else if (action === "soften") await resolve.mutateAsync({ bookId, claimId: claim.id, action, input: { replacement: softer.trim() } });
-      else await resolve.mutateAsync({ bookId, claimId: claim.id, action, input: {} });
-      setMode("idle");
-      onAnnounce(
+      const done =
         action === "verify"
-          ? "Claim marked verified."
+          ? await resolve.mutateAsync({ bookId, claimId: claim.id, action, input: { note: note.trim() || "marked as checked by you" } })
           : action === "soften"
-            ? "Softer wording saved as a new version."
-            : "Sentence removed and saved as a new version.",
-      );
+            ? await resolve.mutateAsync({ bookId, claimId: claim.id, action, input: { replacement: softer.trim() } })
+            : await resolve.mutateAsync({ bookId, claimId: claim.id, action, input: {} });
+      setMode("idle");
+      onAnnounce(claimResultMessage(action, done.textChanged));
     } catch (e) {
       setProblem(errorText(e));
     }

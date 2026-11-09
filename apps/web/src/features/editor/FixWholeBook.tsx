@@ -10,6 +10,7 @@ import { errorText } from "../../api/wire-c";
 import { useToast } from "../../lib/toast";
 import { ModelFallbackBanner, modelProblemOf, type ModelProblem } from "../settings/ModelFallback";
 import { estimateLabel } from "./claimOptions";
+import { houseStyleSummary } from "./houseStyleSummary";
 import { claimsToCheck } from "./claimTier";
 import { fixAllClaims, type FixReport } from "./fixAll";
 
@@ -78,11 +79,7 @@ export function FixWholeBook({
   }
 
   async function fixStyle(): Promise<string> {
-    const r = await manuscriptApi.fixHouseStyle(bookId);
-    return r.sections === 0
-      ? "House style was already clean."
-      : `House style fixed in ${r.sections} ${r.sections === 1 ? "section" : "sections"}: ${r.dashes} dashes, ${r.spellings} US spellings` +
-          (r.emptyItems ? ` and ${r.emptyItems} empty list ${r.emptyItems === 1 ? "item" : "items"} removed.` : ".");
+    return houseStyleSummary(await manuscriptApi.fixHouseStyle(bookId));
   }
 
   /** Sections with text but no summary or no checks (the pack blocks on them): queue the missing steps, in the background. */

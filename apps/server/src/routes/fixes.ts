@@ -9,6 +9,7 @@ import { AutosaveSchema, type Claim, type Section, type SectionVersion } from '.
 import { fieldDriftAppliesTo } from '../config/book-structure.js';
 import { advanceIfWritingComplete, houseStyle, profileSummary } from '../jobs/book-data.js';
 import { fixHouseStyle, ownerTexts } from '../jobs/house-style-fix.js';
+import { preflightReport } from '../jobs/quality-gate.js';
 import {
   bookSources,
   CLAIM_FIX_APPROACHES,
@@ -267,7 +268,7 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
    * The owner's "Fix house style in the whole book": em and en dashes and US spellings in every switched-on section's
    * current text, with the same rules as the automatic fix after writing (the profile bio is never changed). Each
    * changed section gets a new version, so every change can be undone from Versions. Empty list items go too. No AI, no
-   * cost. 200 { sections, dashes, spellings, emptyItems }.
+   * cost. 200 { sections, dashes, spellings, emptyItems, styleAfter } where styleAfter is preflight's house-style verdict after the fix.
    */
   app.post('/books/:id/fix-house-style', async (req) => {
     writer(req);
@@ -304,11 +305,23 @@ export function fixRoutes(app: FastifyInstance, s: AppServices): void {
         type: 'section.saved',
         data: { sectionId: sec.id, versionId: version.id, version: version.version, wordCount: version.wordCount, source: version.source },
       });
+      // A claim is filed against the sentence as it was. The same fix is applied to that sentence, and the claim moves
+      // onto the result, so the checks that follow neither retire it as gone nor file it again as a new claim.
+      for (const claim of await m.listClaims(req.ctx, { sectionId: sec.id, status: 'open' })) {
+        if (!cur.bodyMd.includes(claim.sentence)) continue;
+        const moved = fixHouseStyle(claim.sentence, style, { protect: ownerTexts(profile) }).text;
+        if (moved !== claim.sentence && fix.text.includes(moved)) await m.retargetClaim(req.ctx, claim.id, moved, version.id);
+      }
       sections++;
       dashes += fix.dashes;
       spellings += fix.spellings;
     }
-    return { sections, dashes, spellings, emptyItems };
+    // What preflight says about house style right now, from the same check that blocks the pack. The fix only handles
+    // dashes, spellings and empty list items; a banned phrase is not safe to rewrite by find and replace, so it stays and
+    // the owner must hear that here, not find it after a refresh (8 November 2026).
+    const styleItem = (await preflightReport(s, req.ctx, p.id)).items.find((i) => i.id === 'style.house');
+    const styleAfter = styleItem ? { severity: styleItem.severity, message: styleItem.message } : null;
+    return { sections, dashes, spellings, emptyItems, styleAfter };
   });
 
   /**
