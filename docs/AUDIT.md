@@ -13,6 +13,8 @@ Two production findings, both found by the owner or by the deploy, both fixed te
 
 **Second deploy (9 November 2026).** PR #93 (`4b00fd2`) corrected the live check; CI green; Deploy run 42538480840 succeeded and the go-live security release is live as `20261109T000812Z`. Public GETs after the deploy: `/` and `/how-it-works` `index, follow`; `/sign-in` and `/library` `noindex, nofollow`; sitemap lists only the two public pages; `/api/v1/books` 401 signed out; `X-Powered-By` absent; `X-Turbo-Charged-By` still sent until the owner adds the `.htaccess` lines. The live `robots.txt` is Cloudflare's managed block (`User-agent: *`, `Allow: /`, AI-crawler blocks) followed by Volume's allow-list and the sitemap line, so private pages rely on their `noindex` meta tag and header, not on `robots.txt`. NOT TESTED: `CLOUDFLARE_ONLY`, the PDF export on the host, a signed-in session, Search Console.
 
+**Third deploy (9 November 2026).** PR #94 (`3e18b1f`): the claim and house-style fixes. CI green on both runs; Deploy run 42543707096 succeeded as release `20261109T010629Z`. Public GETs after the deploy: `/` `index, follow`, `/sign-in` `noindex, nofollow`, `/api/health` 200, `/api/v1/books` 401 signed out. NOT TESTED: the fixes in a signed-in session on the live site.
+
 The red CI job on Ubuntu and node24-host in `packages/export/test/cover-layers.test.ts` ("Unable to capture screenshot") failed 4 times and passed on each re-run: a flaky headless browser, not a layout fault. It once stopped a deploy (the Deploy workflow skipped).
 
 Live site checks I ran (public GETs only): `/`, `/sign-in`, `/library`, `/how-it-works` and `/api/health` answered 200; `/sign-up`, `/sso-callback`, `/login` and `/signin` answered 404 (unrelated to the click bug, noted only).

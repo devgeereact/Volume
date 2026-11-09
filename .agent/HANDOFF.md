@@ -927,3 +927,10 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Not done, owner steps: host session (`.htaccess`, `CLOUDFLARE_ONLY` report then on), PDF export and sign-in test on the live site, Rich Results Test and sitemap submission. Claude: re-run the public checks after the host session, tidy branches with approval.
 - Not started: error-fixing, cover and quality work (causes and tests to write first are in `docs/AUDIT.md` and the owner's notes).
 
+## 9 November 2026 (small hours), Claude Code (Sonnet 5.5): error-fixing fixes live
+
+- Owner approved: push and merge on green CI for the error-fixing branch, the release record as a docs PR, and deleting the four merged branches.
+- PR #94 (`3e18b1f`): three verified causes of "says cleared, comes back after a refresh", each test first (see PR and `CHANGELOG.md`). CI green on both runs, no flake. Deploy run 42543707096 succeeded: release `20261109T010629Z`, health 200, sign-in enforced. Public GETs: landing page `index, follow`, sign-in `noindex, nofollow`, API 401 signed out.
+- Checks: `npm run verify` PASS on the branch (exit 0, 20 e2e); server 62 files / 594 tests; web 46 files / 284 tests.
+- Not done: the owner's host session and live tests; the cover work; the quality checks; the remaining error-fixing items listed in `CURRENT-TASK.md`.
+

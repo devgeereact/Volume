@@ -6,8 +6,8 @@ Volume runs on the owner's cPanel account as one CloudLinux Passenger Node.js ap
 
 | Item | Value (9 November 2026) |
 | --- | --- |
-| Live release | `20261109T000812Z`, built from main `4b00fd2` by the automatic deploy (Actions run 42538480840, 9 November 2026): the go-live security fixes and public-page indexing (PR #91), the sign-in fix (PR #92, live since `20261108T230459Z`) and the corrected deploy live check (PR #93). The first deploy attempt of PR #91 (run 42535571560) rolled back automatically on the old check. |
-| Rollback target | `20261108T230459Z` (`npm run deploy -- --rollback`) |
+| Live release | `20261109T010629Z`, built from main `3e18b1f` by the automatic deploy (Actions run 42543707096, 9 November 2026): the claim and house-style fixes (PR #94), on top of the go-live security fixes and public-page indexing (PR #91, live since `20261109T000812Z`), the sign-in fix (PR #92) and the corrected deploy live check (PR #93). The first deploy attempt of PR #91 (run 42535571560) rolled back automatically on the old check. |
+| Rollback target | `20261109T000812Z` (`npm run deploy -- --rollback`) |
 | Migrations applied in production | `0001` to `0011`. `0006`, `0008` and `0009` on 18 October 2026, `0010_listing_source` on 19 October 2026, `0011_version_author` on 19 October 2026 (evening) |
 | CI | Runs again since 30 October 2026 (repository public). "Check Volume" runs on every push; a passing run on `main` starts `deploy.yml`. |
 
