@@ -2,7 +2,7 @@
 # (scripts/deploy.mjs: CI check, build, upload to ~/apps/volume/releases/<utc>, atomic switch, live checks,
 # automatic rollback). It stops, uploading nothing live, when migrations are pending: run
 # `npm run deploy -- --migrate` from the Mac after a database backup.
-# Secrets (set by ~/Backups/scripts/setup-github-deploy.zsh --apply Volume): CPANEL_SSH_KEY, CPANEL_KNOWN_HOSTS.
+# Secrets (set by ~/Developer/build-kit/scripts/setup-github-deploy.zsh --apply Volume): CPANEL_SSH_KEY, CPANEL_KNOWN_HOSTS.
 name: Deploy
 
 on:
