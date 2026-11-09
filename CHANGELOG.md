@@ -5,6 +5,7 @@ User-visible changes, newest first. Dates in British format.
 ## 9 November 2026
 
 #### Fixed
+- The text on the spine of a paperback wrap is now always readable. On 22 of the 51 cover palettes it was too close to the spine colour, and on one style (modern-grotesk) it was the same colour, so the title could not be seen.
 - Softening a claim whose sentence is no longer in the section now says so and leaves the claim open. Before, it was marked softened while the sentence stayed in the book, and came back after a refresh.
 - After a claim is softened or removed, the message says whether the text really changed. Removing a sentence that was already gone says the text did not change.
 - "Fix everything" no longer clears claims that then come back after a refresh. The house-style fix rewrites dashes inside claim sentences, and the claim now follows that edit instead of being closed and filed again as a new claim.
