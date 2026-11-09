@@ -256,6 +256,33 @@ document.fonts.ready.then(function () {
     var clash = lowest - (nameTop - f.width * 0.03);
     if (clash > 1) lift(clash);
   });
+  // The spine text has a fixed size and its box clips whatever does not fit, so a long title lost its end and the author.
+  // Fit it instead: smaller first (never under 6 pt), then without the author, then the title ends with an ellipsis.
+  document.querySelectorAll('.spine .st').forEach(function (st) {
+    var MIN_PX = 6 * 96 / 72;
+    var over = function () { return st.scrollHeight > st.clientHeight + 1; };
+    var size = parseFloat(getComputedStyle(st).fontSize);
+    st.setAttribute('data-start-pt', String(size * 72 / 96));
+    var guard = 0;
+    while (over() && size > MIN_PX && guard < 100) {
+      size = Math.max(MIN_PX, size * 0.96); st.style.fontSize = size + 'px'; guard++;
+    }
+    if (over()) {
+      var au = st.querySelector('.au');
+      if (au) au.style.display = 'none';
+    }
+    if (over() && st.firstChild && st.firstChild.nodeType === 3) {
+      var node = st.firstChild, full = node.nodeValue, dots = String.fromCharCode(8230), lo = 0, hi = full.length;
+      while (lo < hi) {
+        var mid = Math.ceil((lo + hi) / 2);
+        node.nodeValue = full.slice(0, mid).replace(/\\s+$/, '') + dots;
+        if (over()) hi = mid - 1; else lo = mid;
+      }
+      node.nodeValue = full.slice(0, lo).replace(/\\s+$/, '') + dots;
+      st.setAttribute('data-ellipsis', '1');
+    }
+    st.setAttribute('data-fitted-pt', String(parseFloat(getComputedStyle(st).fontSize) * 72 / 96));
+  });
   window.__coverReady = true;
 });
 </script>`;
