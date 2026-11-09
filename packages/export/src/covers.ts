@@ -38,6 +38,7 @@ import {
   shapeHtml,
   shapesOn,
   wrapWindow,
+  spineInk as chooseSpineInk,
 } from '@volume/core';
 import { withBrowser, newIsolatedContext } from './browser.ts';
 import { fontFaceCss, isVariableOnly, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
@@ -586,7 +587,9 @@ export async function exportPaperbackWrap(source: BookMeta, style: CoverStyle = 
     warnings.push('The background picture was not found, so the cover uses its background colour there.');
   const sp = style.spine;
   const spineBg = sp?.showBackground && wide ? 'transparent' : (sp?.colour ?? c.band);
-  const spineInk = sp?.textColour ?? c.background;
+  // The style's own colour for the spine text, unless it does not read on the spine colour (22 of 51 palettes did not; the
+  // title was invisible on modern-grotesk). Over the artwork (transparent spine) the background colour stays as before.
+  const spineInk = sp?.textColour ?? (spineBg === 'transparent' ? c.background : chooseSpineInk(spineBg, [c.background, c.title]));
   const backShapes = shapesOn(style.shapes, 'back');
   const backLayerCss = !hasLayers(style)
     ? ''

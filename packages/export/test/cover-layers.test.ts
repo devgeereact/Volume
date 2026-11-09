@@ -1,5 +1,7 @@
 // Cover layers (background modes, shapes, artwork settings, spine colours) with print parity:
-// - old covers render byte for byte as before (hashes of the pre-layer HTML in golden/covers/legacy-html.sha256.json);
+// - old covers render byte for byte as before (hashes of the pre-layer HTML in golden/covers/legacy-html.sha256.json;
+//   the two wrap-typo hashes were updated on 9 November 2026 on purpose: that cover's spine text, #112233 on a dark green
+//   spine, was unreadable and now takes a colour that reads. Every eBook and the default wrap are unchanged);
 // - each mode has golden files: the layer markup exact, and small renders of the eBook JPEG and the wrap PDF;
 // - parity: the page the studio previews (htmlOnly) and the built JPEG and PDF are the same picture.
 // UPDATE_GOLDEN=1 writes the golden files first.
