@@ -39,7 +39,7 @@ import {
   shapesOn,
   wrapWindow,
 } from '@volume/core';
-import { withBrowser, newIsolatedContext } from './browser.ts';
+import { withBrowser, newIsolatedContext, screenshotWithRetry } from './browser.ts';
 import { fontFaceCss, isVariableOnly, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
 import { normalisePrintStrings, normalisePrintText, symbolFallbackCss, withSymbolFallback } from './print-glyphs.ts';
 import { ornamentSvg } from './ornaments.ts';
@@ -418,12 +418,12 @@ ${frontCss(front, f, ink)}${layerCss(style)}</style></head><body>${frontHtml(met
       await page.setContent(html, { waitUntil: 'load' });
       await page.waitForFunction('window.__coverReady === true');
       const fitted = Number(await page.evaluate(`document.querySelector('[data-fit]').getAttribute('data-fitted-px')`));
-      const png = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: W, height: H } });
+      const png = await screenshotWithRetry(page, { type: 'png', clip: { x: 0, y: 0, width: W, height: H } });
       const subtitlePushed = (await page.evaluate(`document.querySelector('.sub.abs[data-pushed]') !== null`)) === true;
       if (!measure) return { png, fitted, subtitlePushed, behind: null };
       // The same page with the type hidden: what is behind each line, as drawn (art, background, tint, shapes).
       const boxes = String(await page.evaluate(MEASURE_SCRIPT));
-      const bare = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: W, height: H } });
+      const bare = await screenshotWithRetry(page, { type: 'png', clip: { x: 0, y: 0, width: W, height: H } });
       return { png, fitted, subtitlePushed, behind: { boxes, bare } };
     } finally {
       await ctx.close();
@@ -651,7 +651,7 @@ ${wide ? bgMarkup : ''}<div class="back"><div class="text">${blurbHtml(opts.blur
         const p = await ctx.newPage();
         await p.setContent(html, { waitUntil: 'load' });
         await p.waitForFunction('window.__coverReady === true');
-        return await p.screenshot({ type: 'png', clip: { x: 0, y: 0, width: size.widthIn * 96, height: size.heightIn * 96 } });
+        return await screenshotWithRetry(p, { type: 'png', clip: { x: 0, y: 0, width: size.widthIn * 96, height: size.heightIn * 96 } });
       } finally {
         await ctx.close();
       }

@@ -11,7 +11,15 @@ import type { Browser } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { backgroundLayerHtml, DEFAULT_COVER_STYLE, layerContrast, layersNeedRaster, normaliseCoverLayers, shapeHtml, type CoverStyle } from '@volume/core';
 import { loadKdpRules } from '@volume/core/node';
-import { acquireBrowser, applyCoverTypography, exportEbookCover, exportPaperbackWrap, releaseBrowser, renderPdfPages } from '../src/index.ts';
+import {
+  acquireBrowser,
+  applyCoverTypography,
+  exportEbookCover,
+  exportPaperbackWrap,
+  releaseBrowser,
+  renderPdfPages,
+  screenshotWithRetry,
+} from '../src/index.ts';
 import { golden, goldenPath, loadMiniBook, placeholderSpread } from './helpers.ts';
 
 const rules = loadKdpRules();
@@ -124,7 +132,7 @@ async function shot(html: string, w: number, h: number): Promise<Buffer> {
     const p = await ctx.newPage();
     await p.setContent(html, { waitUntil: 'load' });
     await p.waitForFunction('window.__coverReady === true');
-    return await p.screenshot({ type: 'png', clip: { x: 0, y: 0, width: Math.ceil(w), height: Math.ceil(h) } });
+    return await screenshotWithRetry(p, { type: 'png', clip: { x: 0, y: 0, width: Math.ceil(w), height: Math.ceil(h) } });
   } finally {
     await ctx.close();
   }
