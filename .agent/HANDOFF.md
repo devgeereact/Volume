@@ -934,3 +934,10 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Checks: `npm run verify` PASS on the branch (exit 0, 20 e2e); server 62 files / 594 tests; web 46 files / 284 tests.
 - Not done: the owner's host session and live tests; the cover work; the quality checks; the remaining error-fixing items listed in `CURRENT-TASK.md`.
 
+## 9 November 2026 (day), Claude Code (Sonnet 5.5): cover spine work, three local branches
+
+- Three cover fixes, each test first, committed locally and not pushed (pushing and merging deploy, so they wait for the owner): `fix/cover-screenshot-retry`, `fix/cover-spine-contrast`, `fix/cover-spine-fit` (eb4b326). The fit step lives in the shared page script in `packages/export/src/covers.ts`, so the studio preview and the build match. Eight legacy HTML golden hashes changed because the script is inline; the rendered goldens did not.
+- Checks on `fix/cover-spine-fit`: `npm run verify` PASS (exit 0, 20 e2e, log `.local-test/verify-spine-fit.log`); `npm run test -w apps/web` PASS (46 files, 284 tests). `build:release` NOT TESTED.
+- Phase 1 is NOT complete: the owner's host steps remain (`.htaccess` lines, `CLOUDFLARE_ONLY` report then on, Search Console sitemap), plus the owner's OK to push the three branches.
+- Next: owner's OK to push; then centring on the trim box and one layout engine; then the quality checks.
+
