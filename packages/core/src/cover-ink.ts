@@ -52,6 +52,21 @@ export function luminanceHex(hex: string): number {
 
 export const contrastRatio = (a: number, b: number): number => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 
+/** Spine type is small (about 8 pt at 120 pages), so it needs the 4.5 to 1 that small text needs. */
+export const SPINE_INK_MIN_CONTRAST = 4.5;
+
+/**
+ * The colour for the text on the spine of a paperback wrap. The first of the candidates (the style's own choices, in
+ * order of preference) that reads on the spine colour is used; when none does, black or white, whichever reads better.
+ * One of those two always reaches 4.5 to 1, so the spine text can never be invisible (modern-grotesk had its title in
+ * the colour of the spine, 1.0 to 1, until 8 November 2026).
+ */
+export function spineInk(spine: string, candidates: readonly string[], min = SPINE_INK_MIN_CONTRAST): string {
+  const surface = luminanceHex(spine);
+  for (const c of candidates) if (contrastRatio(luminanceHex(c), surface) >= min) return c;
+  return contrastRatio(luminanceHex('#000000'), surface) >= contrastRatio(luminanceHex('#FFFFFF'), surface) ? '#000000' : '#FFFFFF';
+}
+
 /**
  * Mean relative luminance of the top zone and the bottom zone of a w by h sample of RGB pixels (3 bytes each, row
  * by row). Both the build (sharp) and the preview (canvas) pass the same 32 by 48 stretch of the art.
