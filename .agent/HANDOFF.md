@@ -966,3 +966,10 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Graph: nine general-purpose agents on Sonnet, 147 documents (docs, agent and skill files, READMEs, latest version of each of 41 prompts). Merged with a fresh free AST pass: 9,267 nodes, 29,038 edges, 287 communities, 98% EXTRACTED. Community labels are automatic (folder plus top node), not hand-written. One file (`docs/source-drafts/Prompt — Book Cover Image Generation (KDP Spec).md`) was read 6 of 8 lines and is cached as partial. Not mapped: 57 images, `design/`, fixtures, older prompt versions. Each agent reported about 120k to 335k subagent tokens (about 2.1M in total).
 - Checks: `graphify query` on a docs question returns nodes from code and docs. `npm run docs:check` and `format:check` results below. `npm run verify` last PASS before these doc-only edits (exit 0, 20 e2e).
 - Next: owner says go for V1; brainstorm V1's finish line first. Nothing committed or pushed.
+
+## 13 November 2026 (evening), Claude Code (Sonnet 5.5): V0 committed, cover branches merged, pushed for review
+
+- Owner approved: V1 assumption (one real book to a pack KDP accepts, clean cover), commit V0, verify the three cover branches, fix if broken, push.
+- Branch `feat/v0-base-and-covers` from `fix/cover-spine-fit`: three V0 commits, then `fix/cover-spine-contrast` and `fix/cover-screenshot-retry` merged. The cover branches were parallel, not stacked. Conflicts: `CHANGELOG.md` (kept both lines) and `legacy-html.sha256.json` (hashes regenerated for the combined spine output; `UPDATE_GOLDEN=1` now writes that file too). Dropped the `.planning/` ignore line the retry branch re-added.
+- Checks: cover tests 4 files / 68 tests PASS on the merge; `npm run verify` PASS, exit 0 (core 215, ai 268, export 261 and 1 skipped, server 594 and 3 skipped, web 284, 20 of 20 e2e; log `.local-test/verify-integration.log`).
+- Not done: merging the PR (merging deploys, owner's word); live check of the cover output; Phase 1 host steps.
