@@ -1,5 +1,5 @@
 // One shared headless Chromium (Playwright) for PDF, cover and preview work.
-import { chromium, type Browser, type BrowserContext, type BrowserContextOptions } from 'playwright';
+import { chromium, type Browser, type BrowserContext, type BrowserContextOptions, type Page } from 'playwright';
 
 let shared: Browser | undefined;
 let users = 0;
@@ -66,4 +66,31 @@ export async function newIsolatedContext(browser: Browser, options: BrowserConte
   const ctx = await browser.newContext({ ...options, serviceWorkers: 'block' });
   await ctx.route('**/*', (route) => route.abort('blockedbyclient'));
   return ctx;
+}
+
+/** The browser's own message when it could not take a screenshot (Chrome DevTools Protocol, before any pixels exist). */
+const CAPTURE_FAILURE = /Unable to capture screenshot/i;
+
+/**
+ * Takes a screenshot, trying again when the browser itself could not capture one. On a loaded Linux runner, heavy
+ * cover pages (blur, blend, texture) sometimes fail with "Protocol error (Page.captureScreenshot): Unable to capture
+ * screenshot" and succeed when repeated; CI failed four times that way between 8 and 9 November 2026. Only that
+ * failure is retried. Any other error is thrown at once, so a real fault in the page or the options is not hidden.
+ */
+export async function screenshotWithRetry(
+  page: Pick<Page, 'screenshot'>,
+  options: Parameters<Page['screenshot']>[0],
+  { attempts = 3, delayMs = 250 }: { attempts?: number; delayMs?: number } = {},
+): Promise<Buffer> {
+  let last: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await page.screenshot(options);
+    } catch (e) {
+      last = e;
+      if (!(e instanceof Error) || !CAPTURE_FAILURE.test(e.message) || attempt === attempts) throw e;
+      if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+  throw last;
 }
