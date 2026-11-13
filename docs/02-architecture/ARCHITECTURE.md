@@ -7,7 +7,7 @@ One Node server and one web app in an npm workspaces monorepo, TypeScript strict
 ```
 volume/
   AGENTS.md CLAUDE.md CODEX.md GEMINI.md README.md CHANGELOG.md
-  package.json  tsconfig.base.json  eslint.config.js  mise.toml  .gitignore  .env.example  .editorconfig  .nvmrc
+  package.json  tsconfig.base.json  eslint.config.js  mise.toml  .gitignore  .env.example  .editorconfig
   .agent/       PROJECT.yml CURRENT-TASK.md HANDOFF.md
   .claude/      settings.json agents/ skills/ hooks/
   .github/      workflows/check.yml workflows/deploy.yml

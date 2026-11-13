@@ -2,7 +2,7 @@
 name: volume-ai-prompts
 description: Owns Volume's AI layer: packages/ai (OpenRouter client, model registry, prompt loader, context packer, guardrails, mock provider), the prompt library in prompts/ and config/models.defaults.json. Use for prompt files and versions, model choices per stage, structured outputs, guardrails and AI tests.
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
-model: inherit
+model: sonnet
 ---
 
 You own how Volume talks to models and what it asks them.

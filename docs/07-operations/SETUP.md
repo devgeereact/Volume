@@ -22,4 +22,7 @@ OpenRouter credentials are optional for mock development. This repository does n
 - Outside production, `AUTH_MODE` defaults to `local`, so local builds have no sign-in. A build with an `https` `APP_ORIGIN` or `DB_CLIENT=mysql` defaults to `clerk` instead (D-069): a local MySQL drill without Clerk keys needs `AUTH_MODE=local` written out. `/` shows the landing page and "Open library" leads to `/library`. Production refuses `local` and needs Clerk.
 - The Ubuntu computer builds and tests with its own restricted credentials. Never copy the Mac's `.env` or any key between computers.
 
+- Node: `mise.toml` is the one source for the development version (CI pins the same number in `.github/workflows/`). There is no `.nvmrc`.
+- `local-live.json` configures the local-live dev proxy (local page, live API). It holds a publishable Clerk key only, never a secret.
+
 The Mac is the primary machine. The macOS gate passed on 14 October 2026 (doctor, typecheck, lint, format, docs, hooks, all Vitest suites, `compare:pdf`, both builds and e2e 7 of 7), and remote CI passed on macOS and Ubuntu that day. Since 30 October 2026 "Check Volume" runs again on every push (Ubuntu, macOS and the Node 24 host job), and `npm run verify` runs the same steps on the Mac. Record later platform results in ../reports/volume/qa/reports/ (outside the repository).

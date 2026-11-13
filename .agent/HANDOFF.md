@@ -934,3 +934,42 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Checks: `npm run verify` PASS on the branch (exit 0, 20 e2e); server 62 files / 594 tests; web 46 files / 284 tests.
 - Not done: the owner's host session and live tests; the cover work; the quality checks; the remaining error-fixing items listed in `CURRENT-TASK.md`.
 
+## 9 November 2026 (day), Claude Code (Sonnet 5.5): cover spine work, three local branches
+
+- Three cover fixes, each test first, committed locally and not pushed (pushing and merging deploy, so they wait for the owner): `fix/cover-screenshot-retry`, `fix/cover-spine-contrast`, `fix/cover-spine-fit` (eb4b326). The fit step lives in the shared page script in `packages/export/src/covers.ts`, so the studio preview and the build match. Eight legacy HTML golden hashes changed because the script is inline; the rendered goldens did not.
+- Checks on `fix/cover-spine-fit`: `npm run verify` PASS (exit 0, 20 e2e, log `.local-test/verify-spine-fit.log`); `npm run test -w apps/web` PASS (46 files, 284 tests). `build:release` NOT TESTED.
+- Phase 1 is NOT complete: the owner's host steps remain (`.htaccess` lines, `CLOUDFLARE_ONLY` report then on, Search Console sitemap), plus the owner's OK to push the three branches.
+- Next: owner's OK to push; then centring on the trim box and one layout engine; then the quality checks.
+
+
+## 13 November 2026, Claude Code (Sonnet 5.5): superpowers method, clean-base plan, code graph
+
+- Owner asked to use Tailwind and superpowers, gather every planning file under `docs/`, plan the app again in versions that keep `/finish-app`, simplify the folder tree and dev system, route models by job, and build a graph so agents stop re-reading files. Owner replied "Approved" to the recommendations.
+- Changed (all uncommitted, on `fix/cover-spine-fit`): `.planning/` moved to `docs/08-change-management/plans/GSD-2026-11/`; `docs/08-change-management/plans/VERSIONS-PLAN.md` written (draft); `AGENTS.md` (method, models, graph rule, two table rows); `docs/README.md`; `.gitignore` (`graphify-out/`); `.claude/agents/*.md` (`model: sonnet` on all seven).
+- Graphify: code only, structural pass, no AI cost: 8,281 nodes, 27,519 edges, 220 communities (`graphify-out/GRAPH_REPORT.md`). Docs, prompts and images not yet mapped (paid extraction, needs approval). It flagged `packages/ui/tokens.css` and `tokens.json` as sensitive (looks like a false alarm). The scan stayed out of the private data folder and the secrets file.
+- Checks: `npm run docs:check` result below. Tailwind v4 already installed (4.3.3), nothing to add.
+- Next: owner approves the plan; then V0 steps (merge GSD files, complete `npm run verify`, root tidy, docs graph).
+
+## 13 November 2026 (later), Claude Code (Sonnet 5.5): V0 steps 1 to 3 done, locally
+
+- Owner said "Approved" to the versions plan (V0 to V4), retiring GSD, the core value sentence, the root-folder proposals and the paid docs graph run. Plan status set to APPROVED; D-070 recorded in `docs/08-change-management/DECISIONS.md`. Model use: Sonnet throughout, no stronger model needed.
+- GSD merged: open items, recommended answers, the quality-check backlog and the 9 November live findings now sit in `docs/KNOWN-ISSUES.md` ("Open work from the 8 November 2026 audit"), each tagged with its version. Phase 1 evidence was already in `docs/AUDIT.md`. The code map is the graph. The `GSD-2026-11/` folder is still on disk; deleting it waits for the owner's word.
+- `npm run verify` is now complete: root `package.json` adds `npm run test -w apps/web` and `npm run build:release` (AGENTS.md command list updated).
+- Root tidy: `qa/` moved with `git mv` to `docs/06-quality/evidence/` (`docs/README.md` link and `scripts/check-docs.mjs` fixed). `test-results/` and `build/` stay (Git-ignored; deploy script, CI and six agent files name them). `design/` named as archive in AGENTS.md.
+- Checks: `npm run verify` PASS, exit 0 (core 210, ai 268, export 254 and 1 skipped, server 594 and 3 skipped, web 284, 20 of 20 e2e; log `.local-test/verify-v0.log`). `npm run docs:check` PASS (113 documents).
+- Waiting for the owner: `local-live.json`, `CODEX.md` and `GEMINI.md` (recommend keep), `.nvmrc` (recommend delete, `mise.toml` as the one Node source), delete `GSD-2026-11/`, then the paid docs and prompts graph run. Nothing committed or pushed; the three cover branches are still unpushed.
+
+## 13 November 2026 (afternoon), Claude Code (Sonnet 5.5): V0 finished locally, docs graph built
+
+- Owner said "Approved go with your recommendation" to: keep `local-live.json`, `CODEX.md`, `GEMINI.md`; delete `.nvmrc`; delete `GSD-2026-11/`; run the paid docs and prompts graph.
+- Done: `.nvmrc` removed (`git rm`), Node source and `local-live.json` documented in `docs/07-operations/SETUP.md`, tree line fixed in `ARCHITECTURE.md`; `GSD-2026-11/` deleted (untracked, not recoverable; content merged first, D-070 updated).
+- Graph: nine general-purpose agents on Sonnet, 147 documents (docs, agent and skill files, READMEs, latest version of each of 41 prompts). Merged with a fresh free AST pass: 9,267 nodes, 29,038 edges, 287 communities, 98% EXTRACTED. Community labels are automatic (folder plus top node), not hand-written. One file (`docs/source-drafts/Prompt — Book Cover Image Generation (KDP Spec).md`) was read 6 of 8 lines and is cached as partial. Not mapped: 57 images, `design/`, fixtures, older prompt versions. Each agent reported about 120k to 335k subagent tokens (about 2.1M in total).
+- Checks: `graphify query` on a docs question returns nodes from code and docs. `npm run docs:check` and `format:check` results below. `npm run verify` last PASS before these doc-only edits (exit 0, 20 e2e).
+- Next: owner says go for V1; brainstorm V1's finish line first. Nothing committed or pushed.
+
+## 13 November 2026 (evening), Claude Code (Sonnet 5.5): V0 committed, cover branches merged, pushed for review
+
+- Owner approved: V1 assumption (one real book to a pack KDP accepts, clean cover), commit V0, verify the three cover branches, fix if broken, push.
+- Branch `feat/v0-base-and-covers` from `fix/cover-spine-fit`: three V0 commits, then `fix/cover-spine-contrast` and `fix/cover-screenshot-retry` merged. The cover branches were parallel, not stacked. Conflicts: `CHANGELOG.md` (kept both lines) and `legacy-html.sha256.json` (hashes regenerated for the combined spine output; `UPDATE_GOLDEN=1` now writes that file too). Dropped the `.planning/` ignore line the retry branch re-added.
+- Checks: cover tests 4 files / 68 tests PASS on the merge; `npm run verify` PASS, exit 0 (core 215, ai 268, export 261 and 1 skipped, server 594 and 3 skipped, web 284, 20 of 20 e2e; log `.local-test/verify-integration.log`).
+- Not done: merging the PR (merging deploys, owner's word); live check of the cover output; Phase 1 host steps.

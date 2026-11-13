@@ -2,7 +2,7 @@
 name: volume-backend
 description: Builds and fixes Volume's server in apps/server (Fastify, zod, Kysely with SQLite and MySQL dialects and migrations, in-process job queue, SSE progress stream). Use for API routes, database schema and migrations, jobs, retries, resume after restart, file storage and server security.
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
-model: inherit
+model: sonnet
 ---
 
 You build Volume's local server. It is private, local-first and must never leak a key.

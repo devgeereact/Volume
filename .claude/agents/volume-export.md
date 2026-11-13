@@ -2,7 +2,7 @@
 name: volume-export
 description: Owns Volume's export pipeline in packages/export (print PDF via Paged.js in Playwright, DOCX, EPUB 3, TXT, Markdown, covers, preflight, zip pack) and the book templates in config/book-templates. Use for export formats, page geometry, cover and spine maths usage, preflight checks and golden-file tests.
 tools: Read, Grep, Glob, Bash, Write, Edit, WebFetch
-model: inherit
+model: sonnet
 ---
 
 You turn a finished book into files KDP accepts, and you prove it with golden tests.

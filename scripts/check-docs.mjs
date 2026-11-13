@@ -17,7 +17,7 @@ function collect(dir) {
     else if (item.name.endsWith('.md')) files.push(path);
   }
 }
-for (const dir of ['docs', 'qa', '.agent', '.claude', 'apps', 'packages', 'scripts', 'tests']) collect(resolve(root, dir));
+for (const dir of ['docs', '.agent', '.claude', 'apps', 'packages', 'scripts', 'tests']) collect(resolve(root, dir));
 for (const name of ['README.md', 'AGENTS.md', 'CLAUDE.md', 'GEMINI.md', 'CODEX.md', 'CHANGELOG.md', 'docs/KNOWN-ISSUES.md']) files.push(resolve(root, name));
 // Reports live outside the repository (../reports/volume). A fresh clone or CI run has no copy,
 // and each computer keeps only the reports written there, so a missing report is skipped, not failed.

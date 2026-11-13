@@ -518,3 +518,11 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
 - **Options considered:** refuse every editor request that carries `models` (would break the New book wizard, which always sends it); round-robin job claims across workspaces (a larger change to the queue).
 - **Consequences:** an editor's model choice in the New book wizard is ignored (the workspace and pen name models apply); a busy workspace sees "jobs are already waiting" past the limits. Undo by removing `guardModels`, `StreamLimit` and `assertRoom`.
 
+
+## D-070, 13 November 2026: superpowers method, versions V0 to V4, GSD retired
+
+- **Status:** Accepted (owner, "Approved", 13 November 2026, in reply to the plan and its decision list).
+- **Context:** GSD kept a second planning tree (`.planning/`) beside `.agent/` and `docs/`, and work spread into side tasks because nothing said when a piece of work was finished.
+- **Decision:** superpowers is the build method (brainstorm, plan, test first, verify, review, finish the branch). Work is grouped into versions V0 to V4 with a frozen finish line of at most 10 items each, owned by `/finish-app` ([VERSIONS-PLAN](plans/VERSIONS-PLAN.md)). Specs and plans go in `docs/08-change-management/plans/`. The GSD files were folded into `docs/KNOWN-ISSUES.md`, `docs/AUDIT.md` and the plan; the archive folder `plans/GSD-2026-11/` was deleted on 13 November 2026 at the owner's word. Agents default to Sonnet; Opus and Haiku are chosen per job and the reason goes in the handoff. A code map is kept in `graphify-out/` (rebuilt locally, not in Git).
+- **Options considered:** keep GSD beside superpowers (two plans, two state files, drift).
+- **Consequences:** no `/gsd-*` commands and no `.planning/`. The old GSD files were never in Git, so they are gone; everything that still mattered is in `docs/KNOWN-ISSUES.md`.

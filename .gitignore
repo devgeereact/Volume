@@ -19,6 +19,9 @@ playwright-report/
 # Python bytecode from scripts/agent_guard.py
 __pycache__/
 
+# Graphify code map (rebuilt locally, 10 MB, not for Git)
+graphify-out/
+
 # Local scratch and recovery folders (house rule)
 .local-test/
 .local-state/

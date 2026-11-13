@@ -38,8 +38,9 @@ import {
   shapeHtml,
   shapesOn,
   wrapWindow,
+  spineInk as chooseSpineInk,
 } from '@volume/core';
-import { withBrowser, newIsolatedContext } from './browser.ts';
+import { withBrowser, newIsolatedContext, screenshotWithRetry } from './browser.ts';
 import { fontFaceCss, isVariableOnly, loadFontLibrary, resolveFamily, type FontLibrary } from './fonts.ts';
 import { normalisePrintStrings, normalisePrintText, symbolFallbackCss, withSymbolFallback } from './print-glyphs.ts';
 import { ornamentSvg } from './ornaments.ts';
@@ -256,6 +257,33 @@ document.fonts.ready.then(function () {
     var clash = lowest - (nameTop - f.width * 0.03);
     if (clash > 1) lift(clash);
   });
+  // The spine text has a fixed size and its box clips whatever does not fit, so a long title lost its end and the author.
+  // Fit it instead: smaller first (never under 6 pt), then without the author, then the title ends with an ellipsis.
+  document.querySelectorAll('.spine .st').forEach(function (st) {
+    var MIN_PX = 6 * 96 / 72;
+    var over = function () { return st.scrollHeight > st.clientHeight + 1; };
+    var size = parseFloat(getComputedStyle(st).fontSize);
+    st.setAttribute('data-start-pt', String(size * 72 / 96));
+    var guard = 0;
+    while (over() && size > MIN_PX && guard < 100) {
+      size = Math.max(MIN_PX, size * 0.96); st.style.fontSize = size + 'px'; guard++;
+    }
+    if (over()) {
+      var au = st.querySelector('.au');
+      if (au) au.style.display = 'none';
+    }
+    if (over() && st.firstChild && st.firstChild.nodeType === 3) {
+      var node = st.firstChild, full = node.nodeValue, dots = String.fromCharCode(8230), lo = 0, hi = full.length;
+      while (lo < hi) {
+        var mid = Math.ceil((lo + hi) / 2);
+        node.nodeValue = full.slice(0, mid).replace(/\\s+$/, '') + dots;
+        if (over()) hi = mid - 1; else lo = mid;
+      }
+      node.nodeValue = full.slice(0, lo).replace(/\\s+$/, '') + dots;
+      st.setAttribute('data-ellipsis', '1');
+    }
+    st.setAttribute('data-fitted-pt', String(parseFloat(getComputedStyle(st).fontSize) * 72 / 96));
+  });
   window.__coverReady = true;
 });
 </script>`;
@@ -418,12 +446,12 @@ ${frontCss(front, f, ink)}${layerCss(style)}</style></head><body>${frontHtml(met
       await page.setContent(html, { waitUntil: 'load' });
       await page.waitForFunction('window.__coverReady === true');
       const fitted = Number(await page.evaluate(`document.querySelector('[data-fit]').getAttribute('data-fitted-px')`));
-      const png = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: W, height: H } });
+      const png = await screenshotWithRetry(page, { type: 'png', clip: { x: 0, y: 0, width: W, height: H } });
       const subtitlePushed = (await page.evaluate(`document.querySelector('.sub.abs[data-pushed]') !== null`)) === true;
       if (!measure) return { png, fitted, subtitlePushed, behind: null };
       // The same page with the type hidden: what is behind each line, as drawn (art, background, tint, shapes).
       const boxes = String(await page.evaluate(MEASURE_SCRIPT));
-      const bare = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: W, height: H } });
+      const bare = await screenshotWithRetry(page, { type: 'png', clip: { x: 0, y: 0, width: W, height: H } });
       return { png, fitted, subtitlePushed, behind: { boxes, bare } };
     } finally {
       await ctx.close();
@@ -586,7 +614,9 @@ export async function exportPaperbackWrap(source: BookMeta, style: CoverStyle = 
     warnings.push('The background picture was not found, so the cover uses its background colour there.');
   const sp = style.spine;
   const spineBg = sp?.showBackground && wide ? 'transparent' : (sp?.colour ?? c.band);
-  const spineInk = sp?.textColour ?? c.background;
+  // The style's own colour for the spine text, unless it does not read on the spine colour (22 of 51 palettes did not; the
+  // title was invisible on modern-grotesk). Over the artwork (transparent spine) the background colour stays as before.
+  const spineInk = sp?.textColour ?? (spineBg === 'transparent' ? c.background : chooseSpineInk(spineBg, [c.background, c.title]));
   const backShapes = shapesOn(style.shapes, 'back');
   const backLayerCss = !hasLayers(style)
     ? ''
@@ -651,7 +681,7 @@ ${wide ? bgMarkup : ''}<div class="back"><div class="text">${blurbHtml(opts.blur
         const p = await ctx.newPage();
         await p.setContent(html, { waitUntil: 'load' });
         await p.waitForFunction('window.__coverReady === true');
-        return await p.screenshot({ type: 'png', clip: { x: 0, y: 0, width: size.widthIn * 96, height: size.heightIn * 96 } });
+        return await screenshotWithRetry(p, { type: 'png', clip: { x: 0, y: 0, width: size.widthIn * 96, height: size.heightIn * 96 } });
       } finally {
         await ctx.close();
       }

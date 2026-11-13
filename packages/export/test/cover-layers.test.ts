@@ -1,5 +1,7 @@
 // Cover layers (background modes, shapes, artwork settings, spine colours) with print parity:
-// - old covers render byte for byte as before (hashes of the pre-layer HTML in golden/covers/legacy-html.sha256.json);
+// - old covers render byte for byte as before (hashes of the pre-layer HTML in golden/covers/legacy-html.sha256.json;
+//   the two wrap-typo hashes were updated on 9 November 2026 on purpose: that cover's spine text, #112233 on a dark green
+//   spine, was unreadable and now takes a colour that reads. Every eBook and the default wrap are unchanged);
 // - each mode has golden files: the layer markup exact, and small renders of the eBook JPEG and the wrap PDF;
 // - parity: the page the studio previews (htmlOnly) and the built JPEG and PDF are the same picture.
 // UPDATE_GOLDEN=1 writes the golden files first.
@@ -11,7 +13,15 @@ import type { Browser } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { backgroundLayerHtml, DEFAULT_COVER_STYLE, layerContrast, layersNeedRaster, normaliseCoverLayers, shapeHtml, type CoverStyle } from '@volume/core';
 import { loadKdpRules } from '@volume/core/node';
-import { acquireBrowser, applyCoverTypography, exportEbookCover, exportPaperbackWrap, releaseBrowser, renderPdfPages } from '../src/index.ts';
+import {
+  acquireBrowser,
+  applyCoverTypography,
+  exportEbookCover,
+  exportPaperbackWrap,
+  releaseBrowser,
+  renderPdfPages,
+  screenshotWithRetry,
+} from '../src/index.ts';
 import { golden, goldenPath, loadMiniBook, placeholderSpread } from './helpers.ts';
 
 const rules = loadKdpRules();
@@ -124,7 +134,7 @@ async function shot(html: string, w: number, h: number): Promise<Buffer> {
     const p = await ctx.newPage();
     await p.setContent(html, { waitUntil: 'load' });
     await p.waitForFunction('window.__coverReady === true');
-    return await p.screenshot({ type: 'png', clip: { x: 0, y: 0, width: Math.ceil(w), height: Math.ceil(h) } });
+    return await screenshotWithRetry(p, { type: 'png', clip: { x: 0, y: 0, width: Math.ceil(w), height: Math.ceil(h) } });
   } finally {
     await ctx.close();
   }
@@ -162,7 +172,8 @@ describe('old covers', () => {
         got[`wrap-${k}`] = h(w.html);
       }
     }
-    expect(got).toEqual(want);
+    if (process.env.UPDATE_GOLDEN === '1') writeFileSync(goldenPath('covers/legacy-html.sha256.json'), `${JSON.stringify(got, null, 2)}\n`);
+    else expect(got).toEqual(want);
   });
 
   it('typography saved before the layers gives no layer fields', () => {
