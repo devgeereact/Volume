@@ -25,6 +25,3 @@ graphify-out/
 # Local scratch and recovery folders (house rule)
 .local-test/
 .local-state/
-
-# GSD planning scratch (local only)
-.planning/
