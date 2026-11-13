@@ -276,6 +276,10 @@ test("a book goes from the wizard to a downloaded pack and marketing", async ({ 
       .click();
     await expect.poll(async () => (await getJson<Items<TitleSet>>(request, `/books/${bookId}/title-sets`)).items.length, { timeout: JOB_WAIT }).toBe(2);
     await expect(stepButton("Continue to blueprint")).toBeEnabled({ timeout: JOB_WAIT });
+    // The API has two sets, but the page shows the newest one only after its own refetch. Wait for the
+    // page to say "Set 2" so the title is chosen from the set that stays on screen, not from set 1
+    // (a choice made on set 1 just before the page switches leaves no "Chosen title" mark in view).
+    await expect(main.getByText(/^Set 2, /).first()).toBeVisible({ timeout: JOB_WAIT });
     await expect(main.getByRole("button", { name: "Use this title" }).first()).toBeVisible();
 
     // The right card shows the first option until another row is pressed; Use this title chooses it.
