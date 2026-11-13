@@ -2,6 +2,13 @@
 
 Current state only. Dated history is in `.agent/HANDOFF.md`; audits in `docs/AUDIT.md`; the live release in `docs/07-operations/DEPLOYMENT.md`.
 
+## State on 13 November 2026
+
+- **Method (owner approved 13 November 2026, D-070):** superpowers plans and builds; GSD is retired. Plan: `docs/08-change-management/plans/VERSIONS-PLAN.md` (V0 clean base, V1 live and proven, V2 trust, V3 faster daily work, V4 conditional). Approved: the plan, the core value sentence, the root-folder proposals and the paid docs graph run (each deletion and the paid run still get a one-line check).
+- **V0 progress (local, uncommitted):** all six items done. GSD content merged into `docs/KNOWN-ISSUES.md` and the `GSD-2026-11/` folder deleted; `npm run verify` now includes web tests and `build:release` and passed (exit 0, 20 e2e); `qa/` moved to `docs/06-quality/evidence/`; `.nvmrc` deleted (`mise.toml` is the Node source); `local-live.json`, `CODEX.md`, `GEMINI.md` kept; all seven agents default to Sonnet; AGENTS.md carries method, models and graph rule; graph in `graphify-out/` now covers code, docs and prompts (9,267 nodes, 287 communities).
+- **Next:** owner reads the result and says go for V1. V1 starts with a brainstorm to freeze its finish line (max 10 items), then a task plan. Still unanswered from the owner: what "finished" looks like, and what would make them wince. Commit nothing until the owner asks.
+- **Still blocked on the owner:** push approval for the three cover branches and the host steps below. Their state is unchanged.
+
 ## State on 8 November 2026
 
 - **Live (9 November 2026):** release `20261109T010629Z` from main `3e18b1f`: the claim and house-style fixes (PR #94), on top of the go-live security fixes and public-page indexing (PR #91), the sign-in fix (PR #92) and the corrected deploy live check (PR #93). Rollback target `20261109T000812Z`. Checked with public GETs after the deploy: `/` and `/how-it-works` are `index, follow`; `/sign-in` and `/library` are `noindex, nofollow`; the sitemap lists only those two public pages; `/api/v1/books` answers 401 signed out; `X-Powered-By` is gone. The sign-in fix was confirmed working live by the owner.
