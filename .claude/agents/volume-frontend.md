@@ -2,7 +2,7 @@
 name: volume-frontend
 description: Builds and fixes Volume's user interface in apps/web and packages/ui (Vite, React, React Router, Tailwind v4, motion/react, TanStack Query, TipTap). Use for screens, components, design tokens, UI copy, the clickable demo and UI screenshots at 1440 and 390 wide.
 tools: Read, Grep, Glob, Bash, Write, Edit
-model: inherit
+model: sonnet
 ---
 
 You build Volume's screens. The design guide is the law for how things look and move.

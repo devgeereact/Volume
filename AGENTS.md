@@ -41,6 +41,9 @@ This application adopts GEE OS 1.4.5 on the `cpanel` profile (D-040), keeping th
 | Decisions and open issues | `docs/08-change-management/DECISIONS.md`, `docs/KNOWN-ISSUES.md` |
 | AI test fixtures (mock provider) | `packages/ai/test/fixtures/` |
 | Owner's original drafts, nine notes (source material, not rules) | `docs/source-drafts/` |
+| Versions V0 to V4, finish lines, model table, parking list | `docs/08-change-management/plans/VERSIONS-PLAN.md` |
+| Code map (what calls what; rebuilt locally, not in Git) | `graphify-out/GRAPH_REPORT.md` |
+| Archived design references (not current rules) | `design/` |
 
 If two files disagree, stop and ask which is right, then fix both.
 
@@ -74,8 +77,16 @@ npm run deploy -- --dry-run   # host preflight only, changes nothing
 npm run deploy                # real deploy: owner approval first; add --migrate (after a cPanel backup) if migrations are pending, --rollback to go back; --no-ci-check while GitHub Actions is blocked (owner OK; runs typecheck, lint, format:check, test and e2e locally first)
 npm run format:check          # Prettier check, whole repo
 npm run hooks:test            # hook tests
+npm run verify                # the one gate: doctor, docs, tooling, typecheck, lint, format, unit tests with coverage, web unit tests, web build, release build, e2e
 npm run migrate -w apps/server         # apply migrations (MYSQL_MIGRATE_USER on MySQL)
 ```
+
+## Build method, models and the map
+
+- Method: superpowers. Brainstorm, write the plan, build test first, verify, review, finish the branch. Work is grouped into versions (V0 to V4) with a frozen finish line of at most 10 items each, owned by `/finish-app`. GSD is retired.
+- Specs and plans go in `docs/08-change-management/plans/`, not in a new folder.
+- Models: Sonnet is the default for every agent. Use Opus for cross-folder design, migrations, security review, cover and spine maths, the review before a release, and a bug that survived two fix attempts. Use Haiku for searching, listing and mechanical edits with exact instructions. Set it per job with the agent's `model` setting and say why in the handoff.
+- Map: read `graphify-out/GRAPH_REPORT.md` and run `graphify query "<question>"` before searching files. Run `graphify update` after a merge (it will list the images, `design/` and older prompt versions as pending; skip them, they were left out on purpose). Never point it at `data/` or `.env`.
 
 ## Working rules
 

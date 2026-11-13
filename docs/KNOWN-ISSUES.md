@@ -36,6 +36,46 @@ Updated 1 November 2026 (go-live audit row added; rows rechecked against the cod
 | Environment examples | `.env.example` rewritten on 16 October 2026 at the lead's request with every setting name (names only). The agent guard blocks reading it, so earlier comments in that file were not carried over; Git history holds the previous version. Owner to review. | Owner review |
 | TypeScript lint compatibility, D-023 | Root TypeScript 6 alias remains necessary for the current ESLint parser. Workspaces use TypeScript 7. | Existing workaround |
 
+## Open work from the 8 November 2026 audit, with the version that owns it
+
+Moved here from the retired GSD files on 13 November 2026 (D-070). Versions are in [VERSIONS-PLAN](08-change-management/plans/VERSIONS-PLAN.md). Counts were read from the code on 8 November and drift; V1 adds a check that fails when they do.
+
+| Item | What is wrong or missing | Version |
+|---|---|---|
+| Demo content when hosted | Demo book ids (`the-calm-ward`, `night-shift-survival`, `milo-and-the-moon-kite`) still render demo data (`lib/useBook.ts`); the command palette offers a fake "Pause writing / Handover" job (`shell/CommandPalette.tsx`, `lib/job.tsx`); the sidebar shows a hard-coded workspace label (`shell/Spine.tsx`). Recommended: demo lookup returns nothing when the build is hosted, the fake job exists only in mock mode, the label comes from the workspace name. | V1 |
+| "This Mac" wording when hosted | "This Mac", "this computer" and "SQLite on this Mac" in Settings and Archive (`features/settings/apiPanels.tsx`, `features/archive/ArchivePage.tsx`). Use values the server already reports, or say nothing. | V1 |
+| Public copy says "seven stages" | The app's step bar has eight (`bookSteps`) and the database enum nine. Recommended: drop the number from public copy, or derive it from `bookSteps.length`. Owner confirms the wording. | V1 |
+| Overview "Notes from the jobs", model prices, dead "Build the blueprint" button | Notes read a demo-only list; pen-name Models tab prices come from static demo data; the button on the static type blueprint has no handler (unreachable once demo is hidden when hosted, so remove it). | V1 |
+| "Needs you" list empty on the server | `api/adapters.ts` returns none. Recommended: one server endpoint listing claims awaiting a decision, failing preflight items, paused or failed jobs and the out-of-credit stop, per book, newest first. | V3 |
+| Fixed cost text | Cover, Marketing and Editor show fixed text ("about $0.16"). Extend `estimateRuns` and read it, as Research to Writing already do. | V3 |
+| Amazon listing never shown | `GET` and `POST /books/:id/listing` have no caller, so the author sees description, categories and keywords only inside the downloaded pack. Recommended: wire it as a panel in Export or Marketing with KDP limits from `config/kdp-rules/`. Owner confirms. | V3 |
+| Unwired archive and unpublish | `profilesApi.archive` and the `unpublish` hook have no screen. Recommended: wire both. | V2 |
+| Uncalled routes and dead code | `GET /marketing`, `/book-types`, `/interior-themes`, `/cover-styles` have no caller (recommended: remove with their tests; owner confirms). `features/cover/ArtCover.tsx` is used only by its own test; six unused exports (`OWN_COVER_FIX`, `aroundSentence`, `NO_RUN`, `choicesFromServer`, `isAiError`, `BROWSER_ARGS`). Job kind `noop` is registered in production but only tests use it (move to a test-only map). | V2 |
+| `users.password_hash` | Written only as `null` since Clerk. Recommended: keep, mark legacy in DATA-MODEL, drop inside the next migration that has to happen anyway. | V2 |
+| Import cycle and twin hooks | `ApiMarketing` and `MarketingPage` import each other (move `MARKETING_LOCKED` and `LockedNotice` to a third file). Two `useScreenState` hooks behave differently, and two naming patterns exist for API screens; recommended: one-line comment on which is for which, revisit if demo mode goes. Add unused-export and import-cycle checks as CI warnings first. | V2 |
+| Mock fixtures | Mock AI fixtures cover 11 of 41 prompt ids. The docs say every new prompt needs one. Recommended: schema-generated fallback is the default, add a fixture only where an output has branches worth testing, and change the docs rule to say so. | V2 |
+| Docs out of step with code | API-SPEC lists about 116 of 159 routes; the server README table misses about 44 routes and 28 of 33 tables are listed; DATA-MODEL has wrong column names (`setting_key`, `voice`, `start_offset`, `ledger_key`, single `pricing` column) and lacks `author_notes` and `asset_chunks`; prompt docs say 39 or "all 32" against 41 and link a missing `docs/05-PROMPTS.md`; agent and skill files name missing paths (`prototype/`, `tests/golden/`, `PLAN.md`) and call `packages/ui` "components" when it holds tokens; `apps/web/src/api/README.md` and `apps/web/README.md` have stale paths. Recommended: generate route tables from Fastify's route registry, compare DATA-MODEL with the migrated schema, count prompts in `docs:check`. | V1 |
+| Decision records | D-011 and D-013 still "Proposed" (recommended: D-013 Accepted, it is cited six times; D-011 Superseded by D-014); D-003 not marked as amended by D-058. Owner confirms the wording. | V1 |
+| Route guard test | The audit found every mutating route guarded (97 routes, hand check of 8). Recommended: turn it into a test with a short reviewed allowlist (estimates, cover preview, `/me/leave`). | V2 |
+| Editing faults | "Fix everything" queues summary and check reruns before the claim fixes create new versions (read from code, not reproduced); a save marks a section done while blocking placeholders remain; an acknowledgement is lost when its message text changes; the success toast says "Book fixed" when the free house-style fix changed nothing. | V2 |
+| Picture-book export screen | `features/spreads/PictureExportPage.tsx` shows the preflight stored with the last PDF build without saying so. A rule change (not a text change) can leave an old "Blocked" on screen. Low impact: the pack gate uses a fresh check. Small fix: say "Preflight from the build of 14:06" (with the real build time). | V2 |
+| Quality checks (backlog from the stage review, unverified) | In value order: deterministic prose-metrics check wired to the style-rewrite pass; cross-chapter opening-shape check; per-category banned-phrase lists; a Style report card per book; voice fingerprint from pen-name samples; layout-quality preflight (runt pages, stranded headings); blueprint validator in code; cover palette memory per pen name; marketing hook uniqueness; source retrieval date and authority tier. Rules in `config/house-style.json` with no code behind them: `varied-sentences`, `no-summary-closers`, `jargon-explained`, `first-person-default-nonfiction`. Voice fingerprint stays parked until V1 says it matters. | V2 |
+| Search Console | The owner's account has no verified property (`gakinz.com` and others "Not verified"), so no sitemap can be submitted. Verify the domain by a DNS record in Cloudflare, or a tag in the page plus a deploy. Rich Results Test (9 November): valid WebApplication; only optional `aggregateRating` and `offers` missing, which would mean inventing a rating or price. | V1 (owner) |
+| Clerk fails to load | The sign-in form area is blank with no message or retry. | V2 |
+| Per-account OpenRouter keys | Deferred (D-047). Recommended: keep the owner's key with the per-guest cap (`budget.guest_workspaces_monthly_cap_usd`); do not store other people's keys. Before any guest is invited: send `data_collection: "deny"`, state retention periods for manuscripts, prompt runs and deleted workspaces, and supply a privacy contact. | V4 |
+| MariaDB 11.4 and restore drill | Migrations and the MySQL test passed on a throwaway MariaDB 11.4.13 on 8 November (`docs/AUDIT.md`). A restore of a real cPanel backup into a throwaway database is still NOT TESTED; do it once at the start of V1, then yearly. | V1 |
+
+### Recommended answers for the first real book (V1)
+
+Written 8 November; the owner decides each.
+
+- **Book:** a short nonfiction book (15,000 to 25,000 words) with no medical, legal or safety claims, under a pen name that is already set up. Claims review is the likely bottleneck, so the first proof is about the pipeline, not a clinical reader. Other types follow once each, short, after the first full book.
+- **Spend:** set a limit on the OpenRouter key itself and watch the Anthropic balance, at about 1.5 times the app's estimate. D-057 removed in-app caps, so the provider limit is the real brake. Live run needs `LIVE_AI=1`.
+- **Measure:** time and cost per stage (from `promptRuns`), manual interventions, claims count and how many need a reader, preflight failures, anything done outside the app. This is the V3 baseline.
+- **Accepted means:** the pack's files upload to KDP as an unpublished draft and pass KDP's validation, and the EPUB opens cleanly in Kindle Previewer. The owner does the upload.
+- **Blocker rule:** stop, log it, fix only the blocker, then resume. Everything else is triaged into V2 or V3.
+- **Qualified reader for claims:** whoever the owner names; for non-clinical nonfiction the owner may be enough.
+
 ## Phases 6 to 8, 17 October 2026
 
 Built on branch `feat/phases-6-8`. Plan: [PHASES-6-8](08-change-management/plans/PHASES-6-8.md).
