@@ -54,7 +54,7 @@ The output is `build/release/`: `app.cjs`, `server/` (one esbuild bundle plus `m
 
 ## Deploy (one command, from the Mac)
 
-`npm run deploy` (`scripts/deploy.mjs`, host facts in `deploy/production.json`) runs every step below and checks the result. Run it on `main`, clean and pushed. When GitHub Actions can run, wait for CI on that commit to pass. While Actions is blocked, add `--no-ci-check` with the owner's OK.
+`npm run deploy` (`scripts/deploy.mjs`, host facts in `deploy/production.json`) runs every step below and checks the result. Run it on `main`, clean and pushed. When GitHub Actions can run, wait for CI on that commit to pass. Only when GitHub Actions cannot run, add `--no-ci-check` with the owner's OK.
 
 | Command | Does |
 | --- | --- |

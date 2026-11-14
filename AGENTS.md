@@ -93,7 +93,7 @@ npm run migrate -w apps/server         # apply migrations (MYSQL_MIGRATE_USER on
 1. Brainstorm and agree the finish line with the owner.
 2. Task plan with `superpowers:writing-plans`, saved in `docs/08-change-management/plans/`.
 3. Build each task test first, one concern per branch.
-4. `npm run verify`, which includes the 20 end-to-end tests. CI also runs on macOS, so the final check for a release is on the Mac.
+4. `npm run verify`, which includes the 20 end-to-end tests. CI runs Linux and macOS jobs; the release itself is deployed from the Mac.
 5. Code review by a separate agent: Opus for security, migrations, covers and release reviews.
 6. The owner reads the evidence and says "approved:" before any push or deploy.
 7. After a deploy, one scripted live smoke check, then `.agent/CURRENT-TASK.md`, `.agent/HANDOFF.md`, `CHANGELOG.md` and `docs/AUDIT.md` are updated in the same change.
