@@ -989,3 +989,10 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Live smoke (public GETs, PASS): `/` and `/how-it-works` 200 and indexable, `/sign-in` 200 `noindex`, `/api/v1/books` 401, sitemap 200.
 - Not done: `graphify-out/` rebuild (Mac), Tailwind 4.3.5 bump, Dependabot alert #3 (moderate) not reviewed.
 - Next: `/finish-app` for V1.
+
+## 14 November 2026, Claude Code (Sonnet 5.5): V1 items 2, 4, 5 and the barcode part of 3
+
+- Item 5: `npm run docs:drift` (routes, prompts, tables vs docs) in `verify` and CI; fixed 37 undocumented routes and the prompt count. Item 4: palette no longer offers the sample job live, Data panel names the real database, no fixed "Gakinz, London" live. Item 2: last raw `page.screenshot` in `cover-typography.test.ts` now retries. Item 3: preview barcode box moved to the build's 0.25 in inset.
+- Checks: `npm run verify` exit 0 earlier on this branch (tooling 19, unit 594, web 291, e2e 20); after the last edits: web cover, export and shell tests pass, typecheck, ESLint and Prettier clean. Full gate to rerun before merge.
+- Decisions: no shared layout module for covers and no live model prices (both would be new features); parked in `VERSIONS-PLAN.md`. Opus not used: the barcode change is one constant, checked against the build code.
+- Next: owner merges PR #101 (deploys), then Stage 4 building.

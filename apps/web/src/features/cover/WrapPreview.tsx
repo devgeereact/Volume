@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { barcodeArea, coverBleedIn, inches, safeInsetIn, spineTextMinPages, wrapSize, type Paper } from "../export/kdpRules";
+import { barcodeArea, barcodeInsetIn, coverBleedIn, inches, safeInsetIn, spineTextMinPages, wrapSize, type Paper } from "../export/kdpRules";
 import { CoverFrame } from "./CoverFrame";
 
 interface WrapPreviewProps {
@@ -44,7 +44,7 @@ export function WrapPreview({ page, trim, pages, paper, spineIn, art, width, gui
   const spineX = b + trim.w;
   const frontX = spineX + size.spine;
   const spineText = pages >= spineTextMinPages;
-  const bc = { x: spineX - safeInsetIn - 0.25 - barcodeArea.widthIn, y: b + trim.h - safeInsetIn - 0.25 - barcodeArea.heightIn };
+  const bc = { x: spineX - barcodeInsetIn - barcodeArea.widthIn, y: b + trim.h - barcodeInsetIn - barcodeArea.heightIn };
 
   const guides = !showGuides ? null : (
     <div aria-hidden>

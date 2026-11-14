@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { Cover } from "../../components/ui";
 import type { CoverDesign } from "../../demo";
-import { barcodeArea, coverBleedIn, safeInsetIn } from "../export/kdpRules";
+import { barcodeArea, barcodeInsetIn, coverBleedIn, safeInsetIn } from "../export/kdpRules";
 
 /* A drawing of the paperback wrap for the sample books (no server, so no build page to show): the back with the
    blurb, the spine and the front cover, laid out on the same print geometry WrapPreview's guides use. The real
@@ -59,12 +59,7 @@ export function DemoWrapArt({
       </div>
       <div
         style={{
-          ...box(
-            spineX - safeInsetIn - 0.25 - barcodeArea.widthIn,
-            b + trim.h - safeInsetIn - 0.25 - barcodeArea.heightIn,
-            barcodeArea.widthIn,
-            barcodeArea.heightIn,
-          ),
+          ...box(spineX - barcodeInsetIn - barcodeArea.widthIn, b + trim.h - barcodeInsetIn - barcodeArea.heightIn, barcodeArea.widthIn, barcodeArea.heightIn),
           // The white box KDP prints the barcode into: always white, whatever the cover colours.
           background: "#FFFFFF",
         }}

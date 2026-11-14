@@ -5,6 +5,7 @@ import { DEFAULT_COVER_STYLE } from '@volume/core';
 import { loadCoverStyles, loadKdpRules } from '@volume/core/node';
 import { acquireBrowser, applyCoverTypography, exportEbookCover, releaseBrowser } from '../src/index.ts';
 import { loadMiniBook } from './helpers.ts';
+import { screenshotWithRetry } from '../src/browser.ts';
 
 // The owner's cover typography (title position, palette, sizes) on top of a cover style.
 
@@ -291,7 +292,7 @@ describe('cover preview page', () => {
       await page.route('http://cover.test/', (r) => r.fulfill({ body: preview.html ?? '', contentType: 'text/html' }));
       await page.goto('http://cover.test/', { waitUntil: 'load' });
       await page.waitForFunction('window.__coverReady === true');
-      const shot = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1600, height: 2560 } });
+      const shot = await screenshotWithRetry(page, { type: 'png', clip: { x: 0, y: 0, width: 1600, height: 2560 } });
       const raw = async (b: Buffer): Promise<Buffer> => sharp(b).removeAlpha().resize(400, 640).raw().toBuffer();
       const [a, b] = await Promise.all([raw(shot), raw(built.jpeg)]);
       let sum = 0;

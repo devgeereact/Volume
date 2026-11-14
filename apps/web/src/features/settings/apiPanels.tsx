@@ -15,6 +15,7 @@ import { useNow } from "../../lib/useNow";
 import { InlineStatus, PanelHeader, SaveAction, SettingRow, SettingsSection } from "./PanelHeader";
 import { Block, KeySafetyNet, SpendFigure } from "./panels";
 import { canSeeBackups, guestCapError, guestCapOf, parseGuestCap } from "./instanceOnly";
+import { databaseWords } from "./databaseWords";
 
 /* Settings panels that read and save through the Volume server (GET and PATCH /settings, the backups
    and the OpenRouter test). Used when the server answers; the demo panels in panels.tsx stay for demo
@@ -473,7 +474,7 @@ export function ApiBackupsPanel() {
   const header = (
     <PanelHeader
       title="Data and backups"
-      body="Books save to the Volume database: on this Mac for now, and on your cPanel database once it is connected."
+      body={databaseWords(settings.data?.database.client).intro}
       actions={
         seeBackups && q.data?.status.supported && canManage ? (
           <Button
@@ -538,7 +539,7 @@ export function ApiBackupsPanel() {
         <KeyValueList
           className="max-w-[460px]"
           items={[
-            { label: "Database", value: settings.data ? (settings.data.database.client === "mysql" ? "MySQL on cPanel" : "SQLite on this Mac") : "Loading" },
+            { label: "Database", value: databaseWords(settings.data?.database.client).label },
             { label: "Backups", value: st.locationKind === "cpanel" ? "Kept by the host" : "The backups folder in Volume’s data folder" },
             { label: "Last backup", value: st.lastAt ? formatRelative(isoFromMs(st.lastAt), new Date().toISOString()) : "None yet" },
             { label: "Kept", value: `The last ${st.keep}` },

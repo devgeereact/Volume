@@ -72,12 +72,13 @@ npm run build -w apps/server  # build the API
 npm run build -w apps/web     # build the web app
 npm run doctor                # runtime, native modules, pinned Chromium
 npm run docs:check            # Markdown link check
+npm run docs:drift            # fails when API routes, prompts or tables differ from the docs
 npm run build:release         # release folder for the host (build/release); see docs/07-operations/DEPLOYMENT.md
 npm run deploy -- --dry-run   # host preflight only, changes nothing
 npm run deploy                # real deploy: owner approval first; add --migrate (after a cPanel backup) if migrations are pending, --rollback to go back; --no-ci-check replaces the GitHub CI check with the same gates run locally (owner OK; only when Actions cannot run; typecheck, lint, format:check, test and e2e first)
 npm run format:check          # Prettier check, whole repo
 npm run hooks:test            # hook tests
-npm run verify                # the one gate: doctor, docs, tooling, typecheck, lint, format, unit tests with coverage, web unit tests, web build, release build, e2e
+npm run verify                # the one gate: doctor, docs, docs drift, tooling, typecheck, lint, format, unit tests with coverage, web unit tests, web build, release build, e2e
 npm run migrate -w apps/server         # apply migrations (MYSQL_MIGRATE_USER on MySQL)
 ```
 

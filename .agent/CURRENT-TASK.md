@@ -2,13 +2,13 @@
 
 Current state only. Dated history is in `.agent/HANDOFF.md`; audits in `docs/AUDIT.md`; the live release in `docs/07-operations/DEPLOYMENT.md`.
 
-## State on 14 November 2026 (house-standard rollout, stages 0 to 3)
+## State on 14 November 2026 (house-standard rollout done; V1 Claude items finished)
 
-- **Git:** `main` = `origin/main` = `9850698`, clean. PRs #96 and #97 are merged (the "PR #96 waiting" and "three cover branches waiting for push" notes below are done). "Check Volume" run 43518906300 and Deploy run 43521018610 are green on that commit. Backup bundle: `~/Backups/projects/Volume/Volume-20261113-2352.bundle` (verified).
-- **Merged (PR #98, `cb3c611`, 14 November 2026):** working-method gaps closed in AGENTS.md (review points, Sonnet-first, GSD optional, `approved:` for push and merge), D-071, stale notes corrected. "Check Volume" run 43596514062 and Deploy run 43597375010 are green. Live smoke (public GETs): `/` and `/how-it-works` 200 and indexable, `/sign-in` 200 `noindex`, `/api/v1/books` 401, sitemap 200. Tailwind v4 already adopted (4.3.3); bump to 4.3.5 not done.
-- **Gate:** the PR #98 checks passed the full gate on Ubuntu and macOS, so the earlier `test:tooling` failure was load on the Ubuntu machine, not code.
-- **Owner list:** the four merged remote branches are deleted. `graphify` is not installed on this Ubuntu machine, so `graphify-out/` is absent here; rebuild on the Mac.
-- **Next:** `/finish-app` for V1 (owner answers what "finished" looks like).
+- **Git:** `main` = `origin/main` = `4c3521e` (PRs #96 to #100 merged, Check Volume and Deploy green, live smoke PASS). Branch `goal/finish` (PR #101, not merged) holds V1 items 2, 4, 5 and the barcode part of 3.
+- **V1 (3 of 9 ticked, `docs/08-change-management/plans/VERSIONS-PLAN.md`):** items 2, 4, 5 DONE; 3 PARTIAL (centring, title and author positions, one shared layout module parked). Owner: 1 (host steps), 6 (one real book and a budget), 8 (KDP acceptance). External: 7 (qualified reader). Item 9 waits for 6.
+- **Gate:** `npm run verify` exit 0 on `goal/finish` before the last cover, spine and test edits; rerun before merge. Earlier tooling failures were load on the Ubuntu machine.
+- **Owner list:** merge PR #101 (deploys); the Dependabot alert #3 only covers a dev-only `minimatch` under ESLint; rebuild `graphify-out/` on the Mac (`graphify` is not installed on Ubuntu).
+- **Next:** Stage 4 building from the owner's list. Do not start new scope before PR #101 is merged.
 
 ## State on 13 November 2026
 

@@ -51,10 +51,18 @@ export const coverMinDpi = n(coverRule.minDpi, "dpi");
 
 const barcodeRaw = rule("paperback.cover.barcodeArea");
 const barcodeVals = obj(barcodeRaw.values, "barcode");
-export const barcodeArea = { widthIn: n(barcodeVals.widthIn, "barcode.w"), heightIn: n(barcodeVals.heightIn, "barcode.h"), status: barcodeRaw.status };
+export const barcodeArea = {
+  widthIn: n(barcodeVals.widthIn, "barcode.w"),
+  heightIn: n(barcodeVals.heightIn, "barcode.h"),
+  insetFromTrimIn: n(barcodeVals.insetFromTrimIn, "barcode.inset"),
+  status: barcodeRaw.status,
+};
 
 const safeRaw = rule("paperback.cover.safeZone");
 export const safeInsetIn = n(obj(safeRaw.values, "safe").textInsetFromTrimIn, "safe.inset");
+
+/** How far the barcode box sits from the trim edge. The print build uses the same rule (packages/export covers.ts). */
+export const barcodeInsetIn = Math.max(safeInsetIn, barcodeArea.insetFromTrimIn);
 
 const ebookCover = obj(rule("ebook.cover").values, "ebook.cover");
 const ideal = obj(ebookCover.idealPx, "ebook.idealPx");
