@@ -981,3 +981,11 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Checks: doctor, docs:check, typecheck, lint, format:check PASS; unit 594 passed (3 skipped); web 284 passed; build:release PASS; e2e 20 passed. `test:tooling` 12 of 13: "standalone dev starts from another cwd" fails while the machine load is 25 to 38 (other sessions); green in CI. NOT re-proved.
 - Model note: worked on Sonnet, not Opus as the prompt asks; the diff is docs only and gets a separate reviewer.
 - Next: owner reviews the branch, says "approved: push Volume" (merge to `main` deploys), re-run `npm run verify` on a quiet machine or the Mac, then `/finish-app` V1.
+
+## 14 November 2026, Claude Code (Sonnet 5.5): house-standard merged and live
+
+- Owner approved push, branch deletion and merge. Pushed `chore/house-standard`, deleted four merged remote branches, merged PR #98 (`cb3c611`).
+- Checks: PR checks green on Ubuntu, macOS and node24-host (full gate, so the earlier local `test:tooling` failure was machine load). Check Volume 43596514062 and Deploy 43597375010 green on `main`.
+- Live smoke (public GETs, PASS): `/` and `/how-it-works` 200 and indexable, `/sign-in` 200 `noindex`, `/api/v1/books` 401, sitemap 200.
+- Not done: `graphify-out/` rebuild (Mac), Tailwind 4.3.5 bump, Dependabot alert #3 (moderate) not reviewed.
+- Next: `/finish-app` for V1.

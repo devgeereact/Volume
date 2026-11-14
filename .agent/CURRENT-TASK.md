@@ -5,10 +5,10 @@ Current state only. Dated history is in `.agent/HANDOFF.md`; audits in `docs/AUD
 ## State on 14 November 2026 (house-standard rollout, stages 0 to 3)
 
 - **Git:** `main` = `origin/main` = `9850698`, clean. PRs #96 and #97 are merged (the "PR #96 waiting" and "three cover branches waiting for push" notes below are done). "Check Volume" run 43518906300 and Deploy run 43521018610 are green on that commit. Backup bundle: `~/Backups/projects/Volume/Volume-20261113-2352.bundle` (verified).
-- **Branch `chore/house-standard` (local, not pushed):** working-method gaps closed in AGENTS.md (review points, Sonnet-first, GSD optional, `approved:` for push and merge), D-071, stale notes corrected. Tailwind v4 already adopted (4.3.3, Vite plugin, `.flex` in built CSS); bump to 4.3.5 not done (needs a green gate).
-- **Gate:** `npm run verify` stops at `tests/integration/runtime.test.mjs` "standalone dev starts from another cwd" (API not up within 16 s) while other Claude sessions keep the load average at 25 to 38 on 8 cores. Green in CI on the same commit, so treated as load, not code. Steps after it were run one by one; results in `docs/AUDIT.md`. Re-run the full gate when the machine is quiet, or on the Mac.
-- **Owner list:** remote branches `docs/record-release-20261109`, `feat/v0-base-and-covers`, `fix/claims-honest-results`, `fix/e2e-title-set-race` are merged and can be deleted on GitHub (needs "approved:"). `graphify` is not installed on this Ubuntu machine, so `graphify-out/` is absent here; rebuild on the Mac.
-- **Next:** owner reviews `chore/house-standard` and says "approved: push Volume" (a merge to `main` starts the Deploy workflow), then `/finish-app` for V1.
+- **Merged (PR #98, `cb3c611`, 14 November 2026):** working-method gaps closed in AGENTS.md (review points, Sonnet-first, GSD optional, `approved:` for push and merge), D-071, stale notes corrected. "Check Volume" run 43596514062 and Deploy run 43597375010 are green. Live smoke (public GETs): `/` and `/how-it-works` 200 and indexable, `/sign-in` 200 `noindex`, `/api/v1/books` 401, sitemap 200. Tailwind v4 already adopted (4.3.3); bump to 4.3.5 not done.
+- **Gate:** the PR #98 checks passed the full gate on Ubuntu and macOS, so the earlier `test:tooling` failure was load on the Ubuntu machine, not code.
+- **Owner list:** the four merged remote branches are deleted. `graphify` is not installed on this Ubuntu machine, so `graphify-out/` is absent here; rebuild on the Mac.
+- **Next:** `/finish-app` for V1 (owner answers what "finished" looks like).
 
 ## State on 13 November 2026
 
