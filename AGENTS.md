@@ -74,7 +74,7 @@ npm run doctor                # runtime, native modules, pinned Chromium
 npm run docs:check            # Markdown link check
 npm run build:release         # release folder for the host (build/release); see docs/07-operations/DEPLOYMENT.md
 npm run deploy -- --dry-run   # host preflight only, changes nothing
-npm run deploy                # real deploy: owner approval first; add --migrate (after a cPanel backup) if migrations are pending, --rollback to go back; --no-ci-check while GitHub Actions is blocked (owner OK; runs typecheck, lint, format:check, test and e2e locally first)
+npm run deploy                # real deploy: owner approval first; add --migrate (after a cPanel backup) if migrations are pending, --rollback to go back; --no-ci-check replaces the GitHub CI check with the same gates run locally (owner OK; only when Actions cannot run; typecheck, lint, format:check, test and e2e first)
 npm run format:check          # Prettier check, whole repo
 npm run hooks:test            # hook tests
 npm run verify                # the one gate: doctor, docs, tooling, typecheck, lint, format, unit tests with coverage, web unit tests, web build, release build, e2e
@@ -83,10 +83,20 @@ npm run migrate -w apps/server         # apply migrations (MYSQL_MIGRATE_USER on
 
 ## Build method, models and the map
 
-- Method: superpowers. Brainstorm, write the plan, build test first, verify, review, finish the branch. Work is grouped into versions (V0 to V4) with a frozen finish line of at most 10 items each, owned by `/finish-app`. GSD is retired.
+- Method: superpowers. Brainstorm, write the plan, build test first, verify, review, finish the branch. Work is grouped into versions (V0 to V4) with a frozen finish line of at most 10 items each, owned by `/finish-app`. GSD is retired as a plan flow: it stays installed as an optional skill, used only when the owner asks, and never creates a `.planning/` folder here.
 - Specs and plans go in `docs/08-change-management/plans/`, not in a new folder.
-- Models: Sonnet is the default for every agent. Use Opus for cross-folder design, migrations, security review, cover and spine maths, the review before a release, and a bug that survived two fix attempts. Use Haiku for searching, listing and mechanical edits with exact instructions. Set it per job with the agent's `model` setting and say why in the handoff.
+- Models: Sonnet is the default for every agent. Use Opus for cross-folder design, migrations, security review, cover and spine maths, the review before a release, and a bug that survived two fix attempts. Use Haiku for searching, listing and mechanical edits with exact instructions. Start on Sonnet, move up only when a job is hard or high risk, set it per job with the agent's `model` setting and say why in the handoff. `volume-reviewer` stays `model: sonnet` in its file; the caller raises it to Opus for security, migrations, covers and release reviews.
 - Map: read `graphify-out/GRAPH_REPORT.md` and run `graphify query "<question>"` before searching files. Run `graphify update` after a merge (it will list the images, `design/` and older prompt versions as pending; skip them, they were left out on purpose). Never point it at `data/` or `.env`.
+
+### Review points (every version, RULES.md section 10)
+
+1. Brainstorm and agree the finish line with the owner.
+2. Task plan with `superpowers:writing-plans`, saved in `docs/08-change-management/plans/`.
+3. Build each task test first, one concern per branch.
+4. `npm run verify`, which includes the 20 end-to-end tests. CI runs Linux and macOS jobs; the release itself is deployed from the Mac.
+5. Code review by a separate agent: Opus for security, migrations, covers and release reviews.
+6. The owner reads the evidence and says "approved:" before any push or deploy.
+7. After a deploy, one scripted live smoke check, then `.agent/CURRENT-TASK.md`, `.agent/HANDOFF.md`, `CHANGELOG.md` and `docs/AUDIT.md` are updated in the same change.
 
 ## Working rules
 
@@ -94,7 +104,7 @@ npm run migrate -w apps/server         # apply migrations (MYSQL_MIGRATE_USER on
 2. Smallest change that solves the problem. One concern per change. Respect folder ownership when several agents run at once.
 3. After each change: typecheck, lint and the relevant tests. Report PASS, FAIL, PARTIAL, NOT TESTED or BLOCKED with the command and result. Never claim done without evidence.
 4. Never read, print, copy or commit `.env`, anything in `data/` or the host's `~/apps/volume/shared/`. Never put a key in code, prompts, logs or the web bundle.
-5. Ask before: deploying, touching the host, Clerk, Cloudflare or the production database, installing packages not named in the docs, deleting files, changing the stack, network calls other than OpenRouter, anything that costs money (live AI runs need `LIVE_AI=1` and a budget).
+5. Ask before, and wait for the owner's "approved: <action>" for: any push or merge (a merge to `main` deploys), deploying, touching the host, Clerk, Cloudflare or the production database, installing packages not named in the docs, deleting files, changing the stack, network calls other than OpenRouter, anything that costs money (live AI runs need `LIVE_AI=1` and a budget).
 6. Prompts are files in `prompts/`, never strings in code. Changing a prompt means a new version file.
 7. KDP numbers come only from `config/kdp-rules/`. If a rule is missing, add it with its official source and date, or mark it unverified.
 8. Do not start or stop servers you did not start. Stop what you start.

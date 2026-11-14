@@ -2,6 +2,21 @@
 
 One audit file for this project. Every audit, check or review adds a dated section at the top; nothing is rewritten. Open work lives in `.agent/CURRENT-TASK.md`.
 
+## 14 November 2026: house-standard rollout, stages 0 to 3 (Ubuntu)
+
+Branch `chore/house-standard` from `main` `9850698`. Nothing pushed, merged or deployed.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Tree and sync | PASS | `main` equals `origin/main`, clean, no stashes, no extra worktrees, one local branch |
+| Backup | PASS | `~/Backups/projects/Volume/Volume-20261113-2352.bundle`, `git bundle verify` ok; `.local-state/backups` linked |
+| CI on `main` head | PASS | "Check Volume" run 43518906300 green (node24-host, ubuntu, macos); Deploy run 43521018610 green, same commit |
+| Remote branches | LISTED | `docs/record-release-20261109`, `feat/v0-base-and-covers`, `fix/claims-honest-results`, `fix/e2e-title-set-race`: all merged, left for the owner |
+| Tailwind v4 | PASS | 4.3.3 through the Vite plugin; no config or PostCSS file; `.flex` present in the built CSS. Latest is 4.3.5, not bumped (needs a green gate) |
+| Stale docs | FIXED | `--no-ci-check` wording, "draft" plan label |
+| `npm run verify`, stage by stage on this branch | PARTIAL | doctor, docs:check (99 documents), typecheck, lint, format:check PASS; unit tests 594 passed, 3 skipped; web tests 284 passed; build:release PASS; e2e 20 passed (4.9 min). `test:tooling` 12 of 13 pass |
+| `test:tooling` "standalone dev starts from another cwd" | FAIL under load, twice on `main` and once more later | the API was not up within 16 s while the load average was 25 to 38 on 8 cores (other Claude sessions). Green in CI on the same commit. Not re-proved: re-run on a quiet machine or on the Mac |
+
 ## 8 November 2026 (late night): sign-in 404, and the go-live deploy rolled back by its own live check
 
 Two production findings, both found by the owner or by the deploy, both fixed test first.

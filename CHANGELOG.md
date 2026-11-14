@@ -2,6 +2,11 @@
 
 User-visible changes, newest first. Dates in British format.
 
+## 14 November 2026
+
+#### Changed
+- No change to the app. Project rules and records now follow the house working method: review points, models and approvals are written in AGENTS.md, and stale notes about blocked GitHub checks and a draft plan were corrected (D-071).
+
 ## 9 November 2026
 
 #### Fixed

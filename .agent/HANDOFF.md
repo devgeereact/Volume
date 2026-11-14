@@ -973,3 +973,11 @@ Superseded by the 8 October fix pass above. Lint FAILED on `apps/server/src/jobs
 - Branch `feat/v0-base-and-covers` from `fix/cover-spine-fit`: three V0 commits, then `fix/cover-spine-contrast` and `fix/cover-screenshot-retry` merged. The cover branches were parallel, not stacked. Conflicts: `CHANGELOG.md` (kept both lines) and `legacy-html.sha256.json` (hashes regenerated for the combined spine output; `UPDATE_GOLDEN=1` now writes that file too). Dropped the `.planning/` ignore line the retry branch re-added.
 - Checks: cover tests 4 files / 68 tests PASS on the merge; `npm run verify` PASS, exit 0 (core 215, ai 268, export 261 and 1 skipped, server 594 and 3 skipped, web 284, 20 of 20 e2e; log `.local-test/verify-integration.log`).
 - Not done: merging the PR (merging deploys, owner's word); live check of the cover output; Phase 1 host steps.
+
+## 14 November 2026, Claude Code (Sonnet 5.5): house-standard rollout, stages 0 to 3
+
+- Stage 0 and 1: `main` = `origin/main` = `9850698`, clean, no stashes, one local branch, no extra worktrees. PRs #96 and #97 already merged. CI green on the head (Check Volume 43518906300, Deploy 43521018610). Bundle `~/Backups/projects/Volume/Volume-20261113-2352.bundle` verified; `.local-state/backups` linked.
+- Stage 2 and 3 on `chore/house-standard` (worktree `.local-state/wt-chore-house-standard`, one commit, not pushed): AGENTS.md review points, Sonnet-first rule, GSD optional, `approved:` for push and merge; stale `--no-ci-check` and "draft plan" notes fixed; D-071; changelog, audit and task file updated. Numbered tree, stubs, `design/`, KDP snapshots (read by `config/kdp-rules`) and root `CHANGELOG.md` (read by `scripts/check-docs.mjs`) deliberately left. Tailwind v4 already in place (4.3.3).
+- Checks: doctor, docs:check, typecheck, lint, format:check PASS; unit 594 passed (3 skipped); web 284 passed; build:release PASS; e2e 20 passed. `test:tooling` 12 of 13: "standalone dev starts from another cwd" fails while the machine load is 25 to 38 (other sessions); green in CI. NOT re-proved.
+- Model note: worked on Sonnet, not Opus as the prompt asks; the diff is docs only and gets a separate reviewer.
+- Next: owner reviews the branch, says "approved: push Volume" (merge to `main` deploys), re-run `npm run verify` on a quiet machine or the Mac, then `/finish-app` V1.
