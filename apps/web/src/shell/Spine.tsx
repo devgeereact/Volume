@@ -113,8 +113,14 @@ function NavItem({
  * running, OpenRouter, this month's spend, credit left, Open Volume mode). On phones the same card is
  * the menu drawer. A book's steps live in the step bar above the screen (StepRail), not here.
  */
+/** The small line under the brand mark: sample owner text in demo mode only, nothing in the live app. */
+export function brandSubline(mode: string): string | null {
+  return mode === "mock" ? "Gakinz, London" : null;
+}
+
 export function Spine({ onNavigate, variant = "float", className }: SpineProps) {
   const { pathname } = useLocation();
+  const subline = brandSubline(useWireMode());
   const libraryCount = useCurrentProfileCount();
   const publishedCount = usePublishedCount();
 
@@ -136,7 +142,7 @@ export function Spine({ onNavigate, variant = "float", className }: SpineProps) 
         <BrandMark />
         <span className="text-[19px] font-bold tracking-[-0.02em]">
           Volume
-          <small className="block text-[11px] font-medium tracking-normal text-ink-3">Gakinz, London</small>
+          {subline && <small className="block text-[11px] font-medium tracking-normal text-ink-3">{subline}</small>}
         </span>
       </Link>
 

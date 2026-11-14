@@ -61,23 +61,23 @@ Finish line:
 
 Owner gates: approve the push of each branch; pick the book and a cost budget; confirm acceptance.
 
-#### V1 status on 14 November 2026 (1 of 9 ticked)
+#### V1 status on 14 November 2026 (3 of 9 ticked)
 
 Who does each open item: Owner (needs the owner), Claude (can be built and proved locally), External (needs someone outside).
 
 | # | Item | Who | Status | Evidence |
 |---|---|---|---|---|
 | 1 | Go-live on `main` and live; host steps done | Owner | PARTIAL | Go-live code is live (release `20261109T010629Z`, merged PRs #96 to #100, Deploy green on `4c3521e`). The host steps (`.htaccess` header lines, `CLOUDFLARE_ONLY` report then on, Search Console sitemap) are not recorded as done. |
-| 2 | Cover branches merged; screenshot test does not flake | Claude | PARTIAL | The three branches are merged (PR #96). The flake is not gone: `cover-typography.test.ts` failed once on 14 November with "Unable to capture screenshot" in `node24-host` and passed on re-run. |
-| 3 | Cover layout right; preview and build share one set of layout maths | Claude | OPEN | Layout maths still sits in `packages/export/src/covers.ts` and separately in `apps/web/src/features/cover/` (`DemoWrap.tsx`, `WrapPreview.tsx`, `layers.ts`). Needs Opus (cover maths). |
-| 4 | No demo content or prototype wording for a signed-in user | Claude | PARTIAL | Fixed 14 November 2026, test first (web tests 284 to 291): the command palette no longer offers "Pause writing: Handover" in live mode (`writingJobCommand`), and the live Data and backups panel names the real database instead of "this Mac" (`databaseWords`). The hosted build is always in live mode, and the footer and side status box already switch by mode. Still open: the "Gakinz, London" label under the brand mark (`shell/Spine.tsx`) is fixed text and the API has no workspace name to show; the example-price note in `components/ui/ModelPicker.tsx` and `features/profiles/ModelsTab.tsx` shows demo prices where a profile picks a model; demo book ids are still looked up in `shell/CommandPalette.tsx` and `shell/Breadcrumbs.tsx`. |
+| 2 | Cover branches merged; screenshot test does not flake | Claude | DONE | The three branches are merged (PR #96). The one raw `page.screenshot` call left in `packages/export/test/cover-typography.test.ts` now uses `screenshotWithRetry` (15 tests pass). A flake cannot be proved absent in one run: watch the next CI runs. |
+| 3 | Cover layout right; preview and build share one set of layout maths | Claude | PARTIAL | The preview now puts the barcode box where the build does (0.25 in from trim, `barcodeInsetIn`, was 0.375 in; web tests 39 pass in the cover and export folders). Parked, needs rendered covers and Opus: front content about 0.08 in right of centre, title and author positions relative to cover width, back-cover baseline, one shared layout module. |
+| 4 | No demo content or prototype wording for a signed-in user | Claude | DONE | Test first, 14 November 2026: no sample "Pause writing" in the palette (`writingJobCommand`), the Data and backups panel names the real database (`databaseWords`), and no fixed "Gakinz, London" under the brand mark in live mode (`brandSubline`). The hosted build is always live; the footer and status box already switch by mode. Parked: the model pickers show prices already labelled "Example prices" (live prices need a server feature); demo book ids are still looked up in `CommandPalette` and `Breadcrumbs` (no live id matches them). |
 | 5 | Docs match code, with a check that fails on drift | Claude | DONE | `npm run docs:drift` (`scripts/check-drift.mjs`, in `verify` and CI) compares API routes, prompts and database tables with their docs. First run found 37 undocumented routes and a wrong prompt count (the page said 39, the folder has 41); both fixed. Test: `tests/integration/docs-drift.test.mjs` (6 pass). |
 | 6 | One real book, idea to pack, live, with time and cost per stage | Owner | BLOCKED | Owner picks the book and a cost budget (`LIVE_AI=1`). |
 | 7 | A qualified reader closes the claims to verify | External | BLOCKED | Needs a qualified reader. |
 | 8 | KDP or Kindle Previewer accepts the pack | Owner | BLOCKED | Needs item 6, then the owner's confirmation. |
 | 9 | The run is a checklist in `docs/06-quality/` | Claude | OPEN | Written after item 6, from the real run. |
 
-Order for Claude's remaining items, by value: 4 (visible to users), 2 (CI flake), 3 (largest, Opus). Item 9 waits for item 6.
+Claude's items are finished except the parked cover layout work in item 3. Item 9 waits for item 6. Next is Stage 4 building, from the owner's list.
 
 ### V2: Trust (fewer surprises, less to maintain)
 
