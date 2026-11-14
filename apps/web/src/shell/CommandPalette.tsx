@@ -32,6 +32,25 @@ interface Command {
   run: () => void;
 }
 
+/**
+ * The Pause or Resume action for the sample writing job (Handover). It exists only in demo mode: the live
+ * app never shows the sample job, so a signed-in person is never offered to pause a job they did not start.
+ */
+export function writingJobCommand(
+  job: Pick<ReturnType<typeof useWritingJob>, "running" | "paused" | "pause" | "resume"> & { job: { label: string } },
+  api: boolean,
+): Command | null {
+  if (api || !job.running) return null;
+  return {
+    id: "job",
+    group: "Actions",
+    label: job.paused ? "Resume writing" : "Pause writing",
+    hint: job.job.label.replace("Writing ", ""),
+    icon: job.paused ? Play : Pause,
+    run: job.paused ? job.resume : job.pause,
+  };
+}
+
 /** Wrap matches of the query in <mark> (pencil, bold). */
 function highlight(text: string, q: string): ReactNode {
   if (!q) return text;
@@ -169,18 +188,10 @@ export function CommandPalette() {
       icon: theme === "dark" ? Sun : Moon,
       run: () => setTheme(theme === "dark" ? "light" : "dark"),
     });
-    if (job.running) {
-      list.push({
-        id: "job",
-        group: "Actions",
-        label: job.paused ? "Resume writing" : "Pause writing",
-        hint: job.job.label.replace("Writing ", ""),
-        icon: job.paused ? Play : Pause,
-        run: job.paused ? job.resume : job.pause,
-      });
-    }
+    const jobCommand = writingJobCommand(job, api);
+    if (jobCommand) list.push(jobCommand);
     return list;
-  }, [bookInView, serverBook, paletteBooks, toast, onEditor, navigate, theme, setTheme, job]);
+  }, [bookInView, serverBook, paletteBooks, toast, onEditor, navigate, theme, setTheme, job, api]);
 
   const q = query.trim().toLowerCase();
   const results = useMemo(
