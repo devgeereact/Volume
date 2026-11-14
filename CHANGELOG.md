@@ -5,6 +5,7 @@ User-visible changes, newest first. Dates in British format.
 ## 14 November 2026
 
 #### Changed
+- A new check, `npm run docs:drift`, fails when the API spec, the prompts page or the data model no longer match the code. It runs in `npm run verify` and in CI. Its first run found 37 routes missing from the API spec and a wrong prompt count; both are fixed. No change to the app.
 - No change to the app. Project rules and records now follow the house working method: review points, models and approvals are written in AGENTS.md, and stale notes about blocked GitHub checks and a draft plan were corrected (D-071).
 
 ## 9 November 2026

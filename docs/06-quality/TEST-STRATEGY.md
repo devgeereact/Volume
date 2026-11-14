@@ -14,7 +14,7 @@ Every change is checked with typecheck, lint and the relevant tests before anyon
 | End to end | Playwright with the mock AI provider | `npm run e2e` |
 | Tooling | Node test runner (`tests/integration/runtime.test.mjs`) | `npm run test:tooling` |
 | Smoke | Playwright walk on a scratch database (`tests/smoke/smoke.mjs`) | `BASE_URL=... node tests/smoke/smoke.mjs` |
-| Everything CI runs, on your Mac | doctor, docs, tooling, typecheck, lint, format, coverage, web build, e2e | `npm run verify` |
+| Everything CI runs, on your Mac | doctor, docs, docs drift, tooling, typecheck, lint, format, coverage, web build, e2e | `npm run verify` |
 | Live AI | Budgeted owner run, separate from automated checks | No root live-test script exists. Agree the budget and set `LIVE_AI=1` before a live run |
 | Hooks | Bash test script | `npm run hooks:test` |
 

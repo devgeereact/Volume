@@ -29,10 +29,11 @@
     "doctor": "node scripts/doctor.mjs",
     "test:tooling": "node --test tests/integration/*.test.mjs",
     "docs:check": "node scripts/check-docs.mjs",
+    "docs:drift": "node scripts/check-drift.mjs",
     "build:release": "node scripts/build-release.mjs",
     "deploy": "node scripts/deploy.mjs",
     "pages": "node scripts/pages-convert.mjs",
-    "verify": "npm run doctor && npm run docs:check && npm run test:tooling && npm run typecheck && npm run lint && npm run format:check && npm run test:coverage && npm run test -w apps/web && npm run build -w apps/web && npm run build:release && npm run e2e"
+    "verify": "npm run doctor && npm run docs:check && npm run docs:drift && npm run test:tooling && npm run typecheck && npm run lint && npm run format:check && npm run test:coverage && npm run test -w apps/web && npm run build -w apps/web && npm run build:release && npm run e2e"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

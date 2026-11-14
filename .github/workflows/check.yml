@@ -35,6 +35,7 @@ jobs:
         run: node node_modules/playwright/cli.js install chromium
       - run: npm run doctor
       - run: npm run docs:check
+      - run: npm run docs:drift
       - run: npm run test:tooling
       - run: npm run typecheck
       # ESLint with type-aware rules ran out of the default ~2 GB heap on the macOS runner (1 November 2026, twice).

@@ -1,6 +1,6 @@
 # API specification
 
-API version: /api/v1. Inventory extracted from route source on 7 October 2026 and rechecked on 16 October 2026 (route files live in `apps/server/src/routes/`). This table records discovered route declarations, not a claim that every operation was runtime-tested during the documentation move.
+API version: /api/v1. Inventory extracted from route source on 7 October 2026. Since 14 November 2026 `npm run docs:drift` fails when this table and the registered routes differ (route files live in `apps/server/src/routes/`). This table records discovered route declarations, not a claim that every operation was runtime-tested during the documentation move.
 
 Sign-in: with `AUTH_MODE=clerk` (production) every `/api/v1` route needs a Clerk session, sent as `Authorization: Bearer <session token>` by the API client or as Clerk's same-origin `__session` cookie (SSE, images, downloads). No session: 401 `unauthorized`. Signed in but not on the allowlist: 403 `forbidden`. Too many requests: 429 `rate_limited`. With `AUTH_MODE=local` (development) the owner stub applies. See [auth model](../05-security/AUTH-MODEL.md).
 
@@ -127,6 +127,43 @@ All routes use server-resolved owner/workspace context. Requests are validated b
 | POST | `/api/v1/books/import-manuscript` | `apps/server/src/routes/transfer.ts` |
 | POST | `/api/v1/projects/import` | `apps/server/src/routes/transfer.ts` |
 | POST | `/api/v1/books/import-project` | `apps/server/src/routes/transfer.ts` |
+| DELETE | `/api/v1/workspace` | `apps/server/src/routes/account.ts` |
+| GET | `/api/v1/workspace/export` | `apps/server/src/routes/account.ts` |
+| POST | `/api/v1/me/leave` | `apps/server/src/routes/account.ts` |
+| DELETE | `/api/v1/batches/:id` | `apps/server/src/routes/batches.ts` |
+| GET | `/api/v1/batches` | `apps/server/src/routes/batches.ts` |
+| GET | `/api/v1/batches/:id` | `apps/server/src/routes/batches.ts` |
+| GET | `/api/v1/batches/:id/gates` | `apps/server/src/routes/batches.ts` |
+| PATCH | `/api/v1/batches/:id` | `apps/server/src/routes/batches.ts` |
+| POST | `/api/v1/batches` | `apps/server/src/routes/batches.ts` |
+| POST | `/api/v1/batches/:id/items/:itemId/ready` | `apps/server/src/routes/batches.ts` |
+| POST | `/api/v1/batches/:id/start` | `apps/server/src/routes/batches.ts` |
+| POST | `/api/v1/books/:id/picture-book/estimate` | `apps/server/src/routes/estimate.ts` |
+| POST | `/api/v1/books/:id/claims/clear-gone` | `apps/server/src/routes/fixes.ts` |
+| GET | `/api/v1/books/:id/story-ledger` | `apps/server/src/routes/manuscript.ts` |
+| POST | `/api/v1/sections/:id/recheck` | `apps/server/src/routes/manuscript.ts` |
+| POST | `/api/v1/sections/:id/summarise` | `apps/server/src/routes/manuscript.ts` |
+| DELETE | `/api/v1/invitations/:id` | `apps/server/src/routes/members.ts` |
+| DELETE | `/api/v1/members/:userId` | `apps/server/src/routes/members.ts` |
+| GET | `/api/v1/me` | `apps/server/src/routes/members.ts` |
+| GET | `/api/v1/members` | `apps/server/src/routes/members.ts` |
+| PATCH | `/api/v1/members/:userId` | `apps/server/src/routes/members.ts` |
+| POST | `/api/v1/invitations` | `apps/server/src/routes/members.ts` |
+| POST | `/api/v1/books/:id/cover/preview` | `apps/server/src/routes/production.ts` |
+| PUT | `/api/v1/books/:id/preflight/acknowledgements` | `apps/server/src/routes/production.ts` |
+| GET | `/api/v1/books/:id/rebuilds` | `apps/server/src/routes/rebuild.ts` |
+| POST | `/api/v1/books/:id/rebuild` | `apps/server/src/routes/rebuild.ts` |
+| POST | `/api/v1/books/:id/rebuilds/:jobId/undo` | `apps/server/src/routes/rebuild.ts` |
+| DELETE | `/api/v1/schedule/slots/:id` | `apps/server/src/routes/schedule.ts` |
+| GET | `/api/v1/schedule` | `apps/server/src/routes/schedule.ts` |
+| POST | `/api/v1/schedule/slots` | `apps/server/src/routes/schedule.ts` |
+| POST | `/api/v1/schedule/slots/:id/confirm` | `apps/server/src/routes/schedule.ts` |
+| GET | `/api/v1/books/:id/characters` | `apps/server/src/routes/spreads.ts` |
+| GET | `/api/v1/books/:id/spreads` | `apps/server/src/routes/spreads.ts` |
+| PATCH | `/api/v1/spreads/:id` | `apps/server/src/routes/spreads.ts` |
+| POST | `/api/v1/books/:id/picture-book` | `apps/server/src/routes/spreads.ts` |
+| POST | `/api/v1/books/:id/picture-book/export` | `apps/server/src/routes/spreads.ts` |
+| POST | `/api/v1/spreads/:id/image` | `apps/server/src/routes/spreads.ts` |
 
 Moving a book (D-051): `POST /api/v1/books/:id/export-project` returns the project zip. `POST /api/v1/books/import-project` takes `multipart/form-data` with `profileId` (a pen name in the caller's workspace) and `file` (the zip). It always makes a new book, owner or editor only, and is limited to 5 imports per minute per visitor. `POST /api/v1/projects/import` takes the raw zip as `application/zip` (optional `?profileId=`) and is the older route.
 

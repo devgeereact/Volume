@@ -61,7 +61,7 @@ Finish line:
 
 Owner gates: approve the push of each branch; pick the book and a cost budget; confirm acceptance.
 
-#### V1 status on 14 November 2026 (0 of 9 ticked)
+#### V1 status on 14 November 2026 (1 of 9 ticked)
 
 Who does each open item: Owner (needs the owner), Claude (can be built and proved locally), External (needs someone outside).
 
@@ -71,13 +71,13 @@ Who does each open item: Owner (needs the owner), Claude (can be built and prove
 | 2 | Cover branches merged; screenshot test does not flake | Claude | PARTIAL | The three branches are merged (PR #96). The flake is not gone: `cover-typography.test.ts` failed once on 14 November with "Unable to capture screenshot" in `node24-host` and passed on re-run. |
 | 3 | Cover layout right; preview and build share one set of layout maths | Claude | OPEN | Layout maths still sits in `packages/export/src/covers.ts` and separately in `apps/web/src/features/cover/` (`DemoWrap.tsx`, `WrapPreview.tsx`, `layers.ts`). Needs Opus (cover maths). |
 | 4 | No demo content or prototype wording for a signed-in user | Claude | OPEN | Demo data and wording remain in `apps/web/src` (`demo/`, `features/spreads/demoStore.ts`, `features/volume-mode/demoVolume.ts`, `features/research/sim.ts` and others). Each needs a check that it is unreachable when signed in. |
-| 5 | Docs match code, with a check that fails on drift | Claude | OPEN | `scripts/check-docs.mjs` checks links only. No route, table or prompt count check exists. |
+| 5 | Docs match code, with a check that fails on drift | Claude | DONE | `npm run docs:drift` (`scripts/check-drift.mjs`, in `verify` and CI) compares API routes, prompts and database tables with their docs. First run found 37 undocumented routes and a wrong prompt count (the page said 39, the folder has 41); both fixed. Test: `tests/integration/docs-drift.test.mjs` (6 pass). |
 | 6 | One real book, idea to pack, live, with time and cost per stage | Owner | BLOCKED | Owner picks the book and a cost budget (`LIVE_AI=1`). |
 | 7 | A qualified reader closes the claims to verify | External | BLOCKED | Needs a qualified reader. |
 | 8 | KDP or Kindle Previewer accepts the pack | Owner | BLOCKED | Needs item 6, then the owner's confirmation. |
 | 9 | The run is a checklist in `docs/06-quality/` | Claude | OPEN | Written after item 6, from the real run. |
 
-Order for Claude's items, by value: 5 (small, stops drift), 4 (visible to users), 2 (CI flake), 3 (largest, Opus). Item 9 waits for item 6.
+Order for Claude's remaining items, by value: 4 (visible to users), 2 (CI flake), 3 (largest, Opus). Item 9 waits for item 6.
 
 ### V2: Trust (fewer surprises, less to maintain)
 
