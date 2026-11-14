@@ -526,3 +526,11 @@ Added a read-only TypeScript all-page diagnostic with the existing fixture, refe
 - **Decision:** superpowers is the build method (brainstorm, plan, test first, verify, review, finish the branch). Work is grouped into versions V0 to V4 with a frozen finish line of at most 10 items each, owned by `/finish-app` ([VERSIONS-PLAN](plans/VERSIONS-PLAN.md)). Specs and plans go in `docs/08-change-management/plans/`. The GSD files were folded into `docs/KNOWN-ISSUES.md`, `docs/AUDIT.md` and the plan; the archive folder `plans/GSD-2026-11/` was deleted on 13 November 2026 at the owner's word. Agents default to Sonnet; Opus and Haiku are chosen per job and the reason goes in the handoff. A code map is kept in `graphify-out/` (rebuilt locally, not in Git).
 - **Options considered:** keep GSD beside superpowers (two plans, two state files, drift).
 - **Consequences:** no `/gsd-*` commands and no `.planning/`. The old GSD files were never in Git, so they are gone; everything that still mattered is in `docs/KNOWN-ISSUES.md`.
+
+## D-071, 14 November 2026: working method aligned with the house standard
+
+- **Status:** Accepted (owner's house-standard rollout prompt, stages 0 to 3, 14 November 2026).
+- **Context:** the kit's RULES.md section 10 describes one working method for every project. Volume is its source but had gaps: no written review loop, GSD described only as "retired", no explicit "approved:" wording for pushes.
+- **Decision:** AGENTS.md now carries the seven review points, the "start on Sonnet" rule, GSD as an optional skill on request only, and "approved:" for any push or merge. Three differences stay on purpose: npm (never pnpm), the numbered docs tree with specs and plans in `docs/08-change-management/plans/` (no `docs/superpowers/`), and the gate `npm run verify`. The one changelog is the root `CHANGELOG.md` (read by `scripts/check-docs.mjs`), not `docs/CHANGELOG.md`.
+- **Options considered:** move the changelog to `docs/` (breaks the docs check and every reference for no gain); convert to pnpm (owner exception).
+- **Consequences:** no behaviour change. Tailwind CSS v4 was already adopted (Vite plugin, `tailwindcss` and `@tailwindcss/vite` 4.3.3 in `apps/web`, no config file or PostCSS). Prettier and ESLint stay; moving to Biome is a later owner decision.

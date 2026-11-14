@@ -2,10 +2,18 @@
 
 Current state only. Dated history is in `.agent/HANDOFF.md`; audits in `docs/AUDIT.md`; the live release in `docs/07-operations/DEPLOYMENT.md`.
 
+## State on 14 November 2026 (house-standard rollout, stages 0 to 3)
+
+- **Git:** `main` = `origin/main` = `9850698`, clean. PRs #96 and #97 are merged (the "PR #96 waiting" and "three cover branches waiting for push" notes below are done). "Check Volume" run 43518906300 and Deploy run 43521018610 are green on that commit. Backup bundle: `~/Backups/projects/Volume/Volume-20261113-2352.bundle` (verified).
+- **Branch `chore/house-standard` (local, not pushed):** working-method gaps closed in AGENTS.md (review points, Sonnet-first, GSD optional, `approved:` for push and merge), D-071, stale notes corrected. Tailwind v4 already adopted (4.3.3, Vite plugin, `.flex` in built CSS); bump to 4.3.5 not done (needs a green gate).
+- **Gate:** `npm run verify` stops at `tests/integration/runtime.test.mjs` "standalone dev starts from another cwd" (API not up within 16 s) while other Claude sessions keep the load average at 25 to 38 on 8 cores. Green in CI on the same commit, so treated as load, not code. Steps after it were run one by one; results in `docs/AUDIT.md`. Re-run the full gate when the machine is quiet, or on the Mac.
+- **Owner list:** remote branches `docs/record-release-20261109`, `feat/v0-base-and-covers`, `fix/claims-honest-results`, `fix/e2e-title-set-race` are merged and can be deleted on GitHub (needs "approved:"). `graphify` is not installed on this Ubuntu machine, so `graphify-out/` is absent here; rebuild on the Mac.
+- **Next:** owner reviews `chore/house-standard` and says "approved: push Volume" (a merge to `main` deploys: PUSH TO MAIN DEPLOYS Volume), then `/finish-app` for V1.
+
 ## State on 13 November 2026
 
 - **Method (owner approved 13 November 2026, D-070):** superpowers plans and builds; GSD is retired. Plan: `docs/08-change-management/plans/VERSIONS-PLAN.md` (V0 clean base, V1 live and proven, V2 trust, V3 faster daily work, V4 conditional). Approved: the plan, the core value sentence, the root-folder proposals and the paid docs graph run (each deletion and the paid run still get a one-line check).
-- **V0 progress (local, uncommitted):** all six items done. GSD content merged into `docs/KNOWN-ISSUES.md` and the `GSD-2026-11/` folder deleted; `npm run verify` now includes web tests and `build:release` and passed (exit 0, 20 e2e); `qa/` moved to `docs/06-quality/evidence/`; `.nvmrc` deleted (`mise.toml` is the Node source); `local-live.json`, `CODEX.md`, `GEMINI.md` kept; all seven agents default to Sonnet; AGENTS.md carries method, models and graph rule; graph in `graphify-out/` now covers code, docs and prompts (9,267 nodes, 287 communities).
+- **V0 progress (merged in PR #96):** all six items done. GSD content merged into `docs/KNOWN-ISSUES.md` and the `GSD-2026-11/` folder deleted; `npm run verify` now includes web tests and `build:release` and passed (exit 0, 20 e2e); `qa/` moved to `docs/06-quality/evidence/`; `.nvmrc` deleted (`mise.toml` is the Node source); `local-live.json`, `CODEX.md`, `GEMINI.md` kept; all seven agents default to Sonnet; AGENTS.md carries method, models and graph rule; graph in `graphify-out/` now covers code, docs and prompts (9,267 nodes, 287 communities).
 - **Next:** owner reads the result and says go for V1. V1 starts with a brainstorm to freeze its finish line (max 10 items), then a task plan. Still unanswered from the owner: what "finished" looks like, and what would make them wince. Commit nothing until the owner asks.
 - **Still blocked on the owner:** push approval for the three cover branches and the host steps below. Their state is unchanged.
 
